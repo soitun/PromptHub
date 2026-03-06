@@ -1,7 +1,7 @@
 /**
  * WebDAV Sync Service - Support incremental backup, image sync, version history and bidirectional sync
  * WebDAV 同步服务 - 支持增量备份、图片同步、版本历史和双向同步
- * 
+ *
  * Incremental backup architecture:
  * 增量备份架构：
  * prompthub-backup/
@@ -15,8 +15,19 @@
  *     └── ...
  */
 
-import { getAllPrompts, getAllFolders, restoreFromBackup, exportDatabase } from './database';
-import type { PromptVersion } from '../../shared/types';
+import {
+  getAllPrompts,
+  getAllFolders,
+} from "./database";
+import { exportDatabase, restoreFromBackup } from "./database-backup";
+import {
+  getAiConfigSnapshot,
+  getSettingsStateSnapshot,
+  restoreAiConfigSnapshot,
+  restoreSettingsStateSnapshot,
+  SENSITIVE_SETTINGS_FIELDS,
+} from "./settings-snapshot";
+import type { PromptVersion } from "../../shared/types";
 
 interface WebDAVConfig {
   url: string;
@@ -35,32 +46,35 @@ interface SyncResult {
     imagesDownloaded?: number;
     videosUploaded?: number;
     videosDownloaded?: number;
-    skipped?: number;  // Skipped files (unchanged) / 跳过的文件数（未变化）
+    skillsDownloaded?: number;
+    skipped?: number; // Skipped files (unchanged) / 跳过的文件数（未变化）
   };
 }
 
 // Incremental backup Manifest structure
 // 增量备份 Manifest 结构
 interface BackupManifest {
-  version: string;           // Backup format version / 备份格式版本
-  createdAt: string;         // First creation time / 首次创建时间
-  updatedAt: string;         // Last update time / 最后更新时间
-  dataHash: string;          // Hash of data.json / data.json 的 hash
-  images: {                  // Image index / 图片索引
+  version: string; // Backup format version / 备份格式版本
+  createdAt: string; // First creation time / 首次创建时间
+  updatedAt: string; // Last update time / 最后更新时间
+  dataHash: string; // Hash of data.json / data.json 的 hash
+  images: {
+    // Image index / 图片索引
     [fileName: string]: {
-      hash: string;          // Content hash / 内容 hash
-      size: number;          // File size / 文件大小
-      uploadedAt: string;    // Upload time / 上传时间
+      hash: string; // Content hash / 内容 hash
+      size: number; // File size / 文件大小
+      uploadedAt: string; // Upload time / 上传时间
     };
   };
-  videos: {                  // Video index / 视频索引
+  videos: {
+    // Video index / 视频索引
     [fileName: string]: {
-      hash: string;          // Content hash / 内容 hash
-      size: number;          // File size / 文件大小
-      uploadedAt: string;    // Upload time / 上传时间
+      hash: string; // Content hash / 内容 hash
+      size: number; // File size / 文件大小
+      uploadedAt: string; // Upload time / 上传时间
     };
   };
-  encrypted?: boolean;       // Whether encrypted / 是否加密
+  encrypted?: boolean; // Whether encrypted / 是否加密
 }
 
 interface BackupData {
@@ -68,7 +82,7 @@ interface BackupData {
   exportedAt: string;
   prompts: any[];
   folders: any[];
-  versions?: PromptVersion[];  // Version history / 版本历史
+  versions?: PromptVersion[]; // Version history / 版本历史
   images?: { [fileName: string]: string }; // fileName -> base64 (legacy compatible) / fileName -> base64（兼容旧版）
   videos?: { [fileName: string]: string }; // fileName -> base64 (for video sync) / fileName -> base64（用于视频同步）
   // AI configuration (optional, for sync)
@@ -87,26 +101,29 @@ interface BackupData {
   // Encryption flag
   // 加密标记
   encrypted?: boolean;
+  // Skills (stored in main process SQLite)
+  // 技能（存储在主进程 SQLite）
+  skills?: any[];
 }
 
 // WebDAV sync options
 // WebDAV 同步选项
 export interface WebDAVSyncOptions {
-  includeImages?: boolean;      // Whether to include images (full backup) / 是否包含图片（全量备份）
-  encryptionPassword?: string;  // Encryption password (experimental) / 加密密码（实验性）
-  incrementalSync?: boolean;    // Whether to use incremental sync (default true) / 是否使用增量同步（默认 true）
+  includeImages?: boolean; // Whether to include images (full backup) / 是否包含图片（全量备份）
+  encryptionPassword?: string; // Encryption password (experimental) / 加密密码（实验性）
+  incrementalSync?: boolean; // Whether to use incremental sync (default true) / 是否使用增量同步（默认 true）
 }
 
 // WebDAV file paths
 // WebDAV 文件路径
-const BACKUP_DIR = 'prompthub-backup';
-const MANIFEST_FILENAME = 'manifest.json';
-const DATA_FILENAME = 'data.json';
-const IMAGES_DIR = 'images';
-const VIDEOS_DIR = 'videos';
+const BACKUP_DIR = "prompthub-backup";
+const MANIFEST_FILENAME = "manifest.json";
+const DATA_FILENAME = "data.json";
+const IMAGES_DIR = "images";
+const VIDEOS_DIR = "videos";
 // Compatible with legacy single-file backup
 // 兼容旧版单文件备份
-const LEGACY_BACKUP_FILENAME = 'prompthub-backup.json';
+const LEGACY_BACKUP_FILENAME = "prompthub-backup.json";
 // Temporary compatibility: keep old constant name
 // 临时兼容：保持旧的常量名
 const BACKUP_FILENAME = LEGACY_BACKUP_FILENAME;
@@ -116,7 +133,7 @@ const BACKUP_FILENAME = LEGACY_BACKUP_FILENAME;
  * Uint8Array 转 Base64（避免栈溢出）
  */
 function uint8ArrayToBase64(bytes: Uint8Array): string {
-  let binary = '';
+  let binary = "";
   const chunkSize = 0x8000; // 32KB chunks
   for (let i = 0; i < bytes.length; i += chunkSize) {
     const chunk = bytes.subarray(i, i + chunkSize);
@@ -153,33 +170,35 @@ async function encryptData(data: string, password: string): Promise<string> {
   // Derive key from password
   // 从密码派生密钥
   const keyMaterial = await crypto.subtle.importKey(
-    'raw',
+    "raw",
     encoder.encode(password),
-    'PBKDF2',
+    "PBKDF2",
     false,
-    ['deriveBits', 'deriveKey']
+    ["deriveBits", "deriveKey"],
   );
 
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const iv = crypto.getRandomValues(new Uint8Array(12));
 
   const key = await crypto.subtle.deriveKey(
-    { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
+    { name: "PBKDF2", salt, iterations: 100000, hash: "SHA-256" },
     keyMaterial,
-    { name: 'AES-GCM', length: 256 },
+    { name: "AES-GCM", length: 256 },
     false,
-    ['encrypt']
+    ["encrypt"],
   );
 
   const encrypted = await crypto.subtle.encrypt(
-    { name: 'AES-GCM', iv },
+    { name: "AES-GCM", iv },
     key,
-    dataBuffer
+    dataBuffer,
   );
 
   // Combine salt + iv + encrypted data, convert to base64
   // 组合 salt + iv + 加密数据，转为 base64
-  const combined = new Uint8Array(salt.length + iv.length + encrypted.byteLength);
+  const combined = new Uint8Array(
+    salt.length + iv.length + encrypted.byteLength,
+  );
   combined.set(salt, 0);
   combined.set(iv, salt.length);
   combined.set(new Uint8Array(encrypted), salt.length + iv.length);
@@ -191,7 +210,10 @@ async function encryptData(data: string, password: string): Promise<string> {
  * Decrypt data
  * 解密数据
  */
-async function decryptData(encryptedBase64: string, password: string): Promise<string> {
+async function decryptData(
+  encryptedBase64: string,
+  password: string,
+): Promise<string> {
   const encoder = new TextEncoder();
   const decoder = new TextDecoder();
 
@@ -206,25 +228,25 @@ async function decryptData(encryptedBase64: string, password: string): Promise<s
   // Derive key from password
   // 从密码派生密钥
   const keyMaterial = await crypto.subtle.importKey(
-    'raw',
+    "raw",
     encoder.encode(password),
-    'PBKDF2',
+    "PBKDF2",
     false,
-    ['deriveBits', 'deriveKey']
+    ["deriveBits", "deriveKey"],
   );
 
   const key = await crypto.subtle.deriveKey(
-    { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
+    { name: "PBKDF2", salt, iterations: 100000, hash: "SHA-256" },
     keyMaterial,
-    { name: 'AES-GCM', length: 256 },
+    { name: "AES-GCM", length: 256 },
     false,
-    ['decrypt']
+    ["decrypt"],
   );
 
   const decrypted = await crypto.subtle.decrypt(
-    { name: 'AES-GCM', iv },
+    { name: "AES-GCM", iv },
     key,
-    encrypted
+    encrypted,
   );
 
   return decoder.decode(decrypted);
@@ -237,35 +259,42 @@ async function decryptData(encryptedBase64: string, password: string): Promise<s
 async function computeHash(data: string): Promise<string> {
   const encoder = new TextEncoder();
   const dataBuffer = encoder.encode(data);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", dataBuffer);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 16);
+  return hashArray
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("")
+    .substring(0, 16);
 }
 
 /**
  * Upload single file to WebDAV
  * 上传单个文件到 WebDAV
  */
-async function uploadFile(url: string, config: WebDAVConfig, content: string): Promise<boolean> {
+async function uploadFile(
+  url: string,
+  config: WebDAVConfig,
+  content: string,
+): Promise<boolean> {
   try {
     if (window.electron?.webdav?.upload) {
       const result = await window.electron.webdav.upload(url, config, content);
       return result.success;
     }
 
-    const authHeader = 'Basic ' + btoa(`${config.username}:${config.password}`);
+    const authHeader = "Basic " + btoa(`${config.username}:${config.password}`);
     const response = await fetch(url, {
-      method: 'PUT',
+      method: "PUT",
       headers: {
-        'Authorization': authHeader,
-        'Content-Type': 'application/json',
-        'User-Agent': 'PromptHub/1.0',
+        Authorization: authHeader,
+        "Content-Type": "application/json",
+        "User-Agent": "PromptHub/1.0",
       },
       body: content,
     });
     return response.ok || response.status === 201 || response.status === 204;
   } catch (error) {
-    console.error('Upload file failed:', error);
+    console.error("Upload file failed:", error);
     return false;
   }
 }
@@ -274,18 +303,21 @@ async function uploadFile(url: string, config: WebDAVConfig, content: string): P
  * Download single file from WebDAV
  * 下载单个文件从 WebDAV
  */
-async function downloadFile(url: string, config: WebDAVConfig): Promise<{ success: boolean; data?: string; notFound?: boolean }> {
+async function downloadFile(
+  url: string,
+  config: WebDAVConfig,
+): Promise<{ success: boolean; data?: string; notFound?: boolean }> {
   try {
     if (window.electron?.webdav?.download) {
       return await window.electron.webdav.download(url, config);
     }
 
-    const authHeader = 'Basic ' + btoa(`${config.username}:${config.password}`);
+    const authHeader = "Basic " + btoa(`${config.username}:${config.password}`);
     const response = await fetch(url, {
-      method: 'GET',
+      method: "GET",
       headers: {
-        'Authorization': authHeader,
-        'User-Agent': 'PromptHub/1.0',
+        Authorization: authHeader,
+        "User-Agent": "PromptHub/1.0",
       },
     });
 
@@ -300,7 +332,7 @@ async function downloadFile(url: string, config: WebDAVConfig): Promise<{ succes
 
     return { success: false };
   } catch (error) {
-    console.error('Download file failed:', error);
+    console.error("Download file failed:", error);
     return { success: false };
   }
 }
@@ -311,12 +343,12 @@ async function downloadFile(url: string, config: WebDAVConfig): Promise<{ succes
  */
 async function deleteFile(url: string, config: WebDAVConfig): Promise<boolean> {
   try {
-    const authHeader = 'Basic ' + btoa(`${config.username}:${config.password}`);
+    const authHeader = "Basic " + btoa(`${config.username}:${config.password}`);
     const response = await fetch(url, {
-      method: 'DELETE',
+      method: "DELETE",
       headers: {
-        'Authorization': authHeader,
-        'User-Agent': 'PromptHub/1.0',
+        Authorization: authHeader,
+        "User-Agent": "PromptHub/1.0",
       },
     });
     return response.ok || response.status === 204 || response.status === 404;
@@ -342,14 +374,14 @@ async function ensureDirectory(url: string, config: WebDAVConfig) {
 
     // Fallback to fetch (only effective in packaged Electron)
     // 回退到 fetch（仅在打包后的 Electron 中有效）
-    const authHeader = 'Basic ' + btoa(`${config.username}:${config.password}`);
+    const authHeader = "Basic " + btoa(`${config.username}:${config.password}`);
     const checkRes = await fetch(url, {
-      method: 'PROPFIND',
+      method: "PROPFIND",
       headers: {
-        'Authorization': authHeader,
-        'Depth': '0',
-        'User-Agent': 'PromptHub/1.0',
-      }
+        Authorization: authHeader,
+        Depth: "0",
+        "User-Agent": "PromptHub/1.0",
+      },
     });
 
     if (checkRes.ok || checkRes.status === 207) {
@@ -357,14 +389,14 @@ async function ensureDirectory(url: string, config: WebDAVConfig) {
     }
 
     await fetch(url, {
-      method: 'MKCOL',
+      method: "MKCOL",
       headers: {
-        'Authorization': authHeader,
-        'User-Agent': 'PromptHub/1.0',
-      }
+        Authorization: authHeader,
+        "User-Agent": "PromptHub/1.0",
+      },
     });
   } catch (e) {
-    console.warn('Failed to ensure directory:', e);
+    console.warn("Failed to ensure directory:", e);
   }
 }
 
@@ -374,7 +406,9 @@ async function ensureDirectory(url: string, config: WebDAVConfig) {
  * Prefer main process IPC to bypass CORS
  * 优先使用主进程 IPC 绕过 CORS
  */
-export async function testConnection(config: WebDAVConfig): Promise<SyncResult> {
+export async function testConnection(
+  config: WebDAVConfig,
+): Promise<SyncResult> {
   try {
     // Prefer main process IPC (bypass CORS)
     // 优先使用主进程 IPC（绕过 CORS）
@@ -386,23 +420,33 @@ export async function testConnection(config: WebDAVConfig): Promise<SyncResult> 
     // Fallback to fetch (only effective in packaged Electron)
     // 回退到 fetch（仅在打包后的 Electron 中有效）
     const response = await fetch(config.url, {
-      method: 'PROPFIND',
+      method: "PROPFIND",
       headers: {
-        'Authorization': 'Basic ' + btoa(`${config.username}:${config.password}`),
-        'Depth': '0',
-        'User-Agent': 'PromptHub/1.0',
+        Authorization: "Basic " + btoa(`${config.username}:${config.password}`),
+        Depth: "0",
+        "User-Agent": "PromptHub/1.0",
       },
     });
 
     if (response.ok || response.status === 207) {
-      return { success: true, message: 'Connection successful / 连接成功' };
+      return { success: true, message: "Connection successful / 连接成功" };
     } else if (response.status === 401) {
-      return { success: false, message: 'Authentication failed, please check username and password / 认证失败，请检查用户名和密码' };
+      return {
+        success: false,
+        message:
+          "Authentication failed, please check username and password / 认证失败，请检查用户名和密码",
+      };
     } else {
-      return { success: false, message: `Connection failed: ${response.status} ${response.statusText} / 连接失败: ${response.status} ${response.statusText}` };
+      return {
+        success: false,
+        message: `Connection failed: ${response.status} ${response.statusText} / 连接失败: ${response.status} ${response.statusText}`,
+      };
     }
   } catch (error) {
-    return { success: false, message: `Connection failed: ${error instanceof Error ? error.message : 'Unknown error'} / 连接失败: ${error instanceof Error ? error.message : '未知错误'}` };
+    return {
+      success: false,
+      message: `Connection failed: ${error instanceof Error ? error.message : "Unknown error"} / 连接失败: ${error instanceof Error ? error.message : "未知错误"}`,
+    };
   }
 }
 
@@ -410,7 +454,9 @@ export async function testConnection(config: WebDAVConfig): Promise<SyncResult> 
  * Collect all images that need to be synced
  * 收集所有需要同步的图片
  */
-async function collectImages(prompts: any[]): Promise<{ [fileName: string]: string }> {
+async function collectImages(
+  prompts: any[],
+): Promise<{ [fileName: string]: string }> {
   const images: { [fileName: string]: string } = {};
   const imageFileNames = new Set<string>();
 
@@ -444,150 +490,6 @@ async function collectImages(prompts: any[]): Promise<{ [fileName: string]: stri
  * Get AI config (from localStorage)
  * 获取 AI 配置（从 localStorage）
  */
-function getAiConfig(): BackupData['aiConfig'] {
-  try {
-    const primary = localStorage.getItem('prompthub-settings');
-    const legacy = localStorage.getItem('settings-storage');
-    const raw = primary || legacy;
-    if (!raw) return undefined;
-    const data = JSON.parse(raw);
-    const state = data?.state;
-    if (!state) return undefined;
-
-    // Security: Filter out API keys from AI models before syncing
-    // 安全：同步前过滤 AI 模型中的 API 密钥
-    // API keys are sensitive and should NOT be uploaded to WebDAV
-    // API 密钥是敏感信息，不应上传到 WebDAV
-    const filteredModels = (state.aiModels || []).map((model: any) => {
-      const { apiKey, ...rest } = model;
-      return rest;
-    });
-
-    return {
-      aiModels: filteredModels,
-      aiProvider: state.aiProvider,
-      // aiApiKey is intentionally excluded for security
-      // aiApiKey 出于安全考虑被故意排除
-      aiApiUrl: state.aiApiUrl,
-      aiModel: state.aiModel,
-    };
-  } catch (error) {
-    console.warn('Failed to get AI config:', error);
-  }
-  return undefined;
-}
-
-/**
- * Get settings snapshot (from localStorage)
- * 获取系统设置快照（从 localStorage）
- */
-function getSettingsSnapshot(): { state?: any; settingsUpdatedAt?: string } | undefined {
-  try {
-    const raw = localStorage.getItem('prompthub-settings');
-    if (!raw) return undefined;
-    const data = JSON.parse(raw);
-    const state = data?.state;
-    if (!state) return undefined;
-
-    // Security: Filter out sensitive fields before exporting to WebDAV
-    // 安全：导出到 WebDAV 前过滤敏感字段
-    // These fields should NOT be synced for security reasons:
-    // 这些字段出于安全考虑不应同步：
-    // - webdavUsername / webdavPassword: WebDAV credentials (circular reference & security)
-    // - webdavEncryptionPassword: Encryption key (security)
-    // - aiApiKey: API keys for AI services (security)
-    // Issue: https://github.com/legeling/PromptHub/issues/23
-    const sensitiveFields = [
-      'webdavUsername',
-      'webdavPassword',
-      'webdavEncryptionPassword',
-      'aiApiKey',
-    ];
-
-    const filteredState = { ...state };
-    for (const field of sensitiveFields) {
-      delete filteredState[field];
-    }
-
-    return {
-      state: filteredState,
-      settingsUpdatedAt: state.settingsUpdatedAt,
-    };
-  } catch (error) {
-    console.warn('Failed to get settings snapshot:', error);
-    return undefined;
-  }
-}
-
-/**
- * Restore AI config (to localStorage)
- * 恢复 AI 配置（到 localStorage）
- */
-function restoreAiConfig(aiConfig: BackupData['aiConfig']): void {
-  if (!aiConfig) return;
-
-  try {
-    const primaryKey = 'prompthub-settings';
-    const legacyKey = 'settings-storage';
-    const storedPrimary = localStorage.getItem(primaryKey);
-    const storedLegacy = localStorage.getItem(legacyKey);
-    const targetKey = storedPrimary ? primaryKey : (storedLegacy ? legacyKey : primaryKey);
-    const stored = storedPrimary || storedLegacy;
-    const data = stored ? JSON.parse(stored) : { state: {} };
-    if (!data.state) data.state = {};
-
-    // Only update AI-related config
-    // 只更新 AI 相关配置
-    if (aiConfig.aiModels) data.state.aiModels = aiConfig.aiModels;
-    if (aiConfig.aiProvider) data.state.aiProvider = aiConfig.aiProvider;
-    if (aiConfig.aiApiKey) data.state.aiApiKey = aiConfig.aiApiKey;
-    if (aiConfig.aiApiUrl) data.state.aiApiUrl = aiConfig.aiApiUrl;
-    if (aiConfig.aiModel) data.state.aiModel = aiConfig.aiModel;
-    localStorage.setItem(targetKey, JSON.stringify(data));
-  } catch (error) {
-    console.warn('Failed to restore AI config:', error);
-  }
-}
-
-/**
- * Restore system settings (to localStorage)
- * 恢复系统设置（到 localStorage）
- * IMPORTANT: Preserve local sensitive fields that are NOT synced to WebDAV
- * 重要：保留本地敏感字段，这些字段不会同步到 WebDAV
- */
-function restoreSettingsSnapshot(settings: BackupData['settings']): void {
-  if (!settings?.state) return;
-  try {
-    // Read current local settings to preserve sensitive fields
-    // 读取当前本地设置以保留敏感字段
-    const currentRaw = localStorage.getItem('prompthub-settings');
-    const currentData = currentRaw ? JSON.parse(currentRaw) : { state: {} };
-    const currentState = currentData?.state || {};
-
-    // Sensitive fields that should NOT be overwritten by WebDAV sync
-    // 不应被 WebDAV 同步覆盖的敏感字段
-    const sensitiveFields = [
-      'webdavUsername',
-      'webdavPassword',
-      'webdavEncryptionPassword',
-      'aiApiKey',
-    ];
-
-    // Merge: use remote settings as base, but preserve local sensitive fields
-    // 合并：以远程设置为基础，但保留本地敏感字段
-    const mergedState = { ...settings.state };
-    for (const field of sensitiveFields) {
-      if (currentState[field] !== undefined) {
-        mergedState[field] = currentState[field];
-      }
-    }
-
-    localStorage.setItem('prompthub-settings', JSON.stringify({ state: mergedState }));
-  } catch (error) {
-    console.warn('Failed to restore settings snapshot:', error);
-  }
-}
-
 /**
  * Upload data to WebDAV (including images, version history and AI configuration)
  * 上传数据到 WebDAV（包含图片、版本历史和 AI 配置）
@@ -596,7 +498,10 @@ function restoreSettingsSnapshot(settings: BackupData['settings']): void {
  * @param config WebDAV config
  * @param options Sync options (optional)
  */
-export async function uploadToWebDAV(config: WebDAVConfig, options?: WebDAVSyncOptions): Promise<SyncResult> {
+export async function uploadToWebDAV(
+  config: WebDAVConfig,
+  options?: WebDAVSyncOptions,
+): Promise<SyncResult> {
   // Use incremental sync by default
   // 默认使用增量同步
   if (options?.incrementalSync !== false) {
@@ -606,7 +511,10 @@ export async function uploadToWebDAV(config: WebDAVConfig, options?: WebDAVSyncO
   try {
     // Full backup mode (legacy compatible)
     // 全量备份模式（兼容旧版）
-    const fullBackup = await exportDatabase();
+    const [fullBackup, skills] = await Promise.all([
+      exportDatabase(),
+      window.api.skill?.getAll().catch(() => []) || [],
+    ]);
 
     // Decide whether to include images based on options
     // 根据选项决定是否包含图片
@@ -617,22 +525,23 @@ export async function uploadToWebDAV(config: WebDAVConfig, options?: WebDAVSyncO
     const videosCount = videos ? Object.keys(videos).length : 0;
 
     const backupData: BackupData = {
-      version: '3.0',  // Upgrade version / 升级版本号
+      version: "3.1", // Upgrade version / 升级版本号（添加 skills 支持）
       exportedAt: new Date().toISOString(),
       prompts: fullBackup.prompts,
       folders: fullBackup.folders,
-      versions: fullBackup.versions,  // Include version history / 包含版本历史
+      versions: fullBackup.versions, // Include version history / 包含版本历史
       images,
       videos,
       aiConfig: fullBackup.aiConfig,
       settings: fullBackup.settings,
       settingsUpdatedAt: fullBackup.settingsUpdatedAt,
+      skills, // Include skills / 包含技能
     };
 
     // Ensure remote directory exists
     await ensureDirectory(config.url, config);
 
-    const fileUrl = `${config.url.replace(/\/$/, '')}/${BACKUP_FILENAME}`;
+    const fileUrl = `${config.url.replace(/\/$/, "")}/${BACKUP_FILENAME}`;
     let bodyString: string;
 
     // If encryption password is provided, only encrypt non-image data
@@ -651,7 +560,10 @@ export async function uploadToWebDAV(config: WebDAVConfig, options?: WebDAVSyncO
           settings: backupData.settings,
           settingsUpdatedAt: backupData.settingsUpdatedAt,
         };
-        const encryptedContent = await encryptData(JSON.stringify(dataToEncrypt), options.encryptionPassword);
+        const encryptedContent = await encryptData(
+          JSON.stringify(dataToEncrypt),
+          options.encryptionPassword,
+        );
         // Images are not encrypted, stored separately
         // 图片不加密，单独存储
         bodyString = JSON.stringify({
@@ -660,7 +572,10 @@ export async function uploadToWebDAV(config: WebDAVConfig, options?: WebDAVSyncO
           images: backupData.images,
         });
       } catch (error) {
-        return { success: false, message: `Encryption failed: ${error instanceof Error ? error.message : 'Unknown error'} / 加密失败: ${error instanceof Error ? error.message : '未知错误'}` };
+        return {
+          success: false,
+          message: `Encryption failed: ${error instanceof Error ? error.message : "Unknown error"} / 加密失败: ${error instanceof Error ? error.message : "未知错误"}`,
+        };
       }
     } else {
       bodyString = JSON.stringify(backupData, null, 2);
@@ -672,7 +587,11 @@ export async function uploadToWebDAV(config: WebDAVConfig, options?: WebDAVSyncO
     // Prefer main process IPC (bypass CORS)
     // 优先使用主进程 IPC（绕过 CORS）
     if (window.electron?.webdav?.upload) {
-      const result = await window.electron.webdav.upload(fileUrl, config, bodyString);
+      const result = await window.electron.webdav.upload(
+        fileUrl,
+        config,
+        bodyString,
+      );
       if (result.success) {
         return {
           success: true,
@@ -684,22 +603,25 @@ export async function uploadToWebDAV(config: WebDAVConfig, options?: WebDAVSyncO
           },
         };
       } else {
-        return { success: false, message: `Upload failed: ${result.error} / 上传失败: ${result.error}` };
+        return {
+          success: false,
+          message: `Upload failed: ${result.error} / 上传失败: ${result.error}`,
+        };
       }
     }
 
     // Fallback to fetch (only effective in packaged Electron)
     // 回退到 fetch（仅在打包后的 Electron 中有效）
-    const authHeader = 'Basic ' + btoa(`${config.username}:${config.password}`);
-    const bodyBlob = new Blob([bodyString], { type: 'application/json' });
+    const authHeader = "Basic " + btoa(`${config.username}:${config.password}`);
+    const bodyBlob = new Blob([bodyString], { type: "application/json" });
 
     const response = await fetch(fileUrl, {
-      method: 'PUT',
+      method: "PUT",
       headers: {
-        'Authorization': authHeader,
-        'Content-Type': 'application/json',
-        'Content-Length': String(bodyBlob.size),
-        'User-Agent': 'PromptHub/1.0',
+        Authorization: authHeader,
+        "Content-Type": "application/json",
+        "Content-Length": String(bodyBlob.size),
+        "User-Agent": "PromptHub/1.0",
       },
       body: bodyBlob,
     });
@@ -715,10 +637,16 @@ export async function uploadToWebDAV(config: WebDAVConfig, options?: WebDAVSyncO
         },
       };
     } else {
-      return { success: false, message: `Upload failed: ${response.status} ${response.statusText} / 上传失败: ${response.status} ${response.statusText}` };
+      return {
+        success: false,
+        message: `Upload failed: ${response.status} ${response.statusText} / 上传失败: ${response.status} ${response.statusText}`,
+      };
     }
   } catch (error) {
-    return { success: false, message: `Upload failed: ${error instanceof Error ? error.message : 'Unknown error'} / 上传失败: ${error instanceof Error ? error.message : '未知错误'}` };
+    return {
+      success: false,
+      message: `Upload failed: ${error instanceof Error ? error.message : "Unknown error"} / 上传失败: ${error instanceof Error ? error.message : "未知错误"}`,
+    };
   }
 }
 
@@ -726,12 +654,17 @@ export async function uploadToWebDAV(config: WebDAVConfig, options?: WebDAVSyncO
  * Restore images to local
  * 恢复图片到本地
  */
-async function restoreImages(images: { [fileName: string]: string }): Promise<number> {
+async function restoreImages(images: {
+  [fileName: string]: string;
+}): Promise<number> {
   let restoredCount = 0;
 
   for (const [fileName, base64] of Object.entries(images)) {
     try {
-      const success = await window.electron?.saveImageBase64?.(fileName, base64);
+      const success = await window.electron?.saveImageBase64?.(
+        fileName,
+        base64,
+      );
       if (success) {
         restoredCount++;
       }
@@ -749,9 +682,12 @@ async function restoreImages(images: { [fileName: string]: string }): Promise<nu
  * Only upload changed files to significantly reduce traffic
  * 只上传有变化的文件，大幅减少流量消耗
  */
-export async function incrementalUpload(config: WebDAVConfig, options?: WebDAVSyncOptions): Promise<SyncResult> {
+export async function incrementalUpload(
+  config: WebDAVConfig,
+  options?: WebDAVSyncOptions,
+): Promise<SyncResult> {
   try {
-    const baseUrl = config.url.replace(/\/$/, '');
+    const baseUrl = config.url.replace(/\/$/, "");
     const backupDirUrl = `${baseUrl}/${BACKUP_DIR}`;
     const imagesDirUrl = `${backupDirUrl}/${IMAGES_DIR}`;
     const manifestUrl = `${backupDirUrl}/${MANIFEST_FILENAME}`;
@@ -770,14 +706,14 @@ export async function incrementalUpload(config: WebDAVConfig, options?: WebDAVSy
     // Get full data but skip video content to save memory
     // 获取全量数据但跳过视频内容以节省内存
     const fullBackup = await exportDatabase({ skipVideoContent: true });
-    
+
     // Keep images in memory as they are usually small
     // 保持图片在内存中，因为它们通常比较小
 
     // Prepare core data (without images)
     // 准备核心数据（不含图片）
     const coreData = {
-      version: '4.0',
+      version: "4.0",
       exportedAt: new Date().toISOString(),
       prompts: fullBackup.prompts,
       folders: fullBackup.folders,
@@ -792,7 +728,10 @@ export async function incrementalUpload(config: WebDAVConfig, options?: WebDAVSy
     // Encryption
     // 加密处理
     if (options?.encryptionPassword) {
-      const encryptedContent = await encryptData(dataString, options.encryptionPassword);
+      const encryptedContent = await encryptData(
+        dataString,
+        options.encryptionPassword,
+      );
       dataString = JSON.stringify({ encrypted: true, data: encryptedContent });
     }
 
@@ -819,18 +758,21 @@ export async function incrementalUpload(config: WebDAVConfig, options?: WebDAVSy
     if (!remoteManifest || remoteManifest.dataHash !== dataHash) {
       const success = await uploadFile(dataUrl, config, dataString);
       if (!success) {
-        return { success: false, message: 'Failed to upload data file / 上传数据文件失败' };
+        return {
+          success: false,
+          message: "Failed to upload data file / 上传数据文件失败",
+        };
       }
       uploadedCount++;
-      console.log('📤 Uploaded data.json (changed)');
+      console.log("📤 Uploaded data.json (changed)");
     } else {
       skippedCount++;
-      console.log('⏭️ Skipped data.json (unchanged)');
+      console.log("⏭️ Skipped data.json (unchanged)");
     }
 
     // Incremental image upload
     // 处理图片增量上传
-    const newImageManifest: BackupManifest['images'] = {};
+    const newImageManifest: BackupManifest["images"] = {};
 
     if (includeImages && fullBackup.images) {
       for (const [fileName, base64] of Object.entries(fullBackup.images)) {
@@ -861,7 +803,7 @@ export async function incrementalUpload(config: WebDAVConfig, options?: WebDAVSy
 
     // Incremental video upload
     // 处理视频增量上传
-    const newVideoManifest: BackupManifest['videos'] = {};
+    const newVideoManifest: BackupManifest["videos"] = {};
     const videosDirUrl = `${backupDirUrl}/${VIDEOS_DIR}`;
     let videosUploaded = 0;
 
@@ -870,15 +812,19 @@ export async function incrementalUpload(config: WebDAVConfig, options?: WebDAVSy
     if (includeImages) {
       // 1. Collect video filenames
       const videoFiles = new Set<string>();
-      fullBackup.prompts.forEach(p => p.videos?.forEach(v => videoFiles.add(v)));
-      
+      fullBackup.prompts.forEach((p) =>
+        p.videos?.forEach((v) => videoFiles.add(v)),
+      );
+
       // 2. Process one by one
       for (const fileName of videoFiles) {
         try {
           // Read on demand
           const base64 = await window.electron?.readVideoBase64?.(fileName);
           if (!base64) {
-            console.warn(`[WebDAV] Skipped video ${fileName}: File not found or empty`);
+            console.warn(
+              `[WebDAV] Skipped video ${fileName}: File not found or empty`,
+            );
             continue;
           }
 
@@ -904,7 +850,10 @@ export async function incrementalUpload(config: WebDAVConfig, options?: WebDAVSy
             uploadedAt: new Date().toISOString(),
           };
         } catch (videoError) {
-          console.error(`[WebDAV] Failed to process video ${fileName}:`, videoError);
+          console.error(
+            `[WebDAV] Failed to process video ${fileName}:`,
+            videoError,
+          );
         }
       }
     }
@@ -912,7 +861,7 @@ export async function incrementalUpload(config: WebDAVConfig, options?: WebDAVSy
     // Update manifest
     // 更新 manifest
     const newManifest: BackupManifest = {
-      version: '4.0',
+      version: "4.0",
       createdAt: remoteManifest?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       dataHash,
@@ -921,9 +870,16 @@ export async function incrementalUpload(config: WebDAVConfig, options?: WebDAVSy
       encrypted: !!options?.encryptionPassword,
     };
 
-    const manifestSuccess = await uploadFile(manifestUrl, config, JSON.stringify(newManifest, null, 2));
+    const manifestSuccess = await uploadFile(
+      manifestUrl,
+      config,
+      JSON.stringify(newManifest, null, 2),
+    );
     if (!manifestSuccess) {
-      return { success: false, message: 'Failed to upload manifest / 上传 manifest 失败' };
+      return {
+        success: false,
+        message: "Failed to upload manifest / 上传 manifest 失败",
+      };
     }
 
     const promptsCount = fullBackup.prompts.length;
@@ -943,7 +899,10 @@ export async function incrementalUpload(config: WebDAVConfig, options?: WebDAVSy
       },
     };
   } catch (error) {
-    return { success: false, message: `Incremental upload failed: ${error instanceof Error ? error.message : 'Unknown error'} / 增量上传失败: ${error instanceof Error ? error.message : '未知错误'}` };
+    return {
+      success: false,
+      message: `Incremental upload failed: ${error instanceof Error ? error.message : "Unknown error"} / 增量上传失败: ${error instanceof Error ? error.message : "未知错误"}`,
+    };
   }
 }
 
@@ -953,9 +912,12 @@ export async function incrementalUpload(config: WebDAVConfig, options?: WebDAVSy
  * Only download changed files
  * 只下载有变化的文件
  */
-export async function incrementalDownload(config: WebDAVConfig, options?: WebDAVSyncOptions): Promise<SyncResult> {
+export async function incrementalDownload(
+  config: WebDAVConfig,
+  options?: WebDAVSyncOptions,
+): Promise<SyncResult> {
   try {
-    const baseUrl = config.url.replace(/\/$/, '');
+    const baseUrl = config.url.replace(/\/$/, "");
     const backupDirUrl = `${baseUrl}/${BACKUP_DIR}`;
     const imagesDirUrl = `${backupDirUrl}/${IMAGES_DIR}`;
     const manifestUrl = `${backupDirUrl}/${MANIFEST_FILENAME}`;
@@ -975,17 +937,17 @@ export async function incrementalDownload(config: WebDAVConfig, options?: WebDAV
       // Clean up data: remove BOM and whitespace
       // 清理数据：移除 BOM 和空白字符
       let cleanData = manifestResult.data;
-      
+
       // Remove BOM if present
-      if (cleanData.charCodeAt(0) === 0xFEFF) {
+      if (cleanData.charCodeAt(0) === 0xfeff) {
         cleanData = cleanData.slice(1);
       }
 
       // Aggressively find JSON boundaries (handle garbage before/after)
       // 激进地查找 JSON 边界（处理前后的垃圾字符）
-      const firstBrace = cleanData.indexOf('{');
-      const lastBrace = cleanData.lastIndexOf('}');
-      
+      const firstBrace = cleanData.indexOf("{");
+      const lastBrace = cleanData.lastIndexOf("}");
+
       if (firstBrace !== -1 && lastBrace !== -1) {
         cleanData = cleanData.substring(firstBrace, lastBrace + 1);
       }
@@ -993,28 +955,37 @@ export async function incrementalDownload(config: WebDAVConfig, options?: WebDAV
       cleanData = cleanData.trim();
       manifest = JSON.parse(cleanData);
     } catch (parseError) {
-
       // Log detailed error info for debugging
       // 记录详细错误信息用于调试
       const preview = manifestResult.data.substring(0, 200);
-      console.error('[WebDAV] Failed to parse manifest.json:', parseError);
-      console.error('[WebDAV] Received data preview:', preview);
-      console.error('[WebDAV] Data length:', manifestResult.data.length);
+      console.error("[WebDAV] Failed to parse manifest.json:", parseError);
+      console.error("[WebDAV] Received data preview:", preview);
+      console.error("[WebDAV] Data length:", manifestResult.data.length);
 
       // Check if it's an HTML error page from the server
       // 检查是否是服务器返回的 HTML 错误页面
-      if (manifestResult.data.trim().startsWith('<')) {
-        return { success: false, message: 'Server returned HTML instead of JSON, please check WebDAV server status / 服务器返回了 HTML 而非 JSON，请检查 WebDAV 服务器状态' };
+      if (manifestResult.data.trim().startsWith("<")) {
+        return {
+          success: false,
+          message:
+            "Server returned HTML instead of JSON, please check WebDAV server status / 服务器返回了 HTML 而非 JSON，请检查 WebDAV 服务器状态",
+        };
       }
 
-      return { success: false, message: `Invalid manifest file format / manifest 文件格式错误 (${preview.substring(0, 50)}...)` };
+      return {
+        success: false,
+        message: `Invalid manifest file format / manifest 文件格式错误 (${preview.substring(0, 50)}...)`,
+      };
     }
 
     // Download data file
     // 下载数据文件
     const dataResult = await downloadFile(dataUrl, config);
     if (!dataResult.success || !dataResult.data) {
-      return { success: false, message: 'Failed to download data file / 下载数据文件失败' };
+      return {
+        success: false,
+        message: "Failed to download data file / 下载数据文件失败",
+      };
     }
 
     let coreData: any;
@@ -1023,14 +994,25 @@ export async function incrementalDownload(config: WebDAVConfig, options?: WebDAV
     // 处理加密
     if (manifest.encrypted) {
       if (!options?.encryptionPassword) {
-        return { success: false, message: 'Data is encrypted, please provide decryption password / 数据已加密，请提供解密密码' };
+        return {
+          success: false,
+          message:
+            "Data is encrypted, please provide decryption password / 数据已加密，请提供解密密码",
+        };
       }
       try {
         const parsed = JSON.parse(dataResult.data);
-        const decrypted = await decryptData(parsed.data, options.encryptionPassword);
+        const decrypted = await decryptData(
+          parsed.data,
+          options.encryptionPassword,
+        );
         coreData = JSON.parse(decrypted);
       } catch {
-        return { success: false, message: 'Decryption failed, password may be incorrect / 解密失败，密码可能不正确' };
+        return {
+          success: false,
+          message:
+            "Decryption failed, password may be incorrect / 解密失败，密码可能不正确",
+        };
       }
     } else {
       coreData = JSON.parse(dataResult.data);
@@ -1039,7 +1021,10 @@ export async function incrementalDownload(config: WebDAVConfig, options?: WebDAV
     // Restore core data
     // 恢复核心数据
     await restoreFromBackup({
-      version: typeof coreData.version === 'string' ? parseInt(coreData.version) || 1 : coreData.version as number,
+      version:
+        typeof coreData.version === "string"
+          ? parseInt(coreData.version) || 1
+          : (coreData.version as number),
       exportedAt: coreData.exportedAt,
       prompts: coreData.prompts,
       folders: coreData.folders,
@@ -1054,7 +1039,10 @@ export async function incrementalDownload(config: WebDAVConfig, options?: WebDAV
         const imageUrl = `${imagesDirUrl}/${encodeURIComponent(fileName)}.base64`;
         const imageResult = await downloadFile(imageUrl, config);
         if (imageResult.success && imageResult.data) {
-          const success = await window.electron?.saveImageBase64?.(fileName, imageResult.data);
+          const success = await window.electron?.saveImageBase64?.(
+            fileName,
+            imageResult.data,
+          );
           if (success) {
             imagesDownloaded++;
           }
@@ -1071,7 +1059,10 @@ export async function incrementalDownload(config: WebDAVConfig, options?: WebDAV
         const videoUrl = `${videosDirUrl}/${encodeURIComponent(fileName)}.base64`;
         const videoResult = await downloadFile(videoUrl, config);
         if (videoResult.success && videoResult.data) {
-          const success = await window.electron?.saveVideoBase64?.(fileName, videoResult.data);
+          const success = await window.electron?.saveVideoBase64?.(
+            fileName,
+            videoResult.data,
+          );
           if (success) {
             videosDownloaded++;
           }
@@ -1082,10 +1073,12 @@ export async function incrementalDownload(config: WebDAVConfig, options?: WebDAV
     // Restore AI config and settings
     // 恢复 AI 配置和设置
     if (coreData.aiConfig) {
-      restoreAiConfig(coreData.aiConfig);
+      restoreAiConfigSnapshot(coreData.aiConfig);
     }
     if (coreData.settings) {
-      restoreSettingsSnapshot(coreData.settings);
+      restoreSettingsStateSnapshot(coreData.settings, {
+        preserveLocalFields: SENSITIVE_SETTINGS_FIELDS,
+      });
     }
 
     return {
@@ -1099,7 +1092,10 @@ export async function incrementalDownload(config: WebDAVConfig, options?: WebDAV
       },
     };
   } catch (error) {
-    return { success: false, message: `Incremental download failed: ${error instanceof Error ? error.message : 'Unknown error'} / 增量下载失败: ${error instanceof Error ? error.message : '未知错误'}` };
+    return {
+      success: false,
+      message: `Incremental download failed: ${error instanceof Error ? error.message : "Unknown error"} / 增量下载失败: ${error instanceof Error ? error.message : "未知错误"}`,
+    };
   }
 }
 
@@ -1111,13 +1107,16 @@ export async function incrementalDownload(config: WebDAVConfig, options?: WebDAV
  * @param config WebDAV config
  * @param options Sync options (optional, for decryption)
  */
-export async function downloadFromWebDAV(config: WebDAVConfig, options?: WebDAVSyncOptions): Promise<SyncResult> {
+export async function downloadFromWebDAV(
+  config: WebDAVConfig,
+  options?: WebDAVSyncOptions,
+): Promise<SyncResult> {
   // Use incremental sync by default
   // 默认使用增量同步
   if (options?.incrementalSync !== false) {
     // Try incremental download first
     // 先尝试增量下载
-    const baseUrl = config.url.replace(/\/$/, '');
+    const baseUrl = config.url.replace(/\/$/, "");
     const manifestUrl = `${baseUrl}/${BACKUP_DIR}/${MANIFEST_FILENAME}`;
     const manifestResult = await downloadFile(manifestUrl, config);
     if (manifestResult.success && manifestResult.data) {
@@ -1128,7 +1127,7 @@ export async function downloadFromWebDAV(config: WebDAVConfig, options?: WebDAVS
   }
 
   try {
-    const fileUrl = `${config.url.replace(/\/$/, '')}/${BACKUP_FILENAME}`;
+    const fileUrl = `${config.url.replace(/\/$/, "")}/${BACKUP_FILENAME}`;
 
     let data: BackupData;
     let rawData: string;
@@ -1138,28 +1137,41 @@ export async function downloadFromWebDAV(config: WebDAVConfig, options?: WebDAVS
     if (window.electron?.webdav?.download) {
       const result = await window.electron.webdav.download(fileUrl, config);
       if (result.notFound) {
-        return { success: false, message: 'No remote backup found / 远程没有备份文件' };
+        return {
+          success: false,
+          message: "No remote backup found / 远程没有备份文件",
+        };
       }
       if (!result.success || !result.data) {
-        return { success: false, message: `Download failed: ${result.error} / 下载失败: ${result.error}` };
+        return {
+          success: false,
+          message: `Download failed: ${result.error} / 下载失败: ${result.error}`,
+        };
       }
       rawData = result.data;
     } else {
       // Fallback to fetch (only effective in packaged Electron)
       // 回退到 fetch（仅在打包后的 Electron 中有效）
       const response = await fetch(fileUrl, {
-        method: 'GET',
+        method: "GET",
         headers: {
-          'Authorization': 'Basic ' + btoa(`${config.username}:${config.password}`),
+          Authorization:
+            "Basic " + btoa(`${config.username}:${config.password}`),
         },
       });
 
       if (response.status === 404) {
-        return { success: false, message: 'No remote backup found / 远程没有备份文件' };
+        return {
+          success: false,
+          message: "No remote backup found / 远程没有备份文件",
+        };
       }
 
       if (!response.ok) {
-        return { success: false, message: `Download failed: ${response.status} ${response.statusText} / 下载失败: ${response.status} ${response.statusText}` };
+        return {
+          success: false,
+          message: `Download failed: ${response.status} ${response.statusText} / 下载失败: ${response.status} ${response.statusText}`,
+        };
       }
 
       rawData = await response.text();
@@ -1174,16 +1186,27 @@ export async function downloadFromWebDAV(config: WebDAVConfig, options?: WebDAVS
       // Data is encrypted, needs decryption
       // 数据已加密，需要解密
       if (!options?.encryptionPassword) {
-        return { success: false, message: 'Data is encrypted, please provide decryption password / 数据已加密，请提供解密密码' };
+        return {
+          success: false,
+          message:
+            "Data is encrypted, please provide decryption password / 数据已加密，请提供解密密码",
+        };
       }
       try {
-        const decrypted = await decryptData(parsed.data, options.encryptionPassword);
+        const decrypted = await decryptData(
+          parsed.data,
+          options.encryptionPassword,
+        );
         data = JSON.parse(decrypted);
         // Images are not encrypted; read from parsed
         // 图片是未加密的，从 parsed 中获取
         images = parsed.images;
       } catch (error) {
-        return { success: false, message: 'Decryption failed, password may be incorrect / 解密失败，密码可能不正确' };
+        return {
+          success: false,
+          message:
+            "Decryption failed, password may be incorrect / 解密失败，密码可能不正确",
+        };
       }
     } else {
       data = parsed;
@@ -1195,7 +1218,10 @@ export async function downloadFromWebDAV(config: WebDAVConfig, options?: WebDAVS
     // Restore data (convert to DatabaseBackup format)
     // 恢复数据 - 转换为 DatabaseBackup 格式
     await restoreFromBackup({
-      version: typeof data.version === 'string' ? parseInt(data.version) || 1 : data.version as number,
+      version:
+        typeof data.version === "string"
+          ? parseInt(data.version) || 1
+          : (data.version as number),
       exportedAt: data.exportedAt,
       prompts: data.prompts,
       folders: data.folders,
@@ -1213,26 +1239,73 @@ export async function downloadFromWebDAV(config: WebDAVConfig, options?: WebDAVS
     // Restore AI config
     // 恢复 AI 配置
     if (data.aiConfig) {
-      restoreAiConfig(data.aiConfig);
+      restoreAiConfigSnapshot(data.aiConfig);
     }
 
     // Restore system settings
     // 恢复系统设置
     if (data.settings) {
-      restoreSettingsSnapshot(data.settings);
+      restoreSettingsStateSnapshot(data.settings, {
+        preserveLocalFields: SENSITIVE_SETTINGS_FIELDS,
+      });
+    }
+
+    // Restore skills (if exists in backup)
+    // 恢复技能（如果备份中存在）
+    let skillsRestored = 0;
+    if (data.skills && Array.isArray(data.skills) && window.api.skill) {
+      for (const skill of data.skills) {
+        if (
+          !skill.name ||
+          typeof skill.name !== "string" ||
+          skill.name.trim().length === 0
+        ) {
+          console.warn(
+            "Skipping skill from backup with missing name:",
+            skill.id,
+          );
+          continue;
+        }
+
+        try {
+          await window.api.skill.create({
+            name: skill.name,
+            description: skill.description,
+            instructions: skill.instructions || skill.content,
+            content: skill.instructions || skill.content,
+            protocol_type: skill.protocol_type || "skill",
+            version: skill.version,
+            author: skill.author,
+            tags: skill.tags,
+            is_favorite: skill.is_favorite || false,
+            registry_slug: skill.registry_slug,
+          });
+          skillsRestored++;
+        } catch (err: any) {
+          // Skip duplicate skills (name already exists)
+          // 跳过重复的技能（名称已存在）
+          if (!err?.message?.includes("already exists")) {
+            console.warn(`Failed to restore skill "${skill.name}":`, err);
+          }
+        }
+      }
     }
 
     return {
       success: true,
-      message: `Download successful (${data.prompts?.length || 0} prompts, ${imagesRestored} images, ${Object.keys(videos || {}).length} videos${data.aiConfig ? ', AI config synced' : ''}${data.settings ? ', settings synced' : ''}) / 下载成功 (${data.prompts?.length || 0} 条 Prompt, ${imagesRestored} 张图片, ${Object.keys(videos || {}).length} 个视频${data.aiConfig ? ', AI配置已同步' : ''}${data.settings ? ', 设置已同步' : ''})`,
+      message: `Download successful (${data.prompts?.length || 0} prompts, ${imagesRestored} images, ${Object.keys(videos || {}).length} videos${data.aiConfig ? ", AI config synced" : ""}${data.settings ? ", settings synced" : ""}) / 下载成功 (${data.prompts?.length || 0} 条 Prompt, ${imagesRestored} 张图片, ${Object.keys(videos || {}).length} 个视频${data.aiConfig ? ", AI配置已同步" : ""}${data.settings ? ", 设置已同步" : ""})`,
       timestamp: data.exportedAt,
       details: {
         promptsDownloaded: data.prompts?.length || 0,
         imagesDownloaded: imagesRestored,
+        skillsDownloaded: skillsRestored,
       },
     };
   } catch (error) {
-    return { success: false, message: `Download failed: ${error instanceof Error ? error.message : 'Unknown error'} / 下载失败: ${error instanceof Error ? error.message : '未知错误'}` };
+    return {
+      success: false,
+      message: `Download failed: ${error instanceof Error ? error.message : "Unknown error"} / 下载失败: ${error instanceof Error ? error.message : "未知错误"}`,
+    };
   }
 }
 
@@ -1248,7 +1321,7 @@ export async function getRemoteBackupInfo(config: WebDAVConfig): Promise<{
   data?: BackupData;
 }> {
   try {
-    const fileUrl = `${config.url.replace(/\/$/, '')}/${BACKUP_FILENAME}`;
+    const fileUrl = `${config.url.replace(/\/$/, "")}/${BACKUP_FILENAME}`;
 
     // Prefer main process IPC (bypass CORS)
     // 优先使用主进程 IPC（绕过 CORS）
@@ -1268,9 +1341,9 @@ export async function getRemoteBackupInfo(config: WebDAVConfig): Promise<{
     // Fallback to fetch (only effective in packaged Electron)
     // 回退到 fetch（仅在打包后的 Electron 中有效）
     const response = await fetch(fileUrl, {
-      method: 'GET',
+      method: "GET",
       headers: {
-        'Authorization': 'Basic ' + btoa(`${config.username}:${config.password}`),
+        Authorization: "Basic " + btoa(`${config.username}:${config.password}`),
       },
     });
 
@@ -1294,6 +1367,59 @@ export async function getRemoteBackupInfo(config: WebDAVConfig): Promise<{
 }
 
 /**
+ * Get remote backup timestamp without downloading the full file
+ * 获取远程备份时间戳，无需下载完整文件
+ * Uses WebDAV PROPFIND to get file metadata (lastmodified)
+ * 使用 WebDAV PROPFIND 获取文件元数据（lastmodified）
+ */
+export async function getRemoteBackupTimestamp(config: WebDAVConfig): Promise<{
+  exists: boolean;
+  lastModified?: string;
+}> {
+  try {
+    const fileUrl = `${config.url.replace(/\/$/, "")}/${BACKUP_FILENAME}`;
+
+    // Prefer main process IPC (bypass CORS)
+    // 优先使用主进程 IPC（绕过 CORS）
+    if (window.electron?.webdav?.stat) {
+      const result = await window.electron.webdav.stat(fileUrl, config);
+      if (result.notFound || !result.success) {
+        return { exists: false };
+      }
+      return {
+        exists: true,
+        lastModified: result.lastModified,
+      };
+    }
+
+    // Fallback to fetch HEAD request (only effective in packaged Electron)
+    // 回退到 fetch HEAD 请求（仅在打包后的 Electron 中有效）
+    const response = await fetch(fileUrl, {
+      method: "HEAD",
+      headers: {
+        Authorization: "Basic " + btoa(`${config.username}:${config.password}`),
+      },
+    });
+
+    if (response.status === 404) {
+      return { exists: false };
+    }
+
+    if (response.ok) {
+      const lastModified = response.headers.get("Last-Modified") ?? undefined;
+      return {
+        exists: true,
+        lastModified,
+      };
+    }
+
+    return { exists: false };
+  } catch {
+    return { exists: false };
+  }
+}
+
+/**
  * Bidirectional smart sync
  * 双向智能同步
  * Compare timestamps of local and remote data to decide sync direction automatically
@@ -1301,7 +1427,10 @@ export async function getRemoteBackupInfo(config: WebDAVConfig): Promise<{
  * @param config WebDAV config
  * @param options Sync options (optional)
  */
-export async function bidirectionalSync(config: WebDAVConfig, options?: WebDAVSyncOptions): Promise<SyncResult> {
+export async function bidirectionalSync(
+  config: WebDAVConfig,
+  options?: WebDAVSyncOptions,
+): Promise<SyncResult> {
   try {
     // Get local data
     // 获取本地数据
@@ -1327,7 +1456,7 @@ export async function bidirectionalSync(config: WebDAVConfig, options?: WebDAVSy
     // Include settings update time in comparison (for cross-device consistency)
     // 设置更新时间也纳入比较（保证换设备配置一致）
     try {
-      const raw = localStorage.getItem('prompthub-settings');
+      const raw = localStorage.getItem("prompthub-settings");
       if (raw) {
         const data = JSON.parse(raw);
         const settingsUpdatedAt = data?.state?.settingsUpdatedAt;
@@ -1340,44 +1469,44 @@ export async function bidirectionalSync(config: WebDAVConfig, options?: WebDAVSy
       // ignore
     }
 
-    // Get remote backup info
-    // 获取远程备份信息
-    const remoteInfo = await getRemoteBackupInfo(config);
+    // Get remote backup timestamp via PROPFIND (lightweight, no full download)
+    // 通过 PROPFIND 获取远程备份时间戳（轻量级，无需下载完整文件）
+    const remoteTimestamp = await getRemoteBackupTimestamp(config);
 
     // If remote is empty, upload local data
     // 如果远程没有数据，上传本地数据
-    if (!remoteInfo.exists || !remoteInfo.data) {
-      console.log('🔄 Remote is empty, uploading local data...');
+    if (!remoteTimestamp.exists) {
+      console.log("🔄 Remote is empty, uploading local data...");
       return await uploadToWebDAV(config, options);
     }
 
-    const remoteTime = new Date(remoteInfo.timestamp || 0);
+    const remoteTime = new Date(remoteTimestamp.lastModified || 0);
 
     // Compare timestamps to decide sync direction
     // 比较时间戳决定同步方向
     if (remoteTime > localLatestTime) {
       // Remote is newer, download
       // 远程数据更新，下载
-      console.log('🔄 Remote is newer, downloading...');
+      console.log("🔄 Remote is newer, downloading...");
       return await downloadFromWebDAV(config, options);
     } else if (localLatestTime > remoteTime) {
       // Local is newer, upload
       // 本地数据更新，上传
-      console.log('🔄 Local is newer, uploading...');
+      console.log("🔄 Local is newer, uploading...");
       return await uploadToWebDAV(config, options);
     } else {
       // Data is up to date, no sync needed
       // 数据一致，无需同步
       return {
         success: true,
-        message: 'Already up to date, no sync needed / 数据已是最新，无需同步',
+        message: "Already up to date, no sync needed / 数据已是最新，无需同步",
         timestamp: new Date().toISOString(),
       };
     }
   } catch (error) {
     return {
       success: false,
-      message: `Sync failed: ${error instanceof Error ? error.message : 'Unknown error'} / 同步失败: ${error instanceof Error ? error.message : '未知错误'}`
+      message: `Sync failed: ${error instanceof Error ? error.message : "Unknown error"} / 同步失败: ${error instanceof Error ? error.message : "未知错误"}`,
     };
   }
 }
@@ -1390,6 +1519,9 @@ export async function bidirectionalSync(config: WebDAVConfig, options?: WebDAVSy
  * @param config WebDAV config
  * @param options Sync options (optional)
  */
-export async function autoSync(config: WebDAVConfig, options?: WebDAVSyncOptions): Promise<SyncResult> {
+export async function autoSync(
+  config: WebDAVConfig,
+  options?: WebDAVSyncOptions,
+): Promise<SyncResult> {
   return await bidirectionalSync(config, options);
 }

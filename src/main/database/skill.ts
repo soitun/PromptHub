@@ -1,20 +1,24 @@
-import Database from './sqlite';
-import { v4 as uuidv4 } from 'uuid';
+import Database from "./sqlite";
+import { v4 as uuidv4 } from "uuid";
 import type {
   Skill,
   CreateSkillParams,
   UpdateSkillParams,
-} from '@shared/types';
+  SkillVersion,
+  SkillFileSnapshot,
+} from "@shared/types";
 
 export class SkillDB {
-  constructor(private db: Database.Database) { }
+  constructor(private db: Database.Database) {}
 
   /**
    * Get Skill by name (case-insensitive)
    * 根据名称获取 Skill（不区分大小写）
    */
   getByName(name: string): Skill | null {
-    const stmt = this.db.prepare('SELECT * FROM skills WHERE LOWER(name) = LOWER(?)');
+    const stmt = this.db.prepare(
+      "SELECT * FROM skills WHERE LOWER(name) = LOWER(?)",
+    );
     const row = stmt.get(name) as any;
     return row ? this.rowToSkill(row) : null;
   }
@@ -22,13 +26,31 @@ export class SkillDB {
   /**
    * Create Skill
    * 创建 Skill
+   *
+   * @param data - Skill creation parameters
+   * @param options.skipInitialVersion - If true, skip creating the initial version snapshot
+   *   (used during backup restore to avoid spurious versions).
+   *   如果为 true，跳过创建初始版本快照（用于备份恢复时避免产生多余版本）。
    */
-  create(data: CreateSkillParams): Skill {
-    // Check for duplicate name
-    // 检查重复名称
+  create(
+    data: CreateSkillParams,
+    options?: { skipInitialVersion?: boolean },
+  ): Skill {
+    if (
+      !data.name ||
+      typeof data.name !== "string" ||
+      data.name.trim().length === 0
+    ) {
+      throw new Error(
+        `Cannot create skill: name is required but got "${data.name}"`,
+      );
+    }
+
+    // Upsert: if a skill with the same name already exists, update it instead
+    // Upsert：如果同名 skill 已存在，则更新而非抛出错误
     const existing = this.getByName(data.name);
     if (existing) {
-      throw new Error(`Skill "${data.name}" already exists`);
+      return this.update(existing.id, data) ?? existing;
     }
 
     const id = uuidv4();
@@ -40,10 +62,10 @@ export class SkillDB {
       INSERT INTO skills (
         id, name, description, content, mcp_config,
         protocol_type, version, author, tags, original_tags, is_favorite,
-        source_url, icon_url, icon_emoji, category, is_builtin,
-        registry_slug, content_url, prerequisites, compatibility,
+        source_url, local_repo_path, icon_url, icon_emoji, category, is_builtin,
+        registry_slug, content_url, prerequisites, compatibility, current_version,
         created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     stmt.run(
@@ -52,24 +74,32 @@ export class SkillDB {
       data.description || null,
       data.content || data.instructions || null, // Prioritize content, fallback to instructions
       data.mcp_config || null,
-      data.protocol_type || 'mcp',
-      data.version || '1.0.0',
-      data.author || 'User',
+      data.protocol_type || "mcp",
+      data.version || "1.0.0",
+      data.author || "User",
       tagsJson,
       data.original_tags ? JSON.stringify(data.original_tags) : tagsJson, // Snapshot import-time tags
       data.is_favorite ? 1 : 0,
       data.source_url || null,
+      data.local_repo_path || null,
       data.icon_url || null,
       data.icon_emoji || null,
-      data.category || 'general',
+      data.category || "general",
       data.is_builtin ? 1 : 0,
       data.registry_slug || null,
       data.content_url || null,
       data.prerequisites ? JSON.stringify(data.prerequisites) : null,
       data.compatibility ? JSON.stringify(data.compatibility) : null,
+      data.currentVersion ?? 1,
       now,
-      now
+      now,
     );
+
+    // Create initial version (unless explicitly skipped, e.g. during backup restore)
+    // 创建初始版本（除非显式跳过，如备份恢复时）
+    if (!options?.skipInitialVersion) {
+      this.createVersion(id, "Initial version");
+    }
 
     return this.getById(id)!;
   }
@@ -79,7 +109,7 @@ export class SkillDB {
    * 根据 ID 获取 Skill
    */
   getById(id: string): Skill | null {
-    const stmt = this.db.prepare('SELECT * FROM skills WHERE id = ?');
+    const stmt = this.db.prepare("SELECT * FROM skills WHERE id = ?");
     const row = stmt.get(id) as any;
     return row ? this.rowToSkill(row) : null;
   }
@@ -89,7 +119,9 @@ export class SkillDB {
    * 获取所有 Skill
    */
   getAll(): Skill[] {
-    const stmt = this.db.prepare('SELECT * FROM skills ORDER BY updated_at DESC');
+    const stmt = this.db.prepare(
+      "SELECT * FROM skills ORDER BY updated_at DESC",
+    );
     const rows = stmt.all() as any[];
     return rows.map((row) => this.rowToSkill(row));
   }
@@ -105,91 +137,99 @@ export class SkillDB {
     if (!existingSkill) return null;
 
     const now = Date.now();
-    const updates: string[] = ['updated_at = ?'];
+    const updates: string[] = ["updated_at = ?"];
     const values: any[] = [now];
 
     if (data.name !== undefined) {
-      updates.push('name = ?');
+      updates.push("name = ?");
       values.push(data.name);
     }
     if (data.description !== undefined) {
-      updates.push('description = ?');
+      updates.push("description = ?");
       values.push(data.description);
     }
     // Handle both content and instructions (instructions syncs to content)
     // 处理 content 和 instructions（instructions 同步到 content）
     if (data.instructions !== undefined) {
-      updates.push('content = ?');
+      updates.push("content = ?");
       values.push(data.instructions);
     } else if (data.content !== undefined) {
-      updates.push('content = ?');
+      updates.push("content = ?");
       values.push(data.content);
     }
     if (data.mcp_config !== undefined) {
-      updates.push('mcp_config = ?');
+      updates.push("mcp_config = ?");
       values.push(data.mcp_config);
     }
     if (data.protocol_type !== undefined) {
-      updates.push('protocol_type = ?');
+      updates.push("protocol_type = ?");
       values.push(data.protocol_type);
     }
     if (data.version !== undefined) {
-      updates.push('version = ?');
+      updates.push("version = ?");
       values.push(data.version);
     }
     if (data.author !== undefined) {
-      updates.push('author = ?');
+      updates.push("author = ?");
       values.push(data.author);
     }
     if (data.tags !== undefined) {
-      updates.push('tags = ?');
+      updates.push("tags = ?");
       values.push(JSON.stringify(data.tags));
     }
     if (data.is_favorite !== undefined) {
-      updates.push('is_favorite = ?');
+      updates.push("is_favorite = ?");
       values.push(data.is_favorite ? 1 : 0);
     }
     if (data.source_url !== undefined) {
-      updates.push('source_url = ?');
+      updates.push("source_url = ?");
       values.push(data.source_url);
     }
+    if (data.local_repo_path !== undefined) {
+      updates.push("local_repo_path = ?");
+      values.push(data.local_repo_path);
+    }
     if (data.icon_url !== undefined) {
-      updates.push('icon_url = ?');
+      updates.push("icon_url = ?");
       values.push(data.icon_url);
     }
     if (data.icon_emoji !== undefined) {
-      updates.push('icon_emoji = ?');
+      updates.push("icon_emoji = ?");
       values.push(data.icon_emoji);
     }
     if (data.category !== undefined) {
-      updates.push('category = ?');
+      updates.push("category = ?");
       values.push(data.category);
     }
     if (data.is_builtin !== undefined) {
-      updates.push('is_builtin = ?');
+      updates.push("is_builtin = ?");
       values.push(data.is_builtin ? 1 : 0);
     }
     if (data.registry_slug !== undefined) {
-      updates.push('registry_slug = ?');
+      updates.push("registry_slug = ?");
       values.push(data.registry_slug);
     }
     if (data.content_url !== undefined) {
-      updates.push('content_url = ?');
+      updates.push("content_url = ?");
       values.push(data.content_url);
     }
     if (data.prerequisites !== undefined) {
-      updates.push('prerequisites = ?');
+      updates.push("prerequisites = ?");
       values.push(JSON.stringify(data.prerequisites));
     }
     if (data.compatibility !== undefined) {
-      updates.push('compatibility = ?');
+      updates.push("compatibility = ?");
       values.push(JSON.stringify(data.compatibility));
+    }
+    if (data.currentVersion !== undefined) {
+      updates.push("current_version = ?");
+      values.push(data.currentVersion);
     }
 
     values.push(id);
 
     const stmt = this.db.prepare(
-      `UPDATE skills SET ${updates.join(', ')} WHERE id = ?`
+      `UPDATE skills SET ${updates.join(", ")} WHERE id = ?`,
     );
     stmt.run(...values);
 
@@ -197,35 +237,168 @@ export class SkillDB {
     // 在内存中构建更新后的 skill 对象，而不是重新查询（性能优化）
     // Determine the new content value (instructions takes priority)
     // 确定新的 content 值（instructions 优先）
-    const newContent = data.instructions ?? data.content ?? existingSkill.content;
-    
+    const newContent =
+      data.instructions ?? data.content ?? existingSkill.content;
+
     const updatedSkill: Skill = {
       ...existingSkill,
       updated_at: now,
       ...(data.name !== undefined && { name: data.name }),
       ...(data.description !== undefined && { description: data.description }),
-      ...((data.content !== undefined || data.instructions !== undefined) && { 
+      ...((data.content !== undefined || data.instructions !== undefined) && {
         content: newContent,
         instructions: newContent, // Keep instructions synced with content
       }),
       ...(data.mcp_config !== undefined && { mcp_config: data.mcp_config }),
-      ...(data.protocol_type !== undefined && { protocol_type: data.protocol_type }),
+      ...(data.protocol_type !== undefined && {
+        protocol_type: data.protocol_type,
+      }),
       ...(data.version !== undefined && { version: data.version }),
       ...(data.author !== undefined && { author: data.author }),
       ...(data.tags !== undefined && { tags: data.tags }),
       ...(data.is_favorite !== undefined && { is_favorite: data.is_favorite }),
       ...(data.source_url !== undefined && { source_url: data.source_url }),
+      ...(data.local_repo_path !== undefined && {
+        local_repo_path: data.local_repo_path,
+      }),
       ...(data.icon_url !== undefined && { icon_url: data.icon_url }),
       ...(data.icon_emoji !== undefined && { icon_emoji: data.icon_emoji }),
       ...(data.category !== undefined && { category: data.category }),
       ...(data.is_builtin !== undefined && { is_builtin: data.is_builtin }),
-      ...(data.registry_slug !== undefined && { registry_slug: data.registry_slug }),
+      ...(data.registry_slug !== undefined && {
+        registry_slug: data.registry_slug,
+      }),
       ...(data.content_url !== undefined && { content_url: data.content_url }),
-      ...(data.prerequisites !== undefined && { prerequisites: data.prerequisites }),
-      ...(data.compatibility !== undefined && { compatibility: data.compatibility }),
+      ...(data.prerequisites !== undefined && {
+        prerequisites: data.prerequisites,
+      }),
+      ...(data.compatibility !== undefined && {
+        compatibility: data.compatibility,
+      }),
+      ...(data.currentVersion !== undefined && {
+        currentVersion: data.currentVersion,
+      }),
     };
 
     return updatedSkill;
+  }
+
+  // ==================== Version Management ====================
+  // ==================== 版本管理 ====================
+
+  /**
+   * Create version snapshot (wrapped in a transaction for atomicity).
+   * 创建版本快照（使用事务保证原子性）。
+   *
+   * @param skillId - Skill ID
+   * @param note - Optional version note
+   * @param filesSnapshot - Optional multi-file snapshot
+   * @param existingSkill - Pre-fetched skill object (avoids re-query in update flow)
+   */
+  createVersion(
+    skillId: string,
+    note?: string,
+    filesSnapshot?: SkillFileSnapshot[],
+    existingSkill?: Skill,
+  ): SkillVersion | null {
+    const skill = existingSkill ?? this.getById(skillId);
+    if (!skill) return null;
+
+    // Use a transaction to atomically insert version + increment counter,
+    // preventing UNIQUE(skill_id, version) conflicts from concurrent calls.
+    // 使用事务原子化地插入版本 + 递增计数器，防止并发调用导致 UNIQUE 约束冲突。
+    const txn = this.db.transaction(() => {
+      // Re-read current_version inside transaction for consistency
+      // 在事务内重新读取 current_version 以保证一致性
+      const freshRow = this.db
+        .prepare("SELECT current_version FROM skills WHERE id = ?")
+        .get(skillId) as { current_version: number } | undefined;
+      if (!freshRow) return null;
+
+      const version = freshRow.current_version ?? 1;
+      const id = uuidv4();
+      const now = Date.now();
+
+      this.db
+        .prepare(
+          `INSERT INTO skill_versions (
+          id, skill_id, version, content, files_snapshot, note, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .run(
+          id,
+          skillId,
+          version,
+          skill.content || null,
+          filesSnapshot ? JSON.stringify(filesSnapshot) : null,
+          note || null,
+          now,
+        );
+
+      // Update current version number
+      // 更新当前版本号
+      this.db
+        .prepare(
+          "UPDATE skills SET current_version = current_version + 1 WHERE id = ?",
+        )
+        .run(skillId);
+
+      return {
+        id,
+        skillId,
+        version,
+        content: skill.content,
+        filesSnapshot,
+        note,
+        createdAt: new Date(now).toISOString(),
+      } as SkillVersion;
+    });
+
+    return txn();
+  }
+
+  /**
+   * Get all versions for a skill
+   * 获取 Skill 的所有版本
+   */
+  getVersions(skillId: string): SkillVersion[] {
+    const stmt = this.db.prepare(
+      "SELECT * FROM skill_versions WHERE skill_id = ? ORDER BY version DESC",
+    );
+    const rows = stmt.all(skillId) as any[];
+    return rows.map((row) => this.rowToSkillVersion(row));
+  }
+
+  /**
+   * Get one specific version for a skill.
+   * 获取 Skill 的指定版本。
+   */
+  getVersion(skillId: string, version: number): SkillVersion | null {
+    const stmt = this.db.prepare(
+      "SELECT * FROM skill_versions WHERE skill_id = ? AND version = ?",
+    );
+    const row = stmt.get(skillId, version) as any;
+    return row ? this.rowToSkillVersion(row) : null;
+  }
+
+  /**
+   * Rollback to specified version
+   * 回滚到指定版本
+   */
+  rollbackVersion(skillId: string, version: number): Skill | null {
+    const stmt = this.db.prepare(
+      "SELECT * FROM skill_versions WHERE skill_id = ? AND version = ?",
+    );
+    const row = stmt.get(skillId, version) as any;
+    if (!row) return null;
+
+    const versionData = this.rowToSkillVersion(row);
+
+    // Restore content via update (which will auto-create a new version snapshot)
+    // 通过 update 恢复内容（会自动创建新版本快照）
+    return this.update(skillId, {
+      content: versionData.content,
+    });
   }
 
   /**
@@ -233,9 +406,48 @@ export class SkillDB {
    * 删除 Skill
    */
   delete(id: string): boolean {
-    const stmt = this.db.prepare('DELETE FROM skills WHERE id = ?');
+    const stmt = this.db.prepare("DELETE FROM skills WHERE id = ?");
     const result = stmt.run(id);
     return result.changes > 0;
+  }
+
+  /**
+   * Delete all skills and their versions (for backup restore).
+   * 删除所有 Skill 及其版本（用于备份恢复）。
+   */
+  deleteAll(): void {
+    const txn = this.db.transaction(() => {
+      this.db.prepare("DELETE FROM skill_versions").run();
+      this.db.prepare("DELETE FROM skills").run();
+    });
+    txn();
+  }
+
+  /**
+   * Insert a version row directly (for backup restore).
+   * 直接插入版本行（用于备份恢复）。
+   *
+   * Unlike `createVersion`, this does NOT auto-increment `current_version`
+   * and accepts explicit values for all fields.
+   * 与 `createVersion` 不同，此方法不会自动递增 `current_version`，
+   * 且接受所有字段的显式值。
+   */
+  insertVersionDirect(version: SkillVersion): void {
+    this.db
+      .prepare(
+        `INSERT OR IGNORE INTO skill_versions (
+          id, skill_id, version, content, files_snapshot, note, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .run(
+        version.id,
+        version.skillId,
+        version.version,
+        version.content || null,
+        version.filesSnapshot ? JSON.stringify(version.filesSnapshot) : null,
+        version.note || null,
+        version.createdAt ? new Date(version.createdAt).getTime() : Date.now(),
+      );
   }
 
   /**
@@ -253,20 +465,46 @@ export class SkillDB {
       protocol_type: row.protocol_type,
       version: row.version,
       author: row.author,
-      tags: JSON.parse(row.tags || '[]'),
+      tags: JSON.parse(row.tags || "[]"),
       is_favorite: row.is_favorite === 1,
+      currentVersion: row.current_version ?? 1,
       created_at: row.created_at,
       updated_at: row.updated_at,
       source_url: row.source_url || undefined,
+      local_repo_path: row.local_repo_path || undefined,
       icon_url: row.icon_url || undefined,
       icon_emoji: row.icon_emoji || undefined,
-      category: row.category || 'general',
+      category: row.category || "general",
       is_builtin: row.is_builtin === 1,
       registry_slug: row.registry_slug || undefined,
       content_url: row.content_url || undefined,
-      prerequisites: row.prerequisites ? JSON.parse(row.prerequisites) : undefined,
-      compatibility: row.compatibility ? JSON.parse(row.compatibility) : undefined,
-      original_tags: row.original_tags ? JSON.parse(row.original_tags) : undefined,
+      prerequisites: row.prerequisites
+        ? JSON.parse(row.prerequisites)
+        : undefined,
+      compatibility: row.compatibility
+        ? JSON.parse(row.compatibility)
+        : undefined,
+      original_tags: row.original_tags
+        ? JSON.parse(row.original_tags)
+        : undefined,
+    };
+  }
+
+  /**
+   * Convert database row to SkillVersion object
+   * 数据库行转 SkillVersion 对象
+   */
+  private rowToSkillVersion(row: any): SkillVersion {
+    return {
+      id: row.id,
+      skillId: row.skill_id,
+      version: row.version,
+      content: row.content,
+      filesSnapshot: row.files_snapshot
+        ? JSON.parse(row.files_snapshot)
+        : undefined,
+      note: row.note,
+      createdAt: new Date(row.created_at).toISOString(),
     };
   }
 }
