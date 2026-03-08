@@ -235,13 +235,14 @@ PromptHub/
 
 ### v0.4.4 (Aktuelle Version) 🎉
 
-- [x] **Skill-Store**: 20+ ausgewählte KI-Agenten-Skills (Anthropic, OpenAI u.a.)
-- [x] **Multi-Plattform-Installation**: SKILL.md auf Claude Code, Cursor, Windsurf, Codex und 12+ Plattformen installieren
-- [x] **Lokaler Scan & Vorschau**: Lokale SKILL.md automatisch erkennen, Vorschau und Batch-Import
-- [x] **Symlink/Kopie-Modus**: Symbolischer Link oder unabhängige Kopie
-- [x] **KI-Skill-Übersetzung**: Immersive und Volltext-Übersetzung
-- [x] **Tag-Filterung**: Sidebar-Tags zum schnellen Filtern
-- [x] **Klarer Workflow**: „Zur Bibliothek hinzufügen" → automatisch „Auf Plattform installieren"-Dialog
+- [x] **macOS Update-Fix**: Squirrel umgehen, DMG direkt herunterladen mit Spiegel-Beschleunigung
+- [x] **Vollbild-Exit-Fix**: Globale Escape-Taste beendet Vollbild, alle Einstiegsmethoden abgedeckt (closes #63, #65)
+- [x] **Sicherheitseinstellungen i18n**: Fest codierte chinesische Toast-Nachrichten auf 7 Sprachen umgestellt
+- [x] **Bild-Upload-Fix**: Endlosschleife in usePromptMediaManager behoben
+- [x] **Bild-Prompt UI**: Referenzmedien als erstklassiges UI-Element für Bild-Prompts
+- [x] **Upload-Limit-Hinweise**: Format- und Größenhinweise im Medien-Upload-Bereich
+- [x] **Homebrew-Upgrade-Hinweis**: `brew upgrade --cask prompthub` im macOS-Update-Hinweis
+- [x] **CI/CD Manifest-Fix**: Automatische SHA512/Size-Korrektur vor Release
 
 ### v0.3.x
 
@@ -260,17 +261,21 @@ PromptHub/
 
 Den vollständigen Verlauf finden Sie hier: **[CHANGELOG.md](../CHANGELOG.md)**
 
-### Neueste Version v0.4.4 (2026-03-07) 🎉
+### Neueste Version v0.4.4 (2026-03-08) 🎉
 
-**Wichtige neue Funktionen**
+**Fehlerbehebungen**
 
-- 🧩 **Skill-Store**: 20+ ausgewählte KI-Agenten-Skills (Anthropic, OpenAI)
-- 🚀 **Multi-Plattform-Installation**: SKILL.md auf 12 Plattformen installieren
-- 🔍 **Lokaler Scan & Vorschau**: Lokale SKILL.md automatisch erkennen, Batch-Import
-- 🔗 **Symlink/Kopie-Modus**: Symbolischer Link oder unabhängige Kopie
-- 🌐 **KI-Skill-Übersetzung**: Immersive und Volltext-Übersetzung
-- 🏷️ **Tag-Filterung**: Sidebar-Tags zum schnellen Filtern
-- 📦 **Klarer Workflow**: „Zur Bibliothek hinzufügen" → automatisch „Auf Plattform installieren"
+- 🍎 **macOS Update UX Fix**: Squirrel umgangen, DMG direkt heruntergeladen mit Spiegel-Fallback
+- 🖥️ **Vollbild-Exit-Fix**: Globale Escape-Taste für alle Vollbild-Methoden (closes #63, #65)
+- 🔐 **Sicherheitseinstellungen i18n Fix**: 15 fest codierte chinesische Toast-Nachrichten durch i18n-Keys ersetzt
+- 🖼️ **Bild-Upload-Endlosschleife Fix**: `Maximum update depth exceeded` in usePromptMediaManager behoben
+
+**Verbesserungen**
+
+- 🖼️ **Bild-Prompt UI Optimierung**: Referenzmedien als erstklassiges UI-Element für Bild-Prompts
+- 💡 **Upload-Limit-Hinweise**: Format- und Größenhinweise im Medien-Upload-Bereich
+- 🍺 **Homebrew-Upgrade-Hinweis**: `brew upgrade --cask prompthub` im macOS-Update-Hinweis
+- 🔧 **CI/CD Manifest-Fix**: SHA512/Size-Korrekturskript vor Release
 
 > 📋 [Vollständiges Änderungsprotokoll anzeigen](../CHANGELOG.md)
 

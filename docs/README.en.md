@@ -252,14 +252,14 @@ PromptHub/
 
 ### v0.4.4 (Current) 🎉
 
-- [x] **Skill Store**: 20+ curated AI agent skills from Anthropic, OpenAI and more
-- [x] **Multi-Platform Install**: Install SKILL.md to Claude Code, Cursor, Windsurf, Codex and 12+ platforms
-- [x] **Local Scan Preview**: Auto-discover local SKILL.md files with preview and batch import
-- [x] **Symlink/Copy Mode**: Symlink for auto-sync or independent copy to each platform
-- [x] **AI Skill Translation**: Immersive and full translation modes for skill content
-- [x] **AI Skill Generation**: Generate and polish skill content with AI
-- [x] **Tag Filtering**: Filter skills by tags in sidebar
-- [x] **Clear Workflow**: "Add to Library" → auto-popup "Install to Platforms" dialog
+- [x] **macOS Update Fix**: Bypass Squirrel, download DMG directly with mirror acceleration
+- [x] **Fullscreen Exit Fix**: Global Escape exits fullscreen, covers all entry methods (closes #63, #65)
+- [x] **Security Settings i18n**: Fix hardcoded Chinese toasts, support 7 languages
+- [x] **Image Upload Fix**: Fix infinite loop crash in usePromptMediaManager
+- [x] **Image Prompt UI**: Reference media promoted to first-class UI for image prompts
+- [x] **Upload Limit Hints**: Format and size hints in media upload areas
+- [x] **Homebrew Upgrade Hint**: `brew upgrade --cask prompthub` in macOS update prompt
+- [x] **CI/CD Manifest Fix**: Auto-correct SHA512/size before release
 
 ### v0.3.x
 
@@ -278,18 +278,21 @@ PromptHub/
 
 See full changelog: **[CHANGELOG.md](../CHANGELOG.md)**
 
-### Latest Version v0.4.4 (2026-03-07) 🎉
+### Latest Version v0.4.4 (2026-03-08) 🎉
 
-**Major New Features**
+**Fixed**
 
-- 🧩 **Skill Store**: 20+ curated AI agent skills (PDF, Excel, Playwright, Figma, Deploy, etc.) from Anthropic and OpenAI
-- 🚀 **Multi-Platform Install**: Install SKILL.md to Claude Code, GitHub Copilot, Cursor, Windsurf, Kiro, Gemini CLI, Trae, OpenCode, Codex CLI, Roo Code, Amp, OpenClaw (12 platforms)
-- 🔍 **Local Scan Preview**: Auto-discover local SKILL.md files, preview and batch import
-- 🔗 **Symlink/Copy Mode**: Symlink (auto-sync edits) or independent copy to each platform
-- 🌐 **AI Skill Translation**: Immersive (interleaved original/translated) and full translation modes
-- ✨ **AI Skill Generation**: Generate complete skill content from description, with smart polishing
-- 🏷️ **Tag Filtering**: Sidebar skill tags for quick filtering
-- 📦 **Clear Workflow**: "Add to Library" → auto-popup "Install to Platforms" selection
+- 🍎 **macOS Update UX Fix**: Bypass Squirrel auto-update, download DMG directly with mirror fallback
+- 🖥️ **Fullscreen Exit Fix**: Global Escape exits fullscreen across all entry methods (closes #63, #65)
+- 🔐 **Security Settings i18n Fix**: Replaced 15 hardcoded Chinese toast messages with i18n keys
+- 🖼️ **Image Upload Infinite Loop Fix**: Fixed `Maximum update depth exceeded` in usePromptMediaManager
+
+**Improvements**
+
+- 🖼️ **Image Prompt UI Enhancement**: Reference media extracted as first-class UI for image prompts
+- 💡 **Upload Limit Hints**: Format and size hints added to media upload areas
+- 🍺 **Homebrew Upgrade Hint**: `brew upgrade --cask prompthub` in macOS update prompt
+- 🔧 **CI/CD Manifest Fix**: Pre-release SHA512/size reconciliation script
 
 > 📋 [View full changelog](../CHANGELOG.md)
 

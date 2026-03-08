@@ -235,14 +235,14 @@ PromptHub/
 
 ### v0.4.4（當前）🎉
 
-- [x] **Skill 技能商店**：內建 20+ 精選 AI 代理技能，來自 Anthropic、OpenAI 等官方源
-- [x] **多平台安裝**：支援一鍵安裝 SKILL.md 到 Claude Code、Cursor、Windsurf、Codex 等 12+ 平台
-- [x] **本地掃描預覽**：自動發現本地已有 SKILL.md，支援預覽選擇後批量導入
-- [x] **軟鏈接/複製模式**：支援 Symlink 同步編輯或獨立複製到各平台
-- [x] **AI 技能翻譯**：支援沉浸式翻譯和全文翻譯
-- [x] **AI 技能生成**：支援 AI 生成技能內容和智能涡色
-- [x] **技能標籤篩選**：側邊欄標籤快速過濾技能
-- [x] **清晰的工作流**：「添加到庫」→ 自動彈出「安裝到平台」選擇彈窗
+- [x] **macOS 更新修復**：繞過 Squirrel 直接下載 DMG，支援鏡像加速
+- [x] **全螢幕退出修復**：全域 Escape 退出全螢幕，覆蓋所有進入方式 (closes #63, #65)
+- [x] **安全設定國際化**：修復 SecuritySettings 硬編碼中文提示，支援 7 語言
+- [x] **圖片上傳修復**：修復 usePromptMediaManager 無限迴圈導致頁面崩潰
+- [x] **繪圖提示詞 UI**：image 類型提示詞的參考媒體提升為一級 UI 元素
+- [x] **上傳限制提示**：媒體上傳區域新增格式與大小說明
+- [x] **Homebrew 升級提示**：更新提示中新增 `brew upgrade --cask prompthub` 指引
+- [x] **CI/CD manifest 修正**：發佈前自動校正 SHA512/size
 
 ### v0.3.x
 
@@ -261,17 +261,21 @@ PromptHub/
 
 查看完整更新日誌：**[CHANGELOG.md](../CHANGELOG.md)**
 
-### 最新版本 v0.4.4 (2026-03-07) 🎉
+### 最新版本 v0.4.4 (2026-03-08) 🎉
 
-**重大新功能**
+**修復**
 
-- 🧩 **Skill 技能商店**：內建 20+ 精選 AI 代理技能，來自 Anthropic 和 OpenAI
-- 🚀 **多平台一鍵安裝**：支援將 SKILL.md 安裝到 12 個平台
-- 🔍 **本地掃描預覽**：自動發現本地 SKILL.md，預覽後批量導入
-- 🔗 **Symlink/複製模式**：支援軟鏈接或獨立複製
-- 🌐 **AI 技能翻譯**：沉浸式和全文翻譯模式
-- 🏷️ **技能標籤篩選**：側邊欄標籤快速過濾
-- 📦 **清晰工作流**：「添加到庫」→ 自動彈出「安裝到平台」
+- 🍎 **macOS 更新體驗修復**：繞過 Squirrel 自動更新，直接下載 DMG，支援鏡像加速
+- 🖥️ **全螢幕退出修復**：全域 Escape 退出全螢幕，覆蓋所有進入方式 (closes #63, #65)
+- 🔐 **安全設定國際化修復**：修復 SecuritySettings 硬編碼中文 toast，支援 7 語言
+- 🖼️ **圖片上傳無限迴圈修復**：修復 usePromptMediaManager 的 `Maximum update depth exceeded`
+
+**優化**
+
+- 🖼️ **繪圖提示詞 UI 優化**：image 類型的參考媒體提升為一級 UI 元素
+- 💡 **上傳限制提示**：媒體上傳區域新增格式與大小說明
+- 🍺 **Homebrew 升級提示**：macOS 更新提示中新增 `brew upgrade --cask prompthub` 指引
+- 🔧 **CI/CD manifest 修正**：新增發佈前 SHA512/size 校正腳本
 
 > 📋 [更新日誌詳情](../CHANGELOG.md)
 

@@ -6,6 +6,10 @@
   - **macOS Update UX Fix**: Bypassed Squirrel auto-update on macOS (code signature validation fails without Apple Developer certificate), now downloads DMG directly to Downloads folder with mirror fallback and progress display
 - 🖥️ **全屏退出修复** (closes #63, #65)：修复 Windows 无边框窗口进入全屏后无法退出、macOS 通过菜单/绿色按钮进入全屏时 Escape 键无效的问题；新增全局 Escape 退出全屏监听，补齐 CreateSkillModal 缺失的全屏退出快捷键
   - **Fullscreen Exit Fix** (closes #63, #65): Fixed inability to exit fullscreen on Windows frameless windows and Escape key not working when entering fullscreen via macOS menu/green button; added global Escape-exits-fullscreen listener and missing keyboard handler in CreateSkillModal
+- 🔐 **安全设置国际化修复**：修复 SecuritySettings 中 15 处硬编码中文 toast 提示，全部替换为 i18n 多语言 key
+  - **Security Settings i18n Fix**: Replaced 15 hardcoded Chinese toast messages in SecuritySettings with i18n keys across all 7 locales
+- 🖼️ **图片上传死循环修复**：修复 usePromptMediaManager 中因 `initialImages`/`initialVideos` 数组引用每次渲染变化导致的 `Maximum update depth exceeded` 无限循环
+  - **Image Upload Infinite Loop Fix**: Fixed `Maximum update depth exceeded` in usePromptMediaManager caused by array reference changes on every render for `initialImages`/`initialVideos`
 
 ### 优化 / Improvements
 
@@ -15,6 +19,10 @@
   - **Update Prompt i18n**: Updated macOS manual install instructions across all 7 locales with DMG and Homebrew upgrade paths
 - 🔧 **CI/CD manifest 修正**：新增发布前 SHA512/size 校正脚本，修复 electron-builder 生成的 manifest 与实际二进制不一致的问题
   - **CI/CD Manifest Fix**: Added pre-release SHA512/size reconciliation script, fixing electron-builder manifest vs actual binary mismatch
+- 🖼️ **绘图提示词 UI 优化**：`image` 类型提示词的"参考媒体"区域从折叠属性面板中提取出来，作为一级 UI 元素与 Prompt 编辑器同层展示
+  - **Image Prompt UI Enhancement**: Extracted "Reference Media" section from collapsible Properties panel for `image` type prompts, displayed as a first-class UI element at the same level as the prompt editor
+- 💡 **上传限制提示**：媒体上传区域新增格式与大小说明（图片 JPG/PNG/GIF/WebP，视频 MP4/WebM/MOV，单文件 ≤50MB）
+  - **Upload Limit Hints**: Added format and size hints to media upload areas (Images: JPG/PNG/GIF/WebP, Videos: MP4/WebM/MOV, ≤50MB per file)
 
 ---
 

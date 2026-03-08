@@ -353,6 +353,10 @@ PromptHub/
 
 - [x] **macOS 更新修复**：绕过 Squirrel 直接下载 DMG，支持镜像加速
 - [x] **全屏退出修复**：全局 Escape 退出全屏，覆盖所有进入方式 (closes #63, #65)
+- [x] **安全设置国际化**：修复 SecuritySettings 硬编码中文提示，支持 7 语言
+- [x] **图片上传修复**：修复 usePromptMediaManager 无限循环导致页面崩溃
+- [x] **绘图提示词 UI**：image 类型提示词的参考媒体提升为一级 UI 元素
+- [x] **上传限制提示**：媒体上传区域新增格式与大小说明
 - [x] **Homebrew 升级提示**：更新提示中新增 `brew upgrade --cask prompthub` 指引
 - [x] **CI/CD manifest 修正**：发布前自动校正 SHA512/size
 
@@ -400,9 +404,13 @@ PromptHub/
 
 - 🍎 **macOS 更新体验修复**：绕过 Squirrel 直接下载 DMG，支持镜像加速与进度显示
 - 🖥️ **全屏退出修复**：全局 Escape 退出全屏，补齐 CreateSkillModal 缺失的快捷键 (closes #63, #65)
+- 🔐 **安全设置国际化修复**：修复 SecuritySettings 硬编码中文 toast，支持 7 语言
+- 🖼️ **图片上传死循环修复**：修复 usePromptMediaManager 无限循环导致 `Maximum update depth exceeded`
 
 **优化 / Improvements**
 
+- 🖼️ **绘图提示词 UI 优化**：image 类型提示词的参考媒体提升为一级 UI 元素
+- 💡 **上传限制提示**：媒体上传区域新增格式与大小说明
 - 🍺 **Homebrew 升级提示**：macOS 更新提示中新增 `brew upgrade --cask prompthub` 指引
 - 🌍 **更新提示多语言**：macOS 手动安装提示更新为 7 语言，包含 DMG 和 Homebrew 两种方式
 - 🔧 **CI/CD manifest 修正**：新增发布前 SHA512/size 校正脚本

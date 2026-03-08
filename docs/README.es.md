@@ -235,13 +235,14 @@ PromptHub/
 
 ### v0.4.4 (Versión actual) 🎉
 
-- [x] **Tienda de Skills**: 20+ skills de agentes IA seleccionados (Anthropic, OpenAI, etc.)
-- [x] **Instalación multiplataforma**: Instala SKILL.md en Claude Code, Cursor, Windsurf, Codex y 12+ plataformas
-- [x] **Escaneo y vista previa local**: Detección automática de SKILL.md locales, vista previa e importación por lotes
-- [x] **Modo Symlink/Copia**: Enlace simbólico o copia independiente
-- [x] **Traducción IA de skills**: Traducción inmersiva y completa
-- [x] **Filtrado por etiquetas**: Etiquetas en la barra lateral para filtrado rápido
-- [x] **Flujo de trabajo claro**: «Añadir a la biblioteca» → diálogo automático «Instalar en plataforma»
+- [x] **Corrección de actualización macOS**: Omitir Squirrel, descargar DMG directamente con aceleración de espejo
+- [x] **Corrección de salida de pantalla completa**: Escape global para salir de pantalla completa (closes #63, #65)
+- [x] **i18n de configuración de seguridad**: Corregir mensajes toast en chino codificados, soporte para 7 idiomas
+- [x] **Corrección de carga de imágenes**: Corregir bucle infinito en usePromptMediaManager
+- [x] **UI de prompts de imagen**: Medios de referencia como elemento UI de primera clase para prompts de imagen
+- [x] **Indicaciones de límite de carga**: Indicaciones de formato y tamaño en áreas de carga de medios
+- [x] **Indicación de actualización Homebrew**: `brew upgrade --cask prompthub` en el aviso de actualización macOS
+- [x] **Corrección de manifest CI/CD**: Corrección automática de SHA512/size antes del lanzamiento
 
 ### v0.3.x
 
@@ -260,17 +261,21 @@ PromptHub/
 
 Puedes ver el registro completo aquí: **[CHANGELOG.md](../CHANGELOG.md)**
 
-### Última versión v0.4.4 (2026-03-07) 🎉
+### Última versión v0.4.4 (2026-03-08) 🎉
 
-**Nuevas funciones importantes**
+**Correcciones**
 
-- 🧩 **Tienda de Skills**: 20+ skills de agentes IA seleccionados (Anthropic, OpenAI)
-- 🚀 **Instalación multiplataforma**: Instala SKILL.md en 12 plataformas
-- 🔍 **Escaneo y vista previa local**: Detección automática de SKILL.md locales, importación por lotes
-- 🔗 **Modo Symlink/Copia**: Enlace simbólico o copia independiente
-- 🌐 **Traducción IA de skills**: Traducción inmersiva y completa
-- 🏷️ **Filtrado por etiquetas**: Etiquetas en la barra lateral para filtrado rápido
-- 📦 **Flujo de trabajo claro**: «Añadir a la biblioteca» → automáticamente «Instalar en plataforma»
+- 🍎 **Corrección de actualización macOS**: Omitir Squirrel, descargar DMG directamente con espejo alternativo
+- 🖥️ **Corrección de salida de pantalla completa**: Escape global para todos los métodos de pantalla completa (closes #63, #65)
+- 🔐 **Corrección i18n de seguridad**: 15 mensajes toast en chino reemplazados por claves i18n
+- 🖼️ **Corrección de bucle infinito de carga de imágenes**: `Maximum update depth exceeded` corregido en usePromptMediaManager
+
+**Mejoras**
+
+- 🖼️ **Optimización UI de prompts de imagen**: Medios de referencia como elemento UI de primera clase
+- 💡 **Indicaciones de límite de carga**: Indicaciones de formato y tamaño en áreas de carga
+- 🍺 **Indicación de actualización Homebrew**: `brew upgrade --cask prompthub` en el aviso macOS
+- 🔧 **Corrección de manifest CI/CD**: Script de corrección SHA512/size antes del lanzamiento
 
 > 📋 [Ver registro de cambios](../CHANGELOG.md)
 
