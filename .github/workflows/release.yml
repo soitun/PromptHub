@@ -192,19 +192,57 @@ jobs:
           # 删除 builder-debug.yml
           find dist -name "builder-debug.yml" -delete || true
 
+      - name: Prepare upload bundle
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          mkdir -p upload_dist
+
+          copy_if_exists() {
+            local file="$1"
+            if [ -f "$file" ]; then
+              cp "$file" upload_dist/
+            else
+              echo "Expected build output not found: $file"
+              exit 1
+            fi
+          }
+
+          if [ "${{ matrix.platform }}" = "mac" ]; then
+            copy_if_exists "dist/PromptHub-${VERSION}-${{ matrix.arch }}.dmg"
+            copy_if_exists "dist/PromptHub-${VERSION}-${{ matrix.arch }}.dmg.blockmap"
+            copy_if_exists "dist/PromptHub-${VERSION}-${{ matrix.arch }}.zip"
+            copy_if_exists "dist/PromptHub-${VERSION}-${{ matrix.arch }}.zip.blockmap"
+
+            if [ "${{ matrix.arch }}" = "arm64" ]; then
+              copy_if_exists "dist/latest-mac-arm64.yml"
+            else
+              copy_if_exists "dist/latest-mac.yml"
+              copy_if_exists "dist/latest-mac-x64.yml"
+            fi
+          elif [ "${{ matrix.platform }}" = "win" ]; then
+            copy_if_exists "dist/PromptHub-Setup-${VERSION}-${{ matrix.arch }}.exe"
+
+            if [ "${{ matrix.arch }}" = "arm64" ]; then
+              copy_if_exists "dist/latest-arm64.yml"
+            else
+              copy_if_exists "dist/latest.yml"
+              copy_if_exists "dist/latest-x64.yml"
+            fi
+          else
+            copy_if_exists "dist/PromptHub-${VERSION}-x64.AppImage"
+            copy_if_exists "dist/prompthub_${VERSION}_amd64.deb"
+            copy_if_exists "dist/latest-linux.yml"
+          fi
+
+          echo "Prepared upload bundle:"
+          ls -1 upload_dist/
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.platform }}-${{ matrix.arch || 'default' }}-build
-          path: |
-            dist/*.dmg
-            dist/*.zip
-            dist/*-x64.exe
-            dist/*-arm64.exe
-            dist/*.AppImage
-            dist/*.deb
-            dist/*.blockmap
-            dist/latest*.yml
+          path: upload_dist/*
           if-no-files-found: ignore
 
   release:
