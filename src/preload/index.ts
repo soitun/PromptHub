@@ -63,6 +63,7 @@ const api = {
       "shortcut:triggered",
       "window:close-action",
       "window:showCloseDialog",
+      "window:fullscreen-changed",
     ];
 
     if (!ALLOWED_LISTEN_CHANNELS.includes(channel)) {
@@ -97,6 +98,7 @@ contextBridge.exposeInMainWorld("electron", {
   // 全屏控制
   enterFullscreen: () => ipcRenderer.send("window:enterFullscreen"),
   exitFullscreen: () => ipcRenderer.send("window:exitFullscreen"),
+  toggleFullscreen: () => ipcRenderer.send("window:toggleFullscreen"),
   isFullscreen: () => ipcRenderer.invoke("window:isFullscreen"),
   setAutoLaunch: (enabled: boolean, minimizeOnLaunch?: boolean) =>
     ipcRenderer.send("app:setAutoLaunch", enabled, minimizeOnLaunch),
@@ -286,6 +288,7 @@ declare global {
       enterFullscreen?: () => void;
       exitFullscreen?: () => void;
       isFullscreen?: () => Promise<boolean>;
+      toggleFullscreen?: () => void;
       setAutoLaunch?: (enabled: boolean, minimizeOnLaunch?: boolean) => void;
       setDebugMode?: (enabled: boolean) => void;
       toggleDevTools?: () => void;

@@ -151,6 +151,15 @@ async function createWindow() {
     }
   });
 
+  // Notify renderer when OS fullscreen state changes
+  // 当操作系统全屏状态变化时通知渲染进程
+  mainWindow.on("enter-full-screen", () => {
+    mainWindow?.webContents.send("window:fullscreen-changed", true);
+  });
+  mainWindow.on("leave-full-screen", () => {
+    mainWindow?.webContents.send("window:fullscreen-changed", false);
+  });
+
   // Load renderer page
   // 加载页面
   if (isDev) {
@@ -271,6 +280,12 @@ ipcMain.on("window:exitFullscreen", () => {
 
 ipcMain.handle("window:isFullscreen", () => {
   return mainWindow?.isFullScreen() ?? false;
+});
+
+ipcMain.on("window:toggleFullscreen", () => {
+  if (mainWindow) {
+    mainWindow.setFullScreen(!mainWindow.isFullScreen());
+  }
 });
 
 // Configure auto launch on login

@@ -51,6 +51,10 @@ function App() {
   const [lastClipboardChecksum, setLastClipboardChecksum] =
     useState<string>("");
 
+  // OS-level fullscreen state (synced from main process events)
+  // OS 级全屏状态（通过主进程事件同步）
+  const [isOsFullscreen, setIsOsFullscreen] = useState(false);
+
   // Update state
   // 更新状态
   const [showUpdateDialog, setShowUpdateDialog] = useState(false);
@@ -143,6 +147,19 @@ function App() {
     return () => window.removeEventListener("focus", checkClipboard);
   }, [clipboardImportEnabled, lastClipboardChecksum]);
 
+  // Global Escape key: exit OS fullscreen regardless of which component entered it
+  // 全局 Escape 键：无论哪个组件进入了 OS 全屏，都可以退出
+  useEffect(() => {
+    if (!isOsFullscreen) return;
+    const handleEscapeFullscreen = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        window.electron?.exitFullscreen?.();
+      }
+    };
+    window.addEventListener("keydown", handleEscapeFullscreen);
+    return () => window.removeEventListener("keydown", handleEscapeFullscreen);
+  }, [isOsFullscreen]);
+
   // Handle local shortcuts
   // 处理局部快捷键
   useEffect(() => {
@@ -198,6 +215,13 @@ function App() {
   }, [shortcutModes, localShortcuts]);
 
   useEffect(() => {
+    // Listen for OS fullscreen state changes from main process
+    // 监听主进程发送的 OS 全屏状态变化事件
+    const handleFullscreenChanged = (isFullscreen: boolean) => {
+      setIsOsFullscreen(isFullscreen);
+    };
+    window.api?.on?.("window:fullscreen-changed", handleFullscreenChanged);
+
     // Listen for update status
     // 监听更新状态
     const handleStatus = (status: UpdateStatus) => {
@@ -288,6 +312,7 @@ function App() {
     return () => {
       // Cleanup Electron/IPC listeners to prevent leaks on unmount/remount
       // 清理 Electron/IPC 监听，避免卸载/重挂载导致重复触发
+      window.api?.off?.("window:fullscreen-changed", handleFullscreenChanged);
       if (typeof offUpdaterStatus === "function") {
         offUpdaterStatus();
       } else {

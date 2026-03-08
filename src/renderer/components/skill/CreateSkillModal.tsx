@@ -113,7 +113,8 @@ export function CreateSkillModal({ isOpen, onClose }: CreateSkillModalProps) {
     return new Set(
       existingSkills.flatMap((skill) =>
         [skill.source_url, skill.local_repo_path].filter(
-          (value): value is string => typeof value === "string" && value.trim().length > 0,
+          (value): value is string =>
+            typeof value === "string" && value.trim().length > 0,
         ),
       ),
     );
@@ -130,7 +131,8 @@ export function CreateSkillModal({ isOpen, onClose }: CreateSkillModalProps) {
     () => annotatedScanResults.filter((skill) => !skill.isImported),
     [annotatedScanResults],
   );
-  const importedScanCount = annotatedScanResults.length - selectableScanResults.length;
+  const importedScanCount =
+    annotatedScanResults.length - selectableScanResults.length;
   const existingTags = useMemo(
     () => getExistingSkillTags(existingSkills),
     [existingSkills],
@@ -169,6 +171,19 @@ export function CreateSkillModal({ isOpen, onClose }: CreateSkillModalProps) {
     setIsNativeFullscreen(false);
     window.electron?.exitFullscreen?.();
   }, []);
+
+  // Keyboard shortcuts (Escape to exit native fullscreen)
+  // 键盘快捷键（Escape 退出原生全屏）
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isNativeFullscreen) {
+        handleExitNativeFullscreen();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, isNativeFullscreen, handleExitNativeFullscreen]);
 
   if (!isOpen) return null;
 
@@ -414,7 +429,10 @@ export function CreateSkillModal({ isOpen, onClose }: CreateSkillModalProps) {
 
       if (!createdSkill) {
         throw new Error(
-          t("skill.installReturnedEmpty", "GitHub install did not return a skill"),
+          t(
+            "skill.installReturnedEmpty",
+            "GitHub install did not return a skill",
+          ),
         );
       }
 
@@ -458,7 +476,10 @@ export function CreateSkillModal({ isOpen, onClose }: CreateSkillModalProps) {
 
       if (!createdSkill) {
         throw new Error(
-          t("skill.createReturnedEmpty", "Skill creation did not return a result"),
+          t(
+            "skill.createReturnedEmpty",
+            "Skill creation did not return a result",
+          ),
         );
       }
 
@@ -581,7 +602,10 @@ export function CreateSkillModal({ isOpen, onClose }: CreateSkillModalProps) {
 
     try {
       const userTagsByPath = Object.fromEntries(
-        toImport.map((skill) => [skill.localPath, scanTagDrafts[skill.localPath] || []]),
+        toImport.map((skill) => [
+          skill.localPath,
+          scanTagDrafts[skill.localPath] || [],
+        ]),
       );
       const importResult = await importScannedSkills(toImport, userTagsByPath);
       setImportingCount(importResult.importedCount);
@@ -756,7 +780,7 @@ export function CreateSkillModal({ isOpen, onClose }: CreateSkillModalProps) {
               {mode === "select"
                 ? t("skill.addSkill", "Add Skill")
                 : mode === "github"
-                    ? t("skill.installFromGithub", "Install from GitHub")
+                  ? t("skill.installFromGithub", "Install from GitHub")
                   : mode === "manual"
                     ? t("skill.createTitle", "Create Skill")
                     : mode === "ai"
@@ -1432,7 +1456,8 @@ export function CreateSkillModal({ isOpen, onClose }: CreateSkillModalProps) {
                         onClick={toggleSelectAll}
                         className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors"
                       >
-                        {selectedScanItems.size === selectableScanResults.length ? (
+                        {selectedScanItems.size ===
+                        selectableScanResults.length ? (
                           <>
                             <CheckSquareIcon className="w-3.5 h-3.5" />{" "}
                             {t("skill.deselectAll", "Deselect All")}
@@ -1450,171 +1475,191 @@ export function CreateSkillModal({ isOpen, onClose }: CreateSkillModalProps) {
                   {/* Scrollable results cards */}
                   <div className="max-h-[480px] overflow-y-auto pr-1">
                     <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-                    {annotatedScanResults.map((skill) => {
-                      const isSelected = selectedScanItems.has(skill.filePath);
-                      const shortPath = (() => {
-                        const parts = skill.localPath
-                          .replace(/\\/g, "/")
-                          .split("/")
-                          .filter(Boolean);
-                        return parts.length >= 2
-                          ? `.../${parts[parts.length - 2]}/${parts[parts.length - 1]}`
-                          : skill.localPath;
-                      })();
-                      return (
-                        <button
-                          key={skill.filePath}
-                          onClick={() =>
-                            !skill.isImported && toggleScanItem(skill.filePath)
-                          }
-                          className={`w-full rounded-2xl border p-4 text-left transition-all shadow-sm ${
-                            skill.isImported
-                              ? "border-border bg-muted/30 opacity-70 cursor-not-allowed"
-                              : isSelected
-                                ? "border-primary/40 bg-primary/5 shadow-primary/10"
-                                : "border-border bg-card hover:border-primary/30 hover:shadow-md"
-                          }`}
-                          disabled={skill.isImported}
-                        >
-                          <div className="flex items-start gap-3">
-                            <div
-                              className={`mt-0.5 flex h-10 w-10 items-center justify-center rounded-xl ${
-                                skill.isImported
-                                  ? "bg-accent text-muted-foreground"
-                                  : "bg-primary/10 text-primary"
-                              }`}
-                            >
-                              <FileTextIcon className="w-5 h-5" />
-                            </div>
-
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="min-w-0">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <h4 className="font-semibold text-sm truncate">
-                                      {skill.name}
-                                    </h4>
-                                    {skill.version && (
-                                      <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-                                        v{skill.version}
-                                      </span>
-                                    )}
-                                    {skill.isImported && (
-                                      <span className="inline-flex items-center px-1.5 py-0.5 text-[10px] rounded bg-accent text-muted-foreground shrink-0">
-                                        {t("skill.importedBadge", "Already Imported")}
-                                      </span>
-                                    )}
-                                  </div>
-                                  {skill.author && (
-                                    <p className="mt-1 text-[11px] text-muted-foreground">
-                                      {skill.author}
-                                    </p>
-                                  )}
-                                </div>
-
-                                <div className="shrink-0 pt-0.5">
-                                  {skill.isImported || isSelected ? (
-                                    <CheckSquareIcon className="w-4 h-4 text-primary" />
-                                  ) : (
-                                    <SquareIcon className="w-4 h-4 text-muted-foreground" />
-                                  )}
-                                </div>
+                      {annotatedScanResults.map((skill) => {
+                        const isSelected = selectedScanItems.has(
+                          skill.filePath,
+                        );
+                        const shortPath = (() => {
+                          const parts = skill.localPath
+                            .replace(/\\/g, "/")
+                            .split("/")
+                            .filter(Boolean);
+                          return parts.length >= 2
+                            ? `.../${parts[parts.length - 2]}/${parts[parts.length - 1]}`
+                            : skill.localPath;
+                        })();
+                        return (
+                          <button
+                            key={skill.filePath}
+                            onClick={() =>
+                              !skill.isImported &&
+                              toggleScanItem(skill.filePath)
+                            }
+                            className={`w-full rounded-2xl border p-4 text-left transition-all shadow-sm ${
+                              skill.isImported
+                                ? "border-border bg-muted/30 opacity-70 cursor-not-allowed"
+                                : isSelected
+                                  ? "border-primary/40 bg-primary/5 shadow-primary/10"
+                                  : "border-border bg-card hover:border-primary/30 hover:shadow-md"
+                            }`}
+                            disabled={skill.isImported}
+                          >
+                            <div className="flex items-start gap-3">
+                              <div
+                                className={`mt-0.5 flex h-10 w-10 items-center justify-center rounded-xl ${
+                                  skill.isImported
+                                    ? "bg-accent text-muted-foreground"
+                                    : "bg-primary/10 text-primary"
+                                }`}
+                              >
+                                <FileTextIcon className="w-5 h-5" />
                               </div>
 
-                              {skill.description && (
-                                <p className="mt-3 text-xs leading-5 text-muted-foreground line-clamp-3">
-                                  {skill.description}
-                                </p>
-                              )}
-
-                              <div className="mt-3 flex flex-wrap gap-1.5">
-                                {skill.platforms.map((p) => (
-                                  <span
-                                    key={p}
-                                    className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium rounded-full bg-primary/8 text-primary/80"
-                                  >
-                                    {p}
-                                  </span>
-                                ))}
-                              </div>
-
-                              {!skill.isImported && isSelected && (
-                                <div className="mt-4 rounded-xl border border-border bg-accent/20 p-3 space-y-2">
-                                  <div className="text-[11px] font-medium text-foreground">
-                                    {t("skill.importTags", "导入标签")}
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="min-w-0">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <h4 className="font-semibold text-sm truncate">
+                                        {skill.name}
+                                      </h4>
+                                      {skill.version && (
+                                        <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                                          v{skill.version}
+                                        </span>
+                                      )}
+                                      {skill.isImported && (
+                                        <span className="inline-flex items-center px-1.5 py-0.5 text-[10px] rounded bg-accent text-muted-foreground shrink-0">
+                                          {t(
+                                            "skill.importedBadge",
+                                            "Already Imported",
+                                          )}
+                                        </span>
+                                      )}
+                                    </div>
+                                    {skill.author && (
+                                      <p className="mt-1 text-[11px] text-muted-foreground">
+                                        {skill.author}
+                                      </p>
+                                    )}
                                   </div>
-                                  <div className="flex flex-wrap gap-1.5">
-                                    {(scanTagDrafts[skill.localPath] || []).map((tag) => (
-                                      <span
-                                        key={tag}
-                                        className="inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-[11px] font-medium text-white"
-                                      >
-                                        <HashIcon className="w-3 h-3" />
-                                        {tag}
-                                        <button
-                                          type="button"
-                                          onClick={(event) => {
-                                            event.stopPropagation();
-                                            handleRemoveScanTag(skill.localPath, tag);
-                                          }}
-                                          className="hover:text-white/70"
+
+                                  <div className="shrink-0 pt-0.5">
+                                    {skill.isImported || isSelected ? (
+                                      <CheckSquareIcon className="w-4 h-4 text-primary" />
+                                    ) : (
+                                      <SquareIcon className="w-4 h-4 text-muted-foreground" />
+                                    )}
+                                  </div>
+                                </div>
+
+                                {skill.description && (
+                                  <p className="mt-3 text-xs leading-5 text-muted-foreground line-clamp-3">
+                                    {skill.description}
+                                  </p>
+                                )}
+
+                                <div className="mt-3 flex flex-wrap gap-1.5">
+                                  {skill.platforms.map((p) => (
+                                    <span
+                                      key={p}
+                                      className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium rounded-full bg-primary/8 text-primary/80"
+                                    >
+                                      {p}
+                                    </span>
+                                  ))}
+                                </div>
+
+                                {!skill.isImported && isSelected && (
+                                  <div className="mt-4 rounded-xl border border-border bg-accent/20 p-3 space-y-2">
+                                    <div className="text-[11px] font-medium text-foreground">
+                                      {t("skill.importTags", "导入标签")}
+                                    </div>
+                                    <div className="flex flex-wrap gap-1.5">
+                                      {(
+                                        scanTagDrafts[skill.localPath] || []
+                                      ).map((tag) => (
+                                        <span
+                                          key={tag}
+                                          className="inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-[11px] font-medium text-white"
                                         >
-                                          <XIcon className="w-3 h-3" />
-                                        </button>
-                                      </span>
-                                    ))}
-                                  </div>
-                                  <div className="flex gap-2">
-                                    <input
-                                      type="text"
-                                      value={scanTagInputs[skill.localPath] || ""}
-                                      onClick={(event) => event.stopPropagation()}
-                                      onChange={(event) =>
-                                        setScanTagInputs((prev) => ({
-                                          ...prev,
-                                          [skill.localPath]: event.target.value,
-                                        }))
-                                      }
-                                      onKeyDown={(event) => {
-                                        if (event.key === "Enter") {
-                                          event.preventDefault();
+                                          <HashIcon className="w-3 h-3" />
+                                          {tag}
+                                          <button
+                                            type="button"
+                                            onClick={(event) => {
+                                              event.stopPropagation();
+                                              handleRemoveScanTag(
+                                                skill.localPath,
+                                                tag,
+                                              );
+                                            }}
+                                            className="hover:text-white/70"
+                                          >
+                                            <XIcon className="w-3 h-3" />
+                                          </button>
+                                        </span>
+                                      ))}
+                                    </div>
+                                    <div className="flex gap-2">
+                                      <input
+                                        type="text"
+                                        value={
+                                          scanTagInputs[skill.localPath] || ""
+                                        }
+                                        onClick={(event) =>
+                                          event.stopPropagation()
+                                        }
+                                        onChange={(event) =>
+                                          setScanTagInputs((prev) => ({
+                                            ...prev,
+                                            [skill.localPath]:
+                                              event.target.value,
+                                          }))
+                                        }
+                                        onKeyDown={(event) => {
+                                          if (event.key === "Enter") {
+                                            event.preventDefault();
+                                            event.stopPropagation();
+                                            handleAddScanTag(skill.localPath);
+                                          }
+                                        }}
+                                        placeholder={t(
+                                          "skill.enterTagHint",
+                                          "输入新标签后按回车",
+                                        )}
+                                        className="flex-1 h-9 rounded-xl border-0 bg-background px-3 text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                                      />
+                                      <button
+                                        type="button"
+                                        onClick={(event) => {
                                           event.stopPropagation();
                                           handleAddScanTag(skill.localPath);
+                                        }}
+                                        disabled={
+                                          !scanTagInputs[
+                                            skill.localPath
+                                          ]?.trim()
                                         }
-                                      }}
-                                      placeholder={t(
-                                        "skill.enterTagHint",
-                                        "输入新标签后按回车",
-                                      )}
-                                      className="flex-1 h-9 rounded-xl border-0 bg-background px-3 text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-                                    />
-                                    <button
-                                      type="button"
-                                      onClick={(event) => {
-                                        event.stopPropagation();
-                                        handleAddScanTag(skill.localPath);
-                                      }}
-                                      disabled={!scanTagInputs[skill.localPath]?.trim()}
-                                      className="rounded-xl bg-background px-3 text-xs font-medium text-foreground transition-colors hover:bg-card disabled:opacity-50"
-                                    >
-                                      {t("skill.addTag", "添加标签")}
-                                    </button>
+                                        className="rounded-xl bg-background px-3 text-xs font-medium text-foreground transition-colors hover:bg-card disabled:opacity-50"
+                                      >
+                                        {t("skill.addTag", "添加标签")}
+                                      </button>
+                                    </div>
                                   </div>
-                                </div>
-                              )}
+                                )}
 
-                              <div
-                                className="mt-4 flex items-center gap-1 text-[11px] text-muted-foreground/60 font-mono truncate"
-                                title={skill.localPath}
-                              >
-                                <FolderOpenIcon className="w-3 h-3 shrink-0" />
-                                <span className="truncate">{shortPath}</span>
+                                <div
+                                  className="mt-4 flex items-center gap-1 text-[11px] text-muted-foreground/60 font-mono truncate"
+                                  title={skill.localPath}
+                                >
+                                  <FolderOpenIcon className="w-3 h-3 shrink-0" />
+                                  <span className="truncate">{shortPath}</span>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        </button>
-                      );
-                    })}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
