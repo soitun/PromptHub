@@ -453,7 +453,7 @@
     "updateAvailable": "Nueva versión disponible",
     "updateAvailableDesc": "Versión {{version}} disponible, ¿descargar?",
     "newVersion": "v{{version}} disponible",
-    "macManualInstall": "¡Descarga completada! Debido a las restricciones de firma de macOS, instale manualmente:\n\n1. Abra la carpeta Descargas\n2. Haga doble clic en el instalador\n3. Si ve una advertencia de seguridad, permítalo en Configuración del Sistema > Privacidad y Seguridad",
+    "macManualInstall": "¡Descarga completada! Debido a las restricciones de firma de macOS, instale manualmente:\n\n1. Abra la carpeta Descargas\n2. Haga doble clic en el instalador DMG\n3. Si ve una advertencia de seguridad, permítalo en Configuración del Sistema > Privacidad y Seguridad\n\nSi instaló a través de Homebrew, simplemente ejecute:\nbrew upgrade --cask prompthub",
     "openDownloadFolder": "Abrir Descargas",
     "manualDownload": "Descarga manual",
     "manualDownloadHint": "¿Falló la actualización automática? Puede descargar manualmente la última versión:",
