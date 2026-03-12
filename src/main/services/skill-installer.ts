@@ -271,6 +271,38 @@ export class SkillInstaller {
     return path.join(app.getPath("userData"), "skills");
   }
 
+  private static getDefaultScanEntries(): Array<{
+    path: string;
+    platformName: string;
+  }> {
+    const homeDir = os.homedir();
+    const osPlatform = process.platform as "darwin" | "win32" | "linux";
+    const scanEntries: Array<{ path: string; platformName: string }> = [
+      {
+        path: this.skillsDir,
+        platformName: "PromptHub",
+      },
+    ];
+
+    for (const p of SKILL_PLATFORMS) {
+      const dir = p.skillsDir[osPlatform] || p.skillsDir.darwin;
+      if (!dir) {
+        continue;
+      }
+
+      const resolved = dir
+        .replace(/^~/, homeDir)
+        .replace(/%USERPROFILE%/g, homeDir)
+        .replace(/%APPDATA%/g, path.join(homeDir, "AppData", "Roaming"));
+
+      if (!scanEntries.find((entry) => entry.path === resolved)) {
+        scanEntries.push({ path: resolved, platformName: p.name });
+      }
+    }
+
+    return scanEntries;
+  }
+
   static isManagedRepoPath(absolutePath: string): boolean {
     const resolved = path.resolve(absolutePath);
     const relative = path.relative(this.skillsDir, resolved);
@@ -439,24 +471,7 @@ export class SkillInstaller {
    */
   static async scanLocal(db: SkillDB): Promise<number> {
     let count = 0;
-    const homeDir = os.homedir();
-
-    // Dynamically build scan paths from all supported platforms
-    // 从所有已支持的平台动态构建扫描路径
-    const platform = process.platform as "darwin" | "win32" | "linux";
-    const scanPaths: string[] = [];
-    for (const p of SKILL_PLATFORMS) {
-      const dir = p.skillsDir[platform] || p.skillsDir.darwin;
-      if (dir) {
-        const resolved = dir
-          .replace(/^~/, homeDir)
-          .replace(/%USERPROFILE%/g, homeDir)
-          .replace(/%APPDATA%/g, path.join(homeDir, "AppData", "Roaming"));
-        if (!scanPaths.includes(resolved)) {
-          scanPaths.push(resolved);
-        }
-      }
-    }
+    const scanPaths = this.getDefaultScanEntries().map((entry) => entry.path);
 
     for (const scanPath of scanPaths) {
       if (!(await this.fileExists(scanPath))) {
@@ -547,24 +562,7 @@ export class SkillInstaller {
     // Use a map keyed by skill folder path to deduplicate across platforms
     // 使用按技能文件夹路径为键的 map 来跨平台去重
     const skillMap = new Map<string, ScannedSkill>();
-    const homeDir = os.homedir();
-    const osPlatform = process.platform as "darwin" | "win32" | "linux";
-
-    // Build scan paths from all supported platforms
-    const scanEntries: { path: string; platformName: string }[] = [];
-    for (const p of SKILL_PLATFORMS) {
-      const dir = p.skillsDir[osPlatform] || p.skillsDir.darwin;
-      if (dir) {
-        const resolved = dir
-          .replace(/^~/, homeDir)
-          .replace(/%USERPROFILE%/g, homeDir)
-          .replace(/%APPDATA%/g, path.join(homeDir, "AppData", "Roaming"));
-        // Avoid scanning the same directory twice
-        if (!scanEntries.find((e) => e.path === resolved)) {
-          scanEntries.push({ path: resolved, platformName: p.name });
-        }
-      }
-    }
+    const scanEntries = this.getDefaultScanEntries();
 
     // Append custom paths provided by the user
     // 追加用户自定义路径

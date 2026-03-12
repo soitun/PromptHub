@@ -17,6 +17,7 @@ import {
   SKILL_CATEGORIES,
 } from "../../shared/constants/skill-registry";
 import { chatCompletion } from "../services/ai";
+import { filterVisibleSkills } from "../services/skill-filter";
 import { useSettingsStore } from "./settings.store";
 
 export type SkillFilterType =
@@ -470,6 +471,7 @@ export const useSkillStore = create<SkillState>()(
                   newSkill.id,
                   "SKILL.md",
                   repoContent,
+                  { skipVersionSnapshot: true },
                 );
                 const repoPath = await window.api.skill.getRepoPath(newSkill.id);
                 if (repoPath) {
@@ -502,14 +504,22 @@ export const useSkillStore = create<SkillState>()(
           const updatedSkill = await window.api.skill.update(id, data);
           if (updatedSkill) {
             let storedSkill = updatedSkill;
+            const shouldSyncRepoContent =
+              Object.prototype.hasOwnProperty.call(data, "instructions") ||
+              Object.prototype.hasOwnProperty.call(data, "content");
             const nextContent =
               data.instructions ??
               data.content ??
               updatedSkill.instructions ??
               updatedSkill.content;
-            if (typeof nextContent === "string") {
+            if (shouldSyncRepoContent && typeof nextContent === "string") {
               try {
-                await window.api.skill.writeLocalFile(id, "SKILL.md", nextContent);
+                await window.api.skill.writeLocalFile(
+                  id,
+                  "SKILL.md",
+                  nextContent,
+                  { skipVersionSnapshot: true },
+                );
                 const repoPath = await window.api.skill.getRepoPath(id);
                 if (repoPath) {
                   storedSkill = { ...updatedSkill, local_repo_path: repoPath };
@@ -743,48 +753,22 @@ export const useSkillStore = create<SkillState>()(
 
       getFilteredSkills: () => {
         const {
-          skills,
-          searchQuery,
-          filterType,
-          filterTags,
           deployedSkillNames,
+          filterTags,
+          filterType,
+          searchQuery,
+          skills,
+          storeView,
         } = get();
-        let filtered = skills;
 
-        // Apply filter
-        if (filterType === "favorites") {
-          filtered = filtered.filter((s) => s.is_favorite);
-        } else if (filterType === "installed") {
-          filtered = filtered.filter((s) => !!s.registry_slug);
-        } else if (filterType === "deployed") {
-          filtered = filtered.filter((s) => deployedSkillNames.has(s.name));
-        } else if (filterType === "pending") {
-          filtered = filtered.filter((s) => !deployedSkillNames.has(s.name));
-        }
-
-        if (filterTags.length > 0) {
-          filtered = filtered.filter(
-            (s) => s.tags && filterTags.some((tag) => s.tags!.includes(tag)),
-          );
-        }
-
-        // Apply search filter
-        if (searchQuery.trim()) {
-          const query = searchQuery.toLowerCase();
-          filtered = filtered.filter((s) => {
-            const nameMatch = s.name.toLowerCase().includes(query);
-            const descMatch = s.description?.toLowerCase().includes(query);
-            const tagsMatch = s.tags?.some((tag) =>
-              tag.toLowerCase().includes(query),
-            );
-            const instructionsMatch = s.instructions
-              ?.toLowerCase()
-              .includes(query);
-            return nameMatch || descMatch || tagsMatch || instructionsMatch;
-          });
-        }
-
-        return filtered;
+        return filterVisibleSkills({
+          deployedSkillNames,
+          filterTags,
+          filterType,
+          searchQuery,
+          skills,
+          storeView,
+        });
       },
 
       // ─── Skill Store Actions / 技能商店操作 ───

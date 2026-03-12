@@ -102,6 +102,8 @@ export function CreateSkillModal({ isOpen, onClose }: CreateSkillModalProps) {
   const [scanDone, setScanDone] = useState(false);
   const [importingCount, setImportingCount] = useState(0);
   const [scanImportNotice, setScanImportNotice] = useState<string | null>(null);
+  const [scanSearchQuery, setScanSearchQuery] = useState("");
+  const [showScanOptionalTags, setShowScanOptionalTags] = useState(false);
   const [scanTagDrafts, setScanTagDrafts] = useState<Record<string, string[]>>(
     {},
   );
@@ -130,6 +132,27 @@ export function CreateSkillModal({ isOpen, onClose }: CreateSkillModalProps) {
   const selectableScanResults = useMemo(
     () => annotatedScanResults.filter((skill) => !skill.isImported),
     [annotatedScanResults],
+  );
+  const visibleAnnotatedScanResults = useMemo(() => {
+    const query = scanSearchQuery.trim().toLowerCase();
+    if (!query) {
+      return annotatedScanResults;
+    }
+    return annotatedScanResults.filter((skill) => {
+      const fields = [
+        skill.name,
+        skill.description,
+        skill.author,
+        skill.localPath,
+        ...skill.tags,
+        ...skill.platforms,
+      ];
+      return fields.some((value) => value?.toLowerCase().includes(query));
+    });
+  }, [annotatedScanResults, scanSearchQuery]);
+  const visibleSelectableScanResults = useMemo(
+    () => visibleAnnotatedScanResults.filter((skill) => !skill.isImported),
+    [visibleAnnotatedScanResults],
   );
   const importedScanCount =
     annotatedScanResults.length - selectableScanResults.length;
@@ -557,12 +580,27 @@ export function CreateSkillModal({ isOpen, onClose }: CreateSkillModalProps) {
 
   // Toggle select all / deselect all
   const toggleSelectAll = () => {
-    if (selectedScanItems.size === selectableScanResults.length) {
-      setSelectedScanItems(new Set());
+    if (visibleSelectableScanResults.length === 0) return;
+    const allVisibleSelected = visibleSelectableScanResults.every((skill) =>
+      selectedScanItems.has(skill.filePath),
+    );
+
+    if (allVisibleSelected) {
+      setSelectedScanItems((prev) => {
+        const next = new Set(prev);
+        visibleSelectableScanResults.forEach((skill) =>
+          next.delete(skill.filePath),
+        );
+        return next;
+      });
     } else {
-      setSelectedScanItems(
-        new Set(selectableScanResults.map((skill) => skill.filePath)),
-      );
+      setSelectedScanItems((prev) => {
+        const next = new Set(prev);
+        visibleSelectableScanResults.forEach((skill) =>
+          next.add(skill.filePath),
+        );
+        return next;
+      });
     }
   };
 
@@ -1443,21 +1481,56 @@ export function CreateSkillModal({ isOpen, onClose }: CreateSkillModalProps) {
                     </div>
                   </div>
 
+                  <div className="flex flex-col gap-3 rounded-xl border border-border bg-background/60 p-3 sm:flex-row sm:items-center">
+                    <label className="relative block flex-1">
+                      <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <input
+                        type="text"
+                        value={scanSearchQuery}
+                        onChange={(event) =>
+                          setScanSearchQuery(event.target.value)
+                        }
+                        placeholder={t(
+                          "skill.searchImportPlaceholder",
+                          "搜索名称、描述、标签、平台或路径",
+                        )}
+                        className="h-10 w-full rounded-xl border border-border bg-card pl-9 pr-3 text-sm outline-none transition-colors focus:border-primary/40"
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setShowScanOptionalTags((prev) => !prev)
+                      }
+                      className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition-colors ${
+                        showScanOptionalTags
+                          ? "border-primary/40 bg-primary/5 text-primary"
+                          : "border-border bg-card text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <HashIcon className="h-4 w-4" />
+                      {showScanOptionalTags
+                        ? t("skill.hideOptionalTags", "隐藏可选标签")
+                        : t("skill.showOptionalTags", "需要时再加标签")}
+                    </button>
+                  </div>
+
                   {/* Results header with count and select-all */}
                   <div className="flex items-center justify-between">
                     <p className="text-sm font-medium">
-                      {t("skill.scanFound", "Found {{count}} skill(s)").replace(
-                        "{{count}}",
-                        String(annotatedScanResults.length),
-                      )}
+                      {t(
+                        "skill.scanFound",
+                        "Found {{count}} skill(s)",
+                      ).replace("{{count}}", String(visibleAnnotatedScanResults.length))}
                     </p>
-                    {selectableScanResults.length > 0 && (
+                    {visibleSelectableScanResults.length > 0 && (
                       <button
                         onClick={toggleSelectAll}
                         className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors"
                       >
-                        {selectedScanItems.size ===
-                        selectableScanResults.length ? (
+                        {visibleSelectableScanResults.every((skill) =>
+                          selectedScanItems.has(skill.filePath),
+                        ) ? (
                           <>
                             <CheckSquareIcon className="w-3.5 h-3.5" />{" "}
                             {t("skill.deselectAll", "Deselect All")}
@@ -1475,7 +1548,7 @@ export function CreateSkillModal({ isOpen, onClose }: CreateSkillModalProps) {
                   {/* Scrollable results cards */}
                   <div className="max-h-[480px] overflow-y-auto pr-1">
                     <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-                      {annotatedScanResults.map((skill) => {
+                      {visibleAnnotatedScanResults.map((skill) => {
                         const isSelected = selectedScanItems.has(
                           skill.filePath,
                         );
@@ -1569,10 +1642,15 @@ export function CreateSkillModal({ isOpen, onClose }: CreateSkillModalProps) {
                                   ))}
                                 </div>
 
-                                {!skill.isImported && isSelected && (
+                                {!skill.isImported &&
+                                  isSelected &&
+                                  showScanOptionalTags && (
                                   <div className="mt-4 rounded-xl border border-border bg-accent/20 p-3 space-y-2">
                                     <div className="text-[11px] font-medium text-foreground">
-                                      {t("skill.importTags", "导入标签")}
+                                      {t(
+                                        "skill.importTagsOptional",
+                                        "导入标签（可选）",
+                                      )}
                                     </div>
                                     <div className="flex flex-wrap gap-1.5">
                                       {(
@@ -1713,7 +1791,12 @@ export function CreateSkillModal({ isOpen, onClose }: CreateSkillModalProps) {
         {mode === "scan" && scanDone && annotatedScanResults.length > 0 && (
           <div className="flex items-center justify-between px-6 py-3 border-t border-border shrink-0 bg-card">
             <span className="text-xs text-muted-foreground">
-              {selectedScanItems.size} / {selectableScanResults.length}{" "}
+              {
+                visibleSelectableScanResults.filter((skill) =>
+                  selectedScanItems.has(skill.filePath),
+                ).length
+              }{" "}
+              / {visibleSelectableScanResults.length}{" "}
               {t("skill.selected", "selected")}
             </span>
             <button

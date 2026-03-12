@@ -4,9 +4,11 @@ import {
   ArrowUpIcon,
   CuboidIcon,
   GlobeIcon,
+  HistoryIcon,
   BookOpenIcon,
   CodeIcon,
   PencilIcon,
+  SaveIcon,
   StarIcon,
   TrashIcon,
   FolderOpenIcon,
@@ -23,6 +25,7 @@ import { UnsavedChangesDialog } from "../ui/UnsavedChangesDialog";
 import { EditSkillModal } from "./EditSkillModal";
 import { SkillFileEditor } from "./SkillFileEditor";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
+import { Modal, Textarea } from "../ui";
 import "highlight.js/styles/github-dark.css";
 import "./SkillMarkdown.css";
 import {
@@ -32,6 +35,7 @@ import {
   stripFrontmatter,
 } from "./detail-utils";
 import { useSkillPlatform } from "./use-skill-platform";
+import { SkillVersionHistoryModal } from "./SkillVersionHistoryModal";
 
 /**
  * Full-width Skill Detail Page
@@ -71,6 +75,10 @@ export function SkillFullDetailPage() {
   const [isTranslating, setIsTranslating] = useState(false);
   const [showTranslation, setShowTranslation] = useState(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
+  const [isVersionHistoryOpen, setIsVersionHistoryOpen] = useState(false);
+  const [isSnapshotModalOpen, setIsSnapshotModalOpen] = useState(false);
+  const [isCreatingSnapshot, setIsCreatingSnapshot] = useState(false);
+  const [snapshotNote, setSnapshotNote] = useState("");
   const [resolvedSkillMdContent, setResolvedSkillMdContent] = useState("");
   const [fileEditorHasUnsavedChanges, setFileEditorHasUnsavedChanges] =
     useState(false);
@@ -328,6 +336,34 @@ export function SkillFullDetailPage() {
     setIsUnsavedDialogOpen(true);
   };
 
+  const openSnapshotModal = () => {
+    setSnapshotNote(`Manual snapshot ${new Date().toLocaleString()}`);
+    setIsSnapshotModalOpen(true);
+  };
+
+  const handleCreateSnapshot = async () => {
+    if (!selectedSkill) return;
+
+    setIsCreatingSnapshot(true);
+    try {
+      await window.api.skill.versionCreate(
+        selectedSkill.id,
+        snapshotNote.trim() || `Manual snapshot ${new Date().toLocaleString()}`,
+      );
+      await loadSkills();
+      setIsSnapshotModalOpen(false);
+      showToast(t("skill.snapshotCreated", "已创建版本快照"), "success");
+    } catch (error) {
+      console.error("Failed to create skill snapshot:", error);
+      showToast(
+        `${t("skill.updateFailed", "Update failed")}: ${getErrorMessage(error)}`,
+        "error",
+      );
+    } finally {
+      setIsCreatingSnapshot(false);
+    }
+  };
+
   return (
     <div className="flex-1 flex flex-col h-full bg-background overflow-hidden animate-in fade-in slide-in-from-right-4 duration-300">
       {/* Header with back button */}
@@ -355,15 +391,28 @@ export function SkillFullDetailPage() {
             <h2 className="font-bold text-xl text-foreground leading-tight">
               {selectedSkill.name}
             </h2>
-            <div className="flex items-center gap-3 mt-1">
+            <div className="mt-1 flex items-center gap-3 flex-wrap">
               <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-medium">
                 <GlobeIcon className="w-3.5 h-3.5" />
                 {selectedSkill.author || t("skill.localStorage")}
               </div>
+              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
+                {t("skill.currentVersion", "当前版本")} v
+                {selectedSkill.currentVersion || 0}
+              </span>
             </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={openSnapshotModal}
+            disabled={isCreatingSnapshot}
+            className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-2 text-sm font-medium text-muted-foreground transition-all hover:border-primary/30 hover:bg-primary/5 hover:text-primary disabled:opacity-50"
+            title={t("skill.createSnapshot", "创建快照")}
+          >
+            <SaveIcon className="h-4 w-4" />
+            {t("skill.snapshot", "快照")}
+          </button>
           <button
             onClick={() => toggleFavorite(selectedSkill.id)}
             className={`p-2.5 rounded-full transition-all active:scale-95 ${
@@ -380,6 +429,13 @@ export function SkillFullDetailPage() {
             <StarIcon
               className={`w-5 h-5 ${selectedSkill.is_favorite ? "fill-current" : ""}`}
             />
+          </button>
+          <button
+            onClick={() => setIsVersionHistoryOpen(true)}
+            className="p-2.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-full transition-all active:scale-95"
+            title={t("skill.versionHistory", "版本历史")}
+          >
+            <HistoryIcon className="w-5 h-5" />
           </button>
           <button
             onClick={() => setIsEditModalOpen(true)}
@@ -573,6 +629,73 @@ export function SkillFullDetailPage() {
           setPendingUnsavedAction(null);
         }}
       />
+
+      <SkillVersionHistoryModal
+        isOpen={isVersionHistoryOpen}
+        onClose={() => setIsVersionHistoryOpen(false)}
+        skill={selectedSkill}
+        currentContent={resolvedSkillMdContent}
+        onReload={loadSkills}
+      />
+
+      <Modal
+        isOpen={isSnapshotModalOpen}
+        onClose={() => {
+          if (!isCreatingSnapshot) {
+            setIsSnapshotModalOpen(false);
+          }
+        }}
+        title={t("skill.createSnapshot", "创建快照")}
+        size="lg"
+      >
+        <div className="space-y-4">
+          <div className="text-sm text-muted-foreground">
+            {t(
+              "skill.snapshotPrompt",
+              "输入本次快照说明",
+            )}
+          </div>
+          <Textarea
+            value={snapshotNote}
+            onChange={(event) => setSnapshotNote(event.target.value)}
+            placeholder={t(
+              "skill.versionNotePlaceholder",
+              "描述本次变更...",
+            )}
+            rows={4}
+            autoFocus
+            disabled={isCreatingSnapshot}
+          />
+          <div className="flex items-center justify-end gap-3 border-t border-border pt-4">
+            <button
+              type="button"
+              onClick={() => setIsSnapshotModalOpen(false)}
+              disabled={isCreatingSnapshot}
+              className="rounded-xl border border-border bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-50"
+            >
+              {t("common.cancel", "取消")}
+            </button>
+            <button
+              type="button"
+              onClick={handleCreateSnapshot}
+              disabled={isCreatingSnapshot}
+              className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/90 disabled:opacity-50"
+            >
+              {isCreatingSnapshot ? (
+                <>
+                  <SaveIcon className="h-4 w-4 animate-pulse" />
+                  {t("common.saving", "保存中")}
+                </>
+              ) : (
+                <>
+                  <SaveIcon className="h-4 w-4" />
+                  {t("skill.createSnapshot", "创建快照")}
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

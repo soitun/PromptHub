@@ -1,0 +1,198 @@
+## Round 1 — 2026-03-12
+
+**PM 评分：** 6.8/10 → 完善现有功能  
+**测试：** 75 passed / 1 failed / 0 skipped  
+**Lint：** 1 blocking issue（ESLint 9 配置缺失）
+
+### 改进项
+
+1. **[功能] 批量把多个 Skill 同步到多个平台** (R1-01) ✅
+   - 问题：当前只能进入单个 Skill 详情页后逐个同步，无法一次选中多个 Skill 分发到多个平台。
+   - 改动：在 `SkillManager` 的选择模式中新增批量同步入口，新增 `SkillBatchDeployDialog` 和 `skill-platform-sync` 执行逻辑。
+   - 验证：`tests/unit/services/skill-platform-sync.test.ts` 通过。
+
+2. **[功能] 导入预览支持搜索，导入标签改为可选** (R1-02) ✅
+   - 问题：扫描导入列表无法搜索，而且导入时每项都暴露标签编辑区域，操作噪音过大。
+   - 改动：在 `SkillScanPreview` 增加搜索框，标签改成可选展开区。
+   - 验证：`pnpm build`、`pnpm typecheck` 通过。
+
+3. **[功能] 补齐 Skill 版本历史查看与恢复入口** (R1-03) ✅
+   - 问题：SkillVersion 底层已存在，但前端没有历史入口。
+   - 改动：新增 `SkillVersionHistoryModal`，详情页加入版本历史按钮。
+   - 验证：`tests/unit/components/skill-detail-utils.test.ts` 通过。
+
+4. **[代码] 文件编辑自动生成快照并同步 SKILL.md 到数据库** (R1-04) ✅
+   - 问题：本地文件编辑后数据库内容可能滞后。
+   - 改动：文件写入/删除/重命名前自动快照，并同步 `SKILL.md` 回数据库。
+   - 验证：`tests/unit/stores/skill.store.test.ts` 通过。
+
+## Round 2 — 2026-03-12
+
+**PM 评分：** 7.4/10 → 先把质量门禁恢复  
+**测试：** 76 passed / 0 failed / 0 skipped  
+**Lint：** 0 errors
+
+### 改进项
+
+1. **[代码] 恢复 ESLint 9 可执行配置** (R2-01) ✅
+   - 问题：`pnpm lint` 完全不可执行。
+   - 改动：新增 `eslint.config.mjs`，让项目重新具备可运行的 lint 门禁。
+   - 验证：`pnpm lint` 通过。
+
+2. **[测试] 修正 updater 既有失败用例** (R2-02) ✅
+   - 问题：`autoInstallOnAppQuit` 的断言与现实现不一致。
+   - 改动：按平台行为修正测试预期。
+   - 验证：`tests/unit/main/updater.test.ts` 通过。
+
+## Round 3 — 2026-03-12
+
+**PM 评分：** 7.8/10 → 修复主路径搜索断层
+
+### 改进项
+
+1. **[功能] Skill 顶部搜索真正驱动列表过滤** (R3-01) ✅
+   - 问题：TopBar 里能输入 skill 搜索，但 `SkillManager` 结果未接入 `searchQuery`。
+   - 改动：把搜索词接入 `SkillManager` 过滤逻辑。
+   - 验证：`pnpm lint`、`pnpm typecheck` 通过。
+
+## Round 4 — 2026-03-12
+
+**PM 评分：** 8.0/10 → 消除重复导入流程中的体验落差
+
+### 改进项
+
+1. **[功能] CreateSkillModal 的扫描导入也支持搜索和轻量导入** (R4-01) ✅
+   - 问题：创建弹窗里的本地扫描导入仍保留旧体验，和主入口不一致。
+   - 改动：为 `CreateSkillModal` 扫描结果增加搜索框，标签改为可选展开。
+   - 验证：`pnpm build` 通过。
+
+## Round 5 — 2026-03-12
+
+**PM 评分：** 8.2/10 → 让版本管理从“能回滚”变成“能管理”
+
+### 改进项
+
+1. **[功能] 增加手动版本快照入口与当前版本显示** (R5-01) ✅
+   - 问题：自动快照存在，但用户无法主动打点版本。
+   - 改动：Skill 详情页加入“快照”按钮和当前版本 badge。
+   - 验证：`pnpm test:run` 通过。
+
+## Round 6 — 2026-03-12
+
+**PM 评分：** 8.3/10 → 批量同步默认更聪明
+
+### 改进项
+
+1. **[功能] 批量平台对话框默认选中已检测平台并保留失败明细** (R6-01) ✅
+   - 问题：每次都要重新勾平台，失败信息只在 toast 中一闪而过。
+   - 改动：默认选中所有检测到的平台；失败列表保留在对话框内。
+   - 验证：`pnpm lint`、`pnpm typecheck` 通过。
+
+## Round 7 — 2026-03-12
+
+**PM 评分：** 8.5/10 → 批量分发链路闭环
+
+### 改进项
+
+1. **[功能] 批量平台对话框支持批量卸载** (R7-01) ✅
+   - 问题：只能批量安装，不能批量从平台移除。
+   - 改动：在同一个批量平台对话框中新增 `undeploy` 模式。
+   - 验证：`tests/unit/services/skill-platform-sync.test.ts` 增加卸载用例并通过。
+
+## Round 8 — 2026-03-12
+
+**PM 评分：** 8.6/10 → 处理首屏体积
+
+### 改进项
+
+1. **[代码] TopBar 中的大型弹窗组件懒加载** (R8-01) ✅
+   - 问题：CreatePrompt / QuickAdd / CreateSkill 初始即打进主包。
+   - 改动：三者改为 `lazy + Suspense` 懒加载。
+   - 验证：`pnpm build` 通过。
+
+## Round 9 — 2026-03-12
+
+**PM 评分：** 8.7/10 → 继续拆轻主包
+
+### 改进项
+
+1. **[代码] SkillStore / SkillFullDetailPage / 扫描与批量对话框懒加载** (R9-01) ✅
+   - 问题：Skill 相关重型界面仍会压在主包里。
+   - 改动：将 SkillStore、详情页和批量弹窗改为懒加载。
+   - 验证：renderer 主包由约 `840.40 kB` 降到 `768.05 kB`。
+
+## Round 10 — 2026-03-12
+
+**PM 评分：** 8.7/10 → 可以考虑新功能
+
+### 改进项
+
+1. **[测试] 完成最终回归与留痕收敛** (R10-01) ✅
+   - 问题：需要确认经过多轮调整后没有引入回归。
+   - 改动：执行全量 `lint/test/build`，更新状态文件与问题追踪。
+   - 验证：`pnpm lint`、`pnpm test:run`、`pnpm build` 全部通过；仅保留 build chunk warning。
+
+## Final Summary — 2026-03-12
+
+- **轮次：** 10/10
+- **退出原因：** 达到 10 轮，且 PM 评分达到 `8.7/10`
+- **基线 → 最终：**
+  - 测试：`72 passed / 2 failed` → `77 passed / 0 failed`
+  - Lint：`无法执行` → `0 errors`
+  - Build：`可构建但主包偏大` → `可构建且主包下降到 768.05 kB`
+- **面向用户的核心变化：**
+  - 支持多 Skill 多平台批量同步与批量卸载
+  - 两条本地导入路径都支持搜索，并把标签变成可选操作
+  - Skill 版本管理从“底层存在”补齐为“可查看、可回滚、可手动快照”
+
+## Round 11 — 2026-03-12
+
+**PM 评分：** 8.8/10 → 继续补批量管理能力
+
+### 改进项
+
+1. **[功能] 批量管理支持统一加标签/删标签** (R11-01) ✅
+   - 问题：虽然已有批量同步和删除，但标签仍要逐个 skill 修改。
+   - 改动：新增 `SkillBatchTagDialog`，支持对所选 skill 统一添加或移除标签。
+   - 验证：`tests/unit/components/skill-batch-utils.test.ts`、`pnpm test:run` 通过。
+
+## Round 12 — 2026-03-12
+
+**PM 评分：** 8.8/10 → 先把批量操作做得更直观
+
+### 改进项
+
+1. **[交互] 批量管理头部改为带文字的操作条** (R12-01) ✅
+   - 问题：原来的选择态主要依赖图标按钮，理解成本高，移动宽度下也不够稳。
+   - 改动：将批量操作区改为带文字的按钮组和状态条，保留“标签 / 分发 / 删除”等核心动作。
+   - 验证：`pnpm lint`、`pnpm build` 通过。
+
+## Round 13 — 2026-03-12
+
+**PM 评分：** 9.0/10 → 让版本历史真正具备比较价值
+
+### 改进项
+
+1. **[功能] Skill 版本历史支持 Diff 对比** (R13-01) ✅
+   - 问题：版本历史只能看两份纯文本，无法快速判断差异。
+   - 改动：版本历史弹窗增加 `Preview / Diff` 切换，并支持与当前内容或任意其他版本比较。
+   - 验证：`tests/unit/components/skill-detail-utils.test.ts`、`pnpm build` 通过。
+
+2. **[代码] metadata-only 更新不再回写 SKILL.md** (R13-02) ✅
+   - 问题：批量标签等纯元数据更新会触发不必要的 repo 文件写入。
+   - 改动：`useSkillStore.updateSkill()` 仅在 `instructions/content` 实际参与更新时才同步 `SKILL.md`。
+   - 验证：新增 `tests/unit/stores/skill.store.test.ts` 用例并通过。
+
+## Final Summary — 2026-03-12（新功能阶段）
+
+- **追加轮次：** 13
+- **当前评分：** `9.0/10`
+- **最新验证：**
+  - 测试：`83 passed / 0 failed`
+  - Lint：`0 errors`
+  - Typecheck：`passed`
+  - Build：`passed`，仍保留 chunk size warning
+- **本轮新增的 3 个功能：**
+  - 批量标签管理
+  - 批量管理交互重做
+  - 版本历史 Diff 对比

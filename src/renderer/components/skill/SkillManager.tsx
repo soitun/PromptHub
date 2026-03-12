@@ -5,22 +5,24 @@ import {
   RefreshCwIcon,
   TrashIcon,
   StarIcon,
+  SendIcon,
   LayoutGridIcon,
   ListIcon,
   FolderInputIcon,
   CheckSquareIcon,
   SquareIcon,
   XIcon,
+  TagsIcon,
 } from "lucide-react";
 import { SkillGalleryCard } from "./SkillGalleryCard";
 import { useSkillStore } from "../../stores/skill.store";
 import { useSettingsStore } from "../../stores/settings.store";
-import { SkillFullDetailPage } from "./SkillFullDetailPage";
 import { SkillQuickInstall } from "./SkillQuickInstall";
-import { SkillStore } from "./SkillStore";
-import { SkillScanPreview } from "./SkillScanPreview";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
+import { useToast } from "../ui/Toast";
 import type { Skill, ScannedSkill } from "../../../shared/types";
+import { updateSkillTags, type SkillBatchTagMode } from "./batch-utils";
+import { filterVisibleSkills } from "../../services/skill-filter";
 
 const MAX_STAGGERED_CARDS = 10;
 const CARD_STAGGER_MS = 50;
@@ -30,17 +32,41 @@ const CARD_STAGGER_MS = 50;
 const SkillListView = lazy(() =>
   import("./SkillListView").then((m) => ({ default: m.SkillListView })),
 );
+const SkillFullDetailPage = lazy(() =>
+  import("./SkillFullDetailPage").then((m) => ({
+    default: m.SkillFullDetailPage,
+  })),
+);
+const SkillStore = lazy(() =>
+  import("./SkillStore").then((m) => ({ default: m.SkillStore })),
+);
+const SkillScanPreview = lazy(() =>
+  import("./SkillScanPreview").then((m) => ({ default: m.SkillScanPreview })),
+);
+const SkillBatchDeployDialog = lazy(() =>
+  import("./SkillBatchDeployDialog").then((m) => ({
+    default: m.SkillBatchDeployDialog,
+  })),
+);
+const SkillBatchTagDialog = lazy(() =>
+  import("./SkillBatchTagDialog").then((m) => ({
+    default: m.SkillBatchTagDialog,
+  })),
+);
 
 export function SkillManager() {
   const { t } = useTranslation();
+  const { showToast } = useToast();
   const skills = useSkillStore((state) => state.skills);
   const loadSkills = useSkillStore((state) => state.loadSkills);
   const deleteSkill = useSkillStore((state) => state.deleteSkill);
   const toggleFavorite = useSkillStore((state) => state.toggleFavorite);
+  const updateSkill = useSkillStore((state) => state.updateSkill);
   const isLoading = useSkillStore((state) => state.isLoading);
   const selectedSkillId = useSkillStore((state) => state.selectedSkillId);
   const selectSkill = useSkillStore((state) => state.selectSkill);
   const filterType = useSkillStore((state) => state.filterType);
+  const searchQuery = useSkillStore((state) => state.searchQuery);
   const viewMode = useSkillStore((state) => state.viewMode);
   const setViewMode = useSkillStore((state) => state.setViewMode);
   const storeView = useSkillStore((state) => state.storeView);
@@ -55,30 +81,21 @@ export function SkillManager() {
   // Get filtered skills - filter directly in useMemo instead of using store function
   // 直接在 useMemo 中过滤，而不是使用 store 函数（避免函数引用作为依赖）
   const filteredSkills = useMemo(() => {
-    let result = skills;
-    if (isDistributionView) {
-      result = skills.filter((s) => deployedSkillNames.has(s.name));
-    } else if (filterType === "favorites")
-      result = result.filter((s) => s.is_favorite);
-    else if (filterType === "installed")
-      result = result.filter((s) => !!s.registry_slug);
-    else if (filterType === "deployed")
-      result = result.filter((s) => deployedSkillNames.has(s.name));
-    else if (filterType === "pending")
-      result = result.filter((s) => !deployedSkillNames.has(s.name));
-    // Apply tag filter
-    if (skillFilterTags.length > 0) {
-      result = result.filter(
-        (s) => s.tags && skillFilterTags.some((tag) => s.tags!.includes(tag)),
-      );
-    }
-    return result;
+    return filterVisibleSkills({
+      deployedSkillNames,
+      filterTags: skillFilterTags,
+      filterType,
+      searchQuery,
+      skills,
+      storeView,
+    });
   }, [
     skills,
     filterType,
     deployedSkillNames,
     skillFilterTags,
-    isDistributionView,
+    storeView,
+    searchQuery,
   ]);
 
   // Quick install state
@@ -90,6 +107,8 @@ export function SkillManager() {
   // Scan preview state
   // 扫描预览状态
   const [showScanPreview, setShowScanPreview] = useState(false);
+  const [showBatchDeployDialog, setShowBatchDeployDialog] = useState(false);
+  const [showBatchTagDialog, setShowBatchTagDialog] = useState(false);
   const [scannedSkills, setScannedSkills] = useState<ScannedSkill[]>([]);
   const [isScanning, setIsScanning] = useState(false);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
@@ -155,13 +174,33 @@ export function SkillManager() {
   // Store view: show the skill store page
   // 商店视图：显示技能商店页面
   if (storeView === "store") {
-    return <SkillStore />;
+    return (
+      <Suspense
+        fallback={
+          <div className="flex h-full items-center justify-center">
+            <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          </div>
+        }
+      >
+        <SkillStore />
+      </Suspense>
+    );
   }
 
   // If a skill is selected, show full detail page (same behavior for both gallery and list views)
   // 如果选中了技能，显示全宽详情页（画廊和列表视图使用相同交互）
   if (selectedSkillId && !isSelectionMode) {
-    return <SkillFullDetailPage />;
+    return (
+      <Suspense
+        fallback={
+          <div className="flex h-full items-center justify-center">
+            <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          </div>
+        }
+      >
+        <SkillFullDetailPage />
+      </Suspense>
+    );
   }
 
   const selectedSkills = filteredSkills.filter((skill) =>
@@ -213,6 +252,60 @@ export function SkillManager() {
       skillIds: selectedSkills.map((s) => s.id),
       skillNames: selectedSkills.map((s) => s.name),
     });
+  };
+
+  const handleBatchDeploy = () => {
+    if (selectedSkills.length === 0) return;
+    setShowBatchDeployDialog(true);
+  };
+
+  const handleBatchTags = () => {
+    if (selectedSkills.length === 0) return;
+    setShowBatchTagDialog(true);
+  };
+
+  const handleBatchTagSubmit = async (
+    tag: string,
+    mode: SkillBatchTagMode,
+  ) => {
+    const results = await Promise.allSettled(
+      selectedSkills.map(async (skill) => {
+        const nextTags = updateSkillTags(skill.tags, tag, mode);
+        const previousTags = skill.tags || [];
+
+        if (JSON.stringify(nextTags) === JSON.stringify(previousTags)) {
+          return { updated: false, name: skill.name };
+        }
+
+        await updateSkill(skill.id, { tags: nextTags });
+        return { updated: true, name: skill.name };
+      }),
+    );
+
+    const updatedCount = results.filter(
+      (result) => result.status === "fulfilled" && result.value.updated,
+    ).length;
+    const failedCount = results.filter((result) => result.status === "rejected").length;
+
+    showToast(
+      failedCount > 0
+        ? t("skill.batchTagPartialFailure", {
+            updated: updatedCount,
+            failed: failedCount,
+            defaultValue: `标签批量更新完成，成功 ${updatedCount} 个，失败 ${failedCount} 个`,
+          })
+        : mode === "add"
+          ? t("skill.batchTagAddSuccess", {
+              count: updatedCount,
+              defaultValue: `已为 ${updatedCount} 个 skill 添加标签`,
+            })
+          : t("skill.batchTagRemoveSuccess", {
+              count: updatedCount,
+              defaultValue: `已从 ${updatedCount} 个 skill 移除标签`,
+            }),
+      failedCount > 0 ? "error" : "success",
+    );
+    setSelectedSkillIds(new Set());
   };
 
   const confirmDelete = async () => {
@@ -293,8 +386,9 @@ export function SkillManager() {
     <div className="flex-1 flex flex-row h-full bg-background overflow-hidden relative">
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <div className="h-14 px-6 border-b border-border flex items-center justify-between shrink-0 bg-background/50 backdrop-blur-sm z-10">
-          <div className="flex items-center gap-3">
+        <div className="border-b border-border bg-background/80 px-4 py-3 backdrop-blur-sm z-10 sm:px-6">
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <div className="flex items-center gap-3 min-w-0">
             <div className="flex items-center gap-2">
               <CuboidIcon className="w-5 h-5 text-primary" />
               <div>
@@ -312,18 +406,23 @@ export function SkillManager() {
             </span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col gap-3 xl:items-end">
             {isSelectionMode ? (
-              <>
-                <span className="text-xs font-medium text-primary bg-primary/10 px-2.5 py-1 rounded-full">
-                  {t("skill.selectedCount", {
-                    count: selectedSkillIds.size,
-                    defaultValue: `已选 ${selectedSkillIds.size} 项`,
-                  })}
-                </span>
+              <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-primary/15 bg-primary/[0.06] p-2">
+                <div className="px-3 py-2">
+                  <div className="text-[11px] font-medium uppercase tracking-wide text-primary/80">
+                    {t("skill.selectionMode", "批量模式")}
+                  </div>
+                  <div className="mt-0.5 text-sm font-semibold text-foreground">
+                    {t("skill.selectedCount", {
+                      count: selectedSkillIds.size,
+                      defaultValue: `已选 ${selectedSkillIds.size} 项`,
+                    })}
+                  </div>
+                </div>
                 <button
                   onClick={handleSelectAllVisible}
-                  className="p-2 rounded-lg bg-accent text-foreground hover:bg-accent/80 transition-colors"
+                  className="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-sm font-medium text-foreground transition-colors hover:border-primary/25 hover:bg-card"
                   title={
                     allVisibleSelected
                       ? t("common.clear", "清空")
@@ -331,48 +430,79 @@ export function SkillManager() {
                   }
                 >
                   {allVisibleSelected ? (
-                    <CheckSquareIcon className="w-4 h-4" />
+                    <CheckSquareIcon className="w-4 h-4 text-primary" />
                   ) : (
-                    <SquareIcon className="w-4 h-4" />
+                    <SquareIcon className="w-4 h-4 text-muted-foreground" />
                   )}
+                  {allVisibleSelected
+                    ? t("common.clear", "清空")
+                    : t("common.selectAll", "全选")}
                 </button>
                 <button
                   onClick={handleBatchFavorite}
                   disabled={selectedSkillIds.size === 0}
-                  className="p-2 rounded-lg bg-accent text-foreground hover:bg-accent/80 transition-colors disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-sm font-medium text-foreground transition-colors hover:border-primary/25 hover:bg-card disabled:opacity-50"
                   title={
                     selectedSkills.every((skill) => skill.is_favorite)
                       ? t("skill.removeFavorite", "取消收藏")
                       : t("skill.addFavorite", "添加收藏")
                   }
                 >
-                  <StarIcon className="w-4 h-4" />
+                  <StarIcon className="w-4 h-4 text-amber-500" />
+                  {selectedSkills.every((skill) => skill.is_favorite)
+                    ? t("skill.removeFavorite", "取消收藏")
+                    : t("skill.addFavorite", "添加收藏")}
+                </button>
+                <button
+                  onClick={handleBatchTags}
+                  disabled={selectedSkillIds.size === 0}
+                  className="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-sm font-medium text-foreground transition-colors hover:border-primary/25 hover:bg-card disabled:opacity-50"
+                  title={t("skill.batchTags", "批量管理标签")}
+                >
+                  <TagsIcon className="w-4 h-4 text-primary" />
+                  {t("skill.batchTags", "批量管理标签")}
+                </button>
+                <button
+                  onClick={handleBatchDeploy}
+                  disabled={selectedSkillIds.size === 0}
+                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/90 disabled:opacity-50"
+                  title={t("skill.batchDeploy", "批量同步到平台")}
+                >
+                  <SendIcon className="w-4 h-4" />
+                  {t("skill.batchDeploy", "批量同步到平台")}
                 </button>
                 <button
                   onClick={handleBatchDelete}
                   disabled={selectedSkillIds.size === 0}
-                  className="p-2 rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/15 transition-colors disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-xl border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive/15 disabled:opacity-50"
                   title={t("common.delete", "删除")}
                 >
                   <TrashIcon className="w-4 h-4" />
+                  {t("common.delete", "删除")}
                 </button>
                 <button
                   onClick={toggleSelectionMode}
-                  className="p-2 rounded-lg bg-accent text-foreground hover:bg-accent/80 transition-colors"
+                  className="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-card hover:text-foreground"
                   title={t("common.cancel", "取消")}
                 >
                   <XIcon className="w-4 h-4" />
+                  {t("common.cancel", "取消")}
                 </button>
-                <div className="h-4 w-px bg-border" />
-              </>
+              </div>
+            ) : null}
+
+          <div className="flex items-center gap-2 self-end">
+            {isSelectionMode ? (
+              <div className="hidden h-4 w-px bg-border xl:block" />
             ) : (
               <>
                 <button
                   onClick={toggleSelectionMode}
-                  className="p-2 rounded-lg bg-accent text-foreground hover:bg-accent/80 transition-colors"
+                  className="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-sm font-medium text-foreground transition-colors hover:border-primary/25 hover:bg-card"
                   title={t("skill.batchManage", "批量管理")}
                 >
                   <CheckSquareIcon className="w-4 h-4" />
+                  {t("skill.batchManage", "批量管理")}
                 </button>
                 <div className="h-4 w-px bg-border" />
               </>
@@ -427,6 +557,8 @@ export function SkillManager() {
                 className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`}
               />
             </button>
+          </div>
+          </div>
           </div>
         </div>
 
@@ -520,22 +652,42 @@ export function SkillManager() {
       {/* Scan Preview Modal */}
       {/* 扫描预览弹窗 */}
       {showScanPreview && (
-        <SkillScanPreview
-          scannedSkills={scannedSkills}
-          installedPaths={
-            // Build a set of source_url values (which store localPath on import)
-            // so the preview can accurately identify already-imported skills.
-            // 从 DB source_url 字段构建路径集合（导入时存的就是 localPath），精准判断已导入条目。
-            new Set(
-              skills.filter((s) => s.source_url).map((s) => s.source_url!),
-            )
-          }
-          onImport={handleImportScanned}
-          onRescan={handleRescan}
-          onClose={() => setShowScanPreview(false)}
-        />
+        <Suspense fallback={null}>
+          <SkillScanPreview
+            scannedSkills={scannedSkills}
+            installedPaths={
+              new Set(
+                skills.filter((s) => s.source_url).map((s) => s.source_url!),
+              )
+            }
+            onImport={handleImportScanned}
+            onRescan={handleRescan}
+            onClose={() => setShowScanPreview(false)}
+          />
+        </Suspense>
       )}
 
+      {showBatchDeployDialog && (
+        <Suspense fallback={null}>
+          <SkillBatchDeployDialog
+            skills={selectedSkills}
+            onClose={() => setShowBatchDeployDialog(false)}
+            onComplete={async () => {
+              await loadDeployedStatus();
+            }}
+          />
+        </Suspense>
+      )}
+
+      {showBatchTagDialog && (
+        <Suspense fallback={null}>
+          <SkillBatchTagDialog
+            skills={selectedSkills}
+            onClose={() => setShowBatchTagDialog(false)}
+            onSubmit={handleBatchTagSubmit}
+          />
+        </Suspense>
+      )}
       {/* Delete confirmation dialog */}
       {/* 删除确认对话框 */}
       <ConfirmDialog

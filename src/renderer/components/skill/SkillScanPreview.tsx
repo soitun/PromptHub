@@ -1,7 +1,6 @@
 import { useTranslation } from "react-i18next";
 import {
   XIcon,
-  HashIcon,
   DownloadIcon,
   Loader2Icon,
   FolderIcon,
@@ -10,6 +9,8 @@ import {
   Trash2Icon,
   FileTextIcon,
   CheckCircle2Icon,
+  SearchIcon,
+  TagsIcon,
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import type { ScannedSkill } from "../../../shared/types";
@@ -53,6 +54,8 @@ export function SkillScanPreview({
   const { t } = useTranslation();
 
   const [selectedSkills, setSelectedSkills] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showOptionalTags, setShowOptionalTags] = useState(false);
   const [tagDrafts, setTagDrafts] = useState<Record<string, string[]>>({});
   const [tagInputs, setTagInputs] = useState<Record<string, string>>({});
   const [isImporting, setIsImporting] = useState(false);
@@ -80,8 +83,26 @@ export function SkillScanPreview({
     [allSkills],
   );
 
-  // Non-installed skills the user can toggle
-  const selectableSkills = filteredSkills;
+  const visibleSkills = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return allSkills;
+    return allSkills.filter((skill) => {
+      const haystacks = [
+        skill.name,
+        skill.description,
+        skill.author,
+        skill.localPath,
+        ...skill.tags,
+        ...skill.platforms,
+      ];
+      return haystacks.some((value) => value?.toLowerCase().includes(query));
+    });
+  }, [allSkills, searchQuery]);
+
+  const visibleSelectableSkills = useMemo(
+    () => visibleSkills.filter((skill) => !skill.isInstalled),
+    [visibleSkills],
+  );
 
   const handleToggleSkill = (localPath: string) => {
     setSelectedSkills((prev) => {
@@ -96,10 +117,24 @@ export function SkillScanPreview({
   };
 
   const handleSelectAll = () => {
-    if (selectedSkills.size === selectableSkills.length) {
-      setSelectedSkills(new Set());
+    if (visibleSelectableSkills.length === 0) return;
+
+    const allVisibleSelected = visibleSelectableSkills.every((skill) =>
+      selectedSkills.has(skill.localPath),
+    );
+
+    if (allVisibleSelected) {
+      setSelectedSkills((prev) => {
+        const next = new Set(prev);
+        visibleSelectableSkills.forEach((skill) => next.delete(skill.localPath));
+        return next;
+      });
     } else {
-      setSelectedSkills(new Set(selectableSkills.map((s) => s.localPath)));
+      setSelectedSkills((prev) => {
+        const next = new Set(prev);
+        visibleSelectableSkills.forEach((skill) => next.add(skill.localPath));
+        return next;
+      });
     }
   };
 
@@ -268,6 +303,48 @@ export function SkillScanPreview({
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-3">
+          {allSkills.length > 0 && (
+            <div className="flex flex-col gap-3 rounded-2xl border border-border bg-background/60 p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <label className="relative block flex-1">
+                  <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    placeholder={t(
+                      "skill.searchImportPlaceholder",
+                      "搜索名称、描述、标签、平台或路径",
+                    )}
+                    className="h-10 w-full rounded-xl border border-border bg-card pl-9 pr-3 text-sm outline-none transition-colors focus:border-primary/40"
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowOptionalTags((prev) => !prev)}
+                  className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition-colors ${
+                    showOptionalTags
+                      ? "border-primary/40 bg-primary/5 text-primary"
+                      : "border-border bg-card text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <TagsIcon className="h-4 w-4" />
+                  {showOptionalTags
+                    ? t("skill.hideOptionalTags", "隐藏可选标签")
+                    : t("skill.showOptionalTags", "需要时再加标签")}
+                </button>
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {t("skill.scanPreviewStats", {
+                  visible: visibleSkills.length,
+                  total: allSkills.length,
+                  selected: selectedSkills.size,
+                  defaultValue: `当前显示 ${visibleSkills.length}/${allSkills.length} 项，已选 ${selectedSkills.size} 项`,
+                })}
+              </div>
+            </div>
+          )}
+
           {allSkills.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <FolderIcon className="w-12 h-12 opacity-20 mb-4" />
@@ -290,17 +367,24 @@ export function SkillScanPreview({
           ) : (
             <>
               {/* Select All Bar */}
-              {selectableSkills.length > 0 && (
+              {visibleSelectableSkills.length > 0 && (
                 <div className="flex items-center justify-between py-2 px-3 bg-accent/30 rounded-lg mb-2">
                   <span className="text-xs text-muted-foreground">
-                    {selectedSkills.size} / {selectableSkills.length}{" "}
+                    {
+                      visibleSelectableSkills.filter((skill) =>
+                        selectedSkills.has(skill.localPath),
+                      ).length
+                    }{" "}
+                    / {visibleSelectableSkills.length}{" "}
                     {t("skill.selected", "selected")}
                   </span>
                   <button
                     onClick={handleSelectAll}
                     className="text-xs text-primary hover:underline"
                   >
-                    {selectedSkills.size === selectableSkills.length
+                    {visibleSelectableSkills.every((skill) =>
+                      selectedSkills.has(skill.localPath),
+                    )
                       ? t("skill.deselectAll", "Deselect All")
                       : t("skill.selectAll", "Select All")}
                   </button>
@@ -308,7 +392,7 @@ export function SkillScanPreview({
               )}
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {allSkills.map((skill) => {
+                {visibleSkills.map((skill) => {
                   const isSelected = selectedSkills.has(skill.localPath);
                   const shortPath = (() => {
                     const parts = skill.localPath
@@ -403,10 +487,10 @@ export function SkillScanPreview({
                             ))}
                           </div>
 
-                          {!skill.isInstalled && isSelected && (
+                          {!skill.isInstalled && isSelected && showOptionalTags && (
                             <div className="mt-4 rounded-xl border border-border bg-accent/20 p-3 space-y-2">
                               <div className="text-[11px] font-medium text-foreground">
-                                {t("skill.importTags", "导入标签")}
+                                {t("skill.importTagsOptional", "导入标签（可选）")}
                               </div>
                               <div className="flex flex-wrap gap-1.5">
                                 {(tagDrafts[skill.localPath] || []).map((tag) => (
@@ -414,7 +498,6 @@ export function SkillScanPreview({
                                     key={tag}
                                     className="inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-[11px] font-medium text-white"
                                   >
-                                    <HashIcon className="w-3 h-3" />
                                     {tag}
                                     <button
                                       type="button"

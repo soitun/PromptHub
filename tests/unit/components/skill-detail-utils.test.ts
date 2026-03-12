@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  generateTextDiff,
   restoreSkillVersion,
   stripFrontmatter,
 } from "../../../src/renderer/components/skill/detail-utils";
@@ -44,5 +45,13 @@ Body`;
 
     expect(versionRollback).toHaveBeenCalledWith("skill-1", 3);
     expect(loadSkills).toHaveBeenCalledTimes(1);
+  });
+
+  it("generates git-style diff lines for version comparison", () => {
+    expect(generateTextDiff("line1\nline2", "line1\nline3")).toEqual([
+      { type: "unchanged", content: "line1", oldLineNum: 1, newLineNum: 1 },
+      { type: "remove", content: "line2", oldLineNum: 2 },
+      { type: "add", content: "line3", newLineNum: 2 },
+    ]);
   });
 });

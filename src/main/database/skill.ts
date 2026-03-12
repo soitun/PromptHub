@@ -154,7 +154,7 @@ export class SkillDB {
         ? JSON.stringify(data.compatibility)
         : null,
       "@current_version": data.currentVersion ?? 0,
-      "@version_tracking_enabled": data.versionTrackingEnabled ? 1 : 0,
+      "@version_tracking_enabled": (data.versionTrackingEnabled ?? true) ? 1 : 0,
       "@created_at": now,
       "@updated_at": now,
     });
@@ -387,7 +387,6 @@ export class SkillDB {
   ): SkillVersion | null {
     const skill = existingSkill ?? this.getById(skillId);
     if (!skill) return null;
-    if (!skill.versionTrackingEnabled) return null;
 
     // Use a transaction to atomically insert version + increment counter,
     // preventing UNIQUE(skill_id, version) conflicts from concurrent calls.
@@ -431,6 +430,12 @@ export class SkillDB {
           "UPDATE skills SET current_version = ? WHERE id = ?",
         )
         .run(version, skillId);
+
+      this.db
+        .prepare(
+          "UPDATE skills SET version_tracking_enabled = 1 WHERE id = ?",
+        )
+        .run(skillId);
 
       return {
         id,

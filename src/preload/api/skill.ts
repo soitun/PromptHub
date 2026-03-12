@@ -102,12 +102,18 @@ export const skillApi = {
       oldRelativePath,
       newRelativePath,
     ),
-  writeLocalFile: (skillId: string, relativePath: string, content: string) =>
+  writeLocalFile: (
+    skillId: string,
+    relativePath: string,
+    content: string,
+    options?: { skipVersionSnapshot?: boolean },
+  ) =>
     ipcRenderer.invoke(
       IPC_CHANNELS.SKILL_WRITE_LOCAL_FILE,
       skillId,
       relativePath,
       content,
+      options,
     ),
   deleteLocalFile: (skillId: string, relativePath: string) =>
     ipcRenderer.invoke(

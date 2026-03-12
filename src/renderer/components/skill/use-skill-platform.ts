@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Skill } from "../../../shared/types";
 import type { SkillPlatform } from "../../../shared/constants/platforms";
+import { useSkillStore } from "../../stores/skill.store";
 
 export type SkillInstallMode = "copy" | "symlink";
 
@@ -13,6 +14,7 @@ export function useSkillPlatform(
   skill: Skill | null | undefined,
   installMode: SkillInstallMode,
 ) {
+  const loadDeployedStatus = useSkillStore((state) => state.loadDeployedStatus);
   const [supportedPlatforms, setSupportedPlatforms] = useState<SkillPlatform[]>(
     [],
   );
@@ -43,7 +45,8 @@ export function useSkillPlatform(
     const status = await window.api.skill.getMdInstallStatus(skill.name);
     setInstallStatus(status);
     setSelectedPlatforms(new Set());
-  }, [skill]);
+    await loadDeployedStatus();
+  }, [loadDeployedStatus, skill]);
 
   useEffect(() => {
     void loadPlatforms();

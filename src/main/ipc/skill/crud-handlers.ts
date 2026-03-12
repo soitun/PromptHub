@@ -6,6 +6,7 @@ import type {
   UpdateSkillParams,
 } from "../../../shared/types";
 import type { SkillIPCContext } from "./shared";
+import { readCurrentFilesSnapshot } from "./shared";
 
 export function registerSkillCrudHandlers({ db }: SkillIPCContext): void {
   ipcMain.handle(
@@ -92,6 +93,16 @@ export function registerSkillCrudHandlers({ db }: SkillIPCContext): void {
           nextData.local_repo_path = migratedRepoPath ?? undefined;
         }
         nextData.name = nextName;
+      }
+
+      if (data.instructions !== undefined || data.content !== undefined) {
+        const filesSnapshot = await readCurrentFilesSnapshot(db, id);
+        db.createVersion(
+          id,
+          "Before updating SKILL.md",
+          filesSnapshot,
+          existingSkill,
+        );
       }
 
       const updatedSkill = db.update(id, nextData);

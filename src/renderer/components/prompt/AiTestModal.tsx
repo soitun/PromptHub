@@ -206,7 +206,6 @@ export function AiTestModal({
       const result = await chatCompletion(
         // 注意：显式传递 stream 和 enableThinking 参数
         // Note: Explicitly pass stream and enableThinking parameters
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         config as any,
         messages,
         {

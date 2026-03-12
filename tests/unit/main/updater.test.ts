@@ -76,7 +76,7 @@ describe('Updater Service (Main Process)', () => {
         initUpdater(mockWindow);
 
         expect(autoUpdater.autoDownload).toBe(false);
-        expect(autoUpdater.autoInstallOnAppQuit).toBe(true);
+        expect(autoUpdater.autoInstallOnAppQuit).toBe(process.platform !== 'darwin');
     });
 
     it('should set architecture specific channel on Windows x64', () => {

@@ -24,12 +24,28 @@ import {
   useMemo,
   useCallback,
   useDeferredValue,
+  lazy,
+  Suspense,
 } from "react";
-import { CreatePromptModal } from "../prompt/CreatePromptModal";
-import { QuickAddModal } from "../prompt/QuickAddModal";
-import { CreateSkillModal } from "../skill/CreateSkillModal";
 import { useTranslation } from "react-i18next";
 import { useUIStore } from "../../stores/ui.store";
+import { filterVisibleSkills } from "../../services/skill-filter";
+
+const CreatePromptModal = lazy(() =>
+  import("../prompt/CreatePromptModal").then((module) => ({
+    default: module.CreatePromptModal,
+  })),
+);
+const QuickAddModal = lazy(() =>
+  import("../prompt/QuickAddModal").then((module) => ({
+    default: module.QuickAddModal,
+  })),
+);
+const CreateSkillModal = lazy(() =>
+  import("../skill/CreateSkillModal").then((module) => ({
+    default: module.CreateSkillModal,
+  })),
+);
 
 interface TopBarProps {
   onOpenSettings: () => void;
@@ -57,6 +73,7 @@ export function TopBar({
   const skillFilterType = useSkillStore((state) => state.filterType);
   const skillFilterTags = useSkillStore((state) => state.filterTags);
   const deployedSkillNames = useSkillStore((state) => state.deployedSkillNames);
+  const skillStoreView = useSkillStore((state) => state.storeView);
   const selectSkill = useSkillStore((state) => state.selectSkill);
 
   const isDarkMode = useSettingsStore((state) => state.isDarkMode);
@@ -172,43 +189,20 @@ export function TopBar({
   const skillSearchResults = useMemo(() => {
     if (uiViewMode !== "skill") return [];
 
-    let filtered = skills;
-
-    if (skillFilterType === "favorites") {
-      filtered = filtered.filter((skill) => skill.is_favorite);
-    } else if (skillFilterType === "installed") {
-      filtered = filtered.filter((skill) => Boolean(skill.registry_slug));
-    } else if (skillFilterType === "deployed") {
-      filtered = filtered.filter((skill) => deployedSkillNames.has(skill.name));
-    }
-
-    if (skillFilterTags.length > 0) {
-      filtered = filtered.filter(
-        (skill) =>
-          skill.tags &&
-          skillFilterTags.some((tag) => skill.tags?.includes(tag)),
-      );
-    }
-
-    const query = deferredSkillSearchQuery.trim().toLowerCase();
-    if (!query) return filtered;
-
-    return filtered.filter((skill) => {
-      const nameMatch = skill.name.toLowerCase().includes(query);
-      const descMatch = skill.description?.toLowerCase().includes(query);
-      const tagsMatch = skill.tags?.some((tag) =>
-        tag.toLowerCase().includes(query),
-      );
-      const instructionsMatch = skill.instructions
-        ?.toLowerCase()
-        .includes(query);
-      return nameMatch || descMatch || tagsMatch || instructionsMatch;
+    return filterVisibleSkills({
+      deployedSkillNames,
+      filterTags: skillFilterTags,
+      filterType: skillFilterType,
+      searchQuery: deferredSkillSearchQuery,
+      skills,
+      storeView: skillStoreView,
     });
   }, [
     deferredSkillSearchQuery,
     deployedSkillNames,
     skillFilterTags,
     skillFilterType,
+    skillStoreView,
     skills,
     uiViewMode,
   ]);
@@ -582,28 +576,30 @@ export function TopBar({
         </div>
       </header>
 
-      {/* 新建 Prompt 弹窗 */}
-      <CreatePromptModal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        onCreate={handleCreatePrompt}
-        defaultFolderId={selectedFolderId || undefined}
-        defaultPromptType={promptTypeFilter === "image" ? "image" : "text"}
-      />
+      <Suspense fallback={null}>
+        {/* 新建 Prompt 弹窗 */}
+        <CreatePromptModal
+          isOpen={isCreateModalOpen}
+          onClose={() => setIsCreateModalOpen(false)}
+          onCreate={handleCreatePrompt}
+          defaultFolderId={selectedFolderId || undefined}
+          defaultPromptType={promptTypeFilter === "image" ? "image" : "text"}
+        />
 
-      {/* 快速添加弹窗 */}
-      <QuickAddModal
-        isOpen={isQuickAddModalOpen}
-        onClose={() => setIsQuickAddModalOpen(false)}
-        onCreate={handleCreatePrompt}
-        defaultPromptType={promptTypeFilter === "image" ? "image" : "text"}
-      />
+        {/* 快速添加弹窗 */}
+        <QuickAddModal
+          isOpen={isQuickAddModalOpen}
+          onClose={() => setIsQuickAddModalOpen(false)}
+          onCreate={handleCreatePrompt}
+          defaultPromptType={promptTypeFilter === "image" ? "image" : "text"}
+        />
 
-      {/* 新建 Skill 弹窗 */}
-      <CreateSkillModal
-        isOpen={isCreateSkillModalOpen}
-        onClose={() => setIsCreateSkillModalOpen(false)}
-      />
+        {/* 新建 Skill 弹窗 */}
+        <CreateSkillModal
+          isOpen={isCreateSkillModalOpen}
+          onClose={() => setIsCreateSkillModalOpen(false)}
+        />
+      </Suspense>
     </>
   );
 }

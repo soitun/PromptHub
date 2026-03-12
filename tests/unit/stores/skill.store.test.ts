@@ -144,9 +144,54 @@ describe("skill store", () => {
       content: "",
     });
 
-    expect(writeLocalFile).toHaveBeenCalledWith("skill-1", "SKILL.md", "");
+    expect(writeLocalFile).toHaveBeenCalledWith(
+      "skill-1",
+      "SKILL.md",
+      "",
+      { skipVersionSnapshot: true },
+    );
     expect(useSkillStore.getState().skills[0]?.local_repo_path).toBe(
       "/tmp/skills/alpha",
     );
+  });
+
+  it("does not rewrite SKILL.md when updating metadata only", async () => {
+    const update = vi.fn().mockResolvedValue({
+      id: "skill-1",
+      name: "alpha",
+      instructions: "same content",
+      content: "same content",
+      tags: ["ops"],
+      local_repo_path: "/tmp/skills/alpha",
+      protocol_type: "skill",
+      is_favorite: false,
+      created_at: 1,
+      updated_at: 2,
+    });
+
+    (window as any).api.skill.update = update;
+
+    useSkillStore.setState({
+      skills: [
+        {
+          id: "skill-1",
+          name: "alpha",
+          instructions: "same content",
+          content: "same content",
+          tags: ["docs"],
+          protocol_type: "skill",
+          is_favorite: false,
+          created_at: 1,
+          updated_at: 1,
+        } as any,
+      ],
+    });
+
+    await useSkillStore.getState().updateSkill("skill-1", {
+      tags: ["ops"],
+    });
+
+    expect((window as any).api.skill.writeLocalFile).not.toHaveBeenCalled();
+    expect((window as any).api.skill.getRepoPath).not.toHaveBeenCalled();
   });
 });
