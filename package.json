@@ -1,6 +1,6 @@
 {
   "name": "prompthub",
-  "version": "0.4.4",
+  "version": "0.4.5",
   "description": "一款开源、本地优先的 AI Prompt 管理工具，帮助你高效管理、版本控制和复用",
   "main": "out/main/index.js",
   "author": {
@@ -27,6 +27,7 @@
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\"",
     "test": "vitest",
+    "test:i18n": "vitest run tests/unit/services/skill-locale-regression.test.ts tests/unit/components/skill-detail-utils.test.ts tests/unit/components/skill-i18n-smoke.test.tsx tests/unit/services/i18n-init.test.ts tests/unit/stores/settings-language.test.ts",
     "test:run": "vitest run",
     "test:coverage": "vitest --coverage",
     "test:e2e": "playwright test",

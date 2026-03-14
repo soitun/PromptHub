@@ -18,6 +18,7 @@ import {
 } from "../../shared/constants/skill-registry";
 import { chatCompletion } from "../services/ai";
 import { filterVisibleSkills } from "../services/skill-filter";
+import { normalizeSkill, normalizeSkills } from "../services/skill-normalize";
 import { useSettingsStore } from "./settings.store";
 
 export type SkillFilterType =
@@ -427,7 +428,7 @@ export const useSkillStore = create<SkillState>()(
       loadSkills: async () => {
         set({ isLoading: true, error: null });
         try {
-          const skills = await window.api.skill.getAll();
+          const skills = normalizeSkills(await window.api.skill.getAll());
           set({ skills, isLoading: false });
         } catch (error) {
           console.error("Failed to load skills:", error);
@@ -462,7 +463,7 @@ export const useSkillStore = create<SkillState>()(
         try {
           const newSkill = await window.api.skill.create(data);
           if (newSkill) {
-            let storedSkill = newSkill;
+            let storedSkill = normalizeSkill(newSkill);
             const repoContent =
               data.instructions || data.content || newSkill.instructions || newSkill.content || "";
             if (typeof repoContent === "string") {
@@ -503,7 +504,7 @@ export const useSkillStore = create<SkillState>()(
         try {
           const updatedSkill = await window.api.skill.update(id, data);
           if (updatedSkill) {
-            let storedSkill = updatedSkill;
+            let storedSkill = normalizeSkill(updatedSkill);
             const shouldSyncRepoContent =
               Object.prototype.hasOwnProperty.call(data, "instructions") ||
               Object.prototype.hasOwnProperty.call(data, "content");

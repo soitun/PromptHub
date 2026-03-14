@@ -196,3 +196,25 @@
   - 批量标签管理
   - 批量管理交互重做
   - 版本历史 Diff 对比
+## Round 0 — 2026-03-14
+
+**主题：** 完整测试体系建设启动  
+**基线测试：** 109 passed / 0 failed / 0 skipped  
+**Lint：** 0 errors  
+**Build：** passed，仍有 chunk size warning
+
+### 初始化结论
+
+1. **[测试] 冻结本轮测试建设范围** ✅
+   - 问题：仓库已有不少 unit test，但覆盖层级失衡，e2e 仍停留在启动烟雾级别。
+   - 改动：将本轮 YOLO 主题固定为“完整测试体系建设”，范围聚焦 `skill` 主路径、i18n、主进程契约、Electron smoke 与发布门禁。
+   - 验证：`docs/08-TODO/yolo-state.md` 已重建，记录工具链、代码地图、基线验证与待办矩阵。
+
+2. **[测试] 建立测试现状地图** ✅
+   - 问题：缺少结构化代码地图，导致之前测试补充更偏机会主义。
+   - 改动：扫描 189 个源码/测试文件，识别主入口、Skill 相关核心文件和当前测试面。
+   - 验证：状态文件中新增 `code_map`，明确 `SkillManager`、`SkillFullDetailPage`、`skill.store`、主进程 skill IPC 等为本轮优先覆盖对象。
+
+### 下一轮目标
+- 补统一测试 harness 与 fixture 工厂
+- 把 Skill 主路径从单点 unit test 推到可复用的集成测试层

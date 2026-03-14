@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   generateTextDiff,
+  getSkillSourceMeta,
   restoreSkillVersion,
   stripFrontmatter,
 } from "../../../src/renderer/components/skill/detail-utils";
@@ -53,5 +54,32 @@ Body`;
       { type: "remove", content: "line2", oldLineNum: 2 },
       { type: "add", content: "line3", newLineNum: 2 },
     ]);
+  });
+
+  it("localizes skill source labels through i18n keys", () => {
+    const t = vi.fn((key: string, fallback: string) => {
+      const map: Record<string, string> = {
+        "skill.sourceGithubStore": "Imported via Store",
+        "skill.sourceCursorLocalFolder": "Imported from Cursor Folder",
+      };
+      return map[key] || fallback;
+    });
+
+    const github = getSkillSourceMeta(
+      {
+        source_url: "https://github.com/org/repo",
+        registry_slug: "official/repo",
+      } as any,
+      t as any,
+    );
+    const local = getSkillSourceMeta(
+      {
+        local_repo_path: "/Users/demo/.cursor/skills/example",
+      } as any,
+      t as any,
+    );
+
+    expect(github?.sourceLabel).toBe("Imported via Store");
+    expect(local?.sourceLabel).toBe("Imported from Cursor Folder");
   });
 });

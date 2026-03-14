@@ -90,6 +90,11 @@ export function SkillFullDetailPage() {
   const getTranslation = useSkillStore((state) => state.getTranslation);
   const clearTranslation = useSkillStore((state) => state.clearTranslation);
   const contentScrollRef = useRef<HTMLDivElement>(null);
+  const buildDefaultSnapshotNote = () =>
+    t("skill.snapshotDefaultNote", {
+      timestamp: new Date().toLocaleString(i18n.language || undefined),
+      defaultValue: `Manual snapshot ${new Date().toLocaleString()}`,
+    });
 
   const targetLang = useMemo(() => {
     const lang = (i18n.language || "").toLowerCase();
@@ -337,7 +342,7 @@ export function SkillFullDetailPage() {
   };
 
   const openSnapshotModal = () => {
-    setSnapshotNote(`Manual snapshot ${new Date().toLocaleString()}`);
+    setSnapshotNote(buildDefaultSnapshotNote());
     setIsSnapshotModalOpen(true);
   };
 
@@ -348,7 +353,7 @@ export function SkillFullDetailPage() {
     try {
       await window.api.skill.versionCreate(
         selectedSkill.id,
-        snapshotNote.trim() || `Manual snapshot ${new Date().toLocaleString()}`,
+        snapshotNote.trim() || buildDefaultSnapshotNote(),
       );
       await loadSkills();
       setIsSnapshotModalOpen(false);

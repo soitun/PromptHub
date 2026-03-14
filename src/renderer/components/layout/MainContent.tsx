@@ -25,6 +25,11 @@ import remarkGfm from 'remark-gfm';
 import rehypeSanitize from 'rehype-sanitize';
 import rehypeHighlight from 'rehype-highlight';
 import { defaultSchema } from 'hast-util-sanitize';
+import {
+  buildPromptCopyText,
+  hasUserDefinedPromptVariables,
+  resolvePromptContentByLanguage,
+} from '../prompt/prompt-copy-utils';
 
 function escapeRegExp(str: string) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -935,25 +940,21 @@ export function MainContent() {
   // Handle copying prompt - check for variables first
   // 处理复制 Prompt - 先检查是否有变量
   const handleCopyPrompt = async (prompt: Prompt) => {
-    // 检测是否包含变量 (排除系统变量)
-    const VARIABLE_REGEX = /\{\{([^}:]+)(?::([^}]*))?\}\}/g;
-    const SYSTEM_VARIABLES = ['CURRENT_DATE', 'CURRENT_TIME', 'CURRENT_DATETIME', 'CURRENT_YEAR', 'CURRENT_MONTH', 'CURRENT_DAY', 'CURRENT_WEEKDAY'];
-    const combined = `${prompt.systemPrompt || ''}\n${prompt.userPrompt}`;
-    const matches = [...combined.matchAll(VARIABLE_REGEX)];
-    const hasUserVariables = matches.some(m => !SYSTEM_VARIABLES.includes(m[1].trim()));
-    
-    if (hasUserVariables) {
+    const resolvedPrompt = resolvePromptContentByLanguage(prompt, showEnglish);
+
+    if (
+      hasUserDefinedPromptVariables(
+        resolvedPrompt.systemPrompt,
+        resolvedPrompt.userPrompt,
+      )
+    ) {
       // 有变量，打开弹窗让用户填写
       setCopyPrompt(prompt);
       setIsCopyVariableModalOpen(true);
     } else {
       // 没有变量，直接复制（包含 systemPrompt 和 userPrompt）
       // No variables, copy directly (include both systemPrompt and userPrompt)
-      let text = prompt.userPrompt;
-      if (prompt.systemPrompt) {
-        text = `[System]\n${prompt.systemPrompt}\n\n[User]\n${prompt.userPrompt}`;
-      }
-      await navigator.clipboard.writeText(text);
+      await navigator.clipboard.writeText(buildPromptCopyText(resolvedPrompt));
       await incrementUsageCount(prompt.id);
       showToast(t('toast.copied'), 'success', showCopyNotification);
     }
@@ -1934,8 +1935,8 @@ export function MainContent() {
             setCopyPrompt(null);
           }}
           promptId={copyPrompt.id}
-          systemPrompt={copyPrompt.systemPrompt}
-          userPrompt={copyPrompt.userPrompt}
+          systemPrompt={resolvePromptContentByLanguage(copyPrompt, showEnglish).systemPrompt}
+          userPrompt={resolvePromptContentByLanguage(copyPrompt, showEnglish).userPrompt}
           mode="copy"
           onCopy={async (text) => {
             await navigator.clipboard.writeText(text);

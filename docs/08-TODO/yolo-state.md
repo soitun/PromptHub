@@ -1,201 +1,128 @@
-# YOLO 状态 — 持续优化 Skill 管理体验
+# YOLO 状态 — 完整测试体系建设
 
-requirement: "持续优化 Skill 管理体验，重点解决批量分发、导入预览搜索/轻量化、Skill 版本管理缺失"
+requirement: "建立完整测试体系，覆盖 i18n、多技能管理、快照/版本、主进程契约、Electron smoke 与发布门禁"
 mode: evolve
-started: 2026-03-12
-current_round: 10
+started: 2026-03-14
+current_round: 0
 max_rounds: 10
-total_improvements: 13
-status: done
+total_improvements: 0
+status: running
 
 toolchain:
   language: node
+  runtime: electron
   package_manager: pnpm
   lint_cmd: "pnpm lint"
   test_cmd: "pnpm test:run"
   build_cmd: "pnpm build"
+  e2e_cmd: "pnpm test:e2e"
 
 git:
-  baseline_commit: "3f3fc050a6f1b7789c7cfc4325b7d8734edf184b"
+  baseline_commit: "1c8a596c56d078c6d07b76d67e4d35de2fa74fab"
   dirty_worktree: true
   dirty_paths:
-    - AGENTS.md
-    - GEMINI.md
-    - tsconfig.node.tsbuildinfo
+    - "package.json"
+    - "src/renderer/components/layout/MainContent.tsx"
+    - "src/renderer/components/skill/SkillCodePane.tsx"
+    - "src/renderer/components/skill/SkillDetailView.tsx"
+    - "src/renderer/components/skill/SkillFullDetailPage.tsx"
+    - "src/renderer/components/skill/SkillPlatformPanel.tsx"
+    - "src/renderer/components/skill/SkillPreviewPane.tsx"
+    - "src/renderer/components/skill/SkillVersionHistoryModal.tsx"
+    - "src/renderer/components/skill/detail-utils.ts"
+    - "src/renderer/stores/skill.store.ts"
+    - "src/renderer/i18n/locales/en.json"
+    - "src/renderer/i18n/locales/zh.json"
+    - "src/renderer/i18n/locales/zh-TW.json"
+    - "src/renderer/i18n/locales/ja.json"
+    - "src/renderer/i18n/locales/de.json"
+    - "src/renderer/i18n/locales/es.json"
+    - "src/renderer/i18n/locales/fr.json"
+    - "tests/unit/components/skill-detail-utils.test.ts"
+    - "tests/unit/components/skill-i18n-smoke.test.tsx"
+    - "tests/unit/components/skill-version-utils.test.ts"
+    - "tests/unit/services/i18n-init.test.ts"
+    - "tests/unit/services/skill-locale-regression.test.ts"
+    - "tests/unit/services/skill-normalize.test.ts"
+    - "tests/unit/stores/settings-language.test.ts"
+
+code_map:
+  total_files: 189
+  entry_points:
+    - "src/main/index.ts"
+    - "src/renderer/main.tsx"
+    - "src/renderer/App.tsx"
+    - "src/preload/index.ts"
+  core_domains:
+    - name: "skill-main"
+      files:
+        - "src/main/database/skill.ts (605 lines, SkillDB)"
+        - "src/main/ipc/skill/version-handlers.ts (102 lines, registerSkillVersionHandlers)"
+        - "src/main/ipc/skill/shared.ts (136 lines, file snapshot helpers)"
+    - name: "skill-renderer"
+      files:
+        - "src/renderer/components/skill/SkillManager.tsx (728 lines, SkillManager)"
+        - "src/renderer/components/skill/SkillFullDetailPage.tsx (707 lines, SkillFullDetailPage)"
+        - "src/renderer/components/skill/SkillVersionHistoryModal.tsx (563 lines, SkillVersionHistoryModal)"
+        - "src/renderer/components/skill/SkillScanPreview.tsx (597 lines, SkillScanPreview)"
+        - "src/renderer/components/skill/SkillBatchDeployDialog.tsx (582 lines, SkillBatchDeployDialog)"
+        - "src/renderer/components/skill/SkillFileEditor.tsx (1307 lines, SkillFileEditor)"
+        - "src/renderer/stores/skill.store.ts (1184 lines, useSkillStore)"
+    - name: "test-surface"
+      files:
+        - "tests/e2e/app.spec.ts (56 lines, only launch smoke today)"
+        - "tests/unit/components/skill-i18n-smoke.test.tsx (213 lines)"
+        - "tests/unit/services/skill-locale-regression.test.ts (62 lines)"
+        - "tests/unit/services/i18n-init.test.ts (40 lines)"
+        - "tests/unit/stores/settings-language.test.ts (44 lines)"
+  observations:
+    - "测试资产偏 unit，Skill 关键路径已有局部回归，但 Electron/Playwright 仍接近空白。"
+    - "Skill 相关代码集中在 renderer/components/skill 与 stores/skill.store.ts，适合集成测试优先覆盖。"
+    - "主进程 skill 版本与本地文件快照已成体系，但缺 IPC/文件系统契约测试。"
 
 baseline:
   build_ok: true
-  lint_errors: 1
-  lint_summary: "ESLint 9 无 eslint.config.*，pnpm lint 直接失败"
-  test_summary: "72 passed, 2 failed, 0 skipped"
-  test_failures:
-    - "tests/unit/main/updater.test.ts: autoInstallOnAppQuit 断言失败"
-    - "tests/unit/components/skill-detail-utils.test.ts: restoreSkillVersion 缺失"
+  lint_errors: 0
+  lint_summary: "pnpm lint passed"
+  test_summary: "109 passed, 0 failed, 0 skipped"
+  test_failures: []
+  e2e_summary: "only app launch smoke exists; no skill workflow regression coverage"
 
 conductor:
-  trend: rising
-  blocked_dimensions: []
+  trend: stable
+  blocked_dimensions:
+    - "e2e"
+    - "ipc-contract"
   failure_patterns:
-    - "主包仍然偏大，build 仍提示 chunk > 500kB"
-  efficiency: high
-  strategy: "先闭环 Skill 主要用户路径，再收工程门禁，最后处理首屏加载体积。"
+    - "历史上多次通过手工发现 i18n 与状态刷新问题，说明缺少真实页面回归测试。"
+    - "Playwright 仅验证应用能启动，未覆盖 Skills 主路径。"
+  efficiency: medium
+  strategy: "先统一测试基础设施和 fixture/harness，再补 skill 关键路径集成测试，最后拉起 Electron smoke 与发布门禁。"
 
-rounds:
-  - round: 1
-    test_summary: "75 passed, 1 failed, 0 skipped"
-    lint_errors: 1
-    pm_score: 6.8
-    improvements:
-      - id: R1-01
-        dimension: 功能
-        title: "支持批量把多个 Skill 同步到多个平台"
-        status: done
-      - id: R1-02
-        dimension: 功能
-        title: "导入预览支持搜索并把标签改为可选"
-        status: done
-      - id: R1-03
-        dimension: 功能
-        title: "补齐 Skill 版本历史查看与恢复入口"
-        status: done
-      - id: R1-04
-        dimension: 代码
-        title: "文件编辑自动生成快照并同步 SKILL.md 到数据库"
-        status: done
-  - round: 2
-    test_summary: "76 passed, 0 failed, 0 skipped"
-    lint_errors: 0
-    pm_score: 7.4
-    improvements:
-      - id: R2-01
-        dimension: 代码
-        title: "补充 ESLint 9 flat config，恢复 lint 门禁"
-        status: done
-      - id: R2-02
-        dimension: 测试
-        title: "修正 updater 既有单测预期"
-        status: done
-  - round: 3
-    test_summary: "76 passed, 0 failed, 0 skipped"
-    lint_errors: 0
-    pm_score: 7.8
-    improvements:
-      - id: R3-01
-        dimension: 功能
-        title: "让 TopBar 的 Skill 搜索真正驱动 SkillManager 结果过滤"
-        status: done
-  - round: 4
-    test_summary: "76 passed, 0 failed, 0 skipped"
-    lint_errors: 0
-    pm_score: 8.0
-    improvements:
-      - id: R4-01
-        dimension: 功能
-        title: "补齐 CreateSkillModal 扫描导入的搜索与可选标签"
-        status: done
-  - round: 5
-    test_summary: "76 passed, 0 failed, 0 skipped"
-    lint_errors: 0
-    pm_score: 8.2
-    improvements:
-      - id: R5-01
-        dimension: 功能
-        title: "增加手动版本快照入口与当前版本标识"
-        status: done
-  - round: 6
-    test_summary: "76 passed, 0 failed, 0 skipped"
-    lint_errors: 0
-    pm_score: 8.3
-    improvements:
-      - id: R6-01
-        dimension: 功能
-        title: "批量平台对话框默认选中已检测平台并保留失败明细"
-        status: done
-  - round: 7
-    test_summary: "77 passed, 0 failed, 0 skipped"
-    lint_errors: 0
-    pm_score: 8.5
-    improvements:
-      - id: R7-01
-        dimension: 功能
-        title: "批量平台对话框支持从多个平台批量卸载 Skill"
-        status: done
-  - round: 8
-    test_summary: "77 passed, 0 failed, 0 skipped"
-    lint_errors: 0
-    pm_score: 8.6
-    improvements:
-      - id: R8-01
-        dimension: 代码
-        title: "TopBar 中的 CreatePrompt/QuickAdd/CreateSkill 改为懒加载"
-        status: done
-  - round: 9
-    test_summary: "77 passed, 0 failed, 0 skipped"
-    lint_errors: 0
-    pm_score: 8.7
-    improvements:
-      - id: R9-01
-        dimension: 代码
-        title: "SkillStore/SkillFullDetailPage/批量对话框改为懒加载，降低主包压力"
-        status: done
-  - round: 10
-    test_summary: "77 passed, 0 failed, 0 skipped"
-    lint_errors: 0
-    pm_score: 8.7
-    improvements:
-      - id: R10-01
-        dimension: 测试
-        title: "完成全量 lint/test/build 回归并收敛留痕"
-        status: done
-  - round: 11
-    test_summary: "83 passed, 0 failed, 0 skipped"
-    lint_errors: 0
-    pm_score: 8.8
-    improvements:
-      - id: R11-01
-        dimension: 功能
-        title: "Skill 批量管理支持统一添加/移除标签"
-        status: done
-  - round: 12
-    test_summary: "83 passed, 0 failed, 0 skipped"
-    lint_errors: 0
-    pm_score: 8.8
-    improvements:
-      - id: R12-01
-        dimension: 交互
-        title: "Skill 批量管理头部改为带文字的操作条，降低误触和理解成本"
-        status: done
-  - round: 13
-    test_summary: "83 passed, 0 failed, 0 skipped"
-    lint_errors: 0
-    pm_score: 9.0
-    improvements:
-      - id: R13-01
-        dimension: 功能
-        title: "Skill 版本历史支持 Diff 对比当前内容或任意历史版本"
-        status: done
-      - id: R13-02
-        dimension: 代码
-        title: "metadata-only 的 skill 更新不再触发无意义的 SKILL.md 回写"
-        status: done
+rounds: []
 
 deferred_issues:
-  - id: Q-003
-    title: "renderer 主包仍为 768.16kB，build 仍提示 chunk size warning"
-    impact: 2
-    reason: "已通过懒加载下降约 72kB，但仍有进一步拆包空间"
+  - id: T-001
+    title: "Playwright 仍缺稳定的数据注入与语言切换控制"
+    impact: 4
+    reason: "没有独立测试 profile，直接写 e2e 容易依赖用户本地状态"
+  - id: T-002
+    title: "主进程 skill IPC、文件系统与数据库契约测试缺失"
+    impact: 4
+    reason: "目前验证主要停留在 renderer/unit，主进程回归仍靠 build 和人工链路"
+  - id: T-003
+    title: "缺少覆盖率阈值和发布前统一门禁"
+    impact: 3
+    reason: "测试通过但没有 coverage floor，也没有 release 脚本阻断"
 
 verification:
+  test_i18n: "passed"
   typecheck: "passed"
   lint: "passed"
   build: "passed with chunk size warning"
-  full_tests: "83 passed, 0 failed, 0 skipped"
-
-final_assessment:
-  verdict: "新功能阶段可继续推进"
-  overall_score: 9.0
-  exit_reason: "批量分发链路保留并强化交互表达，去掉偏离主流程的批量下载后产品路径更聚焦"
+  full_tests: "109 passed, 0 failed, 0 skipped"
 
 notes:
-  - "`.claude/settings.json` 当前不存在，YOLO Stop hook 未配置。"
-  - "本轮未处理用户工作区中已有的 AGENTS/GEMINI/tsbuildinfo 变更。"
+  - "当前仅发现 .claude/settings.local.json，未配置 YOLO Stop hook。"
+  - "本轮起点包含未提交的多语言与测试增强改动，将在 bootstrap commit 中整体固化。"
+  - "上一轮 Skill 管理体验优化已完成，本轮主题切换为完整测试体系建设。"

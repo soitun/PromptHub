@@ -171,7 +171,7 @@ export function SkillDetailView() {
   };
 
   if (!selectedSkill) return null;
-  const sourceMeta = getSkillSourceMeta(selectedSkill);
+  const sourceMeta = getSkillSourceMeta(selectedSkill, t);
 
   const handleCopy = (text: string, key: string) => {
     navigator.clipboard.writeText(text);

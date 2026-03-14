@@ -37,6 +37,7 @@ describe("skill store", () => {
 
     (window as any).api = {
       skill: {
+        getAll: vi.fn(),
         update: vi.fn(),
         writeLocalFile: vi.fn(),
         getRepoPath: vi.fn(),
@@ -193,5 +194,34 @@ describe("skill store", () => {
 
     expect((window as any).api.skill.writeLocalFile).not.toHaveBeenCalled();
     expect((window as any).api.skill.getRepoPath).not.toHaveBeenCalled();
+  });
+
+  it("normalizes legacy skill payloads when loading skills", async () => {
+    (window as any).api.skill.getAll = vi.fn().mockResolvedValue([
+      {
+        id: "skill-1",
+        name: "alpha",
+        tags: '["ops","docs"]',
+        original_tags: "seed, legacy",
+        protocol_type: "skill",
+        is_favorite: false,
+        currentVersion: "2",
+        created_at: "1",
+        updated_at: "2",
+      },
+    ]);
+
+    await useSkillStore.getState().loadSkills();
+
+    expect(useSkillStore.getState().skills).toEqual([
+      expect.objectContaining({
+        id: "skill-1",
+        tags: ["ops", "docs"],
+        original_tags: ["seed", "legacy"],
+        currentVersion: 2,
+        created_at: 1,
+        updated_at: 2,
+      }),
+    ]);
   });
 });

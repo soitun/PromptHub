@@ -1,3 +1,4 @@
+import type { TFunction } from "i18next";
 import type { Skill, SkillVersion } from "../../../shared/types";
 import type { SkillPlatform } from "../../../shared/constants/platforms";
 
@@ -53,7 +54,10 @@ export function getProtocolDisplayLabel(protocolType: Skill["protocol_type"]): s
   }
 }
 
-export function getSkillSourceMeta(skill: Skill): SkillSourceMeta | null {
+export function getSkillSourceMeta(
+  skill: Skill,
+  t?: TFunction,
+): SkillSourceMeta | null {
   const sourceValue = skill.source_url || skill.local_repo_path;
   if (!sourceValue) {
     return null;
@@ -65,9 +69,18 @@ export function getSkillSourceMeta(skill: Skill): SkillSourceMeta | null {
       value: sourceValue,
       displayValue: sourceValue.replace(/^https?:\/\/(www\.)?github\.com\//i, ""),
       shortValue: sourceValue.replace(/^https?:\/\/(www\.)?github\.com\//i, ""),
-      sourceLabel: skill.registry_slug
-        ? "从 GitHub / Skill 商店导入"
-        : "从 GitHub 仓库导入",
+      sourceLabel:
+        t?.(
+          skill.registry_slug
+            ? "skill.sourceGithubStore"
+            : "skill.sourceGithubRepo",
+          skill.registry_slug
+            ? "Imported from GitHub / Skill Store"
+            : "Imported from GitHub Repository",
+        ) ||
+        (skill.registry_slug
+          ? "Imported from GitHub / Skill Store"
+          : "Imported from GitHub Repository"),
     };
   }
 
@@ -77,9 +90,18 @@ export function getSkillSourceMeta(skill: Skill): SkillSourceMeta | null {
       value: sourceValue,
       displayValue: sourceValue.replace(/^https?:\/\/(www\.)?/i, ""),
       shortValue: sourceValue.replace(/^https?:\/\/(www\.)?/i, ""),
-      sourceLabel: skill.registry_slug
-        ? "从远程 Skill 商店导入"
-        : "从远程链接导入",
+      sourceLabel:
+        t?.(
+          skill.registry_slug
+            ? "skill.sourceRemoteStore"
+            : "skill.sourceRemoteLink",
+          skill.registry_slug
+            ? "Imported from Remote Skill Store"
+            : "Imported from Remote Link",
+        ) ||
+        (skill.registry_slug
+          ? "Imported from Remote Skill Store"
+          : "Imported from Remote Link"),
     };
   }
 
@@ -90,11 +112,21 @@ export function getSkillSourceMeta(skill: Skill): SkillSourceMeta | null {
       ? `.../${parts[parts.length - 2]}/${parts[parts.length - 1]}`
       : sourceValue;
   const lowerPath = normalized.toLowerCase();
-  let sourceLabel = "从本地文件夹导入";
+  let sourceLabel =
+    t?.("skill.sourceLocalFolder", "Imported from Local Folder") ||
+    "Imported from Local Folder";
   if (lowerPath.includes("/.claude/skills/")) {
-    sourceLabel = "从 Claude Code 本地技能目录导入";
+    sourceLabel =
+      t?.(
+        "skill.sourceClaudeLocalFolder",
+        "Imported from Claude Code Local Skills Folder",
+      ) || "Imported from Claude Code Local Skills Folder";
   } else if (lowerPath.includes("/cursor/") || lowerPath.includes("/.cursor/")) {
-    sourceLabel = "从 Cursor 本地技能目录导入";
+    sourceLabel =
+      t?.(
+        "skill.sourceCursorLocalFolder",
+        "Imported from Cursor Local Skills Folder",
+      ) || "Imported from Cursor Local Skills Folder";
   }
 
   return {

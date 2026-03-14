@@ -18,7 +18,7 @@ export function SkillCodePane({
   skillContent,
   t,
 }: SkillCodePaneProps) {
-  const sourceMeta = getSkillSourceMeta(selectedSkill);
+  const sourceMeta = getSkillSourceMeta(selectedSkill, t);
 
   return (
     <div className="w-full max-w-6xl mx-auto space-y-6">

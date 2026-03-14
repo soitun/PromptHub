@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
+  ChevronDownIcon,
+  ChevronRightIcon,
   Clock3Icon,
   GitBranchIcon,
   GitCompareIcon,
@@ -16,6 +18,11 @@ import {
   generateTextDiff,
   restoreSkillVersion,
 } from "./detail-utils";
+import {
+  buildVersionFileDiffEntries,
+  resolveVersionSnapshots,
+  snapshotsFromLocalFiles,
+} from "./version-utils";
 
 interface SkillVersionHistoryModalProps {
   isOpen: boolean;
@@ -32,10 +39,12 @@ function SkillDiffView({
   oldText,
   newText,
   label,
+  emptyLabel,
 }: {
   oldText: string;
   newText: string;
   label: string;
+  emptyLabel: string;
 }) {
   const diff = useMemo(() => generateTextDiff(oldText, newText), [oldText, newText]);
   const stats = useMemo(
@@ -69,7 +78,7 @@ function SkillDiffView({
 
       {isUnchanged ? (
         <div className="rounded-2xl border border-border bg-card px-4 py-8 text-center text-sm text-muted-foreground">
-          No changes
+          {emptyLabel}
         </div>
       ) : (
         <div className="overflow-hidden rounded-2xl border border-border bg-card font-mono text-xs">
@@ -122,6 +131,12 @@ export function SkillVersionHistoryModal({
   const [view, setView] = useState<ContentView>("preview");
   const [isLoading, setIsLoading] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
+  const [currentFilesSnapshot, setCurrentFilesSnapshot] = useState<
+    Array<{ relativePath: string; content: string }>
+  >([]);
+  const [expandedFilePaths, setExpandedFilePaths] = useState<Set<string>>(
+    new Set(),
+  );
 
   useEffect(() => {
     if (!isOpen) {
@@ -133,11 +148,23 @@ export function SkillVersionHistoryModal({
     async function loadVersions() {
       setIsLoading(true);
       try {
-        const nextVersions = await window.api.skill.versionGetAll(skill.id);
+        const [versionsResult, currentFilesResult] = await Promise.allSettled([
+          window.api.skill.versionGetAll(skill.id),
+          window.api.skill.readLocalFiles(skill.id),
+        ]);
         if (cancelled) {
           return;
         }
+        if (versionsResult.status !== "fulfilled") {
+          throw versionsResult.reason;
+        }
+        const nextVersions = versionsResult.value;
         setVersions(nextVersions);
+        setCurrentFilesSnapshot(
+          currentFilesResult.status === "fulfilled"
+            ? snapshotsFromLocalFiles(currentFilesResult.value, currentContent)
+            : resolveVersionSnapshots(null, currentContent),
+        );
         setSelectedVersionId(nextVersions[0]?.id ?? null);
         setCompareTarget("current");
         setView("preview");
@@ -155,7 +182,7 @@ export function SkillVersionHistoryModal({
     return () => {
       cancelled = true;
     };
-  }, [isOpen, skill.id]);
+  }, [currentContent, isOpen, skill.id]);
 
   const selectedVersion = useMemo(
     () => versions.find((item) => item.id === selectedVersionId) ?? null,
@@ -197,7 +224,54 @@ export function SkillVersionHistoryModal({
   const compareLabel = compareVersion
     ? `v${compareVersion.version}`
     : t("skill.currentVersion", "当前内容");
-  const compareContent = compareVersion?.content || currentContent;
+  const selectedFilesSnapshot = useMemo(
+    () => resolveVersionSnapshots(selectedVersion, selectedVersion?.content || ""),
+    [selectedVersion],
+  );
+  const compareFilesSnapshot = useMemo(
+    () =>
+      compareTarget === "current"
+        ? currentFilesSnapshot
+        : resolveVersionSnapshots(compareVersion, compareVersion?.content || ""),
+    [compareTarget, compareVersion, currentFilesSnapshot],
+  );
+  const fileDiffEntries = useMemo(
+    () =>
+      buildVersionFileDiffEntries(compareFilesSnapshot, selectedFilesSnapshot),
+    [compareFilesSnapshot, selectedFilesSnapshot],
+  );
+  const changedFileEntries = useMemo(
+    () => fileDiffEntries.filter((entry) => !entry.unchanged),
+    [fileDiffEntries],
+  );
+
+  useEffect(() => {
+    const nextExpanded = new Set<string>();
+    for (const entry of changedFileEntries) {
+      nextExpanded.add(entry.path);
+    }
+    if (nextExpanded.size === 0 && fileDiffEntries[0]) {
+      nextExpanded.add(fileDiffEntries[0].path);
+    }
+    setExpandedFilePaths(nextExpanded);
+  }, [changedFileEntries, compareTarget, fileDiffEntries, selectedVersionId]);
+
+  const toggleFileExpanded = (path: string) => {
+    setExpandedFilePaths((previous) => {
+      const next = new Set(previous);
+      if (next.has(path)) {
+        next.delete(path);
+      } else {
+        next.add(path);
+      }
+      return next;
+    });
+  };
+
+  const expandAllFiles = () =>
+    setExpandedFilePaths(new Set(fileDiffEntries.map((entry) => entry.path)));
+
+  const collapseAllFiles = () => setExpandedFilePaths(new Set());
 
   const handleRestore = async () => {
     if (!selectedVersion) {
@@ -318,7 +392,7 @@ export function SkillVersionHistoryModal({
                       }`}
                     >
                       <GitCompareIcon className="h-3.5 w-3.5" />
-                      Diff
+                      {t("skill.diffView", "Diff")}
                     </button>
                   </div>
                   <button
@@ -346,31 +420,115 @@ export function SkillVersionHistoryModal({
             <div className="flex-1 p-4">
               {view === "diff" ? (
                 <div className="space-y-4">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      {t("skill.compareAgainst", "比较对象")}
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        {t("skill.compareAgainst", "比较对象")}
+                      </div>
+                      <select
+                        value={compareTarget}
+                        onChange={(event) =>
+                          setCompareTarget(event.target.value as CompareTarget)
+                        }
+                        className="h-10 rounded-xl border border-border bg-card px-3 text-sm outline-none transition-colors focus:border-primary/40"
+                      >
+                        {compareOptions.map((option) => (
+                          <option key={option.id} value={option.id}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
                     </div>
-                    <select
-                      value={compareTarget}
-                      onChange={(event) =>
-                        setCompareTarget(event.target.value as CompareTarget)
-                      }
-                      className="h-10 rounded-xl border border-border bg-card px-3 text-sm outline-none transition-colors focus:border-primary/40"
-                    >
-                      {compareOptions.map((option) => (
-                        <option key={option.id} value={option.id}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={expandAllFiles}
+                        className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium transition-colors hover:bg-accent"
+                      >
+                        {t("skill.expandAll", "全部展开")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={collapseAllFiles}
+                        className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium transition-colors hover:bg-accent"
+                      >
+                        {t("skill.collapseAll", "全部收起")}
+                      </button>
+                    </div>
                   </div>
-                  <SkillDiffView
-                    oldText={compareContent}
-                    newText={selectedVersion?.content || ""}
-                    label={t("skill.compareSummary", {
-                      defaultValue: `${compareLabel} -> ${selectedVersion ? `v${selectedVersion.version}` : "-"}`,
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                    <span className="rounded-full bg-card px-3 py-1">
+                      {t("skill.filesInVersion", "版本文件")}: {fileDiffEntries.length}
+                    </span>
+                    <span className="rounded-full bg-primary/10 px-3 py-1 text-primary">
+                      {t("skill.filesChanged", {
+                        count: changedFileEntries.length,
+                        defaultValue: `已变更 ${changedFileEntries.length} 个文件`,
+                      })}
+                    </span>
+                  </div>
+                  <div className="space-y-3">
+                    {fileDiffEntries.map((entry) => {
+                      const isExpanded = expandedFilePaths.has(entry.path);
+                      const compareSummary = t("skill.compareSummary", {
+                        from: compareLabel,
+                        to: selectedVersion ? `v${selectedVersion.version}` : "-",
+                        defaultValue: `${compareLabel} -> ${selectedVersion ? `v${selectedVersion.version}` : "-"}`,
+                      });
+
+                      return (
+                        <div
+                          key={entry.path}
+                          className="overflow-hidden rounded-2xl border border-border bg-background/70"
+                        >
+                          <button
+                            type="button"
+                            onClick={() => toggleFileExpanded(entry.path)}
+                            className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-accent/40"
+                          >
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                {isExpanded ? (
+                                  <ChevronDownIcon className="h-4 w-4 text-muted-foreground" />
+                                ) : (
+                                  <ChevronRightIcon className="h-4 w-4 text-muted-foreground" />
+                                )}
+                                <span className="truncate font-mono text-sm text-foreground">
+                                  {entry.path}
+                                </span>
+                              </div>
+                              <div className="mt-1 pl-6 text-xs text-muted-foreground">
+                                {entry.unchanged
+                                  ? t("skill.noChanges", "没有变化")
+                                  : compareSummary}
+                              </div>
+                            </div>
+                            <div
+                              className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${
+                                entry.unchanged
+                                  ? "bg-card text-muted-foreground"
+                                  : "bg-primary/10 text-primary"
+                              }`}
+                            >
+                              {entry.unchanged
+                                ? t("skill.noChanges", "没有变化")
+                                : t("skill.diffView", "Diff")}
+                            </div>
+                          </button>
+                          {isExpanded ? (
+                            <div className="border-t border-border px-4 py-4">
+                              <SkillDiffView
+                                oldText={entry.oldContent}
+                                newText={entry.newContent}
+                                label={entry.path}
+                                emptyLabel={t("skill.noChanges", "没有变化")}
+                              />
+                            </div>
+                          ) : null}
+                        </div>
+                      );
                     })}
-                  />
+                  </div>
                 </div>
               ) : (
                 <div className="grid gap-4 lg:grid-cols-2">

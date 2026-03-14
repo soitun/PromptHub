@@ -14,6 +14,7 @@ import rehypeSanitize from "rehype-sanitize";
 import remarkGfm from "remark-gfm";
 import type { TFunction } from "i18next";
 import type { Skill } from "../../../shared/types";
+import { normalizeStringArray } from "../../services/skill-normalize";
 import {
   renderImmersiveSegments,
   stripFrontmatter,
@@ -49,7 +50,7 @@ export function SkillPreviewPane({
   translationMode,
 }: SkillPreviewPaneProps) {
   const visibleTags = useMemo(
-    () => (selectedSkill.tags || []).slice(0, 4),
+    () => normalizeStringArray(selectedSkill.tags).slice(0, 4),
     [selectedSkill.tags],
   );
 
