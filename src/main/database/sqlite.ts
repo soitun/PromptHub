@@ -15,16 +15,37 @@ import { Database as WasmDatabase } from "node-sqlite3-wasm";
 class Statement {
   constructor(private stmt: any) {}
 
+  private normalizeParams(params: any[]): any[] | any {
+    if (params.length === 0) {
+      return [];
+    }
+
+    if (params.length === 1) {
+      return params[0];
+    }
+
+    return params;
+  }
+
   run(...params: any[]): { changes: number; lastInsertRowid: number | bigint } {
-    return this.stmt.run(...params);
+    const normalized = this.normalizeParams(params);
+    return Array.isArray(normalized) && normalized.length === 0
+      ? this.stmt.run()
+      : this.stmt.run(normalized);
   }
 
   get(...params: any[]): any {
-    return this.stmt.get(...params);
+    const normalized = this.normalizeParams(params);
+    return Array.isArray(normalized) && normalized.length === 0
+      ? this.stmt.get()
+      : this.stmt.get(normalized);
   }
 
   all(...params: any[]): any[] {
-    return this.stmt.all(...params);
+    const normalized = this.normalizeParams(params);
+    return Array.isArray(normalized) && normalized.length === 0
+      ? this.stmt.all()
+      : this.stmt.all(normalized);
   }
 
   finalize(): void {

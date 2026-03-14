@@ -21,6 +21,12 @@ import { createMenu } from "./menu";
 import { registerShortcuts, registerShortcutsIPC } from "./shortcuts";
 import { initUpdater, registerUpdaterIPC } from "./updater";
 import { registerWebDAVIPC } from "./webdav";
+import {
+  applyE2ESeed,
+  configureE2ETestProfile,
+  isE2EEnabled,
+  shouldUseDevServer,
+} from "./testing/e2e";
 
 // Disable GPU acceleration (optional; may be needed on some systems)
 // 禁用 GPU 加速（可选，某些系统上可能需要）
@@ -64,11 +70,13 @@ protocol.registerSchemesAsPrivileged([
   },
 ]);
 
-const isDev = process.env.NODE_ENV === "development" || !app.isPackaged;
+const isE2E = isE2EEnabled();
+configureE2ETestProfile();
+const isDev = shouldUseDevServer(app.isPackaged);
 
 // Single instance lock (prevent multiple instances)
 // 单实例锁定（防止多开）
-const gotTheLock = app.requestSingleInstanceLock();
+const gotTheLock = isE2E ? true : app.requestSingleInstanceLock();
 
 if (!gotTheLock) {
   // Quit immediately if we fail to acquire the lock (another instance is running)
@@ -170,7 +178,9 @@ async function createWindow() {
     console.log("Loading dev server:", devServerUrl);
     try {
       await mainWindow.loadURL(devServerUrl);
-      mainWindow.webContents.openDevTools();
+      if (!isE2E) {
+        mainWindow.webContents.openDevTools();
+      }
     } catch (error) {
       console.error("Failed to load dev server:", error);
     }
@@ -825,6 +835,7 @@ app.whenReady().then(async () => {
     // Initialize database
     // 初始化数据库
     const db = initDatabase();
+    applyE2ESeed(db);
     appDb = db; // Save to module-level variable for createWindow access
     registerAllIPC(db);
 
@@ -854,7 +865,7 @@ app.whenReady().then(async () => {
 
     // Init updater (production only)
     // 初始化更新器（仅在生产环境）
-    if (!isDev && mainWindow) {
+    if (!isDev && !isE2E && mainWindow) {
       initUpdater(mainWindow);
     }
 

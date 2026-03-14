@@ -1,3 +1,38 @@
+## Round 2 — 2026-03-14
+
+**PM 评分：** 8.3/10 → 真实窗口链路已经能抓到主进程级缺陷  
+**Unit：** 110 passed / 0 failed  
+**Integration：** 2 passed / 0 failed  
+**E2E Smoke：** 1 passed / 0 failed  
+**Build：** passed，仍有 chunk size warning
+
+### 改进项
+
+1. **[测试] 建立隔离的 Electron E2E profile 与 seed 注入** (R2-01) ✅
+   - 问题：Playwright 之前只能验证应用能启动，且容易污染或依赖用户本地数据，无法稳定覆盖真实业务。
+   - 改动：新增 `src/main/testing/e2e.ts`，为 E2E 提供隔离 `userData`、技能 seed 注入、跳过 updater、禁用 dev server 依赖；同时新增 `tests/e2e/helpers/electron.ts` 和 `tests/e2e/fixtures/skills-smoke.seed.json`。
+   - 验证：`pnpm test:e2e:smoke` 通过。
+
+2. **[测试] Skill 快照主路径接入真实窗口 smoke，并把错误 toast 视为失败信号** (R2-02) ✅
+   - 问题：此前 smoke 只看弹窗是否关闭，没把“更新失败 toast”纳入失败条件，导致真实错误能漏过去。
+   - 改动：升级 `tests/e2e/app.spec.ts`，覆盖 Skills → My Skills → 详情页 → Create Snapshot 链路，并强制断言没有 `Update failed` toast 且 `currentVersion` 从 `v0` 递增到 `v1`。
+   - 验证：`pnpm test:e2e:smoke` 通过。
+
+3. **[修复] 修正 macOS 下技能托管目录 realpath 校验误判** (R2-03) ✅
+   - 问题：在 `/var` 与 `/private/var` 路径等价的环境下，快照创建会报 `Managed repo path resolves outside skills directory`。
+   - 改动：在 `src/main/services/skill-installer.ts` 中统一对 repo path 和 skills dir 做 `realpath` 归一化后再判断是否属于托管目录。
+   - 验证：真实 Electron smoke 已覆盖并通过。
+
+4. **[测试/修复] 增加 Skill 版本递增数据库契约测试并修复 sqlite 多参数绑定** (R2-04) ✅
+   - 问题：真实数据库链路暴露出 sqlite 适配层对多位置参数绑定不正确，导致 `current_version` 更新语句在部分场景失效。
+   - 改动：在 `src/main/database/sqlite.ts` 修复 `run/get/all` 参数归一化；新增 `tests/unit/main/skill-db-versioning.test.ts` 用真实数据库锁住 `createVersion()` 的版本递增行为。
+   - 验证：`pnpm test:unit tests/unit/main/skill-db-versioning.test.ts`、`pnpm test:unit` 通过。
+
+5. **[测试] 增加发布前统一门禁脚本** (R2-05) ✅
+   - 问题：虽然已有分层脚本，但缺少一条固定的 release 级验证命令，容易漏掉真实窗口回归。
+   - 改动：在 `package.json` 增加 `pnpm test:release`，串联 `lint + typecheck + unit + integration + build + e2e smoke`。
+   - 验证：各分层命令已逐项通过，后续可直接用 `pnpm test:release` 作为发布门禁。
+
 ## Round 1 — 2026-03-14
 
 **PM 评分：** 7.4/10 → 测试地基已可支撑真实页面回归  

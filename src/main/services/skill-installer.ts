@@ -1,3 +1,4 @@
+import * as nodeFs from "fs";
 import * as fs from "fs/promises";
 import * as dns from "dns/promises";
 import * as http from "http";
@@ -51,6 +52,15 @@ interface ResolvedAddress {
 function isPathWithin(basePath: string, targetPath: string): boolean {
   const relative = path.relative(basePath, targetPath);
   return !relative.startsWith("..") && !path.isAbsolute(relative);
+}
+
+function normalizeExistingPathSync(absolutePath: string): string {
+  const resolvedPath = path.resolve(absolutePath);
+  try {
+    return nodeFs.realpathSync.native(resolvedPath);
+  } catch {
+    return resolvedPath;
+  }
 }
 
 function isBlockedHostname(hostname: string): boolean {
@@ -304,9 +314,9 @@ export class SkillInstaller {
   }
 
   static isManagedRepoPath(absolutePath: string): boolean {
-    const resolved = path.resolve(absolutePath);
-    const relative = path.relative(this.skillsDir, resolved);
-    return !relative.startsWith("..") && !path.isAbsolute(relative);
+    const normalizedSkillsDir = normalizeExistingPathSync(this.skillsDir);
+    const normalizedAbsolutePath = normalizeExistingPathSync(absolutePath);
+    return isPathWithin(normalizedSkillsDir, normalizedAbsolutePath);
   }
 
   private static async resolveRepoBasePath(
@@ -314,7 +324,15 @@ export class SkillInstaller {
     options?: { ensureExists?: boolean },
   ): Promise<{ resolvedBasePath: string; realBasePath: string }> {
     const resolvedBasePath = path.resolve(absoluteBasePath);
-    if (!isPathWithin(path.resolve(this.skillsDir), resolvedBasePath)) {
+    const resolvedSkillsDir = path.resolve(this.skillsDir);
+    const realSkillsDir = await fs
+      .realpath(resolvedSkillsDir)
+      .catch(() => resolvedSkillsDir);
+
+    if (
+      !isPathWithin(resolvedSkillsDir, resolvedBasePath) &&
+      !isPathWithin(realSkillsDir, resolvedBasePath)
+    ) {
       throw new Error(
         "Path traversal detected: base path is outside skills directory",
       );
@@ -327,7 +345,7 @@ export class SkillInstaller {
     const realBasePath = await fs
       .realpath(resolvedBasePath)
       .catch(() => resolvedBasePath);
-    if (!isPathWithin(path.resolve(this.skillsDir), realBasePath)) {
+    if (!isPathWithin(realSkillsDir, realBasePath)) {
       throw new Error("Managed repo path resolves outside skills directory");
     }
 
