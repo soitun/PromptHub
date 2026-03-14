@@ -3,9 +3,9 @@
 requirement: "建立完整测试体系，覆盖 i18n、多技能管理、快照/版本、主进程契约、Electron smoke 与发布门禁"
 mode: evolve
 started: 2026-03-14
-current_round: 0
+current_round: 1
 max_rounds: 10
-total_improvements: 0
+total_improvements: 4
 status: running
 
 toolchain:
@@ -19,32 +19,8 @@ toolchain:
 
 git:
   baseline_commit: "1c8a596c56d078c6d07b76d67e4d35de2fa74fab"
-  dirty_worktree: true
-  dirty_paths:
-    - "package.json"
-    - "src/renderer/components/layout/MainContent.tsx"
-    - "src/renderer/components/skill/SkillCodePane.tsx"
-    - "src/renderer/components/skill/SkillDetailView.tsx"
-    - "src/renderer/components/skill/SkillFullDetailPage.tsx"
-    - "src/renderer/components/skill/SkillPlatformPanel.tsx"
-    - "src/renderer/components/skill/SkillPreviewPane.tsx"
-    - "src/renderer/components/skill/SkillVersionHistoryModal.tsx"
-    - "src/renderer/components/skill/detail-utils.ts"
-    - "src/renderer/stores/skill.store.ts"
-    - "src/renderer/i18n/locales/en.json"
-    - "src/renderer/i18n/locales/zh.json"
-    - "src/renderer/i18n/locales/zh-TW.json"
-    - "src/renderer/i18n/locales/ja.json"
-    - "src/renderer/i18n/locales/de.json"
-    - "src/renderer/i18n/locales/es.json"
-    - "src/renderer/i18n/locales/fr.json"
-    - "tests/unit/components/skill-detail-utils.test.ts"
-    - "tests/unit/components/skill-i18n-smoke.test.tsx"
-    - "tests/unit/components/skill-version-utils.test.ts"
-    - "tests/unit/services/i18n-init.test.ts"
-    - "tests/unit/services/skill-locale-regression.test.ts"
-    - "tests/unit/services/skill-normalize.test.ts"
-    - "tests/unit/stores/settings-language.test.ts"
+  dirty_worktree: false
+  dirty_paths: []
 
 code_map:
   total_files: 189
@@ -84,22 +60,74 @@ baseline:
   build_ok: true
   lint_errors: 0
   lint_summary: "pnpm lint passed"
-  test_summary: "109 passed, 0 failed, 0 skipped"
+  test_summary: "111 passed, 0 failed, 0 skipped"
   test_failures: []
   e2e_summary: "only app launch smoke exists; no skill workflow regression coverage"
 
 conductor:
-  trend: stable
+  trend: rising
   blocked_dimensions:
     - "e2e"
     - "ipc-contract"
   failure_patterns:
-    - "历史上多次通过手工发现 i18n 与状态刷新问题，说明缺少真实页面回归测试。"
-    - "Playwright 仅验证应用能启动，未覆盖 Skills 主路径。"
-  efficiency: medium
-  strategy: "先统一测试基础设施和 fixture/harness，再补 skill 关键路径集成测试，最后拉起 Electron smoke 与发布门禁。"
+    - "历史上多次通过手工发现 i18n 与状态刷新问题，说明缺少真实页面回归测试；本轮已通过 integration smoke 开始收口。"
+    - "Playwright 仅验证应用能启动，仍未覆盖 Skills 主路径。"
+  efficiency: high
+  strategy: "测试基础设施已成型，下一轮直接攻 Electron smoke 启动态与受控测试 profile，再补主进程契约测试。"
 
-rounds: []
+rounds:
+  - round: 1
+    date: 2026-03-14
+    theme: "统一 renderer 测试基础设施与 skill 集成测试入口"
+    pm_score: 7.4
+    status: done
+    scope:
+      - "renderer test harness"
+      - "skill/i18n fixtures"
+      - "integration layer bootstrap"
+    improvements:
+      - id: R1-01
+        title: "统一 window.api / window.electron 测试 mock"
+        dimension: test
+        status: done
+        files:
+          - "tests/helpers/window.ts"
+          - "tests/setup.ts"
+        verification: "pnpm test:run"
+      - id: R1-02
+        title: "抽离 skill / version / platform fixture 工厂与真实 i18n render helper"
+        dimension: test
+        status: done
+        files:
+          - "tests/fixtures/skills.ts"
+          - "tests/helpers/i18n.tsx"
+        verification: "pnpm test:integration"
+      - id: R1-03
+        title: "建立 integration 层并补 SkillManager / SkillFullDetailPage smoke"
+        dimension: test
+        status: done
+        files:
+          - "tests/integration/components/skill-ui.integration.test.tsx"
+        verification: "pnpm test:integration"
+      - id: R1-04
+        title: "补充 test:unit / test:integration 分层脚本并迁移既有 skill 测试到共享 harness"
+        dimension: test
+        status: done
+        files:
+          - "package.json"
+          - "tests/unit/services/skill-platform-sync.test.ts"
+          - "tests/unit/stores/skill.store.test.ts"
+        verification: "pnpm test:unit && pnpm lint && pnpm typecheck && pnpm build"
+    verification:
+      unit: "22 files passed"
+      integration: "1 file / 2 tests passed"
+      full: "23 files / 111 tests passed"
+      lint: "passed"
+      typecheck: "passed"
+      build: "passed with chunk size warning"
+    next_focus:
+      - "Playwright 受控测试 profile"
+      - "主进程 skill IPC / filesystem / DB contract tests"
 
 deferred_issues:
   - id: T-001
@@ -120,9 +148,9 @@ verification:
   typecheck: "passed"
   lint: "passed"
   build: "passed with chunk size warning"
-  full_tests: "109 passed, 0 failed, 0 skipped"
+  full_tests: "111 passed, 0 failed, 0 skipped"
 
 notes:
   - "当前仅发现 .claude/settings.local.json，未配置 YOLO Stop hook。"
-  - "本轮起点包含未提交的多语言与测试增强改动，将在 bootstrap commit 中整体固化。"
+  - "Round 1 已建立 integration 层，后续可在不复制大段 mock 的前提下补 Skill 主路径回归。"
   - "上一轮 Skill 管理体验优化已完成，本轮主题切换为完整测试体系建设。"

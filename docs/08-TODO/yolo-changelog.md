@@ -1,3 +1,36 @@
+## Round 1 — 2026-03-14
+
+**PM 评分：** 7.4/10 → 测试地基已可支撑真实页面回归  
+**测试：** 111 passed / 0 failed / 0 skipped  
+**Lint：** 0 errors  
+**Build：** passed，仍有 chunk size warning
+
+### 改进项
+
+1. **[测试] 统一 renderer 测试 harness** (R1-01) ✅
+   - 问题：`tests/setup.ts` 只提供最薄的 `window.electron` 假对象，各测试都在重复拼接 `window.api` 和 clipboard/mock 细节。
+   - 改动：新增 `tests/helpers/window.ts`，统一生成 `window.api / window.electron` 默认 mock，并将其接入 `tests/setup.ts`。
+   - 验证：`pnpm test:run` 通过。
+
+2. **[测试] 抽离 skill / version / i18n fixture 工厂** (R1-02) ✅
+   - 问题：Skill 相关测试重复手写大段 fixture 和语言 mock，维护成本高，回归面不稳定。
+   - 改动：新增 `tests/fixtures/skills.ts` 与 `tests/helpers/i18n.tsx`，统一 skill/version/file/platform fixture，以及真实 locale provider 渲染能力。
+   - 验证：`pnpm test:integration` 通过。
+
+3. **[测试] 建立 integration 层并覆盖 Skill 主路径 smoke** (R1-03) ✅
+   - 问题：仓库已有 `tests/integration/` 目录，但实际上没有真实用例，`skill` 页面问题仍主要靠手测发现。
+   - 改动：新增 `tests/integration/components/skill-ui.integration.test.tsx`，用真实 i18n provider 覆盖 `SkillManager` 批量管理和 `SkillFullDetailPage` 快照弹窗主路径。
+   - 验证：`pnpm test:integration` 通过，2 条集成测试全部通过。
+
+4. **[测试] 分层脚本落地并迁移既有 skill 测试到共享基建** (R1-04) ✅
+   - 问题：现有脚本只有 `test` / `test:run`，没有 unit 与 integration 分层；既有 skill 测试也没复用新基建。
+   - 改动：在 `package.json` 增加 `test:unit`、`test:integration`，并将 `skill-platform-sync`、`skill.store` 测试迁移到共享 fixture / window harness。
+   - 验证：`pnpm test:unit`、`pnpm lint`、`pnpm typecheck`、`pnpm build` 全通过。
+
+### 下一轮目标
+- 为 Playwright 建立受控测试 profile 和启动 harness
+- 开始补主进程 skill IPC / 文件系统 / 数据库契约测试
+
 ## Round 1 — 2026-03-12
 
 **PM 评分：** 6.8/10 → 完善现有功能  

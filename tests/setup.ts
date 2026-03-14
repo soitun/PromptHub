@@ -1,12 +1,14 @@
 import '@testing-library/jest-dom';
 import { cleanup } from '@testing-library/react';
 import { afterEach, vi } from 'vitest';
+import { installWindowMocks } from './helpers/window';
 
 // 扩展 Window 类型
 // Extend Window type
 declare global {
     interface Window {
         electron: any;
+        api: any;
     }
 }
 
@@ -19,14 +21,15 @@ afterEach(() => {
 // 模拟 window.electron API
 // Mock window.electron API
 if (typeof window !== 'undefined') {
-    window.electron = {
-        ipcRenderer: {
-            invoke: vi.fn(),
-            on: vi.fn(),
-            off: vi.fn(),
-            send: vi.fn(),
+    installWindowMocks();
+
+    Object.defineProperty(window.navigator, 'clipboard', {
+        configurable: true,
+        value: {
+            writeText: vi.fn(),
+            readText: vi.fn(),
         },
-    };
+    });
 
     // Mock window.matchMedia
     Object.defineProperty(window, 'matchMedia', {

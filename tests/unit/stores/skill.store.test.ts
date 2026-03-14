@@ -5,6 +5,8 @@ vi.mock("../../../src/renderer/services/ai", () => ({
 }));
 
 import { useSkillStore } from "../../../src/renderer/stores/skill.store";
+import { createSkillFixture } from "../../fixtures/skills";
+import { installWindowMocks } from "../../helpers/window";
 
 const resetSkillStore = () => {
   useSkillStore.setState({
@@ -34,38 +36,31 @@ const resetSkillStore = () => {
 describe("skill store", () => {
   beforeEach(() => {
     resetSkillStore();
-
-    (window as any).api = {
-      skill: {
-        getAll: vi.fn(),
-        update: vi.fn(),
-        writeLocalFile: vi.fn(),
-        getRepoPath: vi.fn(),
+    installWindowMocks({
+      api: {
+        skill: {
+          getAll: vi.fn(),
+          update: vi.fn(),
+          writeLocalFile: vi.fn(),
+          getRepoPath: vi.fn(),
+        },
       },
-    };
+    });
   });
 
   it("applies deployed and tag filters in getFilteredSkills", () => {
     useSkillStore.setState({
       skills: [
-        {
+        createSkillFixture({
           id: "skill-1",
           name: "alpha",
           tags: ["team", "ops"],
-          protocol_type: "skill",
-          is_favorite: false,
-          created_at: 1,
-          updated_at: 1,
-        } as any,
-        {
+        }),
+        createSkillFixture({
           id: "skill-2",
           name: "beta",
           tags: ["docs"],
-          protocol_type: "skill",
-          is_favorite: false,
-          created_at: 1,
-          updated_at: 1,
-        } as any,
+        }),
       ],
       filterType: "deployed",
       filterTags: ["team"],
@@ -127,16 +122,12 @@ describe("skill store", () => {
 
     useSkillStore.setState({
       skills: [
-        {
+        createSkillFixture({
           id: "skill-1",
           name: "alpha",
           instructions: "old content",
           content: "old content",
-          protocol_type: "skill",
-          is_favorite: false,
-          created_at: 1,
-          updated_at: 1,
-        } as any,
+        }),
       ],
     });
 
@@ -174,17 +165,13 @@ describe("skill store", () => {
 
     useSkillStore.setState({
       skills: [
-        {
+        createSkillFixture({
           id: "skill-1",
           name: "alpha",
           instructions: "same content",
           content: "same content",
           tags: ["docs"],
-          protocol_type: "skill",
-          is_favorite: false,
-          created_at: 1,
-          updated_at: 1,
-        } as any,
+        }),
       ],
     });
 

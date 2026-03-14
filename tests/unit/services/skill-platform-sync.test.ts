@@ -3,17 +3,21 @@ import {
   syncSkillsToPlatforms,
   unsyncSkillsFromPlatforms,
 } from "../../../src/renderer/services/skill-platform-sync";
+import { createSkillFixture } from "../../fixtures/skills";
+import { installWindowMocks } from "../../helpers/window";
 
 describe("syncSkillsToPlatforms", () => {
   beforeEach(() => {
-    (window as any).api = {
-      skill: {
-        export: vi.fn().mockResolvedValue("# demo"),
-        installMd: vi.fn().mockResolvedValue(undefined),
-        installMdSymlink: vi.fn().mockResolvedValue(undefined),
-        uninstallMd: vi.fn().mockResolvedValue(undefined),
+    installWindowMocks({
+      api: {
+        skill: {
+          export: vi.fn().mockResolvedValue("# demo"),
+          installMd: vi.fn().mockResolvedValue(undefined),
+          installMdSymlink: vi.fn().mockResolvedValue(undefined),
+          uninstallMd: vi.fn().mockResolvedValue(undefined),
+        },
       },
-    };
+    });
   });
 
   it("installs all selected skills to all selected platforms", async () => {
@@ -21,9 +25,9 @@ describe("syncSkillsToPlatforms", () => {
 
     const result = await syncSkillsToPlatforms(
       [
-        { id: "skill-1", name: "alpha" },
-        { id: "skill-2", name: "beta" },
-      ] as any,
+        createSkillFixture({ id: "skill-1", name: "alpha" }),
+        createSkillFixture({ id: "skill-2", name: "beta" }),
+      ],
       ["claude", "cursor"],
       "copy",
       progress,
