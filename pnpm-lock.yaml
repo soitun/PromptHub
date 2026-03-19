@@ -93,6 +93,9 @@ importers:
       hast-util-sanitize:
         specifier: ^5.0.0
         version: 5.0.2
+      highlight.js:
+        specifier: ^11.8.0
+        version: 11.8.0
       i18next:
         specifier: ^24.0.0
         version: 24.2.3(typescript@5.9.3)
