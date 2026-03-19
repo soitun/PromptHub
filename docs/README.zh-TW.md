@@ -163,6 +163,67 @@ pnpm dev
 pnpm build
 ```
 
+## 命令列 CLI
+
+PromptHub 現在同時提供 GUI 與 CLI。
+
+> ⚠️ **目前行為**
+>
+> - 安裝桌面版並首次啟動一次 PromptHub 後，應用會自動安裝 `prompthub` 命令
+> - 重新開啟終端後，就可以直接使用 `prompthub --參數`
+> - 源碼執行與構建後的 CLI bundle 仍保留，適合開發與除錯
+
+### 桌面版用戶直接使用
+
+```bash
+prompthub --help
+prompthub prompt list
+prompthub skill list
+prompthub --output table prompt search SEO --favorite
+```
+
+> 💡 **提示**
+>
+> - 如果你剛安裝完桌面版，請先啟動一次 PromptHub
+> - 如果目前終端還找不到 `prompthub`，請關閉並重新打開終端
+
+### 從源碼執行
+
+```bash
+pnpm install
+pnpm cli:dev -- --help
+pnpm cli:dev -- prompt list
+pnpm cli:dev -- skill list
+pnpm cli:dev -- skill install ~/.claude/skills/my-skill
+```
+
+### 使用構建後的 CLI bundle
+
+```bash
+pnpm build
+node out/cli/prompthub.cjs --help
+node out/cli/prompthub.cjs prompt list
+node out/cli/prompthub.cjs skill list
+```
+
+### 常用參數
+
+- `--output json|table`
+- `--data-dir /path/to/user-data`
+- `--app-data-dir /path/to/app-data`
+
+### 支援的命令
+
+- `prompt list|get|create|update|delete|search`
+- `skill list|get|install|scan|delete|remove`
+
+### 說明
+
+- CLI 會直接讀寫 PromptHub 的本地資料庫與管理中的 skill 倉庫
+- 適合腳本化管理、批次操作、匯入、掃描與自動化流程
+- 桌面版會在首次啟動時自動安裝 shell 命令包裝器
+- 如果你之後移動了應用程式位置，再次啟動 PromptHub 會自動刷新命令包裝器
+
 ## 🚀 快速開始
 
 ### 1. 創建 Prompt

@@ -32,6 +32,11 @@ import {
   writeConfiguredDataPath,
 } from "./data-path";
 import { configureRuntimePaths } from "./runtime-paths";
+import {
+  ensureDesktopCliInstalled,
+  extractDesktopCliArgs,
+} from "./desktop-cli";
+import { runCli } from "../cli/run";
 
 // Disable GPU acceleration (optional; may be needed on some systems)
 // 禁用 GPU 加速（可选，某些系统上可能需要）
@@ -76,6 +81,8 @@ protocol.registerSchemesAsPrivileged([
 ]);
 
 const isE2E = isE2EEnabled();
+const desktopCliArgs = extractDesktopCliArgs(process.argv);
+const isDesktopCliMode = desktopCliArgs !== null;
 configureE2ETestProfile();
 if (!isE2E) {
   const resolvedUserDataPath = resolveInitialUserDataPath({
@@ -98,7 +105,8 @@ const isDev = shouldUseDevServer(app.isPackaged);
 
 // Single instance lock (prevent multiple instances)
 // 单实例锁定（防止多开）
-const gotTheLock = isE2E ? true : app.requestSingleInstanceLock();
+const gotTheLock =
+  isE2E || isDesktopCliMode ? true : app.requestSingleInstanceLock();
 
 if (!gotTheLock) {
   // Quit immediately if we fail to acquire the lock (another instance is running)
@@ -793,6 +801,12 @@ ipcMain.handle(
 // 应用启动
 app.whenReady().then(async () => {
   try {
+    if (desktopCliArgs) {
+      const exitCode = await runCli(desktopCliArgs);
+      app.exit(exitCode);
+      return;
+    }
+
     // Register local-image protocol
     // 注册 local-image 协议
     session.defaultSession.protocol.registerFileProtocol(
@@ -897,6 +911,12 @@ app.whenReady().then(async () => {
     // Register shortcuts IPC
     // 注册快捷键 IPC
     registerShortcutsIPC();
+
+    if (!isDev && !isE2E) {
+      void ensureDesktopCliInstalled(process.execPath).catch((error) => {
+        console.error("Failed to install desktop CLI command:", error);
+      });
+    }
 
     // Create main window
     // 创建窗口

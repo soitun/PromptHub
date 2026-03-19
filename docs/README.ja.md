@@ -170,6 +170,67 @@ pnpm dev
 pnpm build
 ```
 
+## コマンドライン CLI
+
+PromptHub は GUI と CLI の両方を提供します。
+
+> ⚠️ **現在の動作**
+>
+> - デスクトップ版をインストールして PromptHub を一度起動すると、`prompthub` コマンドが自動でインストールされます
+> - その後ターミナルを開き直せば、`prompthub --引数` を直接使えます
+> - ソース実行やビルド済み CLI bundle も、開発・デバッグ用途として引き続き利用できます
+
+### デスクトップ版インストール後にそのまま使う
+
+```bash
+prompthub --help
+prompthub prompt list
+prompthub skill list
+prompthub --output table prompt search SEO --favorite
+```
+
+> 💡 **ヒント**
+>
+> - デスクトップ版を入れた直後なら、まず PromptHub を一度起動してください
+> - まだ `prompthub` が見つからない場合は、ターミナルを閉じて開き直してください
+
+### ソースから実行
+
+```bash
+pnpm install
+pnpm cli:dev -- --help
+pnpm cli:dev -- prompt list
+pnpm cli:dev -- skill list
+pnpm cli:dev -- skill install ~/.claude/skills/my-skill
+```
+
+### ビルド済み CLI bundle を使う
+
+```bash
+pnpm build
+node out/cli/prompthub.cjs --help
+node out/cli/prompthub.cjs prompt list
+node out/cli/prompthub.cjs skill list
+```
+
+### よく使うオプション
+
+- `--output json|table`
+- `--data-dir /path/to/user-data`
+- `--app-data-dir /path/to/app-data`
+
+### 対応コマンド
+
+- `prompt list|get|create|update|delete|search`
+- `skill list|get|install|scan|delete|remove`
+
+### 補足
+
+- CLI は PromptHub のローカル DB と管理中の skill リポジトリを直接読み書きします
+- スクリプト、バッチ処理、インポート、スキャン、自動化に向いています
+- デスクトップ版は初回起動時に shell コマンド用ラッパーを自動インストールします
+- 後でアプリの配置場所を動かした場合も、PromptHub を再起動すればラッパーの参照先が更新されます
+
 ## 🚀 クイックスタート
 
 ### 1. プロンプトの作成

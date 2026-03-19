@@ -251,6 +251,85 @@ pnpm dev
 pnpm build
 ```
 
+## 命令行 CLI
+
+PromptHub 现在同时提供 GUI 和 CLI。
+
+> ⚠️ **当前行为**
+>
+> - **桌面版安装后并首次启动一次应用**：PromptHub 会自动安装 `prompthub` 命令
+> - **重新打开一个终端窗口后**：就可以直接使用 `prompthub --参数`
+> - **源码运行 / 构建后的 CLI bundle**：仍然保留，适合开发和调试
+
+### 桌面版用户直接使用
+
+```bash
+prompthub --help
+prompthub prompt list
+prompthub skill list
+prompthub --output table prompt search SEO --favorite
+```
+
+> 💡 **提示**
+>
+> - 如果你刚安装完桌面版，请先启动一次 PromptHub
+> - 如果当前终端还识别不到 `prompthub`，请关闭并重新打开终端
+
+### 从源码运行 CLI
+
+```bash
+pnpm install
+
+# 查看帮助
+pnpm cli:dev -- --help
+
+# Prompt 命令
+pnpm cli:dev -- prompt list
+pnpm cli:dev -- prompt get <id>
+pnpm cli:dev -- prompt create --title "Landing Hero" --user-prompt "Write a landing page hero"
+
+# Skill 命令
+pnpm cli:dev -- skill list
+pnpm cli:dev -- skill get <id-or-name>
+pnpm cli:dev -- skill scan
+pnpm cli:dev -- skill install ~/.claude/skills/my-skill
+```
+
+### 使用构建后的 CLI bundle
+
+```bash
+pnpm build
+
+node out/cli/prompthub.cjs --help
+node out/cli/prompthub.cjs prompt list
+node out/cli/prompthub.cjs skill list
+```
+
+### 常用全局参数
+
+```bash
+prompthub --help
+prompthub --output table prompt list
+prompthub --data-dir /path/to/user-data prompt list
+prompthub --app-data-dir /path/to/app-data skill list
+```
+
+- `--output json|table`：切换 JSON 或表格输出
+- `--data-dir`：显式指定 PromptHub 的 `userData` 目录
+- `--app-data-dir`：显式指定应用数据根目录
+
+### 支持的资源命令
+
+- `prompt list|get|create|update|delete|search`
+- `skill list|get|install|scan|delete|remove`
+
+### 说明
+
+- CLI 直接读写 PromptHub 的本地数据库和 skill 仓库
+- CLI 适合脚本化管理、批量导入导出、自动化扫描
+- 桌面版会在首次启动时自动安装 shell 命令包装器
+- 如果你移动了应用安装位置，再次启动 PromptHub 会自动刷新命令包装器路径
+
 ## 快速开始
 
 ### 1. 创建 Prompt

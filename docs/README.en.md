@@ -171,6 +171,67 @@ pnpm dev
 pnpm build
 ```
 
+## Command Line CLI
+
+PromptHub includes both a GUI and a CLI.
+
+> ⚠️ **Current behavior**
+>
+> - After installing the desktop app and launching PromptHub once, the app installs the `prompthub` shell command automatically
+> - After reopening your terminal, you can run `prompthub --args` directly
+> - Source runs and built CLI bundles are still available for development and debugging
+
+### Use it directly after installing the desktop app
+
+```bash
+prompthub --help
+prompthub prompt list
+prompthub skill list
+prompthub --output table prompt search SEO --favorite
+```
+
+> 💡 **Tip**
+>
+> - If you just installed the desktop app, launch PromptHub once first
+> - If your current terminal still cannot find `prompthub`, close it and open a new one
+
+### Run from source
+
+```bash
+pnpm install
+pnpm cli:dev -- --help
+pnpm cli:dev -- prompt list
+pnpm cli:dev -- skill list
+pnpm cli:dev -- skill install ~/.claude/skills/my-skill
+```
+
+### Run the built CLI bundle
+
+```bash
+pnpm build
+node out/cli/prompthub.cjs --help
+node out/cli/prompthub.cjs prompt list
+node out/cli/prompthub.cjs skill list
+```
+
+### Common options
+
+- `--output json|table`
+- `--data-dir /path/to/user-data`
+- `--app-data-dir /path/to/app-data`
+
+### Supported commands
+
+- `prompt list|get|create|update|delete|search`
+- `skill list|get|install|scan|delete|remove`
+
+### Notes
+
+- The CLI reads and writes PromptHub's local database and managed skill repository directly
+- It is suitable for scripts, batch operations, imports, scans, and automation
+- The desktop app installs the shell command wrapper on first launch
+- If you move the app later, launching PromptHub again refreshes the wrapper target
+
 ## 🚀 Quick Start
 
 ### 1. Create a Prompt

@@ -163,6 +163,67 @@ pnpm dev
 pnpm build
 ```
 
+## CLI en ligne de commande
+
+PromptHub fournit maintenant à la fois une GUI et une CLI.
+
+> ⚠️ **Comportement actuel**
+>
+> - Après avoir installé l'application de bureau et lancé PromptHub une première fois, l'application installe automatiquement la commande `prompthub`
+> - Après avoir rouvert votre terminal, vous pouvez utiliser directement `prompthub --args`
+> - L'exécution depuis les sources et le bundle CLI compilé reste disponible pour le développement et le débogage
+
+### Utilisation directe après installation de l'application de bureau
+
+```bash
+prompthub --help
+prompthub prompt list
+prompthub skill list
+prompthub --output table prompt search SEO --favorite
+```
+
+> 💡 **Conseil**
+>
+> - Si vous venez juste d'installer l'application, lancez PromptHub une première fois
+> - Si votre terminal actuel ne trouve pas encore `prompthub`, fermez-le puis ouvrez-en un nouveau
+
+### Exécuter depuis les sources
+
+```bash
+pnpm install
+pnpm cli:dev -- --help
+pnpm cli:dev -- prompt list
+pnpm cli:dev -- skill list
+pnpm cli:dev -- skill install ~/.claude/skills/my-skill
+```
+
+### Utiliser le bundle CLI compilé
+
+```bash
+pnpm build
+node out/cli/prompthub.cjs --help
+node out/cli/prompthub.cjs prompt list
+node out/cli/prompthub.cjs skill list
+```
+
+### Options courantes
+
+- `--output json|table`
+- `--data-dir /path/to/user-data`
+- `--app-data-dir /path/to/app-data`
+
+### Commandes prises en charge
+
+- `prompt list|get|create|update|delete|search`
+- `skill list|get|install|scan|delete|remove`
+
+### Notes
+
+- La CLI lit et écrit directement dans la base de données locale de PromptHub et dans le dépôt de skills géré
+- Elle convient aux scripts, aux opérations par lot, aux imports, aux scans et à l'automatisation
+- L'application de bureau installe automatiquement le wrapper de commande shell au premier lancement
+- Si vous déplacez ensuite l'application, relancer PromptHub mettra à jour la cible du wrapper
+
 ## 🚀 Démarrage rapide
 
 ### 1. Créer un Prompt
