@@ -18,13 +18,42 @@ function deriveKey(password: string, salt: Buffer): Buffer {
   return crypto.scryptSync(password, salt, 32);
 }
 
+function isStoredMasterPassword(value: unknown): value is StoredMasterPassword {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const candidate = value as Partial<StoredMasterPassword>;
+  return typeof candidate.salt === 'string' && typeof candidate.hash === 'string';
+}
+
+function decodeStored(stored: StoredMasterPassword): { salt: Buffer; hash: Buffer } | null {
+  try {
+    const salt = Buffer.from(stored.salt, 'base64');
+    const hash = Buffer.from(stored.hash, 'base64');
+
+    if (salt.length !== 16 || hash.length !== 32) {
+      return null;
+    }
+
+    return { salt, hash };
+  } catch {
+    return null;
+  }
+}
+
 function getStored(db: Database.Database): StoredMasterPassword | null {
   try {
     const row = db
       .prepare('SELECT value FROM settings WHERE key = ?')
       .get(SETTINGS_KEY) as { value: string } | undefined;
     if (!row) return null;
-    return JSON.parse(row.value) as StoredMasterPassword;
+    const parsed = JSON.parse(row.value) as unknown;
+    if (!isStoredMasterPassword(parsed) || !decodeStored(parsed)) {
+      console.error('Invalid stored master password payload');
+      return null;
+    }
+    return parsed;
   } catch (e) {
     console.error('Failed to read master password from settings:', e);
     return null;
@@ -38,6 +67,15 @@ function saveStored(db: Database.Database, stored: StoredMasterPassword) {
   );
 }
 
+function clearUnlockedState() {
+  inMemoryKey = null;
+  isUnlocked = false;
+}
+
+export function hasMasterPasswordConfigured(db: Database.Database): boolean {
+  return !!getStored(db);
+}
+
 export function setMasterPassword(db: Database.Database, password: string) {
   const salt = crypto.randomBytes(16);
   const key = deriveKey(password, salt);
@@ -46,23 +84,61 @@ export function setMasterPassword(db: Database.Database, password: string) {
   isUnlocked = true;
 }
 
+export function changeMasterPassword(
+  db: Database.Database,
+  oldPassword: string,
+  newPassword: string,
+): boolean {
+  const stored = getStored(db);
+  if (!stored) {
+    clearUnlockedState();
+    return false;
+  }
+
+  const decoded = decodeStored(stored);
+  if (!decoded) {
+    clearUnlockedState();
+    return false;
+  }
+
+  const derived = deriveKey(oldPassword, decoded.salt);
+  const ok = crypto.timingSafeEqual(derived, decoded.hash);
+
+  if (!ok) {
+    clearUnlockedState();
+    return false;
+  }
+
+  setMasterPassword(db, newPassword);
+  return true;
+}
+
 export function unlock(db: Database.Database, password: string): boolean {
   const stored = getStored(db);
-  if (!stored) return false;
-  const salt = Buffer.from(stored.salt, 'base64');
-  const derived = deriveKey(password, salt);
-  const storedHash = Buffer.from(stored.hash, 'base64');
-  const ok = crypto.timingSafeEqual(derived, storedHash);
+  if (!stored) {
+    clearUnlockedState();
+    return false;
+  }
+
+  const decoded = decodeStored(stored);
+  if (!decoded) {
+    clearUnlockedState();
+    return false;
+  }
+
+  const derived = deriveKey(password, decoded.salt);
+  const ok = crypto.timingSafeEqual(derived, decoded.hash);
   if (ok) {
     inMemoryKey = derived;
     isUnlocked = true;
+  } else {
+    clearUnlockedState();
   }
   return ok;
 }
 
 export function lock() {
-  inMemoryKey = null;
-  isUnlocked = false;
+  clearUnlockedState();
 }
 
 export function getKey(): Buffer | null {
@@ -70,9 +146,8 @@ export function getKey(): Buffer | null {
 }
 
 export function securityStatus(db: Database.Database) {
-  const stored = getStored(db);
   return {
-    configured: !!stored,
+    configured: hasMasterPasswordConfigured(db),
     unlocked: isUnlocked,
   };
 }
@@ -106,4 +181,3 @@ export function decryptText(data: string, key: Buffer): string | null {
     return null;
   }
 }
-

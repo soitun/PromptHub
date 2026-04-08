@@ -7,7 +7,7 @@
   <p>
     <a href="https://github.com/legeling/PromptHub/stargazers"><img src="https://img.shields.io/github/stars/legeling/PromptHub?style=flat-square&color=yellow" alt="GitHub Stars"/></a>
     <a href="https://github.com/legeling/PromptHub/network/members"><img src="https://img.shields.io/github/forks/legeling/PromptHub?style=flat-square" alt="GitHub Forks"/></a>
-    <a href="https://github.com/legeling/PromptHub/releases"><img src="https://img.shields.io/badge/version-v0.4.8-green?style=flat-square" alt="Version"/></a>
+    <a href="https://github.com/legeling/PromptHub/releases"><img src="https://img.shields.io/badge/version-v0.4.9-green?style=flat-square" alt="Version"/></a>
     <a href="https://github.com/legeling/PromptHub/releases"><img src="https://img.shields.io/github/downloads/legeling/PromptHub/total?style=flat-square&color=blue" alt="Downloads"/></a>
     <img src="https://img.shields.io/badge/license-AGPL--3.0-blue?style=flat-square" alt="Lizenz: AGPL-3.0"/>
   </p>
@@ -48,9 +48,9 @@
 
 | Plattform |                                                                                                                                                                                                                Download                                                                                                                                                                                                                 |
 | :-------: | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-|  Windows  | [![Windows x64](https://img.shields.io/badge/Windows_x64-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-Setup-0.4.8-x64.exe) [![Windows arm64](https://img.shields.io/badge/Windows_arm64-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-Setup-0.4.8-arm64.exe) |
-|   macOS   |   [![macOS Apple Silicon](https://img.shields.io/badge/macOS_Apple_Silicon-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.4.8-arm64.dmg) [![macOS Intel](https://img.shields.io/badge/macOS_Intel-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.4.8-x64.dmg)   |
-|   Linux   |       [![Linux AppImage](https://img.shields.io/badge/Linux_AppImage-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.4.8-x64.AppImage) [![Linux deb](https://img.shields.io/badge/Linux_deb-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/legeling/PromptHub/releases/latest/download/prompthub_0.4.8_amd64.deb)        |
+|  Windows  | [![Windows x64](https://img.shields.io/badge/Windows_x64-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-Setup-0.4.9-x64.exe) [![Windows arm64](https://img.shields.io/badge/Windows_arm64-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-Setup-0.4.9-arm64.exe) |
+|   macOS   |   [![macOS Apple Silicon](https://img.shields.io/badge/macOS_Apple_Silicon-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.4.9-arm64.dmg) [![macOS Intel](https://img.shields.io/badge/macOS_Intel-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.4.9-x64.dmg)   |
+|   Linux   |       [![Linux AppImage](https://img.shields.io/badge/Linux_AppImage-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.4.9-x64.AppImage) [![Linux deb](https://img.shields.io/badge/Linux_deb-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/legeling/PromptHub/releases/latest/download/prompthub_0.4.9_amd64.deb)        |
 
 ---
 
@@ -124,9 +124,9 @@ Laden Sie das Installationsprogramm für Ihre Plattform von der [Release-Seite](
 
 | Plattform |                                                                                                                                                                                                                Download                                                                                                                                                                                                                 |
 | :-------: | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-|  Windows  | [![Windows x64](https://img.shields.io/badge/Windows_x64-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-Setup-0.4.8-x64.exe) [![Windows arm64](https://img.shields.io/badge/Windows_arm64-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-Setup-0.4.8-arm64.exe) |
-|   macOS   |   [![macOS Apple Silicon](https://img.shields.io/badge/macOS_Apple_Silicon-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.4.8-arm64.dmg) [![macOS Intel](https://img.shields.io/badge/macOS_Intel-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.4.8-x64.dmg)   |
-|   Linux   |       [![Linux AppImage](https://img.shields.io/badge/Linux_AppImage-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.4.8-x64.AppImage) [![Linux deb](https://img.shields.io/badge/Linux_deb-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/legeling/PromptHub/releases/latest/download/prompthub_0.4.8_amd64.deb)        |
+|  Windows  | [![Windows x64](https://img.shields.io/badge/Windows_x64-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-Setup-0.4.9-x64.exe) [![Windows arm64](https://img.shields.io/badge/Windows_arm64-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-Setup-0.4.9-arm64.exe) |
+|   macOS   |   [![macOS Apple Silicon](https://img.shields.io/badge/macOS_Apple_Silicon-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.4.9-arm64.dmg) [![macOS Intel](https://img.shields.io/badge/macOS_Intel-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.4.9-x64.dmg)   |
+|   Linux   |       [![Linux AppImage](https://img.shields.io/badge/Linux_AppImage-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.4.9-x64.AppImage) [![Linux deb](https://img.shields.io/badge/Linux_deb-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/legeling/PromptHub/releases/latest/download/prompthub_0.4.9_amd64.deb)        |
 
 ### macOS Erststart
 
@@ -294,15 +294,18 @@ PromptHub/
 
 ## 🗺️ Roadmap
 
-### v0.4.8 (Aktuelle Version) 🎉
+### v0.4.9 (Aktuelle Version) 🎉
 
-- [x] **AI-Workbench umgesetzt**: Modellverwaltung, Endpunktbearbeitung, Verbindungstests und szenariobezogene Standardmodelle sind jetzt aktiv in der neuen Einstellungsoberfläche
-- [x] **skills.sh-Community-Store**: Beliebte Skills von skills.sh können direkt in PromptHub importiert werden
-- [x] **Löschen einzelner Versionsverläufe**: Prompt- und Skill-Historieneinträge lassen sich jetzt einzeln entfernen
-- [x] **Backup- / WebDAV-Härtung**: Backup-Importformate wurden vereinheitlicht und Skill-Payloads für WebDAV in Legacy- und Incremental-Flows vervollständigt
-- [x] **Klarere Datenpfad-Migration**: Einstellungen zeigen jetzt den echten aktiven Datenpfad und markieren Pfade, die erst nach Neustart gelten
-- [x] **Performance für große Skill-Bibliotheken**: Große Skill-Listen rendern schrittweise und werden über Performance-Budgets abgesichert
-- [x] **Release-Dokumente synchronisiert**: README, CHANGELOG und lokalisierte Release-Dokumente sind auf `v0.4.8` gebracht
+- [x] **Sicherheitshärtung**: SSRF-Schutz neu geschrieben (DNS-Auflösungsverifizierung), deleteAll-Bestätigungsparameter, URL-Protokollvalidierung, Versionsfeld-Validierung
+- [x] **Architektur-Refactoring**: skill-installer God Class in 6 Submodule + 1 Facade-Barrel aufgeteilt
+- [x] **Skill-Metadaten-Bearbeitungsfix**: Beschreibungsänderungen werden nicht mehr durch veraltete Festplattenwerte überschrieben; automatisches Zurückschreiben ins SKILL.md Frontmatter
+- [x] **Datenbankmigrations-Fix**: Fehlgeschlagene Migrationen werden nicht mehr als abgeschlossen markiert
+- [x] **Code-Qualität**: `any`-Typen eliminiert, asynchrone Dateioperationen, Zirkelverweis-Schutz, Seed-Race-Condition-Fix, 720 Tests bestanden
+
+### v0.4.8
+
+- [x] AI-Workbench umgesetzt, skills.sh-Community-Store, Löschen einzelner Versionsverläufe
+- [x] Backup- / WebDAV-Härtung, Datenpfad-Migration, Performance für große Skill-Bibliotheken
 
 ### v0.3.x
 
@@ -321,26 +324,29 @@ PromptHub/
 
 Den vollständigen Verlauf finden Sie hier: **[CHANGELOG.md](../CHANGELOG.md)**
 
-### Neueste Version v0.4.8 (2026-03-31) 🎉
+### Neueste Version v0.4.9 (2026-04-08) 🎉
 
-**Neu**
+**Sicherheit**
 
-- 🗑️ **Löschen einzelner Versionsverläufe**: Prompt- und Skill-Historieneinträge können nun separat entfernt werden
-- 🌐 **skills.sh-Community-Store**: Direkter Import beliebter Community-Skills von skills.sh
-- 🤖 **AI-Workbench umgesetzt**: Die neue AI-Einstellungsoberfläche steuert jetzt reale Modellverwaltung, Verbindungstests und Standardmodelle
+- 🔒 **SSRF-Schutz neu geschrieben**: URL-Validierung auf DNS-Auflösung + Blockierte-Hostnamen-Erkennung aufgerüstet
+- 🔒 **deleteAll-Bestätigungsparameter**: Verhindert versehentliches Löschen aller Versionsverläufe
+- 🔒 **URL-Protokollvalidierung + Feldvalidierung**: Gefährliche Protokolle und fehlende Pflichtfelder werden abgelehnt
+
+**Architektur**
+
+- 🏗️ **skill-installer God Class aufgeteilt**: 2173-Zeilen-Monolith in 6 Submodule + 1 Facade-Barrel aufgeteilt
 
 **Fehlerbehebungen**
 
-- 💾 **Einheitliches Backup-Importformat**: `prompthub-backup`, `prompthub-export` und rohe Legacy-JSON laufen jetzt durch dieselbe Wiederherstellungspipeline
-- ☁️ **WebDAV-Skill-Sync repariert**: WebDAV lädt und stellt jetzt `skills`, `skillVersions` und `skillFiles` gemeinsam wieder her
-- 📂 **Datenpfad-Status korrigiert**: Einstellungen unterscheiden jetzt klar zwischen aktivem Datenpfad und einem nach Neustart wirksamen Zielpfad
-- ⌨️ **Shortcut für App anzeigen / ausblenden repariert**: Globale und lokale `showApp`-Shortcuts schalten die Fenstersichtbarkeit jetzt wirklich um
+- 🐛 **Skill-Metadaten-Rücksetzungsfix**: Beschreibungsänderungen werden automatisch ins SKILL.md Frontmatter zurückgeschrieben
+- 🐛 **Datenbankmigrations-Markierungsfix**: Fehlgeschlagene Migrationen werden nicht mehr als abgeschlossen markiert
+- 🐛 **Electron-Fenster-Absturzfix**: `isDestroyed()`-Guards hinzugefügt
 
 **Verbesserungen**
 
-- 🚀 **Performance großer Skill-Listen**: Große Skill-Bibliotheken rendern jetzt schrittweise mit weniger Ruckeln beim ersten Laden
-- 🧪 **Backup- / Sync-Testmatrix erweitert**: Regressionsabdeckung für lokale Wiederherstellung sowie WebDAV-Legacy- und Incremental-Sync ergänzt
-- 📚 **Release-Dokumente synchronisiert**: CHANGELOG, README und lokalisierte Release-Dokumente auf `v0.4.8` aktualisiert
+- 🛡️ Zirkelverweis-Schutz, Seed-Race-Condition-Fix, asynchrone Dateioperationen, Code-Qualitäts-Bereinigung
+- 🤖 AI-Einstellungen Mehrfachauswahl-UI + i18n für alle 7 Sprachen
+- 📊 63 Dateien mit 720 bestandenen Tests
 
 > 📋 [Vollständiges Änderungsprotokoll anzeigen](../CHANGELOG.md)
 

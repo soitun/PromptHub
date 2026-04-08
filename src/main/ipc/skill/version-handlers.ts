@@ -1,9 +1,6 @@
 import { ipcMain } from "electron";
 import { IPC_CHANNELS } from "../../../shared/constants";
-import type {
-  SkillFileSnapshot,
-  SkillVersion,
-} from "../../../shared/types";
+import type { SkillFileSnapshot, SkillVersion } from "../../../shared/types";
 import type { SkillIPCContext } from "./shared";
 import { readCurrentFilesSnapshot, replaceRepoFiles } from "./shared";
 import { SkillInstaller } from "../../services/skill-installer";
@@ -91,14 +88,23 @@ export function registerSkillVersionHandlers({ db }: SkillIPCContext): void {
     },
   );
 
-  ipcMain.handle(IPC_CHANNELS.SKILL_DELETE_ALL, async () => {
-    try {
-      await SkillInstaller.deleteAllLocalRepos();
-    } catch (error) {
-      console.warn("Failed to delete all local repos:", error);
-    }
-    return db.deleteAll();
-  });
+  ipcMain.handle(
+    IPC_CHANNELS.SKILL_DELETE_ALL,
+    async (_, confirm?: boolean) => {
+      // Require explicit confirmation to prevent accidental deletion
+      if (confirm !== true) {
+        throw new Error(
+          "skill:deleteAll requires explicit confirmation (pass true)",
+        );
+      }
+      try {
+        await SkillInstaller.deleteAllLocalRepos();
+      } catch (error) {
+        console.warn("Failed to delete all local repos:", error);
+      }
+      return db.deleteAll();
+    },
+  );
 
   ipcMain.handle(
     IPC_CHANNELS.SKILL_INSERT_VERSION_DIRECT,
@@ -106,6 +112,35 @@ export function registerSkillVersionHandlers({ db }: SkillIPCContext): void {
       if (!version || typeof version !== "object") {
         throw new Error(
           "skill:insertVersionDirect requires a non-null version object",
+        );
+      }
+      // Field-level validation for required properties
+      if (typeof version.id !== "string" || version.id.trim().length === 0) {
+        throw new Error("skill:insertVersionDirect requires a non-empty id");
+      }
+      if (
+        typeof version.skillId !== "string" ||
+        version.skillId.trim().length === 0
+      ) {
+        throw new Error(
+          "skill:insertVersionDirect requires a non-empty skill_id",
+        );
+      }
+      if (
+        typeof version.version !== "number" ||
+        !Number.isFinite(version.version) ||
+        version.version < 0
+      ) {
+        throw new Error(
+          "skill:insertVersionDirect requires version to be a non-negative finite number",
+        );
+      }
+      if (
+        typeof version.createdAt !== "number" ||
+        !Number.isFinite(version.createdAt)
+      ) {
+        throw new Error(
+          "skill:insertVersionDirect requires created_at to be a finite number",
         );
       }
       return db.insertVersionDirect(version);

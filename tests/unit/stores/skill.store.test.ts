@@ -248,4 +248,34 @@ describe("skill store", () => {
       }),
     );
   });
+
+  it("blocks installing official registry skills when only placeholder frontmatter is available", async () => {
+    const create = vi.fn();
+    const fetchRemoteContent = vi.fn().mockRejectedValue(new Error("network down"));
+
+    (window as any).api.skill.create = create;
+    (window as any).api.skill.fetchRemoteContent = fetchRemoteContent;
+
+    await expect(
+      useSkillStore.getState().installRegistrySkill({
+        slug: "pdf",
+        name: "PDF Skill",
+        description: "PDF helper",
+        category: "office",
+        author: "Anthropic",
+        source_url: "https://github.com/anthropics/skills/tree/main/skills/pdf",
+        content_url:
+          "https://raw.githubusercontent.com/anthropics/skills/main/skills/pdf/SKILL.md",
+        tags: ["pdf"],
+        version: "1.0.0",
+        content: `---
+name: pdf
+description: Use this skill for PDF tasks.
+---`,
+        compatibility: ["claude"],
+      }),
+    ).rejects.toThrow(/full SKILL\.md/i);
+
+    expect(create).not.toHaveBeenCalled();
+  });
 });

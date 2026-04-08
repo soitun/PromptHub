@@ -16,13 +16,16 @@ async function resolveManagedRepoPath(
 
   if (
     skill.local_repo_path &&
-    SkillInstaller.isManagedRepoPath(skill.local_repo_path)
+    (await SkillInstaller.isManagedRepoPath(skill.local_repo_path))
   ) {
     return skill.local_repo_path;
   }
 
   const ensuredRepoPath = await ensureLocalRepoPath(context.db, skillId);
-  if (ensuredRepoPath && SkillInstaller.isManagedRepoPath(ensuredRepoPath)) {
+  if (
+    ensuredRepoPath &&
+    (await SkillInstaller.isManagedRepoPath(ensuredRepoPath))
+  ) {
     return ensuredRepoPath;
   }
 
@@ -65,7 +68,8 @@ async function syncSkillFromRepo(
     return null;
   }
 
-  const resolvedRepoPath = repoPath ?? (await ensureLocalRepoPath(context.db, skillId));
+  const resolvedRepoPath =
+    repoPath ?? (await ensureLocalRepoPath(context.db, skillId));
   if (!resolvedRepoPath) {
     return skill;
   }
@@ -100,18 +104,21 @@ export function registerSkillLocalRepoHandlers({ db }: SkillIPCContext): void {
     },
   );
 
-  ipcMain.handle(IPC_CHANNELS.SKILL_LIST_LOCAL_FILES, async (_, skillId: string) => {
-    if (typeof skillId !== "string" || skillId.trim() === "") {
-      return [];
-    }
-    const skill = db.getById(skillId);
-    if (!skill) return [];
-    const repoPath = await ensureLocalRepoPath(db, skillId);
-    if (repoPath) {
-      return SkillInstaller.listLocalRepoFilesByPath(repoPath);
-    }
-    return SkillInstaller.listLocalRepoFiles(skill.name);
-  });
+  ipcMain.handle(
+    IPC_CHANNELS.SKILL_LIST_LOCAL_FILES,
+    async (_, skillId: string) => {
+      if (typeof skillId !== "string" || skillId.trim() === "") {
+        return [];
+      }
+      const skill = db.getById(skillId);
+      if (!skill) return [];
+      const repoPath = await ensureLocalRepoPath(db, skillId);
+      if (repoPath) {
+        return SkillInstaller.listLocalRepoFilesByPath(repoPath);
+      }
+      return SkillInstaller.listLocalRepoFiles(skill.name);
+    },
+  );
 
   ipcMain.handle(
     IPC_CHANNELS.SKILL_READ_LOCAL_FILE,
@@ -132,18 +139,21 @@ export function registerSkillLocalRepoHandlers({ db }: SkillIPCContext): void {
     },
   );
 
-  ipcMain.handle(IPC_CHANNELS.SKILL_READ_LOCAL_FILES, async (_, skillId: string) => {
-    if (typeof skillId !== "string" || skillId.trim() === "") {
-      return [];
-    }
-    const skill = db.getById(skillId);
-    if (!skill) return [];
-    const repoPath = await ensureLocalRepoPath(db, skillId);
-    if (repoPath) {
-      return SkillInstaller.readLocalRepoFilesByPath(repoPath);
-    }
-    return SkillInstaller.readLocalRepoFiles(skill.name);
-  });
+  ipcMain.handle(
+    IPC_CHANNELS.SKILL_READ_LOCAL_FILES,
+    async (_, skillId: string) => {
+      if (typeof skillId !== "string" || skillId.trim() === "") {
+        return [];
+      }
+      const skill = db.getById(skillId);
+      if (!skill) return [];
+      const repoPath = await ensureLocalRepoPath(db, skillId);
+      if (repoPath) {
+        return SkillInstaller.readLocalRepoFilesByPath(repoPath);
+      }
+      return SkillInstaller.readLocalRepoFiles(skill.name);
+    },
+  );
 
   ipcMain.handle(
     IPC_CHANNELS.SKILL_RENAME_LOCAL_PATH,
@@ -267,17 +277,23 @@ export function registerSkillLocalRepoHandlers({ db }: SkillIPCContext): void {
     },
   );
 
-  ipcMain.handle(IPC_CHANNELS.SKILL_GET_REPO_PATH, async (_, skillId: string) => {
-    if (typeof skillId !== "string" || skillId.trim() === "") {
-      return null;
-    }
-    return ensureLocalRepoPath(db, skillId);
-  });
+  ipcMain.handle(
+    IPC_CHANNELS.SKILL_GET_REPO_PATH,
+    async (_, skillId: string) => {
+      if (typeof skillId !== "string" || skillId.trim() === "") {
+        return null;
+      }
+      return ensureLocalRepoPath(db, skillId);
+    },
+  );
 
-  ipcMain.handle(IPC_CHANNELS.SKILL_SYNC_FROM_REPO, async (_, skillId: string) => {
-    if (typeof skillId !== "string" || skillId.trim() === "") {
-      return null;
-    }
-    return syncSkillFromRepo({ db }, skillId);
-  });
+  ipcMain.handle(
+    IPC_CHANNELS.SKILL_SYNC_FROM_REPO,
+    async (_, skillId: string) => {
+      if (typeof skillId !== "string" || skillId.trim() === "") {
+        return null;
+      }
+      return syncSkillFromRepo({ db }, skillId);
+    },
+  );
 }

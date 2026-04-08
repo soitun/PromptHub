@@ -554,19 +554,23 @@ function promptTableRows(prompts: Prompt[]): Array<Record<string, unknown>> {
   }));
 }
 
-function skillTableRows(skills: Skill[]): Array<Record<string, unknown>> {
-  return skills.map((skill) => ({
-    id: skill.id,
-    name: skill.name,
-    protocol: skill.protocol_type,
-    author: skill.author,
-    version: skill.version,
-    favorite: skill.is_favorite,
-    managedRepo: skill.local_repo_path
-      ? SkillInstaller.isManagedRepoPath(skill.local_repo_path)
-      : false,
-    updatedAt: skill.updated_at,
-  }));
+async function skillTableRows(
+  skills: Skill[],
+): Promise<Array<Record<string, unknown>>> {
+  return Promise.all(
+    skills.map(async (skill) => ({
+      id: skill.id,
+      name: skill.name,
+      protocol: skill.protocol_type,
+      author: skill.author,
+      version: skill.version,
+      favorite: skill.is_favorite,
+      managedRepo: skill.local_repo_path
+        ? await SkillInstaller.isManagedRepoPath(skill.local_repo_path)
+        : false,
+      updatedAt: skill.updated_at,
+    })),
+  );
 }
 
 async function handlePromptCommand(
@@ -688,7 +692,7 @@ async function handleSkillDelete(
   if (
     purgeManagedRepo &&
     skill.local_repo_path &&
-    SkillInstaller.isManagedRepoPath(skill.local_repo_path)
+    (await SkillInstaller.isManagedRepoPath(skill.local_repo_path))
   ) {
     await SkillInstaller.deleteRepoByPath(skill.local_repo_path);
     purgedManagedRepo = true;
@@ -727,7 +731,7 @@ async function handleSkillCommand(
 
   if (action === "list") {
     const skills = skillDb.getAll();
-    emitSuccess(context, skills, skillTableRows(skills));
+    emitSuccess(context, skills, await skillTableRows(skills));
     return;
   }
 

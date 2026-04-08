@@ -1,3 +1,94 @@
+## [0.4.9] - 2026-04-08
+
+### 安全加固 / Security
+
+- 🔒 **SSRF 防护重写**：`image.ipc.ts` 的 URL 校验从简单正则升级为 DNS 解析验证 (`resolvePublicAddress`) + 被封锁主机名检测 (`isBlockedHostname`)，防止 DNS rebinding 和 IPv6 绕过
+  - **SSRF Protection Rewrite**: Upgraded URL validation in `image.ipc.ts` from regex-based to DNS resolution verification (`resolvePublicAddress`) + blocked hostname detection (`isBlockedHostname`), preventing DNS rebinding and IPv6 bypass
+- 🔒 **deleteAll 确认参数**：`version-handlers.ts` 的 `deleteAll` 操作新增 `confirm: true` 必填参数，防止误删全部版本历史
+  - **deleteAll Confirmation Parameter**: Added required `confirm: true` parameter to `deleteAll` in `version-handlers.ts`, preventing accidental deletion of all version history
+- 🔒 **URL 协议校验**：`fetchRemoteContent` 新增 `https://` / `http://` 协议白名单校验，拒绝 `file://`、`data:` 等危险协议
+  - **URL Protocol Validation**: Added `https://` / `http://` protocol whitelist to `fetchRemoteContent`, rejecting dangerous protocols like `file://` and `data:`
+- 🔒 **版本字段验证**：`version-handlers.ts` 新增必填字段验证，拒绝缺失 `skillId` / `content` 的请求
+  - **Version Field Validation**: Added required field validation in `version-handlers.ts`, rejecting requests missing `skillId` or `content`
+
+### 架构重构 / Architecture
+
+- 🏗️ **skill-installer God Class 拆分**：原 2173 行单体文件拆分为 6 个子模块 (`skill-installer-internal.ts`、`skill-installer-remote.ts`、`skill-installer-repo.ts`、`skill-installer-platform.ts`、`skill-installer-export.ts`、`skill-installer-utils.ts`) + 1 个 facade barrel，保持 `SkillInstaller` 类接口完全兼容
+  - **skill-installer God Class Split**: Split the original 2173-line monolithic file into 6 sub-modules + 1 facade barrel, keeping the `SkillInstaller` class interface fully backward-compatible
+
+### 修复 / Fixed
+
+- 🐛 **Skill 元数据编辑后描述字段复原修复**：编辑 Skill 描述后，`useEffect` 触发 `syncSkillFromRepo()` 读取磁盘旧值覆盖 DB 的 bug 已修复；现在 `SKILL_UPDATE` handler 在检测到元数据变更时会自动 `syncFrontmatterToRepo()` 写回 SKILL.md
+  - **Skill Metadata Edit Revert Fix**: Fixed a bug where editing a Skill description was reverted by `useEffect` triggering `syncSkillFromRepo()` which read the stale disk value; the `SKILL_UPDATE` handler now auto-calls `syncFrontmatterToRepo()` on metadata changes
+- 🐛 **数据库迁移失败仍被标记为完成修复**：迁移失败时不再将版本标记为已完成，避免后续启动跳过失败的迁移
+  - **Database Migration Failure Marking Fix**: Failed migrations no longer mark the version as completed, preventing subsequent launches from skipping failed migrations
+- 🐛 **Electron 窗口 render frame disposed 崩溃修复**：`emitWindowVisibility()`、fullscreen 回调和 close 事件中新增 `isDestroyed()` guard
+  - **Electron Window Render Frame Disposed Crash Fix**: Added `isDestroyed()` guards in `emitWindowVisibility()`, fullscreen callbacks, and close events
+
+### 优化 / Improvements
+
+- 🛡️ **文件夹工具函数循环引用防护**：`buildFolderTree` 和 `getMaxDescendantDepth` 新增 `visited` Set 防止无限递归
+  - **Folder Utility Circular Reference Protection**: Added `visited` Set to `buildFolderTree` and `getMaxDescendantDepth` to prevent infinite recursion
+- 🛡️ **数据库 seed 竞态条件修复**：`prompt.store.ts` 的 `_seeded` flag 改为 Promise singleton，避免并发多次 seed
+  - **Database Seed Race Condition Fix**: Changed `_seeded` flag in `prompt.store.ts` to a Promise singleton, preventing concurrent multiple seeds
+- ⚡ **异步化文件操作**：`image.ipc.ts` 的 `fs` 调用改为 `fs/promises`，`skill/shared.ts` 的 `statSync` 改为异步 `stat`
+  - **Async File Operations**: Converted `fs` calls in `image.ipc.ts` to `fs/promises`, and `statSync` in `skill/shared.ts` to async `stat`
+- 🧹 **代码质量清理**：消除 `as any` 类型（`PragmaColumnInfo` 接口）、`substr` → `substring` 废弃 API 替换、空 catch 补 `console.warn`、IPC 硬编码改为 `IPC_CHANNELS.*` 常量、`folder.store.ts` 乐观更新失败 rollback
+  - **Code Quality Cleanup**: Eliminated `as any` types (`PragmaColumnInfo` interface), replaced deprecated `substr` with `substring`, added `console.warn` to empty catch blocks, replaced hardcoded IPC strings with `IPC_CHANNELS.*` constants, added optimistic update rollback in `folder.store.ts`
+- 🤖 **AI 设置多选模型 UI**：AI 设置页面支持一次勾选多个模型批量添加，i18n 全部 7 个 locale 补齐
+  - **AI Settings Multi-Select Model UI**: AI settings page now supports selecting and adding multiple models at once, with i18n for all 7 locales
+- 📊 **测试覆盖**：63 文件 720 测试全绿，包含三轮白盒审计发现的安全/健壮性/性能问题的回归测试
+  - **Test Coverage**: 63 files with 720 tests all passing, including regression tests for security/robustness/performance issues found in three rounds of white-box audits
+
+---
+
+## [0.4.8] - 2026-03-31
+
+### 修复 / Fixed
+
+- 🪟 **Windows 二次启动错误修复**：修复 Windows 上 PromptHub 已运行时再次点击桌面图标，虽然能唤起主窗口但第二实例仍继续执行启动流程，最终报 `loading file .../app.asar/out/renderer/index.html` 失败的问题
+  - **Windows Relauch Error Fix**: Fixed the Windows case where launching PromptHub again while it was already running still let the second instance continue bootstrapping, causing a `loading file .../app.asar/out/renderer/index.html` startup error even though the main window was restored
+- 🧭 **自定义 Skill 商店源支持本地仓库路径**：修复自定义商店源把 `git-repo` 和 `local-dir` 都错误限制为 HTTPS 地址的问题，现已支持本地 git 工作目录和 `file://` 路径
+  - **Local Repository Support for Custom Skill Stores**: Fixed custom store source validation incorrectly forcing both `git-repo` and `local-dir` sources to use HTTPS URLs, and added support for local git working directories and `file://` paths
+- 🔄 **本地 SKILL.md 手动修改后同步修复**：新增从本地 repo 回写 Skill 元数据的同步链路，重新打开详情页时会先同步 `SKILL.md` 的最新内容、描述、作者、版本、标签和兼容性，再刷新预览与列表摘要
+  - **Local SKILL.md Resync Fix**: Added a repo-to-database sync path so reopening a Skill detail page now refreshes the latest `SKILL.md` content, description, author, version, tags, and compatibility before rendering the preview and list summary
+- 🧱 **Skill 白屏容错增强**：为 Skill 详情页补上错误边界，并强化异常元数据清洗与预览渲染兜底，避免部分自定义导入 Skill 因格式脏数据直接把页面冲白
+  - **Skill White Screen Hardening**: Added an error boundary around the Skill detail page and hardened malformed metadata normalization plus preview rendering fallbacks, preventing custom-imported skills with dirty metadata from blanking the whole page
+- 🧼 **Skill 导入校验前移**：将本地扫描、`SKILL.md` 导入和 JSON 导入统一接入主进程清洗逻辑，在入库前就修正脏字符串、非法标签和异常类别字段
+  - **Skill Import Validation Tightening**: Unified local scan, `SKILL.md` import, and JSON import behind a main-process sanitization step so dirty strings, invalid tags, and malformed category fields are cleaned before persistence
+- 💾 **备份导入格式统一**：统一 `prompthub-backup`、`prompthub-export` 与旧裸 JSON 的恢复入口，修复“导出资料后无法重新导入”的问题
+  - **Unified Backup Import Format**: Unified restore handling for `prompthub-backup`, `prompthub-export`, and legacy raw JSON payloads, fixing cases where exported data could not be imported back
+- ☁️ **WebDAV Skill 同步修复**：修复 WebDAV 增量/旧版全量同步遗漏 Skill 数据的问题，`skills`、`skillVersions` 与 `skillFiles` 现在会一起上传并统一恢复
+  - **WebDAV Skill Sync Fix**: Fixed WebDAV incremental and legacy full-sync flows dropping Skill data; `skills`, `skillVersions`, and `skillFiles` are now uploaded and restored together
+- 📂 **数据目录状态与迁移表达修复**：设置页改为显示当前真实数据目录，并在迁移后明确提示“重启后切换到新目录”，避免把目标路径误显示为已生效路径
+  - **Data Directory Status & Migration UX Fix**: The settings page now shows the real active data directory and explicitly marks pending migrations as “switch after restart”, avoiding confusing staged paths with active ones
+- 🪟 **Windows 数据目录与升级路径修复**：修复 Windows 自定义安装目录升级时数据目录与安装目录策略不一致的问题，并持久化安装目录供升级安装器恢复
+  - **Windows Data Directory & Upgrade Path Fix**: Fixed inconsistent data-directory behavior for custom Windows installs and persisted the install path so upgrade installers can recover it reliably
+- ⌨️ **显示/隐藏应用快捷键修复**：修复全局与局部 `showApp` 快捷键只能唤起窗口、无法再次隐藏的问题；现在可见时会隐藏，隐藏/最小化时会恢复并聚焦
+  - **Show/Hide App Shortcut Fix**: Fixed both global and local `showApp` shortcuts only bringing the window forward without hiding it again; visible windows now hide, while hidden or minimized windows restore and focus correctly
+
+### 新功能 / Added
+
+- 🗑️ **历史版本删除**：支持删除 Prompt 与 Skill 的单条历史快照，验证通过后可以主动清理不再需要保留的旧版本记录
+  - **Version History Deletion**: Added per-entry deletion for both Prompt and Skill version history so users can clean up obsolete snapshots after validating changes
+- 🌐 **skills.sh 社区商店接入**：社区商店现在会实时拉取 skills.sh 热门 Skill 榜单，并在卡片与详情中展示每周安装量、GitHub Star、商店页等信息，支持直接导入到 PromptHub
+  - **skills.sh Community Store Integration**: The community store now pulls the live skills.sh leaderboard, surfaces weekly installs, GitHub stars, and store-page metadata, and supports direct import into PromptHub
+- 🤖 **AI 工作台实装**：最新 AI 配置界面已接入真实模型管理、端点编辑、连接测试和场景默认模型选择，Quick Add、Prompt 测试、生图测试与翻译链路都会按场景默认模型执行
+  - **AI Workbench Implementation**: The latest AI settings UI now drives real model management, endpoint editing, connectivity tests, and scenario-based default model selection for Quick Add, prompt testing, image testing, and translation
+
+### 优化 / Improvements
+
+- 🚀 **大规模 Skill 列表性能优化**：针对本地数百个 Skill 的场景，列表与画廊视图改为分批渲染，并将分发状态检测延后到空闲时执行，降低首次进入页面时的卡顿
+  - **Large Skill Library Performance**: For libraries with hundreds of local skills, list and gallery views now render progressively in batches, while deployment status checks are deferred to idle time to reduce first-load jank
+- 🧠 **列表状态缓存与视口级渲染优化**：Skill 列表平台状态增加缓存，避免分批渲染时重复查询；同时在列表行和画廊卡片启用 `content-visibility`，降低视口外内容的渲染开销
+  - **Status Cache and Viewport Rendering Improvements**: Added cached platform install status for Skill lists to avoid repeated batch checks during progressive rendering, and enabled `content-visibility` on rows and gallery cards to cut offscreen rendering cost
+- 🧪 **备份/同步测试矩阵补强**：补齐本地备份恢复、WebDAV 旧版/增量同步、Skill 版本文件恢复与多语言 smoke 的自动回归
+  - **Backup/Sync Test Matrix Expansion**: Added automated regression coverage for local backup restore, WebDAV legacy/incremental sync, Skill version file restore, and multilingual smoke tests
+- 📚 **发版文档同步到 `v0.4.8`**：更新 CHANGELOG、README 与英文 README，补齐备份、WebDAV、数据目录、性能与测试相关说明
+  - **Release Docs Synced to `v0.4.8`**: Updated the changelog, README, and English README with the latest backup, WebDAV, data-directory, performance, and testing notes
+
+---
+
 ## [0.4.7] - 2026-03-30
 
 ### 新功能 / Added

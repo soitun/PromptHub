@@ -64,7 +64,13 @@ let pendingCloseAction = false;
 let isDebugMode = false;
 
 function emitWindowVisibility(isVisible: boolean) {
-  mainWindow?.webContents.send("window:visibility-changed", isVisible);
+  if (
+    mainWindow &&
+    !mainWindow.isDestroyed() &&
+    !mainWindow.webContents.isDestroyed()
+  ) {
+    mainWindow.webContents.send("window:visibility-changed", isVisible);
+  }
 }
 
 // Register privileged schemes (must be called before app is ready)
@@ -210,10 +216,22 @@ async function createWindow() {
   // Notify renderer when OS fullscreen state changes
   // 当操作系统全屏状态变化时通知渲染进程
   mainWindow.on("enter-full-screen", () => {
-    mainWindow?.webContents.send("window:fullscreen-changed", true);
+    if (
+      mainWindow &&
+      !mainWindow.isDestroyed() &&
+      !mainWindow.webContents.isDestroyed()
+    ) {
+      mainWindow.webContents.send("window:fullscreen-changed", true);
+    }
   });
   mainWindow.on("leave-full-screen", () => {
-    mainWindow?.webContents.send("window:fullscreen-changed", false);
+    if (
+      mainWindow &&
+      !mainWindow.isDestroyed() &&
+      !mainWindow.webContents.isDestroyed()
+    ) {
+      mainWindow.webContents.send("window:fullscreen-changed", false);
+    }
   });
 
   // Load renderer page
@@ -281,7 +299,9 @@ async function createWindow() {
         // 询问用户
         event.preventDefault();
         pendingCloseAction = true;
-        mainWindow?.webContents.send("window:showCloseDialog");
+        if (!mainWindow.webContents.isDestroyed()) {
+          mainWindow.webContents.send("window:showCloseDialog");
+        }
         return false;
       } else if (closeAction === "minimize") {
         // Minimize to tray

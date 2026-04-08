@@ -592,12 +592,9 @@ export function SkillVersionHistoryModal({
         }}
         onConfirm={handleDelete}
         title={t("skill.deleteVersionTitle", "删除版本快照")}
-        message={t(
-          "skill.deleteVersionConfirm",
-          versionToDelete
-            ? `删除 v${versionToDelete.version} 后将无法恢复这条历史记录。是否继续？`
-            : "删除后将无法恢复这条历史记录。是否继续？",
-        )}
+        message={t("skill.deleteVersionConfirm", {
+          version: versionToDelete?.version ?? "",
+        })}
         confirmText={
           isDeleting
             ? t("common.loading", "加载中")

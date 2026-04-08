@@ -97,7 +97,17 @@ function generateDiff(oldText: string, newText: string): DiffLine[] {
 
 // Git-style diff view
 // Git 风格差异视图
-function GitDiffView({ oldText, newText, label }: { oldText: string; newText: string; label: string }) {
+function GitDiffView({
+  oldText,
+  newText,
+  label,
+  emptyLabel,
+}: {
+  oldText: string;
+  newText: string;
+  label: string;
+  emptyLabel: string;
+}) {
   const diff = useMemo(() => generateDiff(oldText, newText), [oldText, newText]);
   
   const stats = useMemo(() => {
@@ -127,7 +137,9 @@ function GitDiffView({ oldText, newText, label }: { oldText: string; newText: st
       </div>
       
       {isUnchanged ? (
-        <div className="text-sm text-muted-foreground italic p-3 bg-muted/30 rounded-lg">No changes</div>
+        <div className="text-sm text-muted-foreground italic p-3 bg-muted/30 rounded-lg">
+          {emptyLabel}
+        </div>
       ) : (
         <div className="rounded-lg border border-border overflow-hidden font-mono text-xs">
           <div className="max-h-64 overflow-y-auto">
@@ -205,7 +217,7 @@ export function VersionHistoryModal({ isOpen, onClose, prompt, onRestore }: Vers
         systemPrompt: prompt.systemPrompt,
         userPrompt: prompt.userPrompt,
         variables: prompt.variables || [],
-        note: 'Current version',
+        note: t('prompt.currentVersion'),
         aiResponse: prompt.lastAiResponse, // Use current version's AI response
         createdAt: prompt.updatedAt,
       };
@@ -226,7 +238,13 @@ export function VersionHistoryModal({ isOpen, onClose, prompt, onRestore }: Vers
 
   const handleRestore = () => {
     if (selectedVersion) {
-      if (confirm(`Are you sure you want to restore to v${selectedVersion.version}? Current content will be overwritten.`)) {
+      if (
+        confirm(
+          t('prompt.restoreConfirm', {
+            version: selectedVersion.version,
+          }),
+        )
+      ) {
         onRestore(selectedVersion);
         onClose();
       }
@@ -323,19 +341,21 @@ export function VersionHistoryModal({ isOpen, onClose, prompt, onRestore }: Vers
                 <GitDiffView 
                   oldText={selectedVersion.systemPrompt || ''} 
                   newText={compareVersion.systemPrompt || ''} 
-                  label="System Prompt"
+                  label={t('prompt.systemPromptLabel')}
+                  emptyLabel={t('prompt.noChanges')}
                 />
                 <GitDiffView 
                   oldText={selectedVersion.userPrompt} 
                   newText={compareVersion.userPrompt} 
-                  label="User Prompt"
+                  label={t('prompt.userPromptLabel')}
+                  emptyLabel={t('prompt.noChanges')}
                 />
               </>
             ) : selectedVersion && (
               <>
                 <div>
                   <div className="text-xs font-medium text-muted-foreground uppercase mb-2">
-                    System Prompt
+                    {t('prompt.systemPromptLabel')}
                   </div>
                   <div className="p-3 rounded-lg bg-muted/50 text-sm font-mono whitespace-pre-wrap max-h-32 overflow-y-auto">
                     {selectedVersion.systemPrompt || t('prompt.noContent')}
@@ -343,7 +363,7 @@ export function VersionHistoryModal({ isOpen, onClose, prompt, onRestore }: Vers
                 </div>
                 <div>
                   <div className="text-xs font-medium text-muted-foreground uppercase mb-2">
-                    User Prompt
+                    {t('prompt.userPromptLabel')}
                   </div>
                   <div className="p-3 rounded-lg bg-muted/50 text-sm font-mono whitespace-pre-wrap max-h-48 overflow-y-auto">
                     {selectedVersion.userPrompt}
@@ -439,12 +459,9 @@ export function VersionHistoryModal({ isOpen, onClose, prompt, onRestore }: Vers
         }}
         onConfirm={handleDeleteVersion}
         title={t('prompt.deleteVersionTitle', 'Delete version')}
-        message={t(
-          'prompt.deleteVersionConfirm',
-          versionToDelete
-            ? `Delete v${versionToDelete.version}? This history entry will be removed permanently.`
-            : 'Delete this history version?',
-        )}
+        message={t('prompt.deleteVersionConfirm', {
+          version: versionToDelete?.version ?? '',
+        })}
         confirmText={
           isDeleting ? t('common.loading', 'Loading...') : t('common.delete', 'Delete')
         }

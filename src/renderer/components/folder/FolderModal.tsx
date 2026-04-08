@@ -205,24 +205,24 @@ export function FolderModal({ isOpen, onClose, folder }: FolderModalProps) {
 
   const handleUnlock = async () => {
     if (!unlockPassword.trim()) {
-      showToast(t('folder.masterPasswordRequired', '请输入主密码'), 'error');
+      showToast(t('folder.masterPasswordRequired'), 'error');
       return;
     }
     setUnlocking(true);
     try {
       const result = await window.api.security.unlock(unlockPassword);
       if (result.success) {
-        showToast(t('folder.unlockSuccess', '解锁成功'), 'success');
+        showToast(t('folder.unlockSuccess'), 'success');
         setSecurityStatus({ ...securityStatus, unlocked: true });
         setShowUnlockModal(false);
         setUnlockPassword('');
         // 解锁后继续保存
         handleSubmit({ preventDefault: () => {} } as any);
       } else {
-        showToast(t('folder.wrongPassword', '密码错误'), 'error');
+        showToast(t('folder.wrongPassword'), 'error');
       }
     } catch (error) {
-      showToast(t('folder.unlockFailed', '解锁失败'), 'error');
+      showToast(t('folder.unlockFailed'), 'error');
     } finally {
       setUnlocking(false);
     }
@@ -245,11 +245,11 @@ export function FolderModal({ isOpen, onClose, folder }: FolderModalProps) {
       } else {
         try {
           await deleteFolder(folder.id);
-          showToast(t('folder.folderDeleted', '文件夹已删除'), 'success');
+          showToast(t('folder.folderDeleted'), 'success');
           onClose();
         } catch (error) {
           console.error('Failed to delete folder:', error);
-          showToast(t('folder.deleteFailed', '删除失败'), 'error');
+          showToast(t('folder.deleteFailed'), 'error');
         }
       }
     }
@@ -279,7 +279,7 @@ export function FolderModal({ isOpen, onClose, folder }: FolderModalProps) {
           await deletePrompt(prompt.id);
         }
         await deleteFolder(folder.id);
-        showToast(t('folder.deletedWithPrompts', '已删除文件夹及 {{count}} 个提示词', { count: folderPrompts.length }), 'success');
+        showToast(t('folder.deletedWithPrompts', { count: folderPrompts.length }), 'success');
       } else {
         // 仅删除文件夹，保留 prompt 并解除关联
         const folderPrompts = prompts.filter(p => p.folderId === folder.id);
@@ -287,21 +287,21 @@ export function FolderModal({ isOpen, onClose, folder }: FolderModalProps) {
           await updatePrompt(prompt.id, { folderId: undefined });
         }
         await deleteFolder(folder.id);
-        showToast(t('folder.deletedMovedPrompts', '已删除文件夹，{{count}} 个提示词已移至根目录', { count: folderPrompts.length }), 'success');
+        showToast(t('folder.deletedMovedPrompts', { count: folderPrompts.length }), 'success');
       }
       setShowDeleteOptions(false);
       setShowDeleteConfirm(false);
       onClose();
     } catch (error) {
       console.error('Failed to delete folder:', error);
-      showToast(t('folder.deleteFailed', '删除失败'), 'error');
+      showToast(t('folder.deleteFailed'), 'error');
     }
   };
 
   const handleDeleteConfirm = async () => {
     if (!folder) return;
     if (!deletePassword.trim()) {
-      showToast(t('folder.masterPasswordRequired', '请输入主密码'), 'error');
+      showToast(t('folder.masterPasswordRequired'), 'error');
       return;
     }
     setDeleting(true);
@@ -311,10 +311,10 @@ export function FolderModal({ isOpen, onClose, folder }: FolderModalProps) {
         await executeDelete();
         setDeletePassword('');
       } else {
-        showToast(t('folder.wrongPasswordCannotDelete', '主密码错误，无法删除'), 'error');
+        showToast(t('folder.wrongPasswordCannotDelete'), 'error');
       }
     } catch (error) {
-      showToast(t('folder.deleteFailed', '删除失败'), 'error');
+      showToast(t('folder.deleteFailed'), 'error');
     } finally {
       setDeleting(false);
     }
@@ -521,7 +521,7 @@ export function FolderModal({ isOpen, onClose, folder }: FolderModalProps) {
               type="button"
               onClick={() => {
                 if (!securityStatus.configured) {
-                  showToast(t('folder.privateNeedPassword', '请先在设置-安全中设置主密码后再开启私密'), 'error');
+                  showToast(t('folder.privateNeedPassword'), 'error');
                   setIsPrivate(false);
                   return;
                 }

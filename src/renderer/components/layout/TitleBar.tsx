@@ -1,5 +1,6 @@
 import { MinusIcon, SquareIcon, XIcon } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Windows 自定义标题栏组件
@@ -8,6 +9,7 @@ import { useState, useEffect } from 'react';
 export function TitleBar() {
   const [isMaximized, setIsMaximized] = useState(false);
   const [isWindows, setIsWindows] = useState(false);
+  const { t } = useTranslation();
 
   useEffect(() => {
     // 检测是否为 Windows 平台
@@ -46,21 +48,21 @@ export function TitleBar() {
         <button
           onClick={handleMinimize}
           className="w-11 h-full flex items-center justify-center hover:bg-muted transition-colors"
-          title="最小化"
+          title={t('common.minimize')}
         >
           <MinusIcon className="w-4 h-4 text-foreground/70" />
         </button>
         <button
           onClick={handleMaximize}
           className="w-11 h-full flex items-center justify-center hover:bg-muted transition-colors"
-          title={isMaximized ? '还原' : '最大化'}
+          title={isMaximized ? t('common.restore') : t('common.maximize')}
         >
           <SquareIcon className="w-3.5 h-3.5 text-foreground/70" />
         </button>
         <button
           onClick={handleClose}
           className="w-11 h-full flex items-center justify-center hover:bg-red-500 hover:text-white transition-colors"
-          title="关闭"
+          title={t('common.close')}
         >
           <XIcon className="w-4 h-4 text-foreground/70 hover:text-white" />
         </button>

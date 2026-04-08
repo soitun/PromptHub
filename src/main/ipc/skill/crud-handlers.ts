@@ -1,12 +1,16 @@
 import { ipcMain } from "electron";
 import { IPC_CHANNELS } from "../../../shared/constants";
 import { SkillInstaller } from "../../services/skill-installer";
+import {
+  hasMetadataChanges,
+  syncFrontmatterToRepo,
+} from "../../services/skill-repo-sync";
 import type {
   CreateSkillParams,
   UpdateSkillParams,
 } from "../../../shared/types";
 import type { SkillIPCContext } from "./shared";
-import { readCurrentFilesSnapshot } from "./shared";
+import { ensureLocalRepoPath, readCurrentFilesSnapshot } from "./shared";
 
 export function registerSkillCrudHandlers({ db }: SkillIPCContext): void {
   ipcMain.handle(
@@ -72,8 +76,9 @@ export function registerSkillCrudHandlers({ db }: SkillIPCContext): void {
 
       if (isRenaming && nextName) {
         try {
-          const platformStatus =
-            await SkillInstaller.getSkillMdInstallStatus(existingSkill.name);
+          const platformStatus = await SkillInstaller.getSkillMdInstallStatus(
+            existingSkill.name,
+          );
           deployedPlatforms = Object.entries(platformStatus)
             .filter(([, installed]) => installed)
             .map(([platformId]) => platformId);
@@ -107,7 +112,32 @@ export function registerSkillCrudHandlers({ db }: SkillIPCContext): void {
 
       const updatedSkill = db.update(id, nextData);
 
-      if (updatedSkill && isRenaming && nextName && deployedPlatforms.length > 0) {
+      // When metadata-only fields changed (no instructions/content update),
+      // sync the frontmatter back to SKILL.md so that `syncSkillFromRepo`
+      // does not revert the edit with stale file data.
+      if (
+        updatedSkill &&
+        hasMetadataChanges(data) &&
+        data.instructions === undefined &&
+        data.content === undefined
+      ) {
+        try {
+          const repoPath = await ensureLocalRepoPath(db, id);
+          await syncFrontmatterToRepo(updatedSkill, repoPath);
+        } catch (err) {
+          console.warn(
+            `Failed to sync frontmatter to SKILL.md for "${updatedSkill.name}":`,
+            err,
+          );
+        }
+      }
+
+      if (
+        updatedSkill &&
+        isRenaming &&
+        nextName &&
+        deployedPlatforms.length > 0
+      ) {
         const nextContent =
           updatedSkill.instructions ??
           updatedSkill.content ??
@@ -118,9 +148,16 @@ export function registerSkillCrudHandlers({ db }: SkillIPCContext): void {
         await Promise.allSettled(
           deployedPlatforms.map(async (platformId) => {
             if (nextContent.trim()) {
-              await SkillInstaller.installSkillMd(nextName, nextContent, platformId);
+              await SkillInstaller.installSkillMd(
+                nextName,
+                nextContent,
+                platformId,
+              );
             }
-            await SkillInstaller.uninstallSkillMd(existingSkill.name, platformId);
+            await SkillInstaller.uninstallSkillMd(
+              existingSkill.name,
+              platformId,
+            );
           }),
         );
       }
@@ -138,8 +175,6 @@ export function registerSkillCrudHandlers({ db }: SkillIPCContext): void {
     if (skill?.name) {
       // Only uninstall SKILL.md from platforms, do NOT delete the source directory.
       // Deletion from PromptHub only removes the library record, not the original files.
-      // 仅从各平台卸载 SKILL.md，不删除源目录。
-      // 从 PromptHub 删除只移除库记录，不影响原始文件。
       try {
         const platforms = SkillInstaller.getSupportedPlatforms();
         await Promise.allSettled(

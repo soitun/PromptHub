@@ -51,13 +51,15 @@ const GalleryCard = memo(({
     onSelect,
     onToggleFavorite,
     folderName,
-    highlightTerms
+    highlightTerms,
+    videoLabel,
 }: {
     prompt: Prompt;
     onSelect: () => void;
     onToggleFavorite: (e: React.MouseEvent) => void;
     folderName?: string;
     highlightTerms: string[];
+    videoLabel: string;
 }) => {
     const [imageError, setImageError] = useState(false);
     const [videoError, setVideoError] = useState(false);
@@ -114,10 +116,10 @@ const GalleryCard = memo(({
                 {/* Video indicator badge (when has both image and video) */}
                 {/* 视频指示器徽章（当同时有图片和视频时） */}
                 {hasImage && hasVideo && (
-                    <div className="absolute bottom-2 left-2 flex items-center gap-1 px-2 py-1 rounded-full bg-black/60 text-white text-xs">
-                        <VideoIcon className="w-3 h-3" />
-                        <span>视频</span>
-                    </div>
+                        <div className="absolute bottom-2 left-2 flex items-center gap-1 px-2 py-1 rounded-full bg-black/60 text-white text-xs">
+                            <VideoIcon className="w-3 h-3" />
+                            <span>{videoLabel}</span>
+                        </div>
                 )}
 
                 {/* Helper Actions Overlay */}
@@ -183,7 +185,8 @@ export function PromptGalleryView({
     const { t } = useTranslation();
     const folders = useFolderStore(state => state.folders);
     const galleryImageSize = usePromptStore(state => state.galleryImageSize);
-    const uncategorizedLabel = t('folder.uncategorized', '未分类');
+    const uncategorizedLabel = t('folder.uncategorized');
+    const videoLabel = t('prompt.typeImage');
     const folderNameMap = useMemo(
         () => new Map(folders.map((folder) => [folder.id, folder.name])),
         [folders],
@@ -222,6 +225,7 @@ export function PromptGalleryView({
                             }}
                             folderName={prompt.folderId ? (folderNameMap.get(prompt.folderId) || uncategorizedLabel) : uncategorizedLabel}
                             highlightTerms={highlightTerms}
+                            videoLabel={videoLabel}
                         />
                     </div>
                 ))}

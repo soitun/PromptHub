@@ -1,6 +1,7 @@
 import { XIcon, ImageIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 
 interface ImagePreviewModalProps {
     isOpen: boolean;
@@ -10,6 +11,7 @@ interface ImagePreviewModalProps {
 
 export function ImagePreviewModal({ isOpen, onClose, imageSrc }: ImagePreviewModalProps) {
     const [imageError, setImageError] = useState(false);
+    const { t } = useTranslation();
 
     useEffect(() => {
         // Reset error state when image source changes
@@ -51,12 +53,12 @@ export function ImagePreviewModal({ isOpen, onClose, imageSrc }: ImagePreviewMod
                 {imageError ? (
                     <div className="flex flex-col items-center justify-center p-12 bg-muted/20 rounded-lg text-muted-foreground">
                         <ImageIcon className="w-16 h-16 mb-4 opacity-50" />
-                        <p className="text-sm">Image load failed / 图片加载失败</p>
+                        <p className="text-sm">{t('common.imageLoadFailed')}</p>
                     </div>
                 ) : (
                     <img
                         src={imageSrc.startsWith('http') || imageSrc.startsWith('data:') || imageSrc.startsWith('local-image://') ? imageSrc : `local-image://${imageSrc}`}
-                        alt="Preview"
+                        alt={t('prompt.preview')}
                         className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
                         onError={() => setImageError(true)}
                     />

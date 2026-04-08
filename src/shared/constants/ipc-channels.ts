@@ -1,6 +1,5 @@
 /**
  * IPC channel definitions
- * IPC 通信通道定义
  */
 
 export const IPC_CHANNELS = {
@@ -42,6 +41,7 @@ export const IPC_CHANNELS = {
 
   // Security / Encryption
   SECURITY_SET_MASTER_PASSWORD: "security:setMasterPassword",
+  SECURITY_CHANGE_MASTER_PASSWORD: "security:changeMasterPassword",
   SECURITY_UNLOCK: "security:unlock",
   SECURITY_STATUS: "security:status",
   SECURITY_LOCK: "security:lock",
@@ -62,7 +62,6 @@ export const IPC_CHANNELS = {
   SKILL_GET_PLATFORM_STATUS: "skill:getPlatformStatus",
 
   // SKILL.md Multi-Platform Installation
-  // SKILL.md 多平台安装
   SKILL_GET_SUPPORTED_PLATFORMS: "skill:getSupportedPlatforms",
   SKILL_DETECT_PLATFORMS: "skill:detectPlatforms",
   SKILL_INSTALL_MD: "skill:installMd",
@@ -73,7 +72,6 @@ export const IPC_CHANNELS = {
   SKILL_FETCH_REMOTE_CONTENT: "skill:fetchRemoteContent",
 
   // Skill Local Repo Storage
-  // Skill 本地仓库存储
   SKILL_LIST_LOCAL_FILES: "skill:listLocalFiles",
   SKILL_READ_LOCAL_FILE: "skill:readLocalFile",
   SKILL_READ_LOCAL_FILES: "skill:readLocalFiles",
@@ -86,15 +84,38 @@ export const IPC_CHANNELS = {
   SKILL_SYNC_FROM_REPO: "skill:syncFromRepo",
 
   // Skill Version
-  // Skill 版本管理
   SKILL_VERSION_GET_ALL: "skill:version:getAll",
   SKILL_VERSION_CREATE: "skill:version:create",
   SKILL_VERSION_ROLLBACK: "skill:version:rollback",
   SKILL_VERSION_DELETE: "skill:version:delete",
   // Skill Backup Restore
-  // Skill 备份恢复
   SKILL_DELETE_ALL: "skill:deleteAll",
   SKILL_INSERT_VERSION_DIRECT: "skill:version:insertDirect",
+
+  // Image
+  DIALOG_SELECT_IMAGE: "dialog:selectImage",
+  IMAGE_SAVE: "image:save",
+  IMAGE_OPEN: "image:open",
+  IMAGE_SAVE_BUFFER: "image:save-buffer",
+  IMAGE_DOWNLOAD: "image:download",
+  IMAGE_LIST: "image:list",
+  IMAGE_GET_SIZE: "image:getSize",
+  IMAGE_READ_BASE64: "image:readBase64",
+  IMAGE_SAVE_BASE64: "image:saveBase64",
+  IMAGE_EXISTS: "image:exists",
+  IMAGE_CLEAR: "image:clear",
+
+  // Video
+  DIALOG_SELECT_VIDEO: "dialog:selectVideo",
+  VIDEO_SAVE: "video:save",
+  VIDEO_OPEN: "video:open",
+  VIDEO_LIST: "video:list",
+  VIDEO_GET_SIZE: "video:getSize",
+  VIDEO_READ_BASE64: "video:readBase64",
+  VIDEO_SAVE_BASE64: "video:saveBase64",
+  VIDEO_EXISTS: "video:exists",
+  VIDEO_GET_PATH: "video:getPath",
+  VIDEO_CLEAR: "video:clear",
 } as const;
 
 export type IPCChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS];

@@ -1,16 +1,22 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import type { Prompt, CreatePromptDTO, UpdatePromptDTO } from '../../shared/types';
-import * as db from '../services/database';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import type {
+  Prompt,
+  CreatePromptDTO,
+  UpdatePromptDTO,
+} from "../../shared/types";
+import * as db from "../services/database";
+
+let _seedPromise: Promise<void> | null = null;
 
 // Sort method
 // 排序方式
-export type SortBy = 'updatedAt' | 'createdAt' | 'title' | 'usageCount';
-export type SortOrder = 'desc' | 'asc';
+export type SortBy = "updatedAt" | "createdAt" | "title" | "usageCount";
+export type SortOrder = "desc" | "asc";
 // View mode
 // 视图模式
-export type ViewMode = 'card' | 'list' | 'gallery' | 'kanban';
-export type GalleryImageSize = 'small' | 'medium' | 'large';
+export type ViewMode = "card" | "list" | "gallery" | "kanban";
+export type GalleryImageSize = "small" | "medium" | "large";
 export type KanbanColumns = 2 | 3 | 4;
 
 interface PromptState {
@@ -20,7 +26,7 @@ interface PromptState {
   isLoading: boolean;
   searchQuery: string;
   filterTags: string[];
-  promptTypeFilter: 'all' | 'text' | 'image';
+  promptTypeFilter: "all" | "text" | "image";
   // Sort and order
   // 排序和顺序
   sortBy: SortBy;
@@ -43,7 +49,7 @@ interface PromptState {
   setSearchQuery: (query: string) => void;
   toggleFilterTag: (tag: string) => void;
   clearFilterTags: () => void;
-  setPromptTypeFilter: (filter: 'all' | 'text' | 'image') => void;
+  setPromptTypeFilter: (filter: "all" | "text" | "image") => void;
   toggleFavorite: (id: string) => Promise<void>;
   togglePinned: (id: string) => Promise<void>;
   // Sort and view
@@ -63,27 +69,29 @@ export const usePromptStore = create<PromptState>()(
       selectedId: null,
       selectedIds: [],
       isLoading: false,
-      searchQuery: '',
+      searchQuery: "",
       filterTags: [],
-      promptTypeFilter: 'all',
-      sortBy: 'updatedAt' as SortBy,
-      sortOrder: 'desc' as SortOrder,
-      viewMode: 'card' as ViewMode,
-      galleryImageSize: 'medium' as GalleryImageSize,
+      promptTypeFilter: "all",
+      sortBy: "updatedAt" as SortBy,
+      sortOrder: "desc" as SortOrder,
+      viewMode: "card" as ViewMode,
+      galleryImageSize: "medium" as GalleryImageSize,
       kanbanColumns: 3 as KanbanColumns,
 
       fetchPrompts: async () => {
         set({ isLoading: true });
         try {
-          // Ensure database is initialized and seed data is populated
-          // 确保数据库已初始化并填充种子数据
-          await db.seedDatabase();
+          // Ensure database is initialized and seed data is populated (once).
+          // Uses a shared Promise to prevent concurrent callers from seeding twice.
+          if (!_seedPromise) {
+            _seedPromise = db.seedDatabase();
+          }
+          await _seedPromise;
           // Get data from IndexedDB
-          // 从 IndexedDB 获取数据
           const prompts = await db.getAllPrompts();
           set({ prompts });
         } catch (error) {
-          console.error('Failed to fetch prompts:', error);
+          console.error("Failed to fetch prompts:", error);
         } finally {
           set({ isLoading: false });
         }
@@ -108,10 +116,15 @@ export const usePromptStore = create<PromptState>()(
 
         // If content has changed, save current version first
         // 如果内容有变化，先保存当前版本
-        if (currentPrompt && (data.systemPrompt !== undefined || data.userPrompt !== undefined)) {
+        if (
+          currentPrompt &&
+          (data.systemPrompt !== undefined || data.userPrompt !== undefined)
+        ) {
           const hasContentChange =
-            (data.systemPrompt !== undefined && data.systemPrompt !== currentPrompt.systemPrompt) ||
-            (data.userPrompt !== undefined && data.userPrompt !== currentPrompt.userPrompt);
+            (data.systemPrompt !== undefined &&
+              data.systemPrompt !== currentPrompt.systemPrompt) ||
+            (data.userPrompt !== undefined &&
+              data.userPrompt !== currentPrompt.userPrompt);
 
           if (hasContentChange) {
             await db.createPromptVersion(id, {
@@ -131,8 +144,10 @@ export const usePromptStore = create<PromptState>()(
       movePrompts: async (ids, folderId) => {
         await db.movePrompts(ids, folderId);
         set((state) => ({
-          prompts: state.prompts.map((p) => 
-            ids.includes(p.id) ? { ...p, folderId, updatedAt: new Date().toISOString() } : p
+          prompts: state.prompts.map((p) =>
+            ids.includes(p.id)
+              ? { ...p, folderId, updatedAt: new Date().toISOString() }
+              : p,
           ),
         }));
       },
@@ -142,38 +157,50 @@ export const usePromptStore = create<PromptState>()(
         set((state) => ({
           prompts: state.prompts.filter((p) => p.id !== id),
           selectedId: state.selectedId === id ? null : state.selectedId,
-          selectedIds: state.selectedIds.filter((selectedId) => selectedId !== id),
+          selectedIds: state.selectedIds.filter(
+            (selectedId) => selectedId !== id,
+          ),
         }));
       },
 
-      selectPrompt: (id) => set({ 
-        selectedId: id,
-        selectedIds: id ? [id] : []
-      }),
+      selectPrompt: (id) =>
+        set({
+          selectedId: id,
+          selectedIds: id ? [id] : [],
+        }),
 
-      setSelectedIds: (ids) => set((state) => ({
-        selectedIds: ids,
-        // If only one is selected, update selectedId for compatibility
-        // 如果只选中一个，更新 selectedId 以保持兼容性
-        selectedId: ids.length === 1 ? ids[0] : (ids.includes(state.selectedId || '') ? state.selectedId : null)
-      })),
+      setSelectedIds: (ids) =>
+        set((state) => ({
+          selectedIds: ids,
+          // If only one is selected, update selectedId for compatibility
+          // 如果只选中一个，更新 selectedId 以保持兼容性
+          selectedId:
+            ids.length === 1
+              ? ids[0]
+              : ids.includes(state.selectedId || "")
+                ? state.selectedId
+                : null,
+        })),
 
       setSearchQuery: (query) => set({ searchQuery: query }),
 
-      toggleFilterTag: (tag) => set((state) => ({
-        filterTags: state.filterTags.includes(tag)
-          ? state.filterTags.filter(t => t !== tag)
-          : [...state.filterTags, tag]
-      })),
+      toggleFilterTag: (tag) =>
+        set((state) => ({
+          filterTags: state.filterTags.includes(tag)
+            ? state.filterTags.filter((t) => t !== tag)
+            : [...state.filterTags, tag],
+        })),
 
       clearFilterTags: () => set({ filterTags: [] }),
-      
+
       setPromptTypeFilter: (filter) => set({ promptTypeFilter: filter }),
 
       toggleFavorite: async (id) => {
         const prompt = get().prompts.find((p) => p.id === id);
         if (prompt) {
-          const updated = await db.updatePrompt(id, { isFavorite: !prompt.isFavorite });
+          const updated = await db.updatePrompt(id, {
+            isFavorite: !prompt.isFavorite,
+          });
           set((state) => ({
             prompts: state.prompts.map((p) => (p.id === id ? updated : p)),
           }));
@@ -183,7 +210,9 @@ export const usePromptStore = create<PromptState>()(
       togglePinned: async (id) => {
         const prompt = get().prompts.find((p) => p.id === id);
         if (prompt) {
-          const updated = await db.updatePrompt(id, { isPinned: !prompt.isPinned });
+          const updated = await db.updatePrompt(id, {
+            isPinned: !prompt.isPinned,
+          });
           set((state) => ({
             prompts: state.prompts.map((p) => (p.id === id ? updated : p)),
           }));
@@ -201,7 +230,9 @@ export const usePromptStore = create<PromptState>()(
       incrementUsageCount: async (id) => {
         const prompt = get().prompts.find((p) => p.id === id);
         if (prompt) {
-          const updated = await db.updatePrompt(id, { usageCount: (prompt.usageCount || 0) + 1 });
+          const updated = await db.updatePrompt(id, {
+            usageCount: (prompt.usageCount || 0) + 1,
+          });
           set((state) => ({
             prompts: state.prompts.map((p) => (p.id === id ? updated : p)),
           }));
@@ -209,15 +240,15 @@ export const usePromptStore = create<PromptState>()(
       },
     }),
     {
-      name: 'prompt-store',
+      name: "prompt-store",
       partialize: (state) => ({
         sortBy: state.sortBy,
         sortOrder: state.sortOrder,
         viewMode: state.viewMode,
         galleryImageSize: state.galleryImageSize,
-            kanbanColumns: state.kanbanColumns,
-            promptTypeFilter: state.promptTypeFilter,
-          }),
-    }
-  )
+        kanbanColumns: state.kanbanColumns,
+        promptTypeFilter: state.promptTypeFilter,
+      }),
+    },
+  ),
 );

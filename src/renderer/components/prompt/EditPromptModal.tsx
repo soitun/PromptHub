@@ -384,17 +384,17 @@ export function EditPromptModal({
       onClose();
     } catch (error) {
       console.error("Failed to save prompt:", error);
-      showToast(t("common.error") || "Failed to save", "error");
+      showToast(t("common.error"), "error");
     }
   };
 
   const handleTranslateToEnglish = async () => {
     if (!canTranslate || !translationModel) {
-      showToast(t("toast.configAI") || "请先配置 AI", "error");
+      showToast(t("toast.configAI"), "error");
       return;
     }
     if (!systemPrompt && !userPrompt) {
-      showToast(t("prompt.noContentToTranslate", "没有内容可翻译"), "error");
+      showToast(t("prompt.noContentToTranslate"), "error");
       return;
     }
 
@@ -428,12 +428,12 @@ export function EditPromptModal({
       );
 
       if (!result.content) {
-        throw new Error(t("common.error") || "翻译失败");
+        throw new Error(t("common.error"));
       }
 
       const jsonMatch = result.content.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
-        throw new Error(t("common.error") || "翻译结果解析失败");
+        throw new Error(t("common.error"));
       }
 
       const jsonText = jsonMatch[0];
@@ -443,7 +443,7 @@ export function EditPromptModal({
       };
 
       if (typeof parsed.userPromptEn !== "string") {
-        throw new Error(t("common.error") || "翻译结果解析失败");
+        throw new Error(t("common.error"));
       }
 
       if (parsed.systemPromptEn) {
@@ -454,12 +454,12 @@ export function EditPromptModal({
       }
 
       setShowEnglishVersion(true);
-      showToast(t("prompt.englishGenerated", "已生成英文版 Prompt"), "success");
+      showToast(t("prompt.englishGenerated"), "success");
     } catch (e) {
       showToast(
         e instanceof Error
           ? e.message
-          : t("common.error") || "Translation failed",
+          : t("common.error"),
         "error",
       );
     } finally {
@@ -472,7 +472,7 @@ export function EditPromptModal({
   // 当主内容被检测为纯英文时，自动将其作为英文源进行翻译
   const handleTranslateFromEnglish = async () => {
     if (!canTranslate || !translationModel) {
-      showToast(t("toast.configAI") || "请先配置 AI", "error");
+      showToast(t("toast.configAI"), "error");
       return;
     }
 
@@ -484,7 +484,7 @@ export function EditPromptModal({
 
     if (!englishSystem && !englishUser) {
       showToast(
-        t("prompt.noEnglishContentToTranslate", "没有英文内容可翻译"),
+        t("prompt.noEnglishContentToTranslate"),
         "error",
       );
       return;

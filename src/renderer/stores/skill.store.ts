@@ -91,6 +91,24 @@ function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+function stripSkillFrontmatter(content: string): string {
+  return content.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, "");
+}
+
+function hasMeaningfulSkillBody(content?: string): boolean {
+  if (typeof content !== "string") {
+    return false;
+  }
+
+  const trimmed = content.trim();
+  if (!trimmed) {
+    return false;
+  }
+
+  const body = stripSkillFrontmatter(trimmed).trim();
+  return body.length > 0;
+}
+
 function parseJson<T>(raw: string, fallback: T): T {
   try {
     return JSON.parse(raw) as T;
@@ -205,7 +223,6 @@ function shouldSyncRemoteRepoFile(relativePath: string): boolean {
       ".cs",
       ".lock",
       ".gitignore",
-      ".env",
     ].includes(ext)
   );
 }
@@ -223,10 +240,9 @@ async function syncRemoteGitHubSkillRepo(
   const treeRaw = await window.api.skill.fetchRemoteContent(
     `https://api.github.com/repos/${location.owner}/${location.repo}/git/trees/${location.branch}?recursive=1`,
   );
-  const treeData = parseJson<{ tree?: Array<{ path?: string; type?: string }> }>(
-    treeRaw || "{}",
-    {},
-  );
+  const treeData = parseJson<{
+    tree?: Array<{ path?: string; type?: string }>;
+  }>(treeRaw || "{}", {});
   const directoryPrefix = `${location.directoryPath}/`;
   const files = Array.isArray(treeData.tree)
     ? treeData.tree.filter(
@@ -439,8 +455,8 @@ export const useSkillStore = create<SkillState>()(
               deployed.add(name);
             }
           }
-        } catch {
-          // skip
+        } catch (error) {
+          console.warn("Failed to load deployed status:", error);
         }
         set({ deployedSkillNames: deployed });
       },
@@ -456,7 +472,11 @@ export const useSkillStore = create<SkillState>()(
           if (newSkill) {
             let storedSkill = normalizeSkill(newSkill);
             const repoContent =
-              data.instructions || data.content || newSkill.instructions || newSkill.content || "";
+              data.instructions ||
+              data.content ||
+              newSkill.instructions ||
+              newSkill.content ||
+              "";
             if (typeof repoContent === "string") {
               try {
                 await window.api.skill.writeLocalFile(
@@ -465,7 +485,9 @@ export const useSkillStore = create<SkillState>()(
                   repoContent,
                   { skipVersionSnapshot: true },
                 );
-                const repoPath = await window.api.skill.getRepoPath(newSkill.id);
+                const repoPath = await window.api.skill.getRepoPath(
+                  newSkill.id,
+                );
                 if (repoPath) {
                   storedSkill = { ...newSkill, local_repo_path: repoPath };
                 }
@@ -578,7 +600,7 @@ export const useSkillStore = create<SkillState>()(
         try {
           const count = await window.api.skill.scanLocal();
           if (count > 0) {
-            const skills = await window.api.skill.getAll();
+            const skills = normalizeSkills(await window.api.skill.getAll());
             set({ skills, isLoading: false });
           } else {
             set({ isLoading: false });
@@ -849,6 +871,12 @@ export const useSkillStore = create<SkillState>()(
             }
           }
 
+          if (!hasMeaningfulSkillBody(effectiveContent)) {
+            throw new Error(
+              `Unable to fetch the full SKILL.md for "${regSkill.name}". The registry only has summary metadata right now, so installation was blocked to avoid creating an incomplete skill.`,
+            );
+          }
+
           const newSkill = await window.api.skill.create({
             name: regSkill.install_name || regSkill.slug,
             description: regSkill.description,
@@ -947,7 +975,7 @@ export const useSkillStore = create<SkillState>()(
 
           for (const incoming of incomingSkills) {
             const index = indexBySlug.get(incoming.slug);
-            if (index >= 0) {
+            if (index !== undefined) {
               merged[index] = { ...merged[index], ...incoming };
             } else {
               indexBySlug.set(incoming.slug, merged.length);
@@ -988,7 +1016,9 @@ export const useSkillStore = create<SkillState>()(
             (source) => source.id !== id,
           );
           const nextSelectedStoreSourceId =
-            state.selectedStoreSourceId === id ? "official" : state.selectedStoreSourceId;
+            state.selectedStoreSourceId === id
+              ? "official"
+              : state.selectedStoreSourceId;
           const nextRemoteStoreEntries = { ...state.remoteStoreEntries };
           delete nextRemoteStoreEntries[id];
 
@@ -1095,7 +1125,9 @@ export const useSkillStore = create<SkillState>()(
               apiKey: defaultModel.apiKey,
               apiUrl: defaultModel.apiUrl,
               model: defaultModel.model,
-              chatParams: defaultModel.chatParams as SkillChatParams | undefined,
+              chatParams: defaultModel.chatParams as
+                | SkillChatParams
+                | undefined,
             }
           : {
               provider: settingsState.aiProvider,

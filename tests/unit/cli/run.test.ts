@@ -2702,7 +2702,7 @@ describe("PromptHub CLI", () => {
       const root = makeTempRoot(tempDirs);
       const { name } = await installTestSkill(root, { name: "not-managed" });
 
-      vi.spyOn(SkillInstaller, "isManagedRepoPath").mockReturnValue(false);
+      vi.spyOn(SkillInstaller, "isManagedRepoPath").mockResolvedValue(false);
 
       const res = await execCli([
         ...withDataDir(root),

@@ -734,10 +734,15 @@ export function AISettings() {
     setTestingModelId(null);
 
     if (result.success) {
-      const thinkingInfo = result.thinkingContent ? " (含思考过程)" : "";
-      showToast(`连接成功 (${result.latency}ms)${thinkingInfo}`, "success");
+      const thinkingInfo = result.thinkingContent
+        ? ` · ${t("settings.thinkingContent")}`
+        : "";
+      showToast(
+        `${t("toast.connectionSuccess")} (${result.latency}ms)${thinkingInfo}`,
+        "success",
+      );
     } else {
-      showToast(result.error || "连接失败", "error");
+      showToast(result.error || t("toast.connectionFailed"), "error");
     }
   };
 
@@ -1083,7 +1088,7 @@ export function AISettings() {
                                   onClick={() => handleTestModel(model)}
                                   disabled={testingModelId === model.id}
                                   className="p-1.5 rounded hover:bg-muted transition-colors disabled:opacity-50"
-                                  title="测试连接"
+                                  title={t("settings.testConnection")}
                                 >
                                   {testingModelId === model.id ? (
                                     <Loader2Icon className="w-4 h-4 animate-spin text-muted-foreground" />
@@ -1097,7 +1102,7 @@ export function AISettings() {
                                       settings.setDefaultAiModel(model.id)
                                     }
                                     className="p-1.5 rounded hover:bg-muted transition-colors"
-                                    title="设为默认"
+                                    title={t("settings.setDefault")}
                                   >
                                     <StarIcon className="w-4 h-4 text-muted-foreground" />
                                   </button>
@@ -1152,18 +1157,18 @@ export function AISettings() {
                                     setShowAddChatModel(true);
                                   }}
                                   className="p-1.5 rounded hover:bg-muted transition-colors"
-                                  title="编辑"
+                                  title={t("common.edit")}
                                 >
                                   <EditIcon className="w-4 h-4 text-muted-foreground" />
                                 </button>
                                 <button
                                   onClick={() => {
-                                    if (confirm("确定要删除这个模型配置吗？")) {
+                                    if (confirm(t("settings.confirmDelete"))) {
                                       settings.deleteAiModel(model.id);
                                     }
                                   }}
                                   className="p-1.5 rounded hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
-                                  title="删除"
+                                  title={t("settings.deleteModel")}
                                 >
                                   <TrashIcon className="w-4 h-4 text-red-500" />
                                 </button>
@@ -1856,7 +1861,7 @@ export function AISettings() {
                                   onClick={() => handleTestImageModel(model)}
                                   disabled={testingModelId === model.id}
                                   className="p-1.5 rounded hover:bg-muted transition-colors disabled:opacity-50"
-                                  title="测试生图"
+                                  title={t("settings.testImage")}
                                 >
                                   {testingModelId === model.id ? (
                                     <Loader2Icon className="w-4 h-4 text-primary animate-spin" />
@@ -1870,7 +1875,7 @@ export function AISettings() {
                                       settings.setDefaultAiModel(model.id)
                                     }
                                     className="p-1.5 rounded hover:bg-muted transition-colors"
-                                    title="设为默认"
+                                    title={t("settings.setDefault")}
                                   >
                                     <StarIcon className="w-4 h-4 text-muted-foreground" />
                                   </button>
@@ -1889,18 +1894,18 @@ export function AISettings() {
                                     setShowAddImageModel(true);
                                   }}
                                   className="p-1.5 rounded hover:bg-muted transition-colors"
-                                  title="编辑"
+                                  title={t("common.edit")}
                                 >
                                   <EditIcon className="w-4 h-4 text-muted-foreground" />
                                 </button>
                                 <button
                                   onClick={() => {
-                                    if (confirm("确定要删除这个模型配置吗？")) {
+                                    if (confirm(t("settings.confirmDelete"))) {
                                       settings.deleteAiModel(model.id);
                                     }
                                   }}
                                   className="p-1.5 rounded hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
-                                  title="删除"
+                                  title={t("settings.deleteModel")}
                                 >
                                   <TrashIcon className="w-4 h-4 text-red-500" />
                                 </button>
@@ -2048,7 +2053,7 @@ export function AISettings() {
                   </div>
                   <input
                     type="text"
-                    placeholder="e.g., dall-e-3, gemini-2.5-flash-preview-05-20, stable-image-core"
+                    placeholder={t("settings.modelNamePlaceholder")}
                     value={newModel.model}
                     onChange={(e) =>
                       setNewModel({ ...newModel, model: e.target.value })

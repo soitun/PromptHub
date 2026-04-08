@@ -358,7 +358,7 @@ export function SkillFullDetailPage() {
       );
       await loadSkills();
       setIsSnapshotModalOpen(false);
-      showToast(t("skill.snapshotCreated", "已创建版本快照"), "success");
+      showToast(t("skill.snapshotCreated"), "success");
     } catch (error) {
       console.error("Failed to create skill snapshot:", error);
       showToast(

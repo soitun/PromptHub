@@ -4,11 +4,20 @@ import fs from "fs";
 import { SCHEMA_TABLES, SCHEMA_INDEXES } from "./schema";
 import { getSkillsDir, getUserDataPath } from "../runtime-paths";
 
+/** Column metadata returned by `PRAGMA table_info(...)`. */
+interface PragmaColumnInfo {
+  cid: number;
+  name: string;
+  type: string;
+  notnull: number;
+  dflt_value: string | null;
+  pk: number;
+}
+
 let db: Database.Database | null = null;
 
 /**
  * Get database file path
- * 获取数据库文件路径
  */
 function getDbPath(): string {
   const userDataPath = getUserDataPath();
@@ -16,25 +25,25 @@ function getDbPath(): string {
 }
 
 /**
- * node-sqlite3-wasm 使用目录锁 `<dbfile>.lock`。
- * 若上一次运行异常退出，该目录会残留并导致下次启动报 "database is locked"。
- * 在打开数据库前主动清理它。
+ * node-sqlite3-wasm uses a directory lock `<dbfile>.lock`.
+ * If the previous run crashed, the lock directory may remain and cause
+ * "database is locked" on the next startup. Proactively clean it up.
  */
 function clearStaleLock(dbPath: string): void {
   const lockDir = `${dbPath}.lock`;
   try {
     fs.rmSync(lockDir, { recursive: true, force: true });
     console.log(`[DB] Cleared stale lock: ${lockDir}`);
-  } catch (e: any) {
-    if (e.code !== "ENOENT") {
-      console.warn(`[DB] Failed to clear stale lock (${lockDir}):`, e);
+  } catch (err: unknown) {
+    const code = (err as NodeJS.ErrnoException).code;
+    if (code !== "ENOENT") {
+      console.warn(`[DB] Failed to clear stale lock (${lockDir}):`, err);
     }
   }
 }
 
 /**
  * Initialize database
- * 初始化数据库
  */
 export function initDatabase(): Database.Database {
   if (db) return db;
@@ -45,7 +54,6 @@ export function initDatabase(): Database.Database {
   db = new Database(dbPath);
 
   // Enable foreign key constraints
-  // 启用外键约束
   db.pragma("foreign_keys = ON");
 
   // Create tables only (indexes come after migrations)
@@ -53,8 +61,6 @@ export function initDatabase(): Database.Database {
 
   // Run all migrations in a single transaction to avoid lock contention.
   // Each table's column list is fetched exactly once and reused.
-  // 所有迁移在同一事务中执行，避免多次独立读事务与写操作交叉产生锁竞争。
-  // 每张表的列信息只查询一次，后续复用。
   const runMigrations = db.transaction(() => {
     // ── schema_migrations table ───────────────────────────────────────────────
     // Tracks one-time data migrations so they are never re-run on subsequent
@@ -79,11 +85,10 @@ export function initDatabase(): Database.Database {
         .run(name, Date.now());
     };
 
-    // ── prompts table ─────────────────────────────────────────────────────────
-    // 迁移：prompts 表，只查一次 table_info
-    const promptCols = (db!.pragma("table_info(prompts)") as any[]).map(
-      (c) => c.name,
-    );
+    // Migrations: prompts table (query column list once)
+    const promptCols = (
+      db!.pragma("table_info(prompts)") as PragmaColumnInfo[]
+    ).map((c) => c.name);
 
     if (!promptCols.includes("images")) {
       console.log("Migrating: Adding images column to prompts table");
@@ -116,11 +121,10 @@ export function initDatabase(): Database.Database {
         .run();
     }
 
-    // ── folders table ─────────────────────────────────────────────────────────
-    // 迁移：folders 表，只查一次 table_info
-    const folderCols = (db!.pragma("table_info(folders)") as any[]).map(
-      (c) => c.name,
-    );
+    // Migrations: folders table (query column list once)
+    const folderCols = (
+      db!.pragma("table_info(folders)") as PragmaColumnInfo[]
+    ).map((c) => c.name);
 
     if (!folderCols.includes("is_private")) {
       console.log("Migrating: Adding is_private column to folders table");
@@ -134,11 +138,10 @@ export function initDatabase(): Database.Database {
       db!.prepare("ALTER TABLE folders ADD COLUMN updated_at INTEGER").run();
     }
 
-    // ── skills table ──────────────────────────────────────────────────────────
-    // 迁移：skills 表，只查一次 table_info
-    const skillCols = (db!.pragma("table_info(skills)") as any[]).map(
-      (c) => c.name,
-    );
+    // Migrations: skills table (query column list once)
+    const skillCols = (
+      db!.pragma("table_info(skills)") as PragmaColumnInfo[]
+    ).map((c) => c.name);
 
     const skillNewColumns: { name: string; type: string }[] = [
       { name: "source_url", type: "TEXT" },
@@ -167,7 +170,6 @@ export function initDatabase(): Database.Database {
     }
 
     // Backfill: set original_tags = tags for existing skills that don't have original_tags yet
-    // Backfill：original_tags 列是新增的，为存量数据回填
     if (!skillCols.includes("original_tags")) {
       db!
         .prepare(
@@ -252,6 +254,8 @@ export function initDatabase(): Database.Database {
           "Failed to backfill local_repo_path for skills (non-fatal):",
           backfillError,
         );
+        // Do NOT mark migration as completed on failure — it will be retried next startup
+        return;
       }
       markMigration("backfill_local_repo_path_v1");
     }
@@ -287,12 +291,13 @@ export function initDatabase(): Database.Database {
           "Failed to normalize skill version tracking state:",
           error,
         );
+        // Do NOT mark migration as completed on failure — it will be retried next startup
+        return;
       }
       markMigration("normalize_skill_version_tracking_v1");
     }
 
     // ── skill_versions table ────────────────────────────────────────────────
-    // 迁移：skill_versions 表
     const skillVersionsExists = db!
       .prepare(
         "SELECT name FROM sqlite_master WHERE type='table' AND name='skill_versions'",
@@ -325,7 +330,6 @@ export function initDatabase(): Database.Database {
   }
 
   // Now that all columns exist, create indexes + FTS
-  // 所有列迁移完成后再建索引
   db.exec(SCHEMA_INDEXES);
 
   console.log(`Database initialized at: ${dbPath}`);
@@ -334,7 +338,6 @@ export function initDatabase(): Database.Database {
 
 /**
  * Get database instance
- * 获取数据库实例
  */
 export function getDatabase(): Database.Database {
   if (!db) {
@@ -345,7 +348,6 @@ export function getDatabase(): Database.Database {
 
 /**
  * Close database connection
- * 关闭数据库连接
  */
 export function closeDatabase(): void {
   if (db) {

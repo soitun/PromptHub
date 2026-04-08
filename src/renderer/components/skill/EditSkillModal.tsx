@@ -164,8 +164,8 @@ export function EditSkillModal({
     try {
       await updateSkill(skill.id, {
         name,
-        description: description || undefined,
-        author: author || undefined,
+        description: description.trim(),
+        author: author.trim() || undefined,
         icon_url: iconUrl,
         icon_emoji: iconEmoji,
         icon_background: iconBackground,
@@ -378,10 +378,7 @@ export function EditSkillModal({
                 value={tagInput}
                 onChange={(e) => setTagInput(e.target.value)}
                 onKeyDown={handleTagKeyDown}
-                placeholder={t(
-                  "skill.enterTagHint",
-                  "输入新标签后按回车",
-                )}
+                placeholder={t("skill.enterTagHint", "输入新标签后按回车")}
                 className="flex-1 h-10 px-4 rounded-xl bg-muted/50 border-0 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:bg-background transition-all duration-200"
               />
               <button
@@ -399,7 +396,10 @@ export function EditSkillModal({
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h3 className="text-sm font-medium">
-                  {t("skill.instructionsManagedInFiles", "指令内容在文件编辑器中维护")}
+                  {t(
+                    "skill.instructionsManagedInFiles",
+                    "指令内容在文件编辑器中维护",
+                  )}
                 </h3>
                 <p className="mt-1 text-xs text-muted-foreground leading-5">
                   {t(

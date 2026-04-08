@@ -62,6 +62,7 @@ describe("VersionHistoryModal", () => {
       );
     });
 
+    await screen.findByText("Current Version");
     await screen.findByRole("button", { name: /v1/i });
     expect(screen.queryByRole("button", { name: "Delete" })).not.toBeInTheDocument();
 

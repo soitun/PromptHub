@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ChevronDownIcon, CheckIcon } from 'lucide-react';
 
 export interface SelectOption {
@@ -21,10 +22,11 @@ export function Select({
   value,
   onChange,
   options,
-  placeholder = 'Select / 请选择',
+  placeholder,
   className = '',
   disabled = false,
 }: SelectProps) {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -58,7 +60,7 @@ export function Select({
   // Get current selected label
   // 获取当前选中项的标签
   const selectedOption = options.find((opt) => opt.value === value);
-  const displayLabel = selectedOption?.label || placeholder;
+  const displayLabel = selectedOption?.label || placeholder || t('common.select');
 
   // Group options
   // 按分组整理选项

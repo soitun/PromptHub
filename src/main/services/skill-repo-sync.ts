@@ -1,22 +1,22 @@
 import type { Skill, UpdateSkillParams } from "../../shared/types";
 import { sanitizeImportedSkillDraft } from "./skill-import-sanitize";
 import { parseSkillMd } from "./skill-validator";
+import { SkillInstaller } from "./skill-installer";
 
 function arraysEqual(left?: string[], right?: string[]) {
   return JSON.stringify(left ?? []) === JSON.stringify(right ?? []);
 }
 
-function normalizeCompatibility(
-  compatibility?: string,
-): string[] | undefined {
+function normalizeCompatibility(compatibility?: string): string[] | undefined {
   if (!compatibility) return undefined;
 
   const normalized = compatibility.trim();
   if (!normalized) return undefined;
 
-  const raw = normalized.startsWith("[") && normalized.endsWith("]")
-    ? normalized.slice(1, -1)
-    : normalized;
+  const raw =
+    normalized.startsWith("[") && normalized.endsWith("]")
+      ? normalized.slice(1, -1)
+      : normalized;
 
   const parts = raw
     .split(",")
@@ -92,4 +92,78 @@ export function buildSkillSyncUpdateFromRepo(
   }
 
   return changed ? update : null;
+}
+
+/**
+ * Check whether metadata-only fields (description, author, name, tags) changed.
+ * Returns true when the SKILL.md frontmatter should be rewritten to stay in sync
+ * with the database, preventing `syncSkillFromRepo` from reverting the edit.
+ */
+const METADATA_KEYS: (keyof UpdateSkillParams)[] = [
+  "description",
+  "author",
+  "name",
+  "tags",
+  "version",
+];
+
+export function hasMetadataChanges(data: UpdateSkillParams): boolean {
+  return METADATA_KEYS.some((key) =>
+    Object.prototype.hasOwnProperty.call(data, key),
+  );
+}
+
+/**
+ * Rewrite the SKILL.md frontmatter on disk so that it reflects the latest
+ * metadata stored in the database.  The instruction body is preserved as-is.
+ *
+ * This must be called **after** `db.update()` has persisted the new metadata,
+ * and only when the update did NOT already include an `instructions`/`content`
+ * change (which would be written separately by the renderer store).
+ */
+export async function syncFrontmatterToRepo(
+  updatedSkill: Skill,
+  repoPath: string | null | undefined,
+): Promise<void> {
+  if (!repoPath) return;
+
+  // Read the current SKILL.md from disk
+  let existingContent: string | undefined;
+  try {
+    const files = await SkillInstaller.readLocalRepoFilesByPath(repoPath);
+    const skillMdFile = files.find(
+      (f) => !f.isDirectory && f.path.toLowerCase() === "skill.md",
+    );
+    existingContent = skillMdFile?.content ?? undefined;
+  } catch {
+    // Repo may not exist yet – nothing to sync
+    return;
+  }
+
+  if (!existingContent) return;
+
+  // Extract the body (everything after frontmatter) and preserve extra fields
+  const parsed = parseSkillMd(existingContent);
+  const body = parsed?.body ?? "";
+
+  // Rebuild the full SKILL.md with updated frontmatter + original body.
+  // Preserve compatibility and license from the original frontmatter so they
+  // are not lost when exportAsSkillMd rewrites the file.
+  const newContent = SkillInstaller.exportAsSkillMd({
+    name: updatedSkill.name,
+    description: updatedSkill.description ?? undefined,
+    version: updatedSkill.version ?? undefined,
+    author: updatedSkill.author ?? undefined,
+    tags: updatedSkill.tags ?? [],
+    instructions: body,
+    compatibility: parsed?.frontmatter.compatibility ?? undefined,
+    license: parsed?.frontmatter.license ?? undefined,
+  });
+
+  // Write back
+  await SkillInstaller.writeLocalRepoFileByPath(
+    repoPath,
+    "SKILL.md",
+    newContent,
+  );
 }

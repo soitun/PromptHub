@@ -71,7 +71,9 @@ export function validateMCPConfig(config: unknown, name: string): void {
         `Invalid MCP config for "${name}": "servers" must be an object`,
       );
     }
-    for (const [serverName, serverConfig] of Object.entries(candidate.servers)) {
+    for (const [serverName, serverConfig] of Object.entries(
+      candidate.servers,
+    )) {
       validateMCPServerConfig(serverConfig, serverName);
     }
     return;
@@ -79,6 +81,8 @@ export function validateMCPConfig(config: unknown, name: string): void {
 
   validateMCPServerConfig(config, name);
 }
+
+const GIT_CLONE_TIMEOUT_MS = 60_000; // 60 seconds
 
 export function gitClone(url: string, destDir: string): Promise<void> {
   if (!url.trim()) {
@@ -99,11 +103,28 @@ export function gitClone(url: string, destDir: string): Promise<void> {
     });
 
     let stderr = "";
+    let settled = false;
+
+    const timeout = setTimeout(() => {
+      if (!settled) {
+        settled = true;
+        proc.kill("SIGKILL");
+        reject(
+          new Error(
+            `Git clone timed out after ${GIT_CLONE_TIMEOUT_MS / 1000}s for URL: ${url}`,
+          ),
+        );
+      }
+    }, GIT_CLONE_TIMEOUT_MS);
+
     proc.stderr?.on("data", (data) => {
       stderr += data.toString();
     });
 
     proc.on("close", (code) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
       if (code === 0) {
         resolve();
       } else {
@@ -112,6 +133,9 @@ export function gitClone(url: string, destDir: string): Promise<void> {
     });
 
     proc.on("error", (error) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
       reject(new Error(`Git clone error: ${error.message}`));
     });
   });
@@ -125,7 +149,15 @@ export function resolvePlatformPath(template: string): string {
     .replace(/%APPDATA%/gi, path.join(home, "AppData", "Roaming"));
 }
 
+let _customPathsCache: Record<string, string> | null = null;
+let _customPathsCacheTs = 0;
+const CUSTOM_PATHS_CACHE_TTL = 5000; // 5 seconds
+
 function readCustomSkillPlatformPaths(): Record<string, string> {
+  const now = Date.now();
+  if (_customPathsCache && now - _customPathsCacheTs < CUSTOM_PATHS_CACHE_TTL) {
+    return _customPathsCache;
+  }
   try {
     const db = initDatabase();
     const stmt = db.prepare("SELECT value FROM settings WHERE key = ?");
@@ -134,23 +166,41 @@ function readCustomSkillPlatformPaths(): Record<string, string> {
       | undefined;
 
     if (!row?.value) {
-      return {};
+      _customPathsCache = {};
+      _customPathsCacheTs = now;
+      return _customPathsCache;
     }
 
-    const parsed = JSON.parse(row.value) as Settings["customSkillPlatformPaths"];
+    const parsed = JSON.parse(
+      row.value,
+    ) as Settings["customSkillPlatformPaths"];
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-      return {};
+      _customPathsCache = {};
+      _customPathsCacheTs = now;
+      return _customPathsCache;
     }
 
-    return Object.fromEntries(
+    _customPathsCache = Object.fromEntries(
       Object.entries(parsed).filter(
         ([key, value]) => typeof key === "string" && typeof value === "string",
       ),
     );
+    _customPathsCacheTs = now;
+    return _customPathsCache;
   } catch (error) {
     console.warn("Failed to read custom skill platform paths:", error);
-    return {};
+    _customPathsCache = {};
+    _customPathsCacheTs = now;
+    return _customPathsCache;
   }
+}
+
+/**
+ * Invalidate the cached custom platform paths so the next call reads from DB.
+ */
+export function invalidateCustomPathsCache(): void {
+  _customPathsCache = null;
+  _customPathsCacheTs = 0;
 }
 
 export function getPlatformSkillsDir(

@@ -166,7 +166,7 @@ export function PromptEditor({ prompt, onSave, onCancel }: PromptEditorProps) {
     if (!url.trim()) return;
     
     setIsDownloadingImage(true);
-    showToast(t('prompt.downloadingImage', '正在下载图片...'), 'info');
+    showToast(t('prompt.downloadingImage'), 'info');
     
     try {
       // 添加超时处理
@@ -179,16 +179,16 @@ export function PromptEditor({ prompt, onSave, onCancel }: PromptEditorProps) {
       
       if (fileName) {
         setImages(prev => [...prev, fileName]);
-        showToast(t('prompt.uploadSuccess', '图片添加成功'), 'success');
+        showToast(t('prompt.uploadSuccess'), 'success');
       } else {
-        showToast(t('prompt.uploadFailed', '图片下载失败，请检查链接是否有效'), 'error');
+        showToast(t('prompt.uploadFailed'), 'error');
       }
     } catch (error) {
       console.error('Failed to upload image from URL:', error);
       if (error instanceof Error && error.message === 'timeout') {
-        showToast(t('prompt.downloadTimeout', '图片下载超时，请检查网络或链接'), 'error');
+        showToast(t('prompt.downloadTimeout'), 'error');
       } else {
-        showToast(t('prompt.uploadFailed', '图片下载失败，请检查链接是否有效'), 'error');
+        showToast(t('prompt.uploadFailed'), 'error');
       }
     } finally {
       setIsDownloadingImage(false);
@@ -225,15 +225,15 @@ export function PromptEditor({ prompt, onSave, onCancel }: PromptEditorProps) {
     <div className="h-full flex flex-col">
       {/* 工具栏 */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-card/50">
-        <h2 className="text-lg font-semibold">编辑 Prompt</h2>
+        <h2 className="text-lg font-semibold">{t('prompt.editPrompt')}</h2>
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm" onClick={onCancel}>
             <XIcon className="w-4 h-4" />
-            取消
+            {t('common.cancel')}
           </Button>
           <Button variant="primary" size="sm" onClick={handleSave}>
             <SaveIcon className="w-4 h-4" />
-            保存
+            {t('common.save')}
           </Button>
         </div>
       </div>
@@ -244,12 +244,12 @@ export function PromptEditor({ prompt, onSave, onCancel }: PromptEditorProps) {
           {/* 基本信息 */}
           <div className="grid grid-cols-2 gap-4">
             <Input
-              label="标题"
+              label={t('prompt.titleLabel')}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
             />
             <Input
-              label="描述"
+              label={t('prompt.description')}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             />
@@ -354,7 +354,7 @@ export function PromptEditor({ prompt, onSave, onCancel }: PromptEditorProps) {
 
           {/* 标签 */}
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-foreground">标签</label>
+            <label className="block text-sm font-medium text-foreground">{t('prompt.tags')}</label>
             <div className="flex flex-wrap gap-2">
               {tags.map((tag) => (
                 <span
@@ -370,7 +370,7 @@ export function PromptEditor({ prompt, onSave, onCancel }: PromptEditorProps) {
               ))}
               <input
                 type="text"
-                placeholder="添加标签..."
+                placeholder={t('prompt.addTagPlaceholder')}
                 value={tagInput}
                 onChange={(e) => setTagInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
@@ -381,8 +381,8 @@ export function PromptEditor({ prompt, onSave, onCancel }: PromptEditorProps) {
 
           {/* System Prompt */}
           <Textarea
-            label="System Prompt（可选）"
-            placeholder="设置 AI 的角色和行为..."
+            label={t('prompt.systemPromptOptional')}
+            placeholder={t('prompt.systemPromptPlaceholder')}
             value={systemPrompt}
             onChange={(e) => setSystemPrompt(e.target.value)}
             className="min-h-[100px]"
@@ -391,7 +391,7 @@ export function PromptEditor({ prompt, onSave, onCancel }: PromptEditorProps) {
           {/* User Prompt */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="block text-sm font-medium text-foreground">User Prompt</label>
+              <label className="block text-sm font-medium text-foreground">{t('prompt.userPromptLabel')}</label>
               <div className="flex items-center gap-1 rounded-lg border border-border bg-muted/50 p-1">
                 <button
                   onClick={() => setActiveTab('edit')}
@@ -401,7 +401,7 @@ export function PromptEditor({ prompt, onSave, onCancel }: PromptEditorProps) {
                       : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
-                  编辑
+                  {t('common.edit')}
                 </button>
                 <button
                   onClick={() => setActiveTab('preview')}
@@ -411,13 +411,13 @@ export function PromptEditor({ prompt, onSave, onCancel }: PromptEditorProps) {
                       : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
-                  预览
+                  {t('common.preview')}
                 </button>
               </div>
             </div>
             {activeTab === 'edit' ? (
               <Textarea
-                placeholder="输入你的 Prompt 内容..."
+                placeholder={t('prompt.typeYourPrompt')}
                 value={userPrompt}
                 onChange={(e) => setUserPrompt(e.target.value)}
                 className="min-h-[200px]"
@@ -433,7 +433,7 @@ export function PromptEditor({ prompt, onSave, onCancel }: PromptEditorProps) {
                     {userPrompt}
                   </ReactMarkdown>
                 ) : (
-                  <div className="text-muted-foreground text-sm">暂无内容</div>
+                  <div className="text-muted-foreground text-sm">{t('prompt.noContent')}</div>
                 )}
               </div>
             )}
@@ -445,11 +445,11 @@ export function PromptEditor({ prompt, onSave, onCancel }: PromptEditorProps) {
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold text-foreground flex items-center gap-2">
                   <PlayIcon className="w-4 h-4 text-primary" />
-                  变量预览
+                  {t('prompt.variablePreview')}
                 </h3>
                 <Button variant="ghost" size="sm" onClick={handleCopyPreview}>
                   <CopyIcon className="w-4 h-4" />
-                  复制结果
+                  {t('prompt.copyResult')}
                 </Button>
               </div>
 
@@ -458,7 +458,7 @@ export function PromptEditor({ prompt, onSave, onCancel }: PromptEditorProps) {
                   <Input
                     key={variable}
                     label={variable}
-                    placeholder={`输入 ${variable} 的值...`}
+                    placeholder={t('prompt.inputVariable', { name: variable })}
                     value={variableValues[variable] || ''}
                     onChange={(e) => setVariableValues({ ...variableValues, [variable]: e.target.value })}
                   />
@@ -466,7 +466,7 @@ export function PromptEditor({ prompt, onSave, onCancel }: PromptEditorProps) {
               </div>
 
               <div className="p-4 rounded-xl bg-card border border-border">
-                <p className="text-xs text-muted-foreground mb-2">预览结果：</p>
+                <p className="text-xs text-muted-foreground mb-2">{t('prompt.previewResult')}:</p>
                 <pre className="text-sm font-mono whitespace-pre-wrap">{generatePreview()}</pre>
               </div>
             </div>

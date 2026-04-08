@@ -480,7 +480,7 @@ export function AiTestModal({
   // 生图测试
   const runImageTest = async () => {
     if (!defaultImageModel) {
-      showToast(t('settings.configImageModel', '请先配置生图模型'), 'error');
+      showToast(t('settings.configImageModel'), 'error');
       return;
     }
 
@@ -514,7 +514,7 @@ export function AiTestModal({
 
       setGeneratedImages(urls);
       if (urls.length > 0) {
-        showToast(t('settings.imageGenSuccess', '图片生成成功'), 'success');
+        showToast(t('settings.imageGenSuccess'), 'success');
       }
     } catch (error) {
       showToast(`${t('common.error')}: ${error instanceof Error ? error.message : t('common.error')}`, 'error');
@@ -550,9 +550,9 @@ export function AiTestModal({
         const fileName = await window.electron?.downloadImage?.(imageUrl);
         if (fileName) {
           onAddImage(fileName);
-          showToast(t('prompt.imageAddedToPrompt', '图片已添加到 Prompt'), 'success');
+          showToast(t('prompt.imageAddedToPrompt'), 'success');
         } else {
-          showToast(t('prompt.uploadFailed', '图片添加失败'), 'error');
+          showToast(t('prompt.uploadFailed'), 'error');
         }
       } else if (imageUrl.startsWith('data:')) {
         // base64 图片，需要保存到本地
@@ -561,10 +561,10 @@ export function AiTestModal({
         const fileName = `generated-${Date.now()}.png`;
         await window.electron?.saveImageBase64?.(fileName, base64Data);
         onAddImage(fileName);
-        showToast(t('prompt.imageAddedToPrompt', '图片已添加到 Prompt'), 'success');
+        showToast(t('prompt.imageAddedToPrompt'), 'success');
       }
     } catch (error) {
-      showToast(t('prompt.uploadFailed', '图片添加失败'), 'error');
+      showToast(t('prompt.uploadFailed'), 'error');
     }
   };
 
@@ -577,9 +577,9 @@ export function AiTestModal({
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      showToast(t('common.downloadSuccess', '下载成功'), 'success');
+      showToast(t('common.downloadSuccess'), 'success');
     } catch (error) {
-      showToast(t('common.downloadFailed', '下载失败'), 'error');
+      showToast(t('common.downloadFailed'), 'error');
     }
   };
 
@@ -706,7 +706,7 @@ export function AiTestModal({
                       type="text"
                       value={jsonSchemaName}
                       onChange={(e) => setJsonSchemaName(e.target.value)}
-                      placeholder="response"
+                      placeholder={t('prompt.jsonSchemaName').toLowerCase()}
                       className="w-full px-3 py-1.5 text-sm bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50"
                     />
                   </div>

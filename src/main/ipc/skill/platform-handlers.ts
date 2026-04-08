@@ -76,7 +76,12 @@ export function registerSkillPlatformHandlers(): void {
 
   ipcMain.handle(
     IPC_CHANNELS.SKILL_INSTALL_MD,
-    async (_, skillName: string, skillMdContent: string, platformId: string) => {
+    async (
+      _,
+      skillName: string,
+      skillMdContent: string,
+      platformId: string,
+    ) => {
       if (typeof skillName !== "string" || skillName.trim().length === 0) {
         throw new Error("skill:installMd requires a non-empty skillName");
       }
@@ -88,7 +93,11 @@ export function registerSkillPlatformHandlers(): void {
       if (typeof platformId !== "string" || platformId.trim().length === 0) {
         throw new Error("skill:installMd requires a non-empty platformId");
       }
-      return SkillInstaller.installSkillMd(skillName, skillMdContent, platformId);
+      return SkillInstaller.installSkillMd(
+        skillName,
+        skillMdContent,
+        platformId,
+      );
     },
   );
 
@@ -142,7 +151,12 @@ export function registerSkillPlatformHandlers(): void {
 
   ipcMain.handle(
     IPC_CHANNELS.SKILL_INSTALL_MD_SYMLINK,
-    async (_, skillName: string, skillMdContent: string, platformId: string) => {
+    async (
+      _,
+      skillName: string,
+      skillMdContent: string,
+      platformId: string,
+    ) => {
       if (typeof skillName !== "string" || skillName.trim().length === 0) {
         throw new Error(
           "skill:installMdSymlink requires a non-empty skillName",
@@ -171,6 +185,16 @@ export function registerSkillPlatformHandlers(): void {
     async (_, url: string) => {
       if (typeof url !== "string" || url.trim().length === 0) {
         throw new Error("skill:fetchRemoteContent requires a non-empty url");
+      }
+      // Validate URL protocol (only http/https allowed)
+      let parsed: URL;
+      try {
+        parsed = new URL(url);
+      } catch {
+        throw new Error("skill:fetchRemoteContent received an invalid URL");
+      }
+      if (!["http:", "https:"].includes(parsed.protocol)) {
+        throw new Error("skill:fetchRemoteContent only allows http/https URLs");
       }
       try {
         return await SkillInstaller.fetchRemoteContent(url);

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Modal, Button } from '../ui';
 import { SunIcon, MoonIcon, MonitorIcon, GlobeIcon, DatabaseIcon, InfoIcon } from 'lucide-react';
 
@@ -11,14 +12,15 @@ type Theme = 'light' | 'dark' | 'system';
 type Language = 'zh' | 'en';
 
 export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
+  const { t } = useTranslation();
   const [theme, setTheme] = useState<Theme>('system');
   const [language, setLanguage] = useState<Language>('zh');
   const [autoSave, setAutoSave] = useState(true);
 
   const themeOptions = [
-    { value: 'light', label: 'Light', icon: SunIcon },
-    { value: 'dark', label: 'Dark', icon: MoonIcon },
-    { value: 'system', label: 'Follow System', icon: MonitorIcon },
+    { value: 'light', label: t('settings.light'), icon: SunIcon },
+    { value: 'dark', label: t('settings.dark'), icon: MoonIcon },
+    { value: 'system', label: t('settings.system'), icon: MonitorIcon },
   ];
 
   const languageOptions = [
@@ -27,14 +29,14 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   ];
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Settings / 设置" size="md">
+    <Modal isOpen={isOpen} onClose={onClose} title={t('settings.title')} size="md">
       <div className="space-y-6">
         {/* Appearance */}
         {/* 外观 */}
         <div className="space-y-3">
           <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
             <SunIcon className="w-4 h-4 text-primary" />
-            Appearance / 外观
+            {t('settings.appearance')}
           </h3>
           <div className="grid grid-cols-3 gap-2">
             {themeOptions.map((option) => (
@@ -63,7 +65,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         <div className="space-y-3">
           <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
             <GlobeIcon className="w-4 h-4 text-primary" />
-            Language / 语言
+            {t('settings.language')}
           </h3>
           <div className="grid grid-cols-2 gap-2">
             {languageOptions.map((option) => (
@@ -91,11 +93,11 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         <div className="space-y-3">
           <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
             <DatabaseIcon className="w-4 h-4 text-primary" />
-            Data / 数据
+            {t('settings.data')}
           </h3>
           <div className="space-y-2">
             <label className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
-              <span className="text-sm">Auto Save / 自动保存</span>
+              <span className="text-sm">{t('settings.autoSave')}</span>
               <button
                 onClick={() => setAutoSave(!autoSave)}
                 className={`
@@ -112,12 +114,12 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               </button>
             </label>
             <button className="w-full flex items-center justify-between p-3 rounded-xl bg-muted/50 hover:bg-muted transition-colors">
-              <span className="text-sm">Export Data / 导出数据</span>
-              <span className="text-xs text-muted-foreground">JSON Format / JSON 格式</span>
+              <span className="text-sm">{t('settings.export')}</span>
+              <span className="text-xs text-muted-foreground">{t('settings.exportDesc')}</span>
             </button>
             <button className="w-full flex items-center justify-between p-3 rounded-xl bg-muted/50 hover:bg-muted transition-colors">
-              <span className="text-sm">Import Data / 导入数据</span>
-              <span className="text-xs text-muted-foreground">Import from file / 从文件导入</span>
+              <span className="text-sm">{t('settings.import')}</span>
+              <span className="text-xs text-muted-foreground">{t('settings.importDesc')}</span>
             </button>
           </div>
         </div>
@@ -127,16 +129,16 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         <div className="space-y-3">
           <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
             <InfoIcon className="w-4 h-4 text-primary" />
-            About / 关于
+            {t('settings.about')}
           </h3>
           <div className="p-4 rounded-xl bg-muted/50 text-center">
             <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center">
               <span className="text-white text-xl font-bold">P</span>
             </div>
             <h4 className="font-semibold text-foreground">PromptHub</h4>
-            <p className="text-xs text-muted-foreground mt-1">版本 1.0.0</p>
+            <p className="text-xs text-muted-foreground mt-1">v0.4.8</p>
             <p className="text-xs text-muted-foreground mt-2">
-              Local Prompt manager with version control / 本地版的 Prompt 管理器，带版本控制
+              {t('app.description')}
             </p>
           </div>
         </div>
@@ -145,7 +147,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         {/* 操作按钮 */}
         <div className="flex justify-end pt-2">
           <Button variant="primary" onClick={onClose}>
-            Done / 完成
+            {t('common.done')}
           </Button>
         </div>
       </div>

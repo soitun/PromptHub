@@ -37,13 +37,13 @@ describe("SkillVersionHistoryModal", () => {
         currentContent={skill.content || ""}
         onReload={vi.fn().mockResolvedValue(undefined)}
       />,
-      { language: "zh" },
+      { language: "en" },
     );
 
-    await screen.findByText("恢复到此版本");
-    fireEvent.click(screen.getByRole("button", { name: "删除" }));
-    await screen.findByText("删除版本快照");
-    fireEvent.click(screen.getAllByRole("button", { name: "删除" }).at(-1)!);
+    await screen.findByText("Restore to this version");
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    await screen.findByText("Delete version snapshot");
+    fireEvent.click(screen.getAllByRole("button", { name: "Delete" }).at(-1)!);
 
     await waitFor(() => {
       expect(window.api.skill.versionDelete).toHaveBeenCalledWith(

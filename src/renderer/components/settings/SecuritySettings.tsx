@@ -45,6 +45,7 @@ export function SecuritySettings() {
     }
     if (newMasterPwd !== newMasterPwdConfirm) {
       showToast(t("settings.pwdMismatch"), "error");
+      return;
     }
     setSecLoading(true);
     try {
@@ -106,20 +107,11 @@ export function SecuritySettings() {
     }
     if (newPwd !== newPwdConfirm) {
       showToast(t("settings.pwdMismatch"), "error");
+      return;
     }
     setSecLoading(true);
     try {
-      // Verify old password first
-      // 先验证旧密码
-      const unlockResult = await window.api.security.unlock(oldPwd);
-      if (!unlockResult.success) {
-        showToast(t("settings.currentPwdWrong"), "error");
-        setSecLoading(false);
-        return;
-      }
-      // Reset master password
-      // 重设主密码
-      await window.api.security.setMasterPassword(newPwd);
+      await window.api.security.changeMasterPassword(oldPwd, newPwd);
       await refreshSecurityStatus();
       setOldPwd("");
       setNewPwd("");
@@ -127,7 +119,11 @@ export function SecuritySettings() {
       setShowChangePwd(false);
       showToast(t("settings.changePwdSuccess"), "success");
     } catch (e: any) {
-      showToast(e?.message || t("settings.changePwdFail"), "error");
+      if (e?.message === "Current password is incorrect") {
+        showToast(t("settings.currentPwdWrong"), "error");
+      } else {
+        showToast(e?.message || t("settings.changePwdFail"), "error");
+      }
     } finally {
       setSecLoading(false);
     }
@@ -182,6 +178,46 @@ export function SecuritySettings() {
 
           {securityStatus.configured && (
             <div className="space-y-3 pt-2 border-t border-border/60">
+              {!securityStatus.unlocked ? (
+                <div className="space-y-3">
+                  <div className="text-sm font-medium">
+                    {t("settings.unlock", "Unlock")}
+                  </div>
+                  <PasswordInput
+                    value={unlockPwd}
+                    onChange={setUnlockPwd}
+                    placeholder={t(
+                      "settings.unlockPlaceholder",
+                      "Enter master password to unlock",
+                    )}
+                  />
+                  <button
+                    onClick={handleUnlock}
+                    className="h-10 px-4 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
+                    disabled={secLoading}
+                  >
+                    {secLoading
+                      ? t("common.loading", "Loading...")
+                      : t("settings.unlock", "Unlock")}
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-sm font-medium">
+                    {t("settings.unlockSuccess", "Unlocked successfully")}
+                  </div>
+                  <button
+                    onClick={handleLock}
+                    className="h-9 px-3 rounded-lg border border-border text-sm font-medium hover:bg-muted/60 disabled:opacity-50"
+                    disabled={secLoading}
+                  >
+                    {secLoading
+                      ? t("common.loading", "Loading...")
+                      : t("settings.lock", "Lock")}
+                  </button>
+                </div>
+              )}
+
               <div className="flex items-center justify-between">
                 <div className="text-sm font-medium">
                   {t("settings.changePwd", "Change Master Password")}
@@ -238,7 +274,7 @@ export function SecuritySettings() {
           <p className="text-xs text-muted-foreground leading-relaxed">
             {t(
               "settings.securityDesc",
-              "Master password is used to unlock private content. It is not stored on disk. If lost, data cannot be recovered.",
+              "Master password unlocks private content. PromptHub stores only a salted hash, never the plain text password. Private content is hidden until unlocked.",
             )}
           </p>
         </div>

@@ -1,10 +1,12 @@
 import { SearchIcon, PlusIcon, SettingsIcon, SunIcon, MoonIcon } from 'lucide-react';
 import { usePromptStore } from '../../stores/prompt.store';
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { CreatePromptModal } from '../prompt/CreatePromptModal';
 import { SettingsModal } from '../settings/SettingsModal';
 
 export function Header() {
+  const { t } = useTranslation();
   const searchQuery = usePromptStore((state) => state.searchQuery);
   const setSearchQuery = usePromptStore((state) => state.setSearchQuery);
   const [isDark, setIsDark] = useState(false);
@@ -44,7 +46,7 @@ export function Header() {
           <SearchIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
           <input
             type="text"
-            placeholder="搜索 Prompt..."
+            placeholder={t('header.search')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="
@@ -71,7 +73,7 @@ export function Header() {
           "
         >
           <PlusIcon className="w-4 h-4" />
-          <span>新建</span>
+          <span>{t('header.new')}</span>
         </button>
 
         {/* 主题切换 */}

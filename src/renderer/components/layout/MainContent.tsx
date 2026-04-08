@@ -669,7 +669,7 @@ export function MainContent() {
                          if (savedFileName && currentPrompt) {
                              const updatedImages = [...(currentPrompt.images || []), savedFileName];
                              await updatePrompt(targetId, { images: updatedImages });
-                             showToast(t('toast.imageSaved', '图片已保存到预览'), 'success');
+                             showToast(t('toast.imageSaved'), 'success');
                          }
                      } catch (saveErr) {
                          console.warn('[MainContent] Failed to save generated image:', saveErr);
@@ -689,8 +689,8 @@ export function MainContent() {
       if (currentPromptType === 'video') {
          // Video generation not yet implemented
          // 视频生成尚未实现
-         setAiResponse(t('videoNotSupported', '视频生成功能即将推出，敬请期待！'));
-         showToast(t('videoNotSupported', '视频生成暂不支持'), 'info');
+         setAiResponse(t('prompt.videoNotSupported'));
+         showToast(t('prompt.videoNotSupported'), 'info');
          return;
       }
 
@@ -699,9 +699,9 @@ export function MainContent() {
 
       if (!(singleChatConfig.apiKey && singleChatConfig.apiUrl && singleChatConfig.model)) {
         if (defaultImageModel) {
-             throw new Error(t('mismatchText') || 'Prompt type is Text but no Chat Model configured');
+             throw new Error(t('prompt.mismatchText'));
         }
-        throw new Error(t('toast.configAI') || '请先配置对话模型');
+        throw new Error(t('toast.configAI'));
       }
 
       const messages = buildMessagesFromPrompt(systemPrompt, userPrompt);
@@ -1214,24 +1214,24 @@ export function MainContent() {
         }
       }
     }
-    showToast(t('toast.batchFavorited') || `已收藏 ${ids.length} 个 Prompt`, 'success');
+    showToast(t('toast.batchFavorited'), 'success');
   };
 
   const handleBatchMove = async (ids: string[], folderId: string | undefined) => {
     for (const id of ids) {
       await updatePrompt(id, { folderId });
     }
-    showToast(t('toast.batchMoved') || `已移动 ${ids.length} 个 Prompt`, 'success');
+    showToast(t('toast.batchMoved'), 'success');
   };
 
   const handleBatchDelete = async (ids: string[]) => {
-    if (!confirm(t('prompt.confirmBatchDelete', { count: ids.length }) || `确定要删除这 ${ids.length} 个 Prompt 吗？`)) {
+    if (!confirm(t('prompt.confirmBatchDelete', { count: ids.length }))) {
       return;
     }
     for (const id of ids) {
       await deletePrompt(id);
     }
-    showToast(t('toast.batchDeleted') || `已删除 ${ids.length} 个 Prompt`, 'success');
+    showToast(t('toast.batchDeleted'), 'success');
   };
 
   // Memoize getViewClass to avoid re-creating the function on every render
@@ -1776,10 +1776,10 @@ export function MainContent() {
                                               setTimeout(() => URL.revokeObjectURL(href), 100);
                                           }
                                           
-                                          showToast(t('common.downloadSuccess', '下载已开始'), 'success');
+                                          showToast(t('common.downloadSuccess'), 'success');
                                         } catch (err) {
                                           console.error('Failed to download image:', err);
-                                          showToast(t('common.error', '下载失败'), 'error');
+                                          showToast(t('common.downloadFailed'), 'error');
                                         }
                                       }}
                                       className="p-1.5 rounded-lg bg-black/60 text-white hover:bg-black/80 transition-colors"

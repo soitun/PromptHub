@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { LockIcon, XIcon } from 'lucide-react';
 import { useToast } from '../ui/Toast';
 
@@ -18,12 +19,13 @@ export function PrivateFolderUnlockModal({
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const { showToast } = useToast();
+  const { t } = useTranslation();
 
   if (!isOpen) return null;
 
   const handleUnlock = async () => {
     if (!password.trim()) {
-      showToast('Please enter master password / 请输入主密码', 'error');
+      showToast(t('folder.masterPasswordRequired'), 'error');
       return;
     }
 
@@ -31,14 +33,14 @@ export function PrivateFolderUnlockModal({
     try {
       const result = await window.api?.security?.unlock(password);
       if (result?.success) {
-        showToast('Unlocked / 解锁成功', 'success');
+        showToast(t('folder.unlockSuccess'), 'success');
         setPassword('');
         onSuccess();
       } else {
-        showToast('Incorrect master password / 主密码错误', 'error');
+        showToast(t('folder.wrongPassword'), 'error');
       }
     } catch (error) {
-      showToast('Unlock failed / 解锁失败', 'error');
+      showToast(t('folder.unlockFailed'), 'error');
     } finally {
       setLoading(false);
     }
@@ -64,7 +66,7 @@ export function PrivateFolderUnlockModal({
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <div className="flex items-center gap-2">
             <LockIcon className="w-5 h-5 text-primary" />
-            <h2 className="text-base font-semibold">Unlock private folder / 解锁私密文件夹</h2>
+            <h2 className="text-base font-semibold">{t('folder.privateUnlockTitle')}</h2>
           </div>
           <button
             onClick={onClose}
@@ -78,9 +80,7 @@ export function PrivateFolderUnlockModal({
         {/* 内容 */}
         <div className="p-5 space-y-4">
           <p className="text-sm text-muted-foreground">
-            This folder "<span className="font-medium text-foreground">{folderName}</span>" is private. Please enter the master password to unlock.
-            <br />
-            文件夹「<span className="font-medium text-foreground">{folderName}</span>」是私密文件夹，请输入主密码解锁查看。
+            {t('folder.privateUnlockMessage', { name: folderName })}
           </p>
 
           <input
@@ -88,7 +88,7 @@ export function PrivateFolderUnlockModal({
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Please enter master password / 请输入主密码"
+            placeholder={t('folder.unlockPlaceholder')}
             className="w-full h-10 px-3 rounded-lg bg-muted border-0 text-sm placeholder:text-muted-foreground/50"
             autoFocus
           />
@@ -101,7 +101,7 @@ export function PrivateFolderUnlockModal({
               onClick={onClose}
               className="h-9 px-4 rounded-lg bg-muted text-sm hover:bg-muted/80 transition-colors"
             >
-              Cancel / 取消
+              {t('common.cancel')}
             </button>
             <button
               type="button"
@@ -109,7 +109,7 @@ export function PrivateFolderUnlockModal({
               disabled={loading}
               className="h-9 px-4 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
             >
-              {loading ? 'Unlocking... / 解锁中...' : 'Unlock / 解锁'}
+              {loading ? t('folder.unlocking') : t('settings.unlock')}
             </button>
           </div>
         </div>

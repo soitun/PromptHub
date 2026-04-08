@@ -204,7 +204,11 @@ interface SettingsState {
   dataPath: string;
 
   // WebDAV sync settings
-  // WebDAV 同步设置
+  // SECURITY NOTE: webdavPassword is stored in localStorage (plaintext).
+  // In Electron, localStorage is sandboxed to the app data directory and not
+  // accessible to other apps, but it is readable on disk. Consider migrating
+  // sensitive fields (webdavPassword, webdavEncryptionPassword, aiApiKey) to
+  // the main process using Electron's safeStorage API for at-rest encryption.
   webdavEnabled: boolean;
   webdavUrl: string;
   webdavUsername: string;
@@ -242,7 +246,8 @@ interface SettingsState {
   isSkillTagsSectionCollapsed: boolean;
 
   // AI model configuration (legacy single model compatibility)
-  // AI 模型配置（兼容旧版单模型配置）
+  // SECURITY NOTE: aiApiKey is stored in localStorage (plaintext).
+  // See WebDAV comment above for migration guidance.
   aiProvider: string;
   aiApiKey: string;
   aiApiUrl: string;
@@ -431,16 +436,15 @@ export const useSettingsStore = create<SettingsState>()(
         },
 
         setThemeMode: (mode) => {
-          setTouched({ themeMode: mode });
           if (mode === "system") {
             const prefersDark = window.matchMedia(
               "(prefers-color-scheme: dark)",
             ).matches;
-            setTouched({ isDarkMode: prefersDark });
+            setTouched({ themeMode: mode, isDarkMode: prefersDark });
             document.documentElement.classList.toggle("dark", prefersDark);
           } else {
             const isDark = mode === "dark";
-            setTouched({ isDarkMode: isDark });
+            setTouched({ themeMode: mode, isDarkMode: isDark });
             document.documentElement.classList.toggle("dark", isDark);
           }
         },
@@ -620,7 +624,7 @@ export const useSettingsStore = create<SettingsState>()(
         // Multi-model management methods
         // 多模型管理方法
         addAiModel: (config) => {
-          const id = `model_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          const id = `model_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
           const models = get().aiModels;
           const isFirst = models.length === 0;
           setTouched({
@@ -661,7 +665,9 @@ export const useSettingsStore = create<SettingsState>()(
           const toDelete = models.find((m) => m.id === id);
           const remaining = models.filter((m) => m.id !== id);
           const scenarioModelDefaults = { ...get().scenarioModelDefaults };
-          for (const [scenario, modelId] of Object.entries(scenarioModelDefaults)) {
+          for (const [scenario, modelId] of Object.entries(
+            scenarioModelDefaults,
+          )) {
             if (modelId === id) {
               delete scenarioModelDefaults[scenario as AIUsageScenario];
             }
@@ -669,7 +675,7 @@ export const useSettingsStore = create<SettingsState>()(
           // If deleting the default model, set the first one as default
           // 如果删除的是默认模型，设置第一个为默认
           if (toDelete?.isDefault && remaining.length > 0) {
-            remaining[0].isDefault = true;
+            remaining[0] = { ...remaining[0], isDefault: true };
             setTouched({
               aiProvider: remaining[0].provider,
               aiApiKey: remaining[0].apiKey,

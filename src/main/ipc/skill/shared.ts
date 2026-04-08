@@ -1,4 +1,4 @@
-import fs from "fs";
+import fs from "fs/promises";
 import type { SkillDB } from "../../database/skill";
 import { SkillInstaller } from "../../services/skill-installer";
 import type {
@@ -19,13 +19,14 @@ export async function ensureLocalRepoPath(
 
   const managedRepoPath = SkillInstaller.getLocalRepoPath(skill.name);
   const candidateRepoPath =
-    skill.local_repo_path && SkillInstaller.isManagedRepoPath(skill.local_repo_path)
+    skill.local_repo_path &&
+    (await SkillInstaller.isManagedRepoPath(skill.local_repo_path))
       ? skill.local_repo_path
       : managedRepoPath;
 
   try {
-    const stat = fs.statSync(candidateRepoPath);
-    if (stat.isDirectory()) {
+    const candidateStat = await fs.stat(candidateRepoPath);
+    if (candidateStat.isDirectory()) {
       if (skill.local_repo_path !== candidateRepoPath) {
         db.update(skillId, { local_repo_path: candidateRepoPath });
       }
@@ -37,10 +38,10 @@ export async function ensureLocalRepoPath(
 
   if (
     skill.local_repo_path &&
-    !SkillInstaller.isManagedRepoPath(skill.local_repo_path)
+    !(await SkillInstaller.isManagedRepoPath(skill.local_repo_path))
   ) {
     try {
-      const externalRepoStat = fs.statSync(skill.local_repo_path);
+      const externalRepoStat = await fs.stat(skill.local_repo_path);
       if (externalRepoStat.isDirectory()) {
         const savedRepoPath = await SkillInstaller.saveToLocalRepo(
           skill.name,
@@ -110,7 +111,10 @@ export async function replaceRepoFiles(
   await SkillInstaller.replaceLocalRepoFilesByPath(repoPath, filesSnapshot);
 }
 
-export function resolveRepoPath(db: SkillDB, skillId: string): string | null {
+export async function resolveRepoPath(
+  db: SkillDB,
+  skillId: string,
+): Promise<string | null> {
   if (typeof skillId !== "string" || skillId.trim() === "") {
     return null;
   }
@@ -119,12 +123,13 @@ export function resolveRepoPath(db: SkillDB, skillId: string): string | null {
   if (!skill) return null;
 
   const repoPath =
-    skill.local_repo_path && SkillInstaller.isManagedRepoPath(skill.local_repo_path)
+    skill.local_repo_path &&
+    (await SkillInstaller.isManagedRepoPath(skill.local_repo_path))
       ? skill.local_repo_path
       : SkillInstaller.getLocalRepoPath(skill.name);
   try {
-    const stat = fs.statSync(repoPath);
-    if (stat.isDirectory()) {
+    const repoStat = await fs.stat(repoPath);
+    if (repoStat.isDirectory()) {
       return repoPath;
     }
   } catch {

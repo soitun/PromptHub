@@ -1,58 +1,36 @@
 import { ipcMain, dialog, app, shell } from "electron";
 import path from "path";
-import fs from "fs";
+import fs from "fs/promises";
 import { v4 as uuidv4 } from "uuid";
+import { IPC_CHANNELS } from "../../shared/constants";
+import {
+  resolvePublicAddress,
+  isBlockedHostname,
+} from "../services/skill-installer-remote";
 
 /**
- * Validate external URL to prevent SSRF attacks
- * 验证外部 URL 以防止 SSRF 攻击
+ * Validate external URL to prevent SSRF attacks.
+ * Uses DNS resolution to block private/internal IP addresses,
+ * covering DNS rebinding, octal/hex/decimal IP, and IPv6-mapped IPv4.
  */
-function isValidExternalUrl(url: string): boolean {
+async function isValidExternalUrl(url: string): Promise<boolean> {
   try {
     const parsed = new URL(url);
 
     // Only allow http/https protocols
-    // 只允许 http/https 协议
     if (!["http:", "https:"].includes(parsed.protocol)) {
       return false;
     }
 
     const host = parsed.hostname.toLowerCase();
 
-    // Block localhost
-    // 禁止 localhost
-    if (host === "localhost" || host === "127.0.0.1" || host === "::1") {
+    // Block obvious localhost aliases before DNS resolution
+    if (isBlockedHostname(host)) {
       return false;
     }
 
-    // Block private IP ranges (RFC 1918)
-    // 禁止内网 IP 范围
-    if (
-      host.startsWith("10.") ||
-      host.startsWith("192.168.") ||
-      host.match(/^172\.(1[6-9]|2[0-9]|3[01])\./) ||
-      host.startsWith("0.") ||
-      host === "0.0.0.0"
-    ) {
-      return false;
-    }
-
-    // Block link-local and cloud metadata endpoints
-    // 禁止链路本地和云元数据端点
-    if (host.startsWith("169.254.") || host === "169.254.169.254") {
-      return false;
-    }
-
-    // Block IPv6 localhost and link-local
-    // 禁止 IPv6 本地地址
-    if (
-      host.startsWith("fe80:") ||
-      host.startsWith("fc") ||
-      host.startsWith("fd")
-    ) {
-      return false;
-    }
-
+    // Resolve hostname and verify all addresses are public
+    await resolvePublicAddress(host);
     return true;
   } catch {
     return false;
@@ -60,16 +38,13 @@ function isValidExternalUrl(url: string): boolean {
 }
 
 /**
- * Validate filename to prevent path traversal
- * 验证文件名以防止路径遍历
+ * Validate filename to prevent path traversal.
  */
 function validateFileName(fileName: string, baseDir: string): string {
   // Only take the basename, removing any path components
-  // 只取文件名部分，移除所有路径组件
   const safeName = path.basename(fileName);
 
   // Reject if filename differs from input or contains path traversal
-  // 如果文件名与输入不同或包含路径遍历则拒绝
   if (safeName !== fileName || fileName.includes("..")) {
     throw new Error("Invalid filename: path traversal detected");
   }
@@ -77,7 +52,6 @@ function validateFileName(fileName: string, baseDir: string): string {
   const fullPath = path.join(baseDir, safeName);
 
   // Double-check the resolved path is within the base directory
-  // 二次验证解析后的路径在基础目录内
   if (!fullPath.startsWith(baseDir + path.sep) && fullPath !== baseDir) {
     throw new Error("Invalid filename: path traversal detected");
   }
@@ -85,10 +59,28 @@ function validateFileName(fileName: string, baseDir: string): string {
   return fullPath;
 }
 
-export function registerImageIPC() {
+/**
+ * Ensure a directory exists, creating it if necessary.
+ */
+async function ensureDir(dirPath: string): Promise<void> {
+  await fs.mkdir(dirPath, { recursive: true });
+}
+
+/**
+ * Check if a path exists.
+ */
+async function pathExists(filePath: string): Promise<boolean> {
+  try {
+    await fs.access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function registerImageIPC(): void {
   // Select images
-  // 选择图片
-  ipcMain.handle("dialog:selectImage", async () => {
+  ipcMain.handle(IPC_CHANNELS.DIALOG_SELECT_IMAGE, async () => {
     const result = await dialog.showOpenDialog({
       properties: ["openFile", "multiSelections"],
       filters: [
@@ -103,41 +95,39 @@ export function registerImageIPC() {
   });
 
   // Save images to app data directory
-  // 保存图片到应用数据目录
-  ipcMain.handle("image:save", async (_event, filePaths: string[]) => {
-    const userDataPath = app.getPath("userData");
-    const imagesDir = path.join(userDataPath, "images");
+  ipcMain.handle(
+    IPC_CHANNELS.IMAGE_SAVE,
+    async (_event, filePaths: string[]) => {
+      const userDataPath = app.getPath("userData");
+      const imagesDir = path.join(userDataPath, "images");
 
-    if (!fs.existsSync(imagesDir)) {
-      fs.mkdirSync(imagesDir, { recursive: true });
-    }
+      await ensureDir(imagesDir);
 
-    const savedImages: string[] = [];
+      const savedImages: string[] = [];
 
-    for (const filePath of filePaths) {
-      try {
-        const ext = path.extname(filePath);
-        const fileName = `${uuidv4()}${ext}`;
-        const destPath = path.join(imagesDir, fileName);
+      for (const filePath of filePaths) {
+        try {
+          const ext = path.extname(filePath);
+          const fileName = `${uuidv4()}${ext}`;
+          const destPath = path.join(imagesDir, fileName);
 
-        fs.copyFileSync(filePath, destPath);
-        savedImages.push(fileName);
-      } catch (error) {
-        console.error(`Failed to save image ${filePath}:`, error);
+          await fs.copyFile(filePath, destPath);
+          savedImages.push(fileName);
+        } catch (error) {
+          console.error(`Failed to save image ${filePath}:`, error);
+        }
       }
-    }
 
-    return savedImages;
-  });
+      return savedImages;
+    },
+  );
+
   // Open image with default app
-  // 使用默认应用打开图片
-  ipcMain.handle("image:open", async (_event, fileName: string) => {
+  ipcMain.handle(IPC_CHANNELS.IMAGE_OPEN, async (_event, fileName: string) => {
     const userDataPath = app.getPath("userData");
     const imagesDir = path.join(userDataPath, "images");
 
     try {
-      // Validate filename to prevent path traversal
-      // 验证文件名以防止路径遍历
       const imagePath = validateFileName(fileName, imagesDir);
       await shell.openPath(imagePath);
       return true;
@@ -146,33 +136,32 @@ export function registerImageIPC() {
       return false;
     }
   });
+
   // Save image buffer
-  // 保存图片 buffer
-  ipcMain.handle("image:save-buffer", async (_event, buffer: Buffer) => {
-    const userDataPath = app.getPath("userData");
-    const imagesDir = path.join(userDataPath, "images");
+  ipcMain.handle(
+    IPC_CHANNELS.IMAGE_SAVE_BUFFER,
+    async (_event, buffer: Buffer) => {
+      const userDataPath = app.getPath("userData");
+      const imagesDir = path.join(userDataPath, "images");
 
-    if (!fs.existsSync(imagesDir)) {
-      fs.mkdirSync(imagesDir, { recursive: true });
-    }
+      await ensureDir(imagesDir);
 
-    try {
-      const fileName = `${uuidv4()}.png`;
-      const destPath = path.join(imagesDir, fileName);
-      fs.writeFileSync(destPath, buffer);
-      return fileName;
-    } catch (error) {
-      console.error("Failed to save image buffer:", error);
-      return null;
-    }
-  });
+      try {
+        const fileName = `${uuidv4()}.png`;
+        const destPath = path.join(imagesDir, fileName);
+        await fs.writeFile(destPath, buffer);
+        return fileName;
+      } catch (error) {
+        console.error("Failed to save image buffer:", error);
+        return null;
+      }
+    },
+  );
 
-  // Download image
-  // 下载图片
-  ipcMain.handle("image:download", async (_event, url: string) => {
-    // Validate URL to prevent SSRF
-    // 验证 URL 以防止 SSRF
-    if (!isValidExternalUrl(url)) {
+  // Download image (with SSRF protection via DNS resolution)
+  ipcMain.handle(IPC_CHANNELS.IMAGE_DOWNLOAD, async (_event, url: string) => {
+    // Validate URL to prevent SSRF (resolves DNS to block private IPs)
+    if (!(await isValidExternalUrl(url))) {
       console.error(`Blocked SSRF attempt: ${url}`);
       throw new Error("Invalid or blocked URL");
     }
@@ -180,9 +169,7 @@ export function registerImageIPC() {
     const userDataPath = app.getPath("userData");
     const imagesDir = path.join(userDataPath, "images");
 
-    if (!fs.existsSync(imagesDir)) {
-      fs.mkdirSync(imagesDir, { recursive: true });
-    }
+    await ensureDir(imagesDir);
 
     try {
       const response = await fetch(url);
@@ -193,14 +180,13 @@ export function registerImageIPC() {
       const buffer = Buffer.from(arrayBuffer);
 
       // Try to get extension from URL, default to png
-      // 尝试从 URL 获取扩展名，默认为 png
       let ext = path.extname(url).split("?")[0];
       if (!ext || ext.length > 5) ext = ".png";
 
       const fileName = `${uuidv4()}${ext}`;
       const destPath = path.join(imagesDir, fileName);
 
-      fs.writeFileSync(destPath, buffer);
+      await fs.writeFile(destPath, buffer);
       return fileName;
     } catch (error) {
       console.error(`Failed to download image ${url}:`, error);
@@ -209,17 +195,16 @@ export function registerImageIPC() {
   });
 
   // Get list of all local image file names
-  // 获取所有本地图片文件名列表
-  ipcMain.handle("image:list", async () => {
+  ipcMain.handle(IPC_CHANNELS.IMAGE_LIST, async () => {
     const userDataPath = app.getPath("userData");
     const imagesDir = path.join(userDataPath, "images");
 
-    if (!fs.existsSync(imagesDir)) {
+    if (!(await pathExists(imagesDir))) {
       return [];
     }
 
     try {
-      const files = fs.readdirSync(imagesDir);
+      const files = await fs.readdir(imagesDir);
       return files.filter((f) => /\.(jpg|jpeg|png|gif|webp)$/i.test(f));
     } catch (error) {
       console.error("Failed to list images:", error);
@@ -228,67 +213,63 @@ export function registerImageIPC() {
   });
 
   // Get image file size in bytes
-  // 获取图片文件大小（字节）
-  ipcMain.handle("image:getSize", async (_event, fileName: string) => {
-    const userDataPath = app.getPath("userData");
-    const imagesDir = path.join(userDataPath, "images");
-    try {
-      const imagePath = validateFileName(fileName, imagesDir);
-      if (!fs.existsSync(imagePath)) {
+  ipcMain.handle(
+    IPC_CHANNELS.IMAGE_GET_SIZE,
+    async (_event, fileName: string) => {
+      const userDataPath = app.getPath("userData");
+      const imagesDir = path.join(userDataPath, "images");
+      try {
+        const imagePath = validateFileName(fileName, imagesDir);
+        if (!(await pathExists(imagePath))) {
+          return null;
+        }
+        const stat = await fs.stat(imagePath);
+        return stat.size;
+      } catch (error) {
+        console.error(`Failed to get image size ${fileName}:`, error);
         return null;
       }
-      const stat = fs.statSync(imagePath);
-      return stat.size;
-    } catch (error) {
-      console.error(`Failed to get image size ${fileName}:`, error);
-      return null;
-    }
-  });
+    },
+  );
 
   // Read image as Base64
-  // 读取图片为 Base64
-  ipcMain.handle("image:readBase64", async (_event, fileName: string) => {
-    const userDataPath = app.getPath("userData");
-    const imagesDir = path.join(userDataPath, "images");
+  ipcMain.handle(
+    IPC_CHANNELS.IMAGE_READ_BASE64,
+    async (_event, fileName: string) => {
+      const userDataPath = app.getPath("userData");
+      const imagesDir = path.join(userDataPath, "images");
 
-    try {
-      // Validate filename to prevent path traversal
-      // 验证文件名以防止路径遍历
-      const imagePath = validateFileName(fileName, imagesDir);
-      if (!fs.existsSync(imagePath)) {
+      try {
+        const imagePath = validateFileName(fileName, imagesDir);
+        if (!(await pathExists(imagePath))) {
+          return null;
+        }
+        const buffer = await fs.readFile(imagePath);
+        return buffer.toString("base64");
+      } catch (error) {
+        console.error(`Failed to read image ${fileName}:`, error);
         return null;
       }
-      const buffer = fs.readFileSync(imagePath);
-      return buffer.toString("base64");
-    } catch (error) {
-      console.error(`Failed to read image ${fileName}:`, error);
-      return null;
-    }
-  });
+    },
+  );
 
   // Save image from Base64 (for sync download)
-  // 从 Base64 保存图片（用于同步下载）
   ipcMain.handle(
-    "image:saveBase64",
+    IPC_CHANNELS.IMAGE_SAVE_BASE64,
     async (_event, fileName: string, base64Data: string) => {
       const userDataPath = app.getPath("userData");
       const imagesDir = path.join(userDataPath, "images");
 
-      if (!fs.existsSync(imagesDir)) {
-        fs.mkdirSync(imagesDir, { recursive: true });
-      }
+      await ensureDir(imagesDir);
 
       try {
-        // Validate filename to prevent path traversal
-        // 验证文件名以防止路径遍历
         const destPath = validateFileName(fileName, imagesDir);
         // Skip if file already exists
-        // 如果文件已存在，跳过
-        if (fs.existsSync(destPath)) {
+        if (await pathExists(destPath)) {
           return true;
         }
         const buffer = Buffer.from(base64Data, "base64");
-        fs.writeFileSync(destPath, buffer);
+        await fs.writeFile(destPath, buffer);
         return true;
       } catch (error) {
         console.error(`Failed to save image ${fileName}:`, error);
@@ -298,31 +279,30 @@ export function registerImageIPC() {
   );
 
   // Check if image exists
-  // 检查图片是否存在
-  ipcMain.handle("image:exists", async (_event, fileName: string) => {
-    const userDataPath = app.getPath("userData");
-    const imagesDir = path.join(userDataPath, "images");
-    try {
-      // Validate filename to prevent path traversal
-      // 验证文件名以防止路径遍历
-      const imagePath = validateFileName(fileName, imagesDir);
-      return fs.existsSync(imagePath);
-    } catch {
-      return false;
-    }
-  });
+  ipcMain.handle(
+    IPC_CHANNELS.IMAGE_EXISTS,
+    async (_event, fileName: string) => {
+      const userDataPath = app.getPath("userData");
+      const imagesDir = path.join(userDataPath, "images");
+      try {
+        const imagePath = validateFileName(fileName, imagesDir);
+        return await pathExists(imagePath);
+      } catch {
+        return false;
+      }
+    },
+  );
 
   // Clear all images
-  // 清除所有图片
-  ipcMain.handle("image:clear", async () => {
+  ipcMain.handle(IPC_CHANNELS.IMAGE_CLEAR, async () => {
     try {
       const userDataPath = app.getPath("userData");
       const imagesDir = path.join(userDataPath, "images");
-      if (fs.existsSync(imagesDir)) {
-        const files = fs.readdirSync(imagesDir);
-        for (const file of files) {
-          fs.unlinkSync(path.join(imagesDir, file));
-        }
+      if (await pathExists(imagesDir)) {
+        const files = await fs.readdir(imagesDir);
+        await Promise.all(
+          files.map((file) => fs.unlink(path.join(imagesDir, file))),
+        );
         console.log(`Cleared ${files.length} images`);
       }
       return true;
@@ -333,11 +313,9 @@ export function registerImageIPC() {
   });
 
   // ==================== Video Support ====================
-  // ==================== 视频支持 ====================
 
   // Select videos
-  // 选择视频
-  ipcMain.handle("dialog:selectVideo", async () => {
+  ipcMain.handle(IPC_CHANNELS.DIALOG_SELECT_VIDEO, async () => {
     const result = await dialog.showOpenDialog({
       properties: ["openFile", "multiSelections"],
       filters: [
@@ -352,42 +330,39 @@ export function registerImageIPC() {
   });
 
   // Save videos to app data directory
-  // 保存视频到应用数据目录
-  ipcMain.handle("video:save", async (_event, filePaths: string[]) => {
-    const userDataPath = app.getPath("userData");
-    const videosDir = path.join(userDataPath, "videos");
+  ipcMain.handle(
+    IPC_CHANNELS.VIDEO_SAVE,
+    async (_event, filePaths: string[]) => {
+      const userDataPath = app.getPath("userData");
+      const videosDir = path.join(userDataPath, "videos");
 
-    if (!fs.existsSync(videosDir)) {
-      fs.mkdirSync(videosDir, { recursive: true });
-    }
+      await ensureDir(videosDir);
 
-    const savedVideos: string[] = [];
+      const savedVideos: string[] = [];
 
-    for (const filePath of filePaths) {
-      try {
-        const ext = path.extname(filePath);
-        const fileName = `${uuidv4()}${ext}`;
-        const destPath = path.join(videosDir, fileName);
+      for (const filePath of filePaths) {
+        try {
+          const ext = path.extname(filePath);
+          const fileName = `${uuidv4()}${ext}`;
+          const destPath = path.join(videosDir, fileName);
 
-        fs.copyFileSync(filePath, destPath);
-        savedVideos.push(fileName);
-      } catch (error) {
-        console.error(`Failed to save video ${filePath}:`, error);
+          await fs.copyFile(filePath, destPath);
+          savedVideos.push(fileName);
+        } catch (error) {
+          console.error(`Failed to save video ${filePath}:`, error);
+        }
       }
-    }
 
-    return savedVideos;
-  });
+      return savedVideos;
+    },
+  );
 
   // Open video with default app
-  // 使用默认应用打开视频
-  ipcMain.handle("video:open", async (_event, fileName: string) => {
+  ipcMain.handle(IPC_CHANNELS.VIDEO_OPEN, async (_event, fileName: string) => {
     const userDataPath = app.getPath("userData");
     const videosDir = path.join(userDataPath, "videos");
 
     try {
-      // Validate filename to prevent path traversal
-      // 验证文件名以防止路径遍历
       const videoPath = validateFileName(fileName, videosDir);
       await shell.openPath(videoPath);
       return true;
@@ -398,17 +373,16 @@ export function registerImageIPC() {
   });
 
   // Get list of all local video file names
-  // 获取所有本地视频文件名列表
-  ipcMain.handle("video:list", async () => {
+  ipcMain.handle(IPC_CHANNELS.VIDEO_LIST, async () => {
     const userDataPath = app.getPath("userData");
     const videosDir = path.join(userDataPath, "videos");
 
-    if (!fs.existsSync(videosDir)) {
+    if (!(await pathExists(videosDir))) {
       return [];
     }
 
     try {
-      const files = fs.readdirSync(videosDir);
+      const files = await fs.readdir(videosDir);
       return files.filter((f) => /\.(mp4|webm|mov|avi|mkv)$/i.test(f));
     } catch (error) {
       console.error("Failed to list videos:", error);
@@ -417,67 +391,63 @@ export function registerImageIPC() {
   });
 
   // Get video file size in bytes
-  // 获取视频文件大小（字节）
-  ipcMain.handle("video:getSize", async (_event, fileName: string) => {
-    const userDataPath = app.getPath("userData");
-    const videosDir = path.join(userDataPath, "videos");
-    try {
-      const videoPath = validateFileName(fileName, videosDir);
-      if (!fs.existsSync(videoPath)) {
+  ipcMain.handle(
+    IPC_CHANNELS.VIDEO_GET_SIZE,
+    async (_event, fileName: string) => {
+      const userDataPath = app.getPath("userData");
+      const videosDir = path.join(userDataPath, "videos");
+      try {
+        const videoPath = validateFileName(fileName, videosDir);
+        if (!(await pathExists(videoPath))) {
+          return null;
+        }
+        const stat = await fs.stat(videoPath);
+        return stat.size;
+      } catch (error) {
+        console.error(`Failed to get video size ${fileName}:`, error);
         return null;
       }
-      const stat = fs.statSync(videoPath);
-      return stat.size;
-    } catch (error) {
-      console.error(`Failed to get video size ${fileName}:`, error);
-      return null;
-    }
-  });
+    },
+  );
 
   // Read video as Base64
-  // 读取视频为 Base64
-  ipcMain.handle("video:readBase64", async (_event, fileName: string) => {
-    const userDataPath = app.getPath("userData");
-    const videosDir = path.join(userDataPath, "videos");
+  ipcMain.handle(
+    IPC_CHANNELS.VIDEO_READ_BASE64,
+    async (_event, fileName: string) => {
+      const userDataPath = app.getPath("userData");
+      const videosDir = path.join(userDataPath, "videos");
 
-    try {
-      // Validate filename to prevent path traversal
-      // 验证文件名以防止路径遍历
-      const videoPath = validateFileName(fileName, videosDir);
-      if (!fs.existsSync(videoPath)) {
+      try {
+        const videoPath = validateFileName(fileName, videosDir);
+        if (!(await pathExists(videoPath))) {
+          return null;
+        }
+        const buffer = await fs.readFile(videoPath);
+        return buffer.toString("base64");
+      } catch (error) {
+        console.error(`Failed to read video ${fileName}:`, error);
         return null;
       }
-      const buffer = fs.readFileSync(videoPath);
-      return buffer.toString("base64");
-    } catch (error) {
-      console.error(`Failed to read video ${fileName}:`, error);
-      return null;
-    }
-  });
+    },
+  );
 
   // Save video from Base64 (for sync download)
-  // 从 Base64 保存视频（用于同步下载）
   ipcMain.handle(
-    "video:saveBase64",
+    IPC_CHANNELS.VIDEO_SAVE_BASE64,
     async (_event, fileName: string, base64Data: string) => {
       const userDataPath = app.getPath("userData");
       const videosDir = path.join(userDataPath, "videos");
 
-      if (!fs.existsSync(videosDir)) {
-        fs.mkdirSync(videosDir, { recursive: true });
-      }
+      await ensureDir(videosDir);
 
       try {
-        // Validate filename to prevent path traversal
-        // 验证文件名以防止路径遍历
         const destPath = validateFileName(fileName, videosDir);
         // Skip if file already exists
-        // 如果文件已存在，跳过
-        if (fs.existsSync(destPath)) {
+        if (await pathExists(destPath)) {
           return true;
         }
         const buffer = Buffer.from(base64Data, "base64");
-        fs.writeFileSync(destPath, buffer);
+        await fs.writeFile(destPath, buffer);
         return true;
       } catch (error) {
         console.error(`Failed to save video ${fileName}:`, error);
@@ -487,41 +457,40 @@ export function registerImageIPC() {
   );
 
   // Check if video exists
-  // 检查视频是否存在
-  ipcMain.handle("video:exists", async (_event, fileName: string) => {
-    const userDataPath = app.getPath("userData");
-    const videosDir = path.join(userDataPath, "videos");
-    try {
-      // Validate filename to prevent path traversal
-      // 验证文件名以防止路径遍历
-      const videoPath = validateFileName(fileName, videosDir);
-      return fs.existsSync(videoPath);
-    } catch {
-      return false;
-    }
-  });
+  ipcMain.handle(
+    IPC_CHANNELS.VIDEO_EXISTS,
+    async (_event, fileName: string) => {
+      const userDataPath = app.getPath("userData");
+      const videosDir = path.join(userDataPath, "videos");
+      try {
+        const videoPath = validateFileName(fileName, videosDir);
+        return await pathExists(videoPath);
+      } catch {
+        return false;
+      }
+    },
+  );
 
   // Get video file path (for local protocol)
-  // 获取视频文件路径（用于本地协议）
-  ipcMain.handle("video:getPath", async (_event, fileName: string) => {
-    const userDataPath = app.getPath("userData");
-    const videosDir = path.join(userDataPath, "videos");
-    // Validate filename to prevent path traversal
-    // 验证文件名以防止路径遍历
-    return validateFileName(fileName, videosDir);
-  });
+  ipcMain.handle(
+    IPC_CHANNELS.VIDEO_GET_PATH,
+    async (_event, fileName: string) => {
+      const userDataPath = app.getPath("userData");
+      const videosDir = path.join(userDataPath, "videos");
+      return validateFileName(fileName, videosDir);
+    },
+  );
 
   // Clear all videos
-  // 清除所有视频
-  ipcMain.handle("video:clear", async () => {
+  ipcMain.handle(IPC_CHANNELS.VIDEO_CLEAR, async () => {
     try {
       const userDataPath = app.getPath("userData");
       const videosDir = path.join(userDataPath, "videos");
-      if (fs.existsSync(videosDir)) {
-        const files = fs.readdirSync(videosDir);
-        for (const file of files) {
-          fs.unlinkSync(path.join(videosDir, file));
-        }
+      if (await pathExists(videosDir)) {
+        const files = await fs.readdir(videosDir);
+        await Promise.all(
+          files.map((file) => fs.unlink(path.join(videosDir, file))),
+        );
         console.log(`Cleared ${files.length} videos`);
       }
       return true;
