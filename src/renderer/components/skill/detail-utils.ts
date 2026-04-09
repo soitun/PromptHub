@@ -1,6 +1,11 @@
 import type { TFunction } from "i18next";
-import type { Skill, SkillVersion } from "../../../shared/types";
+import type {
+  SafetyScanAIConfig,
+  Skill,
+  SkillVersion,
+} from "../../../shared/types";
 import type { SkillPlatform } from "../../../shared/constants/platforms";
+import type { AIModelConfig } from "../../stores/settings.store";
 
 export const SKILL_NAME_REGEX = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
@@ -41,7 +46,9 @@ export interface DiffLine {
   newLineNum?: number;
 }
 
-export function getProtocolDisplayLabel(protocolType: Skill["protocol_type"]): string {
+export function getProtocolDisplayLabel(
+  protocolType: Skill["protocol_type"],
+): string {
   switch (protocolType) {
     case "skill":
       return "SKILL.md";
@@ -67,7 +74,10 @@ export function getSkillSourceMeta(
     return {
       kind: "github",
       value: sourceValue,
-      displayValue: sourceValue.replace(/^https?:\/\/(www\.)?github\.com\//i, ""),
+      displayValue: sourceValue.replace(
+        /^https?:\/\/(www\.)?github\.com\//i,
+        "",
+      ),
       shortValue: sourceValue.replace(/^https?:\/\/(www\.)?github\.com\//i, ""),
       sourceLabel:
         t?.(
@@ -121,7 +131,10 @@ export function getSkillSourceMeta(
         "skill.sourceClaudeLocalFolder",
         "Imported from Claude Code Local Skills Folder",
       ) || "Imported from Claude Code Local Skills Folder";
-  } else if (lowerPath.includes("/cursor/") || lowerPath.includes("/.cursor/")) {
+  } else if (
+    lowerPath.includes("/cursor/") ||
+    lowerPath.includes("/.cursor/")
+  ) {
     sourceLabel =
       t?.(
         "skill.sourceCursorLocalFolder",
@@ -290,7 +303,10 @@ function extractFrontmatterValue(content: string, key: string): string | null {
 
   if (!line) return null;
 
-  let value = line.trim().slice(key.length + 1).trim();
+  let value = line
+    .trim()
+    .slice(key.length + 1)
+    .trim();
   if (
     (value.startsWith('"') && value.endsWith('"')) ||
     (value.startsWith("'") && value.endsWith("'"))
@@ -313,7 +329,11 @@ function extractBodySummary(content: string): string | null {
       if (paragraph.startsWith("#")) return false;
       if (paragraph.startsWith("|")) return false;
       if (paragraph.startsWith("```")) return false;
-      if (/^(quick reference|reading content|editing content|create from scratch)$/i.test(paragraph)) {
+      if (
+        /^(quick reference|reading content|editing content|create from scratch)$/i.test(
+          paragraph,
+        )
+      ) {
         return false;
       }
       return paragraph.length >= 24;
@@ -322,9 +342,7 @@ function extractBodySummary(content: string): string | null {
   return paragraphs[0] || null;
 }
 
-export function resolveSkillDescription(
-  instructions?: string,
-): string {
+export function resolveSkillDescription(instructions?: string): string {
   if (!instructions?.trim()) {
     return "";
   }
@@ -343,4 +361,24 @@ export function resolveSkillDescription(
   }
 
   return "";
+}
+
+/**
+ * Extract a SafetyScanAIConfig from the user's configured AI models.
+ * Returns the default chat model config, or undefined if none is available.
+ */
+export function getSafetyScanAIConfig(
+  aiModels: AIModelConfig[],
+): SafetyScanAIConfig | undefined {
+  const chatModels = aiModels.filter((m) => (m.type ?? "chat") === "chat");
+  const model = chatModels.find((m) => m.isDefault) ?? chatModels[0];
+  if (!model?.apiKey || !model?.apiUrl || !model?.model) {
+    return undefined;
+  }
+  return {
+    provider: model.provider,
+    apiKey: model.apiKey,
+    apiUrl: model.apiUrl,
+    model: model.model,
+  };
 }

@@ -1,3 +1,30 @@
+## [0.5.0] - 2026-04-09
+
+### 新功能 / Added
+
+- 🛡️ **Skill 安全评估**：新增静态风险扫描器，可对已安装 Skill、商店 Skill 和 CLI 扫描结果输出 `safe / warn / high-risk / blocked` 风险等级与命中规则摘要
+  - **Skill Safety Assessment**: Added a static risk scanner that evaluates installed Skills, store Skills, and CLI scan results with `safe / warn / high-risk / blocked` risk levels plus matched-rule summaries
+- 🏪 **商店安装前安全检查**：商店详情页支持手动“先检查再添加”，设置里可选“添加前自动评估”，默认关闭；`high-risk` 需要二次确认，`blocked` 直接拦截
+  - **Store Safety Check Before Install**: Store detail pages now support manual “scan before add”, settings can optionally enable “auto-assess before install” (off by default), `high-risk` installs require explicit confirmation, and `blocked` installs are rejected
+- 🖥️ **CLI 安全扫描输出**：`prompthub skill scan` 现在会返回安全评估结果，方便脚本化审查本地 skill 仓库
+  - **CLI Safety Scan Output**: `prompthub skill scan` now returns safety assessment results so local skill repositories can be audited in scripts and automation
+
+### 安全 / Security
+
+- 🔒 **恶意模式检测**：扫描器会检查危险 shell 片段、提权与持久化命令、凭据路径读取、编码执行、可疑工作流文件与来源风险
+  - **Malicious Pattern Detection**: The scanner inspects dangerous shell fragments, privilege-escalation and persistence commands, credential-path access, encoded execution, suspicious workflow files, and source risk signals
+- 🔒 **商店高风险安装护栏**：对 `high-risk` 和 `blocked` 级别 skill 增加安装前护栏，避免“安装成功但用户毫无感知”的情况
+  - **High-Risk Store Install Guardrails**: Added pre-install guardrails for `high-risk` and `blocked` Skills so unsafe installs are not silently accepted
+
+### 优化 / Improvements
+
+- ⚙️ **批量复查与设置开关**：设置页新增“立即复查已安装 Skills”，并支持自动复查已安装 Skill 与安装前自动评估的独立开关
+  - **Batch Rescan and Settings Toggles**: Added “Rescan Installed Skills Now” in settings plus separate toggles for automatic installed-skill rescans and pre-install store assessment
+- 🌍 **文档与多语言同步到 `v0.5.0`**：更新 CHANGELOG、README、多语言 README 与官网发布元数据，补充 Skill 安全评估相关说明
+  - **Docs and Localization Synced to `v0.5.0`**: Updated the changelog, README, localized READMEs, and website release metadata with the new Skill safety assessment details
+
+---
+
 ## [0.4.9] - 2026-04-08
 
 ### 安全加固 / Security

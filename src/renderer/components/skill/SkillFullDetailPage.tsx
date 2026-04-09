@@ -2,7 +2,6 @@ import { useTranslation } from "react-i18next";
 import {
   ArrowLeftIcon,
   ArrowUpIcon,
-  CuboidIcon,
   GlobeIcon,
   HistoryIcon,
   BookOpenIcon,
@@ -14,6 +13,11 @@ import {
   FolderOpenIcon,
   ShieldAlertIcon,
   ShieldCheckIcon,
+  ShieldIcon,
+  RefreshCwIcon,
+  AlertTriangleIcon,
+  InfoIcon,
+  CheckCircleIcon,
 } from "lucide-react";
 import { SkillIcon } from "./SkillIcon";
 import { SkillCodePane } from "./SkillCodePane";
@@ -33,12 +37,17 @@ import "./SkillMarkdown.css";
 import {
   downloadSkillExport,
   getErrorMessage,
+  getSafetyScanAIConfig,
   resolveSkillDescription,
   stripFrontmatter,
 } from "./detail-utils";
 import { useSkillPlatform } from "./use-skill-platform";
 import { SkillVersionHistoryModal } from "./SkillVersionHistoryModal";
 import type { SkillSafetyReport } from "../../../shared/types";
+import {
+  getSkillSafetyFindingTitle,
+  getSkillSafetySummary,
+} from "./safety-i18n";
 
 /**
  * Full-width Skill Detail Page
@@ -56,6 +65,7 @@ export function SkillFullDetailPage() {
   const toggleFavorite = useSkillStore((state) => state.toggleFavorite);
   const loadSkills = useSkillStore((state) => state.loadSkills);
   const syncSkillFromRepo = useSkillStore((state) => state.syncSkillFromRepo);
+  const saveSafetyReport = useSkillStore((state) => state.saveSafetyReport);
 
   const selectedSkill = useMemo(
     () => skills.find((s) => s.id === selectedSkillId),
@@ -75,6 +85,7 @@ export function SkillFullDetailPage() {
   const autoScanInstalledSkills = useSettingsStore(
     (state) => state.autoScanInstalledSkills,
   );
+  const aiModels = useSettingsStore((state) => state.aiModels);
   const [installMode, setInstallMode] = useState<InstallMode>(
     () => skillInstallMethod,
   );
@@ -84,8 +95,9 @@ export function SkillFullDetailPage() {
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [isVersionHistoryOpen, setIsVersionHistoryOpen] = useState(false);
   const [isScanningSafety, setIsScanningSafety] = useState(false);
+  const [isSafetyModalOpen, setIsSafetyModalOpen] = useState(false);
   const [safetyReport, setSafetyReport] = useState<SkillSafetyReport | null>(
-    null,
+    () => selectedSkill?.safetyReport ?? null,
   );
   const [isSnapshotModalOpen, setIsSnapshotModalOpen] = useState(false);
   const [isCreatingSnapshot, setIsCreatingSnapshot] = useState(false);
@@ -147,6 +159,8 @@ export function SkillFullDetailPage() {
   useEffect(() => {
     if (selectedSkill) {
       setShowTranslation(false);
+      // Restore persisted safety report when switching skills
+      setSafetyReport(selectedSkill.safetyReport ?? null);
     }
   }, [selectedSkill?.id]);
 
@@ -211,9 +225,16 @@ export function SkillFullDetailPage() {
           sourceUrl: selectedSkill.source_url,
           contentUrl: selectedSkill.content_url,
           localRepoPath: selectedSkill.local_repo_path,
+          aiConfig: getSafetyScanAIConfig(aiModels),
         });
         if (!cancelled) {
           setSafetyReport(report);
+          // Persist to DB + update store
+          try {
+            await saveSafetyReport(selectedSkill.id, report);
+          } catch (err) {
+            console.warn("Failed to persist auto-scan safety report:", err);
+          }
         }
       } catch (error) {
         if (!cancelled) {
@@ -232,6 +253,7 @@ export function SkillFullDetailPage() {
       cancelled = true;
     };
   }, [
+    aiModels,
     autoScanInstalledSkills,
     resolvedSkillMdContent,
     selectedSkill,
@@ -299,8 +321,15 @@ export function SkillFullDetailPage() {
         sourceUrl: selectedSkill.source_url,
         contentUrl: selectedSkill.content_url,
         localRepoPath: selectedSkill.local_repo_path,
+        aiConfig: getSafetyScanAIConfig(aiModels),
       });
       setSafetyReport(report);
+      // Persist to DB + update store
+      try {
+        await saveSafetyReport(selectedSkill.id, report);
+      } catch (err) {
+        console.warn("Failed to persist safety report:", err);
+      }
       return report;
     } catch (error) {
       showToast(
@@ -471,7 +500,7 @@ export function SkillFullDetailPage() {
               });
             }}
             className="p-2 -ml-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-all active:scale-95"
-            title={t("common.back", "返回")}
+            title={t("common.back", "Back")}
           >
             <ArrowLeftIcon className="w-5 h-5" />
           </button>
@@ -492,7 +521,7 @@ export function SkillFullDetailPage() {
                 {selectedSkill.author || t("skill.localStorage")}
               </div>
               <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
-                {t("skill.currentVersion", "当前版本")} v
+                {t("skill.currentVersion", "Version")} v
                 {selectedSkill.currentVersion || 0}
               </span>
             </div>
@@ -503,10 +532,10 @@ export function SkillFullDetailPage() {
             onClick={openSnapshotModal}
             disabled={isCreatingSnapshot}
             className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-2 text-sm font-medium text-muted-foreground transition-all hover:border-primary/30 hover:bg-primary/5 hover:text-primary disabled:opacity-50"
-            title={t("skill.createSnapshot", "创建快照")}
+            title={t("skill.createSnapshot", "Create Snapshot")}
           >
             <SaveIcon className="h-4 w-4" />
-            {t("skill.snapshot", "快照")}
+            {t("skill.snapshot", "Snapshot")}
           </button>
           <button
             onClick={() => toggleFavorite(selectedSkill.id)}
@@ -517,8 +546,8 @@ export function SkillFullDetailPage() {
             }`}
             title={
               selectedSkill.is_favorite
-                ? t("skill.removeFavorite", "取消收藏")
-                : t("skill.addFavorite", "添加收藏")
+                ? t("skill.removeFavorite", "Remove Favorite")
+                : t("skill.addFavorite", "Add to Favorites")
             }
           >
             <StarIcon
@@ -526,82 +555,26 @@ export function SkillFullDetailPage() {
             />
           </button>
           <button
-            onClick={() => {
-              void runSafetyScan();
-            }}
-            className="p-2.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-full transition-all active:scale-95"
-            title={t("skill.runSafetyAssessment", "立即检查")}
-          >
-            {safetyReport?.level === "safe" ? (
-              <ShieldCheckIcon className="w-5 h-5" />
-            ) : (
-              <ShieldAlertIcon className="w-5 h-5" />
-            )}
-          </button>
-          <button
             onClick={() => setIsVersionHistoryOpen(true)}
             className="p-2.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-full transition-all active:scale-95"
-            title={t("skill.versionHistory", "版本历史")}
+            title={t("skill.versionHistory", "Version History")}
           >
             <HistoryIcon className="w-5 h-5" />
           </button>
           <button
             onClick={() => setIsEditModalOpen(true)}
             className="p-2.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-full transition-all active:scale-95"
-            title={t("skill.edit", "编辑技能")}
+            title={t("skill.edit", "Edit Skill")}
           >
             <PencilIcon className="w-5 h-5" />
           </button>
           <button
             onClick={handleDelete}
             className="p-2.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full transition-all active:scale-95"
-            title={t("common.delete", "删除")}
+            title={t("common.delete", "Delete")}
           >
             <TrashIcon className="w-5 h-5" />
           </button>
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="px-6 py-3 border-b border-border/70 bg-muted/10">
-        <div className={`rounded-xl border px-4 py-3 ${safetyTone}`}>
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <div className="text-sm font-semibold">
-                {t("skill.safetyAssessment", "安全评估")}
-              </div>
-              <p className="mt-1 text-xs opacity-90">
-                {safetyReport?.summary ||
-                  t(
-                    "skill.safetyAssessmentEmpty",
-                    "还没有运行安全评估。你可以手动检查，也可以在设置里开启自动复查已安装 Skills。",
-                  )}
-              </p>
-            </div>
-            <button
-              onClick={() => {
-                void runSafetyScan();
-              }}
-              disabled={isScanningSafety}
-              className="shrink-0 rounded-lg border border-current/20 px-3 py-2 text-xs font-medium transition-colors disabled:opacity-50"
-            >
-              {isScanningSafety
-                ? t("skill.safetyScanning", "检查中...")
-                : t("skill.runSafetyAssessment", "立即检查")}
-            </button>
-          </div>
-          {safetyReport && safetyReport.findings.length > 0 && (
-            <ul className="mt-3 space-y-1 text-xs opacity-90">
-              {safetyReport.findings.slice(0, 4).map((finding) => (
-                <li
-                  key={`${finding.code}-${finding.filePath || finding.evidence || ""}`}
-                >
-                  • {finding.title}
-                  {finding.filePath ? ` · ${finding.filePath}` : ""}
-                </li>
-              ))}
-            </ul>
-          )}
         </div>
       </div>
 
@@ -617,7 +590,7 @@ export function SkillFullDetailPage() {
         >
           <div className="flex items-center gap-2">
             <BookOpenIcon className="w-4 h-4" />
-            {t("common.preview", "预览")}
+            {t("common.preview", "Preview")}
           </div>
           {activeTab === "preview" && (
             <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />
@@ -633,7 +606,7 @@ export function SkillFullDetailPage() {
         >
           <div className="flex items-center gap-2">
             <CodeIcon className="w-4 h-4" />
-            {t("common.content", "源码/内容")}
+            {t("common.content", "Source / Content")}
           </div>
           {activeTab === "code" && (
             <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />
@@ -645,11 +618,53 @@ export function SkillFullDetailPage() {
         >
           <div className="flex items-center gap-2">
             <FolderOpenIcon className="w-4 h-4" />
-            {t("skill.files", "文件")}
+            {t("skill.files", "Files")}
           </div>
           {activeTab === "files" && (
             <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />
           )}
+        </button>
+
+        {/* Safety pill — compact, right-aligned in tab bar */}
+        <button
+          onClick={() => {
+            if (safetyReport && !isScanningSafety) {
+              setIsSafetyModalOpen(true);
+            } else if (!isScanningSafety) {
+              void runSafetyScan();
+            }
+          }}
+          disabled={isScanningSafety}
+          title={
+            safetyReport
+              ? t("skill.safetyModalTitle", "Safety Report")
+              : t("skill.safetyAssessmentEmpty", "No safety scan run yet")
+          }
+          className={`ml-auto my-auto flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors disabled:opacity-50 ${safetyReport ? safetyTone : "border-border text-muted-foreground hover:border-primary/30 hover:text-primary"}`}
+        >
+          {isScanningSafety ? (
+            <ShieldAlertIcon className="w-3.5 h-3.5 animate-pulse" />
+          ) : safetyReport?.level === "safe" ? (
+            <ShieldCheckIcon className="w-3.5 h-3.5" />
+          ) : safetyReport ? (
+            <ShieldAlertIcon className="w-3.5 h-3.5" />
+          ) : (
+            <ShieldIcon className="w-3.5 h-3.5" />
+          )}
+          {isScanningSafety
+            ? t("skill.safetyScanning", "Scanning...")
+            : safetyReport
+              ? `${t("skill.safetyLevelLabel", "Risk Level")} - ${
+                  (
+                    {
+                      safe: t("skill.safetyLevelSafe", "Safe"),
+                      warn: t("skill.safetyLevelWarn", "Needs review"),
+                      "high-risk": t("skill.safetyLevelHighRisk", "High risk"),
+                      blocked: t("skill.safetyLevelBlocked", "Blocked"),
+                    } as Record<string, string>
+                  )[safetyReport.level] ?? safetyReport.level
+                }`
+              : t("skill.safetyAssessment", "Safety Assessment")}
         </button>
       </div>
 
@@ -657,20 +672,22 @@ export function SkillFullDetailPage() {
       <div
         ref={contentScrollRef}
         onScroll={handleContentScroll}
-        className="flex-1 overflow-y-auto"
+        className={`flex-1 flex flex-col ${activeTab === "files" ? "overflow-hidden" : "overflow-y-auto"}`}
       >
         {activeTab === "files" ? (
           /* Files Tab: inline file editor fills the entire content area */
-          <SkillFileEditor
-            skillId={selectedSkill.id}
-            skillName={selectedSkill.name}
-            isOpen={true}
-            onSave={() => loadSkills()}
-            onUnsavedChange={setFileEditorHasUnsavedChanges}
-            mode="inline"
-          />
+          <div className="flex-1 flex flex-col bg-card min-h-0 overflow-hidden">
+            <SkillFileEditor
+              skillId={selectedSkill.id}
+              skillName={selectedSkill.name}
+              isOpen={true}
+              onSave={() => loadSkills()}
+              onUnsavedChange={setFileEditorHasUnsavedChanges}
+              mode="inline"
+            />
+          </div>
         ) : (
-          <div className="max-w-6xl mx-auto p-6">
+          <div className="max-w-6xl mx-auto p-6 w-full">
             {activeTab === "preview" ? (
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:items-stretch">
                 <SkillPreviewPane
@@ -678,15 +695,15 @@ export function SkillFullDetailPage() {
                   cachedInstructionsTranslation={cachedInstructionsTranslation}
                   copyStatus={copyStatus}
                   handleCopy={handleCopy}
-                handleTranslateSkill={handleTranslateSkill}
-                isTranslating={isTranslating}
-                resolvedDescription={resolvedDescription}
-                selectedSkill={selectedSkill}
-                showTranslation={showTranslation}
-                skillContent={resolvedSkillMdContent}
-                t={t}
-                translationMode={translationMode}
-              />
+                  handleTranslateSkill={handleTranslateSkill}
+                  isTranslating={isTranslating}
+                  resolvedDescription={resolvedDescription}
+                  selectedSkill={selectedSkill}
+                  showTranslation={showTranslation}
+                  skillContent={resolvedSkillMdContent}
+                  t={t}
+                  translationMode={translationMode}
+                />
 
                 <SkillPlatformPanel
                   availablePlatforms={availablePlatforms}
@@ -726,7 +743,7 @@ export function SkillFullDetailPage() {
           className="absolute bottom-6 left-1/2 z-20 -translate-x-1/2 inline-flex items-center gap-2 rounded-full border border-border bg-card/95 px-4 py-2 text-sm font-medium text-foreground shadow-lg backdrop-blur hover:bg-accent transition-colors"
         >
           <ArrowUpIcon className="w-4 h-4" />
-          {t("common.backToTop", "回到顶部")}
+          {t("common.backToTop", "Back to Top")}
         </button>
       )}
 
@@ -744,25 +761,25 @@ export function SkillFullDetailPage() {
         onClose={() => setIsDeleteConfirmOpen(false)}
         onConfirm={confirmDelete}
         variant="destructive"
-        title={t("skill.confirmDeleteTitle", "确认删除")}
+        title={t("skill.confirmDeleteTitle", "Confirm Delete")}
         message={
           <div className="space-y-2">
             <p>
               {t("skill.confirmDeleteSingle", {
                 name: selectedSkill?.name || "",
-                defaultValue: `确定要删除技能「${selectedSkill?.name || ""}」吗？`,
+                defaultValue: `Are you sure you want to delete skill "${selectedSkill?.name || ""}"?`,
               })}
             </p>
             <p className="text-xs text-muted-foreground/80">
               {t(
                 "skill.deleteHint",
-                "仅从 PromptHub 库中移除，不会删除源文件目录。已分发到平台的安装会同时卸载。",
+                "Only removes from PromptHub library. Source files are preserved. Platform installations will be uninstalled.",
               )}
             </p>
           </div>
         }
-        confirmText={t("common.delete", "删除")}
-        cancelText={t("common.cancel", "取消")}
+        confirmText={t("common.delete", "Delete")}
+        cancelText={t("common.cancel", "Cancel")}
       />
       <UnsavedChangesDialog
         isOpen={isUnsavedDialogOpen}
@@ -796,22 +813,19 @@ export function SkillFullDetailPage() {
             setIsSnapshotModalOpen(false);
           }
         }}
-        title={t("skill.createSnapshot", "创建快照")}
+        title={t("skill.createSnapshot", "Create Snapshot")}
         size="lg"
       >
         <div className="space-y-4">
           <div className="text-sm text-muted-foreground">
-            {t(
-              "skill.snapshotPrompt",
-              "输入本次快照说明",
-            )}
+            {t("skill.snapshotPrompt", "Enter a note for this snapshot")}
           </div>
           <Textarea
             value={snapshotNote}
             onChange={(event) => setSnapshotNote(event.target.value)}
             placeholder={t(
               "skill.versionNotePlaceholder",
-              "描述本次变更...",
+              "Describe the changes...",
             )}
             rows={4}
             autoFocus
@@ -824,7 +838,7 @@ export function SkillFullDetailPage() {
               disabled={isCreatingSnapshot}
               className="rounded-xl border border-border bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-50"
             >
-              {t("common.cancel", "取消")}
+              {t("common.cancel", "Cancel")}
             </button>
             <button
               type="button"
@@ -835,17 +849,310 @@ export function SkillFullDetailPage() {
               {isCreatingSnapshot ? (
                 <>
                   <SaveIcon className="h-4 w-4 animate-pulse" />
-                  {t("common.saving", "保存中")}
+                  {t("common.saving", "Saving")}
                 </>
               ) : (
                 <>
                   <SaveIcon className="h-4 w-4" />
-                  {t("skill.createSnapshot", "创建快照")}
+                  {t("skill.createSnapshot", "Create Snapshot")}
                 </>
               )}
             </button>
           </div>
         </div>
+      </Modal>
+
+      {/* Safety Report Modal */}
+      <Modal
+        isOpen={isSafetyModalOpen}
+        onClose={() => setIsSafetyModalOpen(false)}
+        title={t("skill.safetyModalTitle", "Safety Report")}
+        size="lg"
+      >
+        {safetyReport && (
+          <div className="space-y-5">
+            {/* Header: level badge + meta */}
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex flex-col gap-2">
+                <div
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-semibold w-fit ${safetyTone}`}
+                >
+                  {safetyReport.level === "safe" ? (
+                    <ShieldCheckIcon className="w-4 h-4" />
+                  ) : (
+                    <ShieldAlertIcon className="w-4 h-4" />
+                  )}
+                  {(
+                    {
+                      safe: t("skill.safetyLevelSafe", "Safe"),
+                      warn: t("skill.safetyLevelWarn", "Needs review"),
+                      "high-risk": t("skill.safetyLevelHighRisk", "High risk"),
+                      blocked: t("skill.safetyLevelBlocked", "Blocked"),
+                    } as Record<string, string>
+                  )[safetyReport.level] ?? safetyReport.level}
+                </div>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {getSkillSafetySummary(t, safetyReport)}
+                </p>
+              </div>
+              {safetyReport.score !== undefined && (
+                <div
+                  className="flex flex-col items-center shrink-0 cursor-help"
+                  title={t(
+                    "skill.safetyScoreDesc",
+                    "Score 0–100 (higher = safer). Based on risk level and number of findings: blocked 0–10, high-risk 20–40, caution 50–70, safe 80–100.",
+                  )}
+                >
+                  <span className="text-2xl font-bold text-foreground">
+                    {safetyReport.score}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
+                    {t("skill.safetyScore", "Score")} / 100
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Scoring dimensions */}
+            {(() => {
+              const CONTENT_CODES = new Set([
+                "shell-pipe-exec",
+                "dangerous-delete",
+                "encoded-powershell",
+                "encoded-shell-bootstrap",
+                "privilege-escalation",
+                "system-persistence",
+                "secret-access",
+                "security-bypass",
+                "network-exfil",
+                "exec-bit",
+                "network-bootstrap",
+                "env-mutation",
+              ]);
+              const SOURCE_CODES = new Set([
+                "untrusted-source-host",
+                "external-audits",
+                "internal-source",
+                "unknown-source",
+                "invalid-source-url",
+                "insecure-source-url",
+              ]);
+              const REPO_CODES = new Set([
+                "persistence-file",
+                "high-risk-binary",
+                "script-file",
+              ]);
+              const findings = safetyReport.findings ?? [];
+              const contentCount = findings.filter((f) =>
+                CONTENT_CODES.has(f.code),
+              ).length;
+              const sourceCount = findings.filter((f) =>
+                SOURCE_CODES.has(f.code),
+              ).length;
+              const repoCount = findings.filter((f) =>
+                REPO_CODES.has(f.code),
+              ).length;
+              const dims = [
+                {
+                  key: "content",
+                  label: t("skill.safetyDimContent", "Content patterns"),
+                  desc: t(
+                    "skill.safetyDimContentDesc",
+                    "Static regex scan for shell injections, destructive commands, encoded payloads, privilege escalation, credential access, and suspicious network calls.",
+                  ),
+                  count: contentCount,
+                },
+                {
+                  key: "source",
+                  label: t("skill.safetyDimSource", "Source trust"),
+                  desc: t(
+                    "skill.safetyDimSourceDesc",
+                    "Validates source URL — HTTPS enforcement, known trusted hosts, and SSRF guard against internal addresses.",
+                  ),
+                  count: sourceCount,
+                },
+                {
+                  key: "repo",
+                  label: t("skill.safetyDimRepo", "Repository structure"),
+                  desc: t(
+                    "skill.safetyDimRepoDesc",
+                    "Inspects the local repo file tree for binaries, executable scripts, and persistence-related files.",
+                  ),
+                  count: repoCount,
+                },
+              ];
+              return (
+                <div className="rounded-lg border border-border bg-muted/30 px-4 py-3 space-y-2">
+                  <p className="text-xs font-semibold text-foreground uppercase tracking-wide">
+                    {t("skill.safetyDimensionTitle", "Scoring Dimensions")}
+                  </p>
+                  {dims.map((dim) => (
+                    <div
+                      key={dim.key}
+                      className="flex items-center justify-between gap-3"
+                    >
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="text-sm text-foreground truncate">
+                          {dim.label}
+                        </span>
+                        <span
+                          className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-muted text-muted-foreground text-[10px] cursor-help shrink-0"
+                          title={dim.desc}
+                        >
+                          ?
+                        </span>
+                      </div>
+                      <span
+                        className={`text-xs font-medium shrink-0 ${
+                          dim.count === 0
+                            ? "text-emerald-600 dark:text-emerald-400"
+                            : "text-amber-600 dark:text-amber-400"
+                        }`}
+                      >
+                        {dim.count === 0
+                          ? t("skill.safetyDimNoFindings", "Clean")
+                          : t(
+                              "skill.safetyDimFindings",
+                              "{{count}} finding(s)",
+                              {
+                                count: dim.count,
+                              },
+                            )}
+                      </span>
+                    </div>
+                  ))}
+                  <p className="text-[10px] text-muted-foreground pt-1 border-t border-border/50 leading-relaxed">
+                    {t(
+                      "skill.safetyScoreFormula",
+                      "Score formula: level sets the base range (blocked 0–10 · high-risk 20–40 · caution 50–70 · safe 80–100), then each finding deducts points within that range.",
+                    )}
+                  </p>
+                </div>
+              );
+            })()}
+
+            {/* Meta row */}
+            <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground border-t border-border pt-3">
+              <span>
+                {t("skill.safetyFilesChecked", "{{count}} file(s) checked", {
+                  count: safetyReport.checkedFileCount,
+                })}
+              </span>
+              <span>
+                {t("skill.safetyScanMethod", "Method")}:{" "}
+                {safetyReport.scanMethod === "ai"
+                  ? t("skill.safetyScanMethodAI", "AI-assisted")
+                  : t("skill.safetyScanMethodStatic", "Static analysis")}
+              </span>
+              <span>
+                {t("skill.safetyScanTime", "Scanned")}:{" "}
+                {new Date(safetyReport.scannedAt).toLocaleString(
+                  i18n.language || undefined,
+                )}
+              </span>
+            </div>
+
+            {/* Findings list */}
+            <div className="space-y-2">
+              {(safetyReport.findings ?? []).length === 0 ? (
+                <div className="flex items-center gap-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300">
+                  <CheckCircleIcon className="w-4 h-4 shrink-0" />
+                  {t("skill.safetyNoFindings", "No issues found")}
+                </div>
+              ) : (
+                safetyReport.findings.map((finding, idx) => {
+                  const severityConfig = {
+                    high: {
+                      cls: "border-red-500/30 bg-red-500/5",
+                      icon: (
+                        <AlertTriangleIcon className="w-4 h-4 text-destructive shrink-0" />
+                      ),
+                      badge: "bg-red-500/15 text-red-700 dark:text-red-400",
+                      label: t("skill.safetySeverityHigh", "High"),
+                    },
+                    warn: {
+                      cls: "border-amber-500/30 bg-amber-500/5",
+                      icon: (
+                        <AlertTriangleIcon className="w-4 h-4 text-amber-500 shrink-0" />
+                      ),
+                      badge:
+                        "bg-amber-500/15 text-amber-700 dark:text-amber-400",
+                      label: t("skill.safetySeverityWarn", "Warning"),
+                    },
+                    info: {
+                      cls: "border-blue-500/20 bg-blue-500/5",
+                      icon: (
+                        <InfoIcon className="w-4 h-4 text-blue-500 shrink-0" />
+                      ),
+                      badge: "bg-blue-500/10 text-blue-700 dark:text-blue-400",
+                      label: t("skill.safetySeverityInfo", "Info"),
+                    },
+                  };
+                  const cfg =
+                    severityConfig[finding.severity] ?? severityConfig.info;
+                  return (
+                    <div
+                      key={idx}
+                      className={`rounded-lg border px-4 py-3 ${cfg.cls}`}
+                    >
+                      <div className="flex items-start gap-3">
+                        {cfg.icon}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm font-medium text-foreground">
+                              {getSkillSafetyFindingTitle(t, finding)}
+                            </span>
+                            <span
+                              className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${cfg.badge}`}
+                            >
+                              {cfg.label}
+                            </span>
+                            {finding.filePath && (
+                              <span className="text-[10px] text-muted-foreground font-mono truncate">
+                                {finding.filePath}
+                              </span>
+                            )}
+                          </div>
+                          {finding.detail && (
+                            <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+                              {finding.detail}
+                            </p>
+                          )}
+                          {finding.evidence && (
+                            <code className="mt-1.5 block text-[11px] bg-muted/60 rounded px-2 py-1 text-muted-foreground font-mono break-all">
+                              {finding.evidence}
+                            </code>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Footer: rescan button */}
+            <div className="flex items-center justify-end border-t border-border pt-4">
+              <button
+                type="button"
+                onClick={async () => {
+                  setIsSafetyModalOpen(false);
+                  await runSafetyScan();
+                  setIsSafetyModalOpen(true);
+                }}
+                disabled={isScanningSafety}
+                className="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-50"
+              >
+                <RefreshCwIcon
+                  className={`h-4 w-4 ${isScanningSafety ? "animate-spin" : ""}`}
+                />
+                {isScanningSafety
+                  ? t("skill.safetyScanning", "Scanning...")
+                  : t("skill.safetyRescan", "Rescan")}
+              </button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );

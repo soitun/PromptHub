@@ -21,12 +21,26 @@ const locales = {
 const requiredPaths = [
   "common.clear",
   "common.content",
+  "common.disable",
+  "common.disabled",
+  "common.enable",
+  "common.enabled",
+  "common.refresh",
+  "common.refreshing",
   "common.select",
   "common.selectAll",
   "skill.batchDeploy",
   "skill.batchManage",
   "skill.distributionStats",
+  "skill.invalidGitRepo",
+  "skill.loadingCommunityStore",
+  "skill.loadingCustomStore",
+  "skill.noCustomStores",
+  "skill.noCustomStoresHint",
+  "skill.remoteStoreRateLimitHint",
+  "skill.remoteStoreRetry",
   "skill.selectedCount",
+  "skill.skillsCount",
   "skill.sourceClaudeLocalFolder",
   "skill.sourceCursorLocalFolder",
   "skill.sourceGithubRepo",
@@ -36,10 +50,7 @@ const requiredPaths = [
   "skill.sourceRemoteStore",
 ] as const;
 
-function getPathValue(
-  source: Record<string, unknown>,
-  path: string,
-): unknown {
+function getPathValue(source: Record<string, unknown>, path: string): unknown {
   return path.split(".").reduce<unknown>((current, segment) => {
     if (!current || typeof current !== "object") {
       return undefined;
@@ -54,7 +65,10 @@ describe("skill locale regression", () => {
       for (const path of requiredPaths) {
         const value = getPathValue(source as Record<string, unknown>, path);
         expect(typeof value, `${locale}:${path}`).toBe("string");
-        expect(String(value).trim().length, `${locale}:${path}`).toBeGreaterThan(0);
+        expect(
+          String(value).trim().length,
+          `${locale}:${path}`,
+        ).toBeGreaterThan(0);
       }
     });
   }

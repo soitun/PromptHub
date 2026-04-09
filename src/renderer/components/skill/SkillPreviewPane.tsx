@@ -16,10 +16,7 @@ import type { TFunction } from "i18next";
 import type { Skill } from "../../../shared/types";
 import { normalizeStringArray } from "../../services/skill-normalize";
 import { SkillRenderBoundary } from "./SkillRenderBoundary";
-import {
-  renderImmersiveSegments,
-  stripFrontmatter,
-} from "./detail-utils";
+import { renderImmersiveSegments, stripFrontmatter } from "./detail-utils";
 
 interface SkillPreviewPaneProps {
   cachedDescriptionTranslation: string | null;
@@ -55,7 +52,9 @@ export function SkillPreviewPane({
     [selectedSkill.tags],
   );
   const safeCategory =
-    typeof selectedSkill.category === "string" ? selectedSkill.category : undefined;
+    typeof selectedSkill.category === "string"
+      ? selectedSkill.category
+      : undefined;
   const safeAuthor =
     typeof selectedSkill.author === "string" ? selectedSkill.author : undefined;
 
@@ -135,12 +134,12 @@ export function SkillPreviewPane({
                     onClick={() => handleTranslateSkill(true)}
                     disabled={isTranslating}
                     className="p-1 px-3 rounded-lg text-xs flex items-center gap-1.5 bg-accent/50 hover:bg-accent transition-colors disabled:opacity-50"
-                    title={t("skill.refreshTranslation", "刷新翻译")}
+                    title={t("skill.refreshTranslation", "Refresh Translation")}
                   >
                     <RefreshCwIcon
                       className={`w-3.5 h-3.5 ${isTranslating ? "animate-spin" : ""}`}
                     />
-                    {t("skill.refreshTranslation", "刷新翻译")}
+                    {t("skill.refreshTranslation", "Refresh Translation")}
                   </button>
                 )}
               </div>
@@ -175,7 +174,9 @@ export function SkillPreviewPane({
                 showTranslation && cachedInstructionsTranslation ? (
                   translationMode === "immersive" ? (
                     <div className="markdown-body">
-                      {renderImmersiveSegments(cachedInstructionsTranslation).map((segment, index) =>
+                      {renderImmersiveSegments(
+                        cachedInstructionsTranslation,
+                      ).map((segment, index) =>
                         segment.type === "translation" ? (
                           <div
                             key={index}

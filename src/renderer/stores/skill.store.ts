@@ -13,6 +13,8 @@ import type {
   SkillChatParams,
   ScanLocalResult,
   SkillSafetyLevel,
+  SkillSafetyReport,
+  SafetyScanAIConfig,
 } from "../../shared/types";
 import {
   BUILTIN_SKILL_REGISTRY,
@@ -104,6 +106,30 @@ function getErrorMessage(error: unknown): string {
 
 function stripSkillFrontmatter(content: string): string {
   return content.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, "");
+}
+
+/**
+ * Compute a numeric safety score (0-100) from a SkillSafetyReport.
+ * Higher score = safer.
+ *   blocked   → 0–10   (based on finding count)
+ *   high-risk → 20–40
+ *   warn      → 50–70
+ *   safe      → 80–100
+ */
+function computeSafetyScore(report: SkillSafetyReport): number {
+  const findingCount = (report.findings ?? []).length;
+  switch (report.level) {
+    case "blocked":
+      return Math.max(0, 10 - findingCount * 2);
+    case "high-risk":
+      return Math.max(20, 40 - findingCount * 3);
+    case "warn":
+      return Math.max(50, 70 - findingCount * 4);
+    case "safe":
+      return Math.max(80, 100 - findingCount * 5);
+    default:
+      return 50;
+  }
 }
 
 function hasMeaningfulSkillBody(content?: string): boolean {
@@ -348,7 +374,12 @@ interface SkillState {
   ) => Promise<ScannedImportResult>;
   scanInstalledSkillSafety: (
     skillIds?: string[],
+    aiConfig?: SafetyScanAIConfig,
   ) => Promise<SkillSafetyBatchSummary>;
+  saveSafetyReport: (
+    skillId: string,
+    report: SkillSafetyReport,
+  ) => Promise<void>;
   installToPlatform: (
     platform: "claude" | "cursor",
     name: string,
@@ -729,7 +760,7 @@ export const useSkillStore = create<SkillState>()(
         }
       },
 
-      scanInstalledSkillSafety: async (skillIds) => {
+      scanInstalledSkillSafety: async (skillIds, aiConfig) => {
         const targetSkills = get().skills.filter(
           (skill) => !skillIds || skillIds.includes(skill.id),
         );
@@ -749,21 +780,57 @@ export const useSkillStore = create<SkillState>()(
             sourceUrl: skill.source_url,
             contentUrl: skill.content_url,
             localRepoPath: skill.local_repo_path,
+            aiConfig,
           });
-          summary.bySkillId[skill.id] = report.level;
 
-          if (report.level === "safe") {
+          // Attach numeric score
+          const scored: SkillSafetyReport = {
+            ...report,
+            score: computeSafetyScore(report),
+          };
+
+          summary.bySkillId[skill.id] = scored.level;
+
+          if (scored.level === "safe") {
             summary.safe += 1;
-          } else if (report.level === "warn") {
+          } else if (scored.level === "warn") {
             summary.warn += 1;
-          } else if (report.level === "high-risk") {
+          } else if (scored.level === "high-risk") {
             summary.highRisk += 1;
           } else {
             summary.blocked += 1;
           }
+
+          // Persist to DB and update in-memory store
+          try {
+            await window.api.skill.saveSafetyReport(skill.id, scored);
+            set((state) => ({
+              skills: state.skills.map((s) =>
+                s.id === skill.id ? { ...s, safetyReport: scored } : s,
+              ),
+            }));
+          } catch (err) {
+            console.warn(
+              `Failed to persist safety report for skill "${skill.name}":`,
+              err,
+            );
+          }
         }
 
         return summary;
+      },
+
+      saveSafetyReport: async (skillId, report) => {
+        const scored: SkillSafetyReport = {
+          ...report,
+          score: report.score ?? computeSafetyScore(report),
+        };
+        await window.api.skill.saveSafetyReport(skillId, scored);
+        set((state) => ({
+          skills: state.skills.map((s) =>
+            s.id === skillId ? { ...s, safetyReport: scored } : s,
+          ),
+        }));
       },
 
       installToPlatform: async (platform, name, mcpConfig) => {
@@ -1265,14 +1332,24 @@ This skill helps you write tests.
     }),
     {
       name: "skill-store",
-      partialize: (state) => ({
-        viewMode: state.viewMode,
-        filterType: state.filterType,
-        storeView: state.storeView,
-        customStoreSources: state.customStoreSources,
-        selectedStoreSourceId: state.selectedStoreSourceId,
-        remoteStoreEntries: state.remoteStoreEntries,
-      }),
+      partialize: (state) => {
+        // Only persist remote store entries that have at least one skill.
+        // This prevents caching empty/failed results across sessions.
+        const filteredEntries: typeof state.remoteStoreEntries = {};
+        for (const [key, entry] of Object.entries(state.remoteStoreEntries)) {
+          if (entry.skills.length > 0) {
+            filteredEntries[key] = { ...entry, error: null };
+          }
+        }
+        return {
+          viewMode: state.viewMode,
+          filterType: state.filterType,
+          storeView: state.storeView,
+          customStoreSources: state.customStoreSources,
+          selectedStoreSourceId: state.selectedStoreSourceId,
+          remoteStoreEntries: filteredEntries,
+        };
+      },
     },
   ),
 );

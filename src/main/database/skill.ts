@@ -6,6 +6,7 @@ import type {
   UpdateSkillParams,
   SkillVersion,
   SkillFileSnapshot,
+  SkillSafetyReport,
 } from "@shared/types";
 
 interface SkillRow {
@@ -35,6 +36,11 @@ interface SkillRow {
   version_tracking_enabled: number | null;
   created_at: number;
   updated_at: number;
+  // Safety columns (added via migration)
+  safety_level: string | null;
+  safety_score: number | null;
+  safety_report: string | null;
+  safety_scanned_at: number | null;
 }
 
 interface SkillVersionRow {
@@ -154,7 +160,8 @@ export class SkillDB {
         ? JSON.stringify(data.compatibility)
         : null,
       "@current_version": data.currentVersion ?? 0,
-      "@version_tracking_enabled": (data.versionTrackingEnabled ?? true) ? 1 : 0,
+      "@version_tracking_enabled":
+        (data.versionTrackingEnabled ?? true) ? 1 : 0,
       "@created_at": now,
       "@updated_at": now,
     });
@@ -303,6 +310,17 @@ export class SkillDB {
       updates.push("version_tracking_enabled = ?");
       values.push(data.versionTrackingEnabled ? 1 : 0);
     }
+    if (data.safetyReport !== undefined) {
+      const report = data.safetyReport;
+      updates.push("safety_level = ?");
+      values.push(report.level);
+      updates.push("safety_score = ?");
+      values.push(report.score ?? null);
+      updates.push("safety_report = ?");
+      values.push(JSON.stringify(report));
+      updates.push("safety_scanned_at = ?");
+      values.push(report.scannedAt);
+    }
 
     values.push(id);
 
@@ -361,6 +379,9 @@ export class SkillDB {
       }),
       ...(data.versionTrackingEnabled !== undefined && {
         versionTrackingEnabled: data.versionTrackingEnabled,
+      }),
+      ...(data.safetyReport !== undefined && {
+        safetyReport: data.safetyReport,
       }),
     };
 
@@ -426,15 +447,11 @@ export class SkillDB {
       // Update current version number
       // 更新当前版本号
       this.db
-        .prepare(
-          "UPDATE skills SET current_version = ? WHERE id = ?",
-        )
+        .prepare("UPDATE skills SET current_version = ? WHERE id = ?")
         .run(version, skillId);
 
       this.db
-        .prepare(
-          "UPDATE skills SET version_tracking_enabled = 1 WHERE id = ?",
-        )
+        .prepare("UPDATE skills SET version_tracking_enabled = 1 WHERE id = ?")
         .run(skillId);
 
       return {
@@ -567,6 +584,14 @@ export class SkillDB {
    * 数据库行转 Skill 对象
    */
   private rowToSkill(row: SkillRow): Skill {
+    let safetyReport: SkillSafetyReport | undefined;
+    if (row.safety_report) {
+      try {
+        safetyReport = JSON.parse(row.safety_report) as SkillSafetyReport;
+      } catch {
+        // malformed JSON — ignore
+      }
+    }
     return {
       id: row.id,
       name: row.name,
@@ -595,6 +620,7 @@ export class SkillDB {
       prerequisites: parseJsonArray<string>(row.prerequisites),
       compatibility: parseJsonArray<string>(row.compatibility),
       original_tags: parseJsonArray<string>(row.original_tags),
+      safetyReport,
     };
   }
 

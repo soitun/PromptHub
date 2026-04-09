@@ -158,6 +158,10 @@ export function initDatabase(): Database.Database {
       { name: "current_version", type: "INTEGER DEFAULT 0" },
       { name: "version_tracking_enabled", type: "INTEGER DEFAULT 0" },
       { name: "local_repo_path", type: "TEXT" },
+      { name: "safety_level", type: "TEXT" },
+      { name: "safety_score", type: "INTEGER" },
+      { name: "safety_report", type: "TEXT" },
+      { name: "safety_scanned_at", type: "INTEGER" },
     ];
 
     for (const col of skillNewColumns) {

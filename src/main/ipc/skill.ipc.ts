@@ -12,7 +12,7 @@ export function registerSkillIPC(db: SkillDB): void {
   const context = { db };
 
   registerSkillCrudHandlers(context);
-  registerSkillPlatformHandlers();
+  registerSkillPlatformHandlers(context);
   registerSkillLocalRepoHandlers(context);
   registerSkillVersionHandlers(context);
 }

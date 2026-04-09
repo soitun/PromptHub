@@ -14,7 +14,7 @@
   [![GitHub Forks](https://img.shields.io/github/forks/legeling/PromptHub?style=for-the-badge&logo=github)](https://github.com/legeling/PromptHub/network/members)
   [![Downloads](https://img.shields.io/github/downloads/legeling/PromptHub/total?style=for-the-badge&logo=github&color=blue)](https://github.com/legeling/PromptHub/releases)
   
-  [![Version](https://img.shields.io/badge/version-v0.4.9-success?style=for-the-badge)](https://github.com/legeling/PromptHub/releases)
+  [![Version](https://img.shields.io/badge/version-v0.5.0-success?style=for-the-badge)](https://github.com/legeling/PromptHub/releases)
   [![License](https://img.shields.io/badge/license-AGPL--3.0-blue?style=for-the-badge)](./LICENSE)
   [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen?style=for-the-badge)](https://github.com/legeling/PromptHub/pulls)
   
@@ -176,13 +176,13 @@
 
 ### 下载
 
-从 [Releases](https://github.com/legeling/PromptHub/releases) 下载最新版本 v0.4.9：
+从 [Releases](https://github.com/legeling/PromptHub/releases) 下载最新版本 v0.5.0：
 
 | 平台    | 下载                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Windows | [![Windows x64](https://img.shields.io/badge/Windows_x64-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-Setup-0.4.9-x64.exe) [![Windows arm64](https://img.shields.io/badge/Windows_arm64-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-Setup-0.4.9-arm64.exe) |
-| macOS   | [![macOS Apple Silicon](https://img.shields.io/badge/macOS_Apple_Silicon-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.4.9-arm64.dmg) [![macOS Intel](https://img.shields.io/badge/macOS_Intel-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.4.9-x64.dmg)     |
-| Linux   | [![Linux AppImage](https://img.shields.io/badge/Linux_AppImage-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.4.9-x64.AppImage) [![Linux deb](https://img.shields.io/badge/Linux_deb-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/legeling/PromptHub/releases/latest/download/prompthub_0.4.9_amd64.deb)              |
+| Windows | [![Windows x64](https://img.shields.io/badge/Windows_x64-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-Setup-0.5.0-x64.exe) [![Windows arm64](https://img.shields.io/badge/Windows_arm64-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-Setup-0.5.0-arm64.exe) |
+| macOS   | [![macOS Apple Silicon](https://img.shields.io/badge/macOS_Apple_Silicon-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.5.0-arm64.dmg) [![macOS Intel](https://img.shields.io/badge/macOS_Intel-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.5.0-x64.dmg)     |
+| Linux   | [![Linux AppImage](https://img.shields.io/badge/Linux_AppImage-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.5.0-x64.AppImage) [![Linux deb](https://img.shields.io/badge/Linux_deb-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/legeling/PromptHub/releases/latest/download/prompthub_0.5.0_amd64.deb)              |
 
 > 💡 **架构选择建议**
 >
@@ -429,9 +429,16 @@ PromptHub/
 
 ## 路线图
 
-### v0.4.9 (当前) 🎉
+### v0.5.0 (当前) 🚀
 
-- [x] **安全加固**：SSRF 防护重写（DNS 解析验证）、deleteAll 确认参数、URL 协议校验、版本字段验证
+- [x] **Skill 安全评估**：新增静态风险扫描器，可手动检查、自动复查已安装 Skills，并对商店 Skill 输出 `safe / warn / high-risk / blocked`
+- [x] **商店安装前护栏**：商店默认不自动检查；支持“先检查再添加”、高风险二次确认和 `blocked` 级别直接拦截
+- [x] **CLI 安全扫描**：`prompthub skill scan` 会返回风险等级与命中规则，适合脚本化审查本地 skill 仓库
+- [x] **安全 / 文档收口**：推荐资源、多语言文档与官网发布元数据同步到 `v0.5.0`
+
+### v0.4.9
+
+- [x] **安全加固**：SSRF 防护重写、deleteAll 确认参数、URL 协议校验、版本字段验证
 - [x] **架构重构**：skill-installer God Class 拆分为 6 个子模块 + 1 个 facade barrel
 - [x] **Skill 元数据编辑修复**：编辑描述后不再被磁盘旧值覆盖，自动回写 SKILL.md frontmatter
 - [x] **数据库迁移修复**：迁移失败不再误标为完成，防止后续启动跳过失败迁移
@@ -485,29 +492,22 @@ PromptHub/
 
 查看完整的更新日志：**[CHANGELOG.md](./CHANGELOG.md)**
 
-### 最新版本 v0.4.9 (2026-04-08)
+### 最新版本 v0.5.0 (2026-04-09)
 
-**安全加固 / Security**
+**安全评估 / Safety Assessment**
 
-- 🔒 **SSRF 防护重写**：URL 校验升级为 DNS 解析验证 + 被封锁主机名检测
-- 🔒 **deleteAll 确认参数**：防止误删全部版本历史
-- 🔒 **URL 协议校验 + 版本字段验证**：拒绝危险协议，拒绝缺失必填字段的请求
+- 🛡️ **Skill 安全评估**：新增静态风险扫描，可检查已安装 Skill、商店 Skill 和 CLI 扫描结果
+- 🔒 **恶意模式检测**：覆盖危险 shell 片段、提权/持久化命令、凭据路径访问、编码执行和可疑工作流文件
 
-**架构 / Architecture**
+**商店 / Store**
 
-- 🏗️ **skill-installer God Class 拆分**：2173 行单体拆分为 6 个子模块 + 1 个 facade barrel
+- 🏪 **安装前安全检查**：商店支持“先检查再添加”，设置里可选开启“添加前自动评估”，默认关闭
+- 🚫 **高风险护栏**：`high-risk` 级别需二次确认，`blocked` 级别直接拦截
 
-**修复 / Fixed**
+**自动化 / Automation**
 
-- 🐛 **Skill 元数据编辑后描述复原修复**：编辑描述后自动回写 SKILL.md frontmatter
-- 🐛 **数据库迁移失败标记修复**：迁移失败不再被误标为完成
-- 🐛 **Electron 窗口崩溃修复**：新增 `isDestroyed()` guard
-
-**优化 / Improvements**
-
-- 🛡️ 循环引用防护、seed 竞态修复、异步化文件操作、代码质量清理
-- 🤖 AI 设置多选模型 UI + i18n 7 locale
-- 📊 63 文件 720 测试全绿
+- 🖥️ **CLI 安全扫描输出**：`prompthub skill scan` 现在会输出风险等级和命中规则
+- 📚 **发版文档同步**：README、多语言 README 与官网发布元数据同步到 `v0.5.0`
 
 > [查看完整更新日志](./CHANGELOG.md)
 

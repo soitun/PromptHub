@@ -28,6 +28,11 @@ export const skillApi = {
     ipcRenderer.invoke(IPC_CHANNELS.SKILL_SCAN_LOCAL_PREVIEW, customPaths),
   scanSafety: (input: SkillSafetyScanInput): Promise<SkillSafetyReport> =>
     ipcRenderer.invoke(IPC_CHANNELS.SKILL_SCAN_SAFETY, input),
+  saveSafetyReport: (
+    skillId: string,
+    report: SkillSafetyReport,
+  ): Promise<void> =>
+    ipcRenderer.invoke(IPC_CHANNELS.SKILL_SAVE_SAFETY_REPORT, skillId, report),
   installToPlatform: (
     platform: "claude" | "cursor",
     name: string,

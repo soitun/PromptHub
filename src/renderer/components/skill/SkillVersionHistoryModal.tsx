@@ -16,10 +16,7 @@ import {
 import { Modal } from "../ui";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
 import type { Skill, SkillVersion } from "../../../shared/types";
-import {
-  generateTextDiff,
-  restoreSkillVersion,
-} from "./detail-utils";
+import { generateTextDiff, restoreSkillVersion } from "./detail-utils";
 import {
   buildVersionFileDiffEntries,
   resolveVersionSnapshots,
@@ -48,7 +45,10 @@ function SkillDiffView({
   label: string;
   emptyLabel: string;
 }) {
-  const diff = useMemo(() => generateTextDiff(oldText, newText), [oldText, newText]);
+  const diff = useMemo(
+    () => generateTextDiff(oldText, newText),
+    [oldText, newText],
+  );
   const stats = useMemo(
     () => ({
       added: diff.filter((line) => line.type === "add").length,
@@ -105,7 +105,11 @@ function SkillDiffView({
                   </span>
                 </div>
                 <div className="w-5 flex-shrink-0 text-center font-bold">
-                  {line.type === "add" ? "+" : line.type === "remove" ? "-" : " "}
+                  {line.type === "add"
+                    ? "+"
+                    : line.type === "remove"
+                      ? "-"
+                      : " "}
                 </div>
                 <div className="flex-1 whitespace-pre-wrap break-all px-2 py-0.5">
                   {line.content || " "}
@@ -128,7 +132,9 @@ export function SkillVersionHistoryModal({
 }: SkillVersionHistoryModalProps) {
   const { t } = useTranslation();
   const [versions, setVersions] = useState<SkillVersion[]>([]);
-  const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
+  const [selectedVersionId, setSelectedVersionId] = useState<string | null>(
+    null,
+  );
   const [compareTarget, setCompareTarget] = useState<CompareTarget>("current");
   const [view, setView] = useState<ContentView>("preview");
   const [isLoading, setIsLoading] = useState(false);
@@ -188,7 +194,7 @@ export function SkillVersionHistoryModal({
     () => [
       {
         id: "current",
-        label: t("skill.currentVersion", "当前内容"),
+        label: t("skill.currentVersion", "Current Version"),
         content: currentContent,
       },
       ...versions
@@ -212,22 +218,26 @@ export function SkillVersionHistoryModal({
     () =>
       compareTarget === "current"
         ? null
-        : versions.find((version) => version.id === compareTarget) ?? null,
+        : (versions.find((version) => version.id === compareTarget) ?? null),
     [compareTarget, versions],
   );
 
   const compareLabel = compareVersion
     ? `v${compareVersion.version}`
-    : t("skill.currentVersion", "当前内容");
+    : t("skill.currentVersion", "Current Version");
   const selectedFilesSnapshot = useMemo(
-    () => resolveVersionSnapshots(selectedVersion, selectedVersion?.content || ""),
+    () =>
+      resolveVersionSnapshots(selectedVersion, selectedVersion?.content || ""),
     [selectedVersion],
   );
   const compareFilesSnapshot = useMemo(
     () =>
       compareTarget === "current"
         ? currentFilesSnapshot
-        : resolveVersionSnapshots(compareVersion, compareVersion?.content || ""),
+        : resolveVersionSnapshots(
+            compareVersion,
+            compareVersion?.content || "",
+          ),
     [compareTarget, compareVersion, currentFilesSnapshot],
   );
   const fileDiffEntries = useMemo(
@@ -305,24 +315,24 @@ export function SkillVersionHistoryModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={t("skill.versionHistory", "版本历史")}
+      title={t("skill.versionHistory", "Version History")}
       size="2xl"
     >
       {isLoading ? (
         <div className="flex items-center justify-center py-16 text-muted-foreground">
           <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
-          {t("common.loading", "加载中")}
+          {t("common.loading", "Loading...")}
         </div>
       ) : versions.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <HistoryIcon className="mb-4 h-12 w-12 text-muted-foreground/40" />
           <div className="text-sm font-medium text-foreground">
-            {t("skill.noVersionHistory", "还没有历史版本")}
+            {t("skill.noVersionHistory", "No version history yet")}
           </div>
           <div className="mt-2 max-w-md text-xs leading-6 text-muted-foreground">
             {t(
               "skill.noVersionHistoryHint",
-              "后续编辑 SKILL.md 或文件树时会自动生成快照，这里会显示可回滚的版本。",
+              "Editing SKILL.md or the file tree will automatically create snapshots that can be restored here.",
             )}
           </div>
         </div>
@@ -331,7 +341,7 @@ export function SkillVersionHistoryModal({
           <div className="rounded-2xl border border-border bg-background/60 p-3">
             <div className="mb-3 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
               <Clock3Icon className="h-3.5 w-3.5" />
-              {t("skill.versionTimeline", "时间线")}
+              {t("skill.versionTimeline", "Timeline")}
             </div>
             <div className="space-y-2">
               {versions.map((version) => (
@@ -372,13 +382,16 @@ export function SkillVersionHistoryModal({
                     {selectedVersion
                       ? t("skill.restoreVersion", {
                           version: selectedVersion.version,
-                          defaultValue: `恢复到 v${selectedVersion.version}`,
+                          defaultValue: `Restore to this version`,
                         })
-                      : t("skill.versionHistory", "版本历史")}
+                      : t("skill.versionHistory", "Version History")}
                   </div>
                   <div className="mt-1 text-xs text-muted-foreground">
                     {selectedVersion?.note ||
-                      t("skill.versionRestoreHint", "选择一个版本进行回滚")}
+                      t(
+                        "skill.versionRestoreHint",
+                        "Select a version to restore",
+                      )}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -392,7 +405,7 @@ export function SkillVersionHistoryModal({
                           : "text-muted-foreground"
                       }`}
                     >
-                      {t("common.preview", "预览")}
+                      {t("common.preview", "Preview")}
                     </button>
                     <button
                       type="button"
@@ -409,7 +422,9 @@ export function SkillVersionHistoryModal({
                   </div>
                   <button
                     type="button"
-                    onClick={() => selectedVersion && setVersionToDelete(selectedVersion)}
+                    onClick={() =>
+                      selectedVersion && setVersionToDelete(selectedVersion)
+                    }
                     disabled={!selectedVersion || isDeleting || isRestoring}
                     className="inline-flex items-center gap-2 rounded-xl border border-red-500/20 px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-50"
                   >
@@ -418,7 +433,7 @@ export function SkillVersionHistoryModal({
                     ) : (
                       <TrashIcon className="h-4 w-4" />
                     )}
-                    {t("common.delete", "删除")}
+                    {t("common.delete", "Delete")}
                   </button>
                   <button
                     type="button"
@@ -429,12 +444,12 @@ export function SkillVersionHistoryModal({
                     {isRestoring ? (
                       <>
                         <Loader2Icon className="h-4 w-4 animate-spin" />
-                        {t("skill.restoring", "恢复中")}
+                        {t("skill.restoring", "Restoring...")}
                       </>
                     ) : (
                       <>
                         <RotateCcwIcon className="h-4 w-4" />
-                        {t("skill.restore", "恢复")}
+                        {t("skill.restore", "Restore")}
                       </>
                     )}
                   </button>
@@ -448,7 +463,7 @@ export function SkillVersionHistoryModal({
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="flex flex-wrap items-center gap-3">
                       <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        {t("skill.compareAgainst", "比较对象")}
+                        {t("skill.compareAgainst", "Compare Against")}
                       </div>
                       <select
                         value={compareTarget}
@@ -470,25 +485,26 @@ export function SkillVersionHistoryModal({
                         onClick={expandAllFiles}
                         className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium transition-colors hover:bg-accent"
                       >
-                        {t("skill.expandAll", "全部展开")}
+                        {t("skill.expandAll", "Expand All")}
                       </button>
                       <button
                         type="button"
                         onClick={collapseAllFiles}
                         className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium transition-colors hover:bg-accent"
                       >
-                        {t("skill.collapseAll", "全部收起")}
+                        {t("skill.collapseAll", "Collapse All")}
                       </button>
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                     <span className="rounded-full bg-card px-3 py-1">
-                      {t("skill.filesInVersion", "版本文件")}: {fileDiffEntries.length}
+                      {t("skill.filesInVersion", "Files in Version")}:{" "}
+                      {fileDiffEntries.length}
                     </span>
                     <span className="rounded-full bg-primary/10 px-3 py-1 text-primary">
                       {t("skill.filesChanged", {
                         count: changedFileEntries.length,
-                        defaultValue: `已变更 ${changedFileEntries.length} 个文件`,
+                        defaultValue: `${changedFileEntries.length} file(s) changed`,
                       })}
                     </span>
                   </div>
@@ -497,7 +513,9 @@ export function SkillVersionHistoryModal({
                       const isExpanded = expandedFilePaths.has(entry.path);
                       const compareSummary = t("skill.compareSummary", {
                         from: compareLabel,
-                        to: selectedVersion ? `v${selectedVersion.version}` : "-",
+                        to: selectedVersion
+                          ? `v${selectedVersion.version}`
+                          : "-",
                         defaultValue: `${compareLabel} -> ${selectedVersion ? `v${selectedVersion.version}` : "-"}`,
                       });
 
@@ -524,7 +542,7 @@ export function SkillVersionHistoryModal({
                               </div>
                               <div className="mt-1 pl-6 text-xs text-muted-foreground">
                                 {entry.unchanged
-                                  ? t("skill.noChanges", "没有变化")
+                                  ? t("skill.noChanges", "No changes")
                                   : compareSummary}
                               </div>
                             </div>
@@ -536,7 +554,7 @@ export function SkillVersionHistoryModal({
                               }`}
                             >
                               {entry.unchanged
-                                ? t("skill.noChanges", "没有变化")
+                                ? t("skill.noChanges", "No changes")
                                 : t("skill.diffView", "Diff")}
                             </div>
                           </button>
@@ -546,7 +564,7 @@ export function SkillVersionHistoryModal({
                                 oldText={entry.oldContent}
                                 newText={entry.newContent}
                                 label={entry.path}
-                                emptyLabel={t("skill.noChanges", "没有变化")}
+                                emptyLabel={t("skill.noChanges", "No changes")}
                               />
                             </div>
                           ) : null}
@@ -559,10 +577,11 @@ export function SkillVersionHistoryModal({
                 <div className="grid gap-4 lg:grid-cols-2">
                   <div className="space-y-2">
                     <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      {t("skill.currentVersion", "当前内容")}
+                      {t("skill.currentVersion", "Current Version")}
                     </div>
                     <pre className="min-h-[280px] overflow-auto rounded-2xl border border-border bg-card p-4 text-xs leading-6 text-foreground whitespace-pre-wrap">
-                      {currentContent || t("skill.noContent", "无内容")}
+                      {currentContent ||
+                        t("skill.noContent", "No content available")}
                     </pre>
                   </div>
 
@@ -570,10 +589,11 @@ export function SkillVersionHistoryModal({
                     <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                       {selectedVersion
                         ? `v${selectedVersion.version}`
-                        : t("skill.selectedVersion", "选中版本")}
+                        : t("skill.selectedVersion", "Selected Version")}
                     </div>
                     <pre className="min-h-[280px] overflow-auto rounded-2xl border border-border bg-card p-4 text-xs leading-6 text-foreground whitespace-pre-wrap">
-                      {selectedVersion?.content || t("skill.noContent", "无内容")}
+                      {selectedVersion?.content ||
+                        t("skill.noContent", "No content available")}
                     </pre>
                   </div>
                 </div>
@@ -591,16 +611,16 @@ export function SkillVersionHistoryModal({
           setVersionToDelete(null);
         }}
         onConfirm={handleDelete}
-        title={t("skill.deleteVersionTitle", "删除版本快照")}
+        title={t("skill.deleteVersionTitle", "Delete version snapshot")}
         message={t("skill.deleteVersionConfirm", {
           version: versionToDelete?.version ?? "",
         })}
         confirmText={
           isDeleting
-            ? t("common.loading", "加载中")
-            : t("common.delete", "删除")
+            ? t("common.loading", "Loading...")
+            : t("common.delete", "Delete")
         }
-        cancelText={t("common.cancel", "取消")}
+        cancelText={t("common.cancel", "Cancel")}
         variant="destructive"
       />
     </Modal>

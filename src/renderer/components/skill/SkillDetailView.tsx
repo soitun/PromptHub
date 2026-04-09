@@ -239,14 +239,14 @@ export function SkillDetailView() {
           <button
             onClick={() => setIsEditModalOpen(true)}
             className="p-2.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-full transition-all active:scale-95"
-            title={t("skill.edit", "编辑技能")}
+            title={t("skill.edit", "Edit Skill")}
           >
             <PencilIcon className="w-5 h-5" />
           </button>
           <button
             onClick={() => setIsFileEditorOpen(true)}
             className="p-2.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-full transition-all active:scale-95"
-            title={t("skill.fileEditor", "文件编辑器")}
+            title={t("skill.fileEditor", "File Editor")}
           >
             <FolderOpenIcon className="w-5 h-5" />
           </button>
@@ -267,7 +267,7 @@ export function SkillDetailView() {
         >
           <div className="flex items-center gap-2">
             <BookOpenIcon className="w-4 h-4" />
-            {t("common.preview", "预览")}
+            {t("common.preview", "Preview")}
           </div>
           {activeTab === "preview" && (
             <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />
@@ -279,7 +279,7 @@ export function SkillDetailView() {
         >
           <div className="flex items-center gap-2">
             <CodeIcon className="w-4 h-4" />
-            {t("common.content", "源码/内容")}
+            {t("common.content", "Source")}
           </div>
           {activeTab === "code" && (
             <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />
@@ -293,7 +293,7 @@ export function SkillDetailView() {
             {/* Description */}
             <section className="space-y-4">
               <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-[0.2em] flex items-center gap-2">
-                {t("skill.skillDescription", "技能描述")}
+                {t("skill.skillDescription", "Description")}
               </h3>
               <div className="bg-accent/10 p-5 rounded-2xl border border-white/5">
                 <p className="text-base text-foreground/90 leading-relaxed italic">
@@ -334,18 +334,18 @@ export function SkillDetailView() {
                         uninstalledPlatforms.length ? (
                           <>
                             <CheckSquareIcon className="w-4 h-4" />
-                            {t("skill.deselectAll", "取消全选")}
+                            {t("skill.deselectAll", "Deselect All")}
                           </>
                         ) : (
                           <>
                             <SquareIcon className="w-4 h-4" />
-                            {t("skill.selectAll", "全选")}
+                            {t("skill.selectAll", "Select All")}
                           </>
                         )}
                       </button>
                       {selectedPlatforms.size > 0 && (
                         <span className="text-xs text-muted-foreground">
-                          {t("skill.selected", "已选择")}{" "}
+                          {t("skill.selected", "Selected")}{" "}
                           {selectedPlatforms.size}
                         </span>
                       )}
@@ -362,12 +362,12 @@ export function SkillDetailView() {
                           <Loader2Icon className="w-3.5 h-3.5 animate-spin" />
                           {installProgress
                             ? `${installProgress.current}/${installProgress.total}`
-                            : t("skill.installing", "安装中...")}
+                            : t("skill.installing", "Installing...")}
                         </>
                       ) : (
                         <>
                           <DownloadIcon className="w-3.5 h-3.5" />
-                          {t("skill.batchInstall", "批量安装")}
+                          {t("skill.batchInstall", "Install All")}
                         </>
                       )}
                     </button>
@@ -411,9 +411,9 @@ export function SkillDetailView() {
                                   showUninstallConfirm(platform.id);
                                 }}
                                 className="text-[10px] text-destructive hover:underline"
-                                title={t("skill.uninstall", "卸载")}
+                                title={t("skill.uninstall", "Uninstall")}
                               >
-                                {t("skill.uninstall", "卸载")}
+                                {t("skill.uninstall", "Uninstall")}
                               </button>
                             </div>
                           ) : (
@@ -435,8 +435,8 @@ export function SkillDetailView() {
                           {isInstalled
                             ? t("skill.installed")
                             : isSelected
-                              ? t("skill.selectedForInstall", "待安装")
-                              : t("skill.clickToSelect", "点击选择")}
+                              ? t("skill.selectedForInstall", "Pending install")
+                              : t("skill.clickToSelect", "Click to select")}
                         </p>
                       </div>
                     );
@@ -578,7 +578,9 @@ export function SkillDetailView() {
               <section>
                 {sourceMeta.kind === "local" ? (
                   <button
-                    onClick={() => window.electron?.openPath?.(sourceMeta.value)}
+                    onClick={() =>
+                      window.electron?.openPath?.(sourceMeta.value)
+                    }
                     className="w-full flex items-center justify-center gap-3 p-5 bg-accent/70 border border-border text-foreground rounded-2xl hover:bg-accent transition-colors font-bold shadow-lg"
                   >
                     <FolderOpenIcon className="w-5 h-5" />
@@ -590,7 +592,9 @@ export function SkillDetailView() {
                     target="_blank"
                     rel="noreferrer"
                     className={`flex items-center justify-center gap-3 p-5 text-white rounded-2xl hover:opacity-90 transition-opacity font-bold shadow-lg ${
-                      sourceMeta.kind === "github" ? "bg-github" : "bg-slate-700"
+                      sourceMeta.kind === "github"
+                        ? "bg-github"
+                        : "bg-slate-700"
                     }`}
                   >
                     {sourceMeta.kind === "github" ? (
@@ -609,7 +613,7 @@ export function SkillDetailView() {
             {/* Export Section */}
             <section className="space-y-4">
               <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-[0.2em]">
-                {t("skill.export", "导出")}
+                {t("skill.export", "Export")}
               </h3>
               <div className="grid grid-cols-2 gap-3">
                 <button
@@ -620,7 +624,7 @@ export function SkillDetailView() {
                   <div className="text-left">
                     <div className="font-medium text-sm">SKILL.md</div>
                     <div className="text-[10px] text-muted-foreground">
-                      {t("skill.exportSkillMd", "Claude 兼容格式")}
+                      {t("skill.exportSkillMd", "Claude compatible format")}
                     </div>
                   </div>
                 </button>
@@ -632,7 +636,7 @@ export function SkillDetailView() {
                   <div className="text-left">
                     <div className="font-medium text-sm">JSON</div>
                     <div className="text-[10px] text-muted-foreground">
-                      {t("skill.exportJson", "备份/分享格式")}
+                      {t("skill.exportJson", "Backup/Share format")}
                     </div>
                   </div>
                 </button>
@@ -684,10 +688,15 @@ export function SkillDetailView() {
         isOpen={confirmInstallOpen}
         onClose={() => setConfirmInstallOpen(false)}
         onConfirm={batchInstall}
-        title={t("skill.confirmInstallTitle", "确认安装")}
+        title={t("skill.confirmInstallTitle", "Confirm Install")}
         message={
           <div>
-            <p>{t("skill.confirmInstallMessage", "将安装技能到以下平台：")}</p>
+            <p>
+              {t(
+                "skill.confirmInstallMessage",
+                "Install skill to the following platforms:",
+              )}
+            </p>
             <ul className="mt-2 space-y-1">
               {Array.from(selectedPlatforms).map((platformId) => {
                 const platform = availablePlatforms.find(
@@ -706,8 +715,8 @@ export function SkillDetailView() {
             </ul>
           </div>
         }
-        confirmText={t("skill.batchInstall", "批量安装")}
-        cancelText={t("common.cancel", "取消")}
+        confirmText={t("skill.batchInstall", "Install All")}
+        cancelText={t("common.cancel", "Cancel")}
       />
 
       {/* Uninstall Confirmation Dialog */}
@@ -719,13 +728,13 @@ export function SkillDetailView() {
           setPendingUninstallPlatform(null);
         }}
         onConfirm={confirmUninstallFromPlatform}
-        title={t("skill.confirmUninstallTitle", "确认卸载")}
+        title={t("skill.confirmUninstallTitle", "Confirm Uninstall")}
         message={
           pendingUninstallPlatform ? (
             <p>
               {t(
                 "skill.confirmUninstallMessage",
-                "确定要从 {{platform}} 卸载此技能吗？",
+                "Are you sure you want to uninstall this skill from {{platform}}?",
                 {
                   platform:
                     availablePlatforms.find(
@@ -736,8 +745,8 @@ export function SkillDetailView() {
             </p>
           ) : null
         }
-        confirmText={t("skill.uninstall", "卸载")}
-        cancelText={t("common.cancel", "取消")}
+        confirmText={t("skill.uninstall", "Uninstall")}
+        cancelText={t("common.cancel", "Cancel")}
         variant="destructive"
       />
     </div>

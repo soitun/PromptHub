@@ -118,16 +118,21 @@ export function EditSkillModal({
 
   const validateName = (value: string): boolean => {
     if (!value.trim()) {
-      setNameError(t("skill.nameRequired", "技能名称不能为空"));
+      setNameError(t("skill.nameRequired", "Please enter a skill name"));
       return false;
     }
     if (value.length > 64) {
-      setNameError(t("skill.nameTooLong", "名称不能超过64个字符"));
+      setNameError(
+        t("skill.nameTooLong", "Name must not exceed 64 characters"),
+      );
       return false;
     }
     if (!SKILL_NAME_REGEX.test(value)) {
       setNameError(
-        t("skill.nameInvalid", "名称格式无效（仅限小写字母、数字和连字符）"),
+        t(
+          "skill.nameInvalid",
+          "Invalid name format (only lowercase letters, numbers, and hyphens)",
+        ),
       );
       return false;
     }
@@ -178,7 +183,7 @@ export function EditSkillModal({
       setError(
         err instanceof Error
           ? err.message
-          : t("skill.updateFailed", "更新失败"),
+          : t("skill.updateFailed", "Update failed"),
       );
     } finally {
       setIsLoading(false);
@@ -210,7 +215,7 @@ export function EditSkillModal({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
           <h2 className="text-lg font-semibold">
-            {t("skill.editMetadata", "编辑技能元数据")}
+            {t("skill.editMetadata", "Edit Skill Metadata")}
           </h2>
           <div className="flex items-center gap-2">
             <button
@@ -249,7 +254,7 @@ export function EditSkillModal({
           {/* Name */}
           <div>
             <label className="block text-sm font-medium mb-2">
-              {t("skill.skillName", "技能名称")}{" "}
+              {t("skill.skillName", "Skill Name")}{" "}
               <span className="text-destructive">*</span>
             </label>
             <input
@@ -276,7 +281,7 @@ export function EditSkillModal({
             <p className="mt-1.5 text-xs text-muted-foreground">
               {t(
                 "skill.nameHint",
-                "仅限小写字母、数字和连字符，如 my-skill-name",
+                "Lowercase letters, numbers, and hyphens only, e.g. my-skill-name",
               )}
             </p>
           </div>
@@ -284,7 +289,7 @@ export function EditSkillModal({
           {/* Description */}
           <div>
             <label className="block text-sm font-medium mb-2">
-              {t("skill.skillDescription", "技能描述")}
+              {t("skill.skillDescription", "Description")}
             </label>
             <input
               type="text"
@@ -292,7 +297,7 @@ export function EditSkillModal({
               onChange={(e) => setDescription(e.target.value)}
               placeholder={t(
                 "skill.descriptionPlaceholder",
-                "简短描述技能的功能",
+                "Briefly describe what this skill does",
               )}
               className="w-full px-4 py-2.5 bg-muted/50 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
             />
@@ -316,13 +321,13 @@ export function EditSkillModal({
 
           <div>
             <label className="block text-sm font-medium mb-2">
-              {t("skill.author", "作者")}
+              {t("skill.author", "Author")}
             </label>
             <input
               type="text"
               value={author}
               onChange={(e) => setAuthor(e.target.value)}
-              placeholder={t("skill.authorPlaceholder", "作者名称")}
+              placeholder={t("skill.authorPlaceholder", "Author name")}
               className="w-full px-4 py-2.5 bg-muted/50 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
             />
           </div>
@@ -330,7 +335,7 @@ export function EditSkillModal({
           {/* Tags */}
           <div className="space-y-1.5">
             <label className="block text-sm font-medium text-foreground">
-              {t("skill.tagsOptional", "标签（可选）")}
+              {t("skill.tagsOptional", "Tags (Optional)")}
             </label>
             <div className="flex flex-wrap gap-2 mb-2">
               {tags.map((tag) => (

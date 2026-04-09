@@ -17,6 +17,7 @@ import {
   GlobeIcon,
   FolderIcon,
   DatabaseIcon,
+  RefreshCwIcon,
 } from "lucide-react";
 import { SkillStoreDetail } from "./SkillStoreDetail";
 import { SkillStoreCard } from "./SkillStoreCard";
@@ -43,6 +44,7 @@ import type {
   SkillStoreSource,
 } from "../../../shared/types";
 import { SKILL_CATEGORIES } from "../../../shared/constants/skill-registry";
+import { getSafetyScanAIConfig } from "./detail-utils";
 
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
   all: <LayoutGridIcon className="w-3.5 h-3.5" />,
@@ -78,7 +80,6 @@ const CUSTOM_SOURCE_TYPE_OPTIONS: Array<{
   },
 ];
 
-const REMOTE_STORE_TTL = 1000 * 60 * 60;
 const MAX_REMOTE_STORE_DEPTH = 3;
 const MAX_SKILLS_SH_SKILLS = 24;
 const SKILLS_SH_CONCURRENCY = 4;
@@ -186,6 +187,11 @@ function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+function isGitHubRateLimitError(error: unknown): boolean {
+  const message = getErrorMessage(error).toLowerCase();
+  return message.includes("github api rate limit reached");
+}
+
 function isDefined<T>(value: T | null | undefined): value is T {
   return value !== null && value !== undefined;
 }
@@ -285,6 +291,7 @@ export function SkillStore() {
   const autoScanBeforeInstall = useSettingsStore(
     (state) => state.autoScanStoreSkillsBeforeInstall,
   );
+  const aiModels = useSettingsStore((state) => state.aiModels);
 
   useEffect(() => {
     loadRegistry();
@@ -324,27 +331,52 @@ export function SkillStore() {
         throw new Error(
           t(
             "skill.invalidGitRepo",
-            "请输入 GitHub 仓库地址，或改用本地仓库目录路径",
+            "Please enter a GitHub repository URL, or use a local directory path instead",
           ),
         );
       }
 
-      const repoMetaRaw = await window.api.skill.fetchRemoteContent(
-        `https://api.github.com/repos/${parsedRepo.owner}/${parsedRepo.repo}`,
-      );
+      let repoMetaRaw: string;
+      try {
+        repoMetaRaw = await window.api.skill.fetchRemoteContent(
+          `https://api.github.com/repos/${parsedRepo.owner}/${parsedRepo.repo}`,
+        );
+      } catch (error) {
+        if (isGitHubRateLimitError(error)) {
+          throw new Error(
+            t(
+              "skill.remoteStoreRateLimitHint",
+              "GitHub API rate limit reached. Try again in a few minutes, or add a GitHub token in settings.",
+            ),
+          );
+        }
+        throw error;
+      }
       const repoMeta = parseJson<GitHubRepoMetadata>(repoMetaRaw || "{}", {});
       const defaultBranch = repoMeta.default_branch || "main";
 
-      const treeRaw = await window.api.skill.fetchRemoteContent(
-        `https://api.github.com/repos/${parsedRepo.owner}/${parsedRepo.repo}/git/trees/${defaultBranch}?recursive=1`,
-      );
+      let treeRaw: string;
+      try {
+        treeRaw = await window.api.skill.fetchRemoteContent(
+          `https://api.github.com/repos/${parsedRepo.owner}/${parsedRepo.repo}/git/trees/${defaultBranch}?recursive=1`,
+        );
+      } catch (error) {
+        if (isGitHubRateLimitError(error)) {
+          throw new Error(
+            t(
+              "skill.remoteStoreRateLimitHint",
+              "GitHub API rate limit reached. Try again in a few minutes, or add a GitHub token in settings.",
+            ),
+          );
+        }
+        throw error;
+      }
       const treeData = parseJson<GitHubTreeResponse>(treeRaw || "{}", {});
       const skillFiles = Array.isArray(treeData.tree)
         ? treeData.tree.filter(
             (item): item is GitHubTreeEntry & { path: string; type: string } =>
               isGitHubTreeEntry(item) &&
               item.type === "blob" &&
-              item.path.startsWith("skills/") &&
               item.path.endsWith("/SKILL.md"),
           )
         : [];
@@ -359,7 +391,12 @@ export function SkillStore() {
           const slug = path.split("/").slice(-2, -1)[0];
           const rawUrl = `https://raw.githubusercontent.com/${parsedRepo.owner}/${parsedRepo.repo}/${defaultBranch}/${path}`;
           const sourceRepoUrl = `${parsedRepo.repositoryUrl}/tree/${defaultBranch}/${path.replace(/\/SKILL\.md$/, "")}`;
-          const content = await window.api.skill.fetchRemoteContent(rawUrl);
+          let content: string;
+          try {
+            content = await window.api.skill.fetchRemoteContent(rawUrl);
+          } catch {
+            return null;
+          }
           if (!content) return null;
 
           const builtin = builtinBySlug.get(slug);
@@ -418,7 +455,9 @@ export function SkillStore() {
       }
       visited.add(resolvedUrl);
 
-      const raw = await window.api.skill.fetchRemoteContent(resolvedUrl);
+      const raw = await window.api.skill
+        .fetchRemoteContent(resolvedUrl)
+        .catch(() => null);
       if (!raw) return [];
 
       const data = parseJson<MarketplaceRegistryDocument>(raw, {});
@@ -619,9 +658,10 @@ export function SkillStore() {
       if ("enabled" in source && !source.enabled) return;
 
       const cachedEntry = remoteStoreEntries[sourceId];
-      const isFresh =
-        cachedEntry && Date.now() - cachedEntry.loadedAt < REMOTE_STORE_TTL;
-      if (!forceRefresh && isFresh) return;
+      // Cache is permanent — only bypass when user explicitly requests a refresh.
+      // A cached entry with skills is always considered fresh.
+      const hasCachedSkills = cachedEntry && cachedEntry.skills.length > 0;
+      if (!forceRefresh && hasCachedSkills) return;
 
       setLoadingSourceId(sourceId);
       try {
@@ -645,12 +685,14 @@ export function SkillStore() {
         });
       } catch (error) {
         console.error(`Failed to load remote store ${sourceId}:`, error);
+        // Do NOT update loadedAt on failure — keeps cache stale so next visit retries automatically.
+        // Preserve previously-cached skills (if any) so the UI isn't wiped.
         setRemoteStoreEntry(sourceId, {
-          loadedAt: Date.now(),
+          loadedAt: cachedEntry?.loadedAt || 0,
           error:
             error instanceof Error
               ? error.message
-              : t("skill.remoteStoreLoadFailed", "拉取远程商店失败"),
+              : t("skill.remoteStoreLoadFailed", "Failed to load remote store"),
           skills: cachedEntry?.skills || [],
         });
       } finally {
@@ -755,6 +797,7 @@ export function SkillStore() {
           sourceUrl: skill.source_url,
           contentUrl: skill.content_url,
           securityAudits: skill.security_audits,
+          aiConfig: getSafetyScanAIConfig(aiModels),
         });
         if (report.level === "blocked" || report.level === "high-risk") {
           showToast(
@@ -798,14 +841,14 @@ export function SkillStore() {
       const message =
         error instanceof Error &&
         error.message === "STORE_SOURCE_HTTPS_REQUIRED"
-          ? t("skill.storeSourceHttpsRequired", "商店地址必须使用 HTTPS")
-          : t("skill.storeSourceInvalidUrl", "商店地址格式无效");
+          ? t("skill.storeSourceHttpsRequired", "Store URL must use HTTPS")
+          : t("skill.storeSourceInvalidUrl", "Invalid store URL format");
       showToast(message, "error");
     }
   };
 
   const categories: { key: SkillCategory | "all"; label: string }[] = [
-    { key: "all", label: isZh ? "全部" : "All" },
+    { key: "all", label: t("common.showAll", "All") },
     ...Object.entries(SKILL_CATEGORIES).map(([key, value]) => ({
       key: key as SkillCategory,
       label: isZh ? value.label : value.labelEn,
@@ -815,37 +858,40 @@ export function SkillStore() {
   const sourceMeta = useMemo(() => {
     if (selectedStoreSourceId === "community") {
       return {
-        title: t("skill.communityStore", "社区商店"),
+        title: t("skill.communityStore", "Community Store"),
         hint: t(
           "skill.communityStoreHint",
-          "这里实时聚合 skills.sh 上的社区 skill 排行。会优先展示缓存，再静默刷新最新榜单。",
+          "This area will aggregate third-party community skill sources. The entry is ready for connecting a community registry next.",
         ),
         count: sourceRegistrySkills.length,
         showCatalog: true,
+        canRefresh: true,
       };
     }
 
     if (selectedStoreSourceId === "claude-code") {
       return {
-        title: t("skill.claudeCodeStore", "Claude Code 商店"),
+        title: t("skill.claudeCodeStore", "Claude Code Store"),
         hint: t(
           "skill.claudeCodeStoreHint",
-          "实时拉取 anthropics/skills 仓库，并按 PromptHub 的商店卡片结构展示。",
+          "Built-in Claude Code source with first-class support for the official skills repo and common marketplace.json indexes.",
         ),
         count: sourceRegistrySkills.length,
         showCatalog: true,
+        canRefresh: true,
       };
     }
 
     if (selectedStoreSourceId === "new-custom") {
       return {
-        title: t("skill.addStoreSource", "添加商店"),
+        title: t("skill.addStoreSource", "Add Store"),
         hint: t(
           "skill.customStoresHint",
-          "添加后会立即尝试拉取远程内容。支持 marketplace.json、GitHub 仓库和本地目录。",
+          "Add your own store endpoints here. A later step can connect remote manifests or registries.",
         ),
         count: customStoreSources.length,
         showCatalog: false,
+        canRefresh: false,
       };
     }
 
@@ -855,17 +901,19 @@ export function SkillStore() {
         hint: selectedCustomSource.url,
         count: sourceRegistrySkills.length,
         showCatalog: true,
+        canRefresh: true,
       };
     }
 
     return {
-      title: t("skill.officialStore", "官方商店"),
+      title: t("skill.officialStore", "Official Store"),
       hint: t(
         "skill.storeHint",
-        "从官方内置商店导入 PromptHub 已整理好的 skills。",
+        "Discover and import skills from official, community, and custom stores.",
       ),
       count: sourceRegistrySkills.length,
       showCatalog: true,
+      canRefresh: false,
     };
   }, [
     customStoreSources.length,
@@ -896,17 +944,29 @@ export function SkillStore() {
             </p>
           </div>
           <span className="text-[11px] font-medium text-muted-foreground bg-accent/50 px-2 py-0.5 rounded-full border border-white/5">
-            {sourceMeta.count} {isZh ? "个技能" : "skills"}
+            {sourceMeta.count} {t("skill.skillsCount", "skills")}
           </span>
           {isRefreshingCachedSource && (
             <span className="text-[11px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full border border-border inline-flex items-center gap-1">
               <Loader2Icon className="w-3 h-3 animate-spin" />
-              {t("common.refreshing", "刷新中")}
+              {t("common.refreshing", "Refreshing")}
             </span>
           )}
         </div>
 
         <div className="flex items-center gap-2">
+          {sourceMeta.canRefresh && (
+            <button
+              onClick={() => void loadStoreSource(selectedStoreSourceId, true)}
+              disabled={loadingSourceId === selectedStoreSourceId}
+              className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors disabled:opacity-40"
+              title={t("common.refresh", "Refresh")}
+            >
+              <RefreshCwIcon
+                className={`w-4 h-4 ${loadingSourceId === selectedStoreSourceId ? "animate-spin" : ""}`}
+              />
+            </button>
+          )}
           {sourceMeta.showCatalog && (
             <div className="relative w-64">
               <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -964,21 +1024,39 @@ export function SkillStore() {
             {selectedStoreSourceId === "claude-code"
               ? t(
                   "skill.loadingRemoteStore",
-                  "正在拉取 Claude Code 远程技能列表...",
+                  "Loading Claude Code skills from the remote source...",
                 )
               : selectedStoreSourceId === "community"
                 ? t(
                     "skill.loadingCommunityStore",
-                    "正在拉取 skills.sh 社区技能列表...",
+                    "Loading skills.sh community skill list...",
                   )
-                : t("skill.loadingCustomStore", "正在拉取自定义商店内容...")}
+                : t(
+                    "skill.loadingCustomStore",
+                    "Loading custom store content...",
+                  )}
           </div>
         )}
 
-        {currentRemoteError && (
-          <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
-            {t("skill.remoteStoreLoadFailed", "拉取远程商店失败")}：
-            {currentRemoteError}
+        {currentRemoteError && !shouldShowInitialLoading && (
+          <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive space-y-2">
+            <div>
+              <span className="font-medium">
+                {t(
+                  "skill.remoteStoreLoadFailed",
+                  "Failed to load remote store",
+                )}
+                :{" "}
+              </span>
+              {currentRemoteError}
+            </div>
+            <button
+              onClick={() => void loadStoreSource(selectedStoreSourceId, true)}
+              disabled={loadingSourceId === selectedStoreSourceId}
+              className="text-xs px-3 py-1.5 rounded-lg bg-destructive/10 hover:bg-destructive/20 text-destructive font-medium transition-colors disabled:opacity-40"
+            >
+              {t("skill.remoteStoreRetry", "Retry")}
+            </button>
           </div>
         )}
 
@@ -988,7 +1066,7 @@ export function SkillStore() {
               <section>
                 <div className="flex items-center gap-2 mb-4">
                   <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">
-                    {t("skill.importedSection", "已导入")}
+                    {t("skill.importedSection", "Imported")}
                   </h3>
                   <span className="text-[10px] bg-green-500/10 text-green-500 px-2 py-0.5 rounded-full font-bold">
                     {installed.length}
@@ -1012,7 +1090,7 @@ export function SkillStore() {
               <section>
                 <div className="flex items-center gap-2 mb-4">
                   <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">
-                    {t("skill.availableSection", "可导入")}
+                    {t("skill.availableSection", "Available")}
                   </h3>
                   <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold">
                     {recommended.length}
@@ -1058,19 +1136,19 @@ export function SkillStore() {
             <div className="flex items-center gap-2 text-foreground">
               <GlobeIcon className="w-5 h-5 text-primary" />
               <h3 className="text-base font-semibold">
-                {t("skill.claudeCodeStore", "Claude Code 商店")}
+                {t("skill.claudeCodeStore", "Claude Code Store")}
               </h3>
             </div>
             <p className="text-sm text-muted-foreground leading-7">
               {t(
                 "skill.claudeCodeStoreDetail",
-                "这个来源会实时读取 anthropics/skills 仓库，并把其中的 SKILL.md 解析成可导入的商店卡片。缓存会保存在本地，后续进入页面会优先展示缓存，再静默刷新。",
+                "This built-in source is meant for the Claude Code ecosystem. It is designed to work first with the official skills repository and marketplace.json indexes, and can later become a browsable remote store.",
               )}
             </p>
             <div className="grid gap-3 md:grid-cols-2">
               <div className="rounded-xl border border-border bg-muted/30 p-4">
                 <div className="text-sm font-medium text-foreground mb-1">
-                  {t("skill.supportedFormat", "支持格式")}
+                  {t("skill.supportedFormat", "Supported Formats")}
                 </div>
                 <div className="text-xs text-muted-foreground leading-6">
                   {t(
@@ -1086,7 +1164,7 @@ export function SkillStore() {
               </div>
               <div className="rounded-xl border border-border bg-muted/30 p-4">
                 <div className="text-sm font-medium text-foreground mb-1">
-                  {t("skill.exampleSources", "内置参考源")}
+                  {t("skill.exampleSources", "Built-in Reference Sources")}
                 </div>
                 <div className="text-xs text-muted-foreground leading-6 break-all">
                   https://github.com/anthropics/skills
@@ -1103,19 +1181,19 @@ export function SkillStore() {
             <div className="flex items-center gap-2 mb-3 text-foreground">
               <BoxesIcon className="w-5 h-5 text-primary" />
               <h3 className="text-base font-semibold">
-                {t("skill.communityStore", "社区商店")}
+                {t("skill.communityStore", "Community Store")}
               </h3>
             </div>
             <p className="text-sm text-muted-foreground leading-6">
               {t(
                 "skill.communityStoreHint",
-                "这里接入的是 skills.sh 社区榜单。支持直接浏览热门 skill，并导入到 PromptHub。",
+                "This area will aggregate third-party community skill sources. The entry is ready for connecting a community registry next.",
               )}
             </p>
             <div className="grid gap-3 md:grid-cols-2">
               <div className="rounded-xl border border-border bg-muted/30 p-4">
                 <div className="text-sm font-medium text-foreground mb-1">
-                  {t("skill.supportedFormat", "支持格式")}
+                  {t("skill.supportedFormat", "Supported Formats")}
                 </div>
                 <div className="text-xs text-muted-foreground leading-6">
                   {t(
@@ -1131,7 +1209,7 @@ export function SkillStore() {
               </div>
               <div className="rounded-xl border border-border bg-muted/30 p-4">
                 <div className="text-sm font-medium text-foreground mb-1">
-                  {t("skill.exampleSources", "内置参考源")}
+                  {t("skill.exampleSources", "Built-in Reference Sources")}
                 </div>
                 <div className="text-xs text-muted-foreground leading-6 break-all">
                   https://skills.sh/
@@ -1147,21 +1225,20 @@ export function SkillStore() {
               <h3 className="text-base font-semibold text-foreground">
                 {selectedCustomSource
                   ? selectedCustomSource.name
-                  : t("skill.customStores", "我的商店")}
+                  : t("skill.customStores", "My Stores")}
               </h3>
               <p className="text-sm text-muted-foreground mt-1">
                 {selectedCustomSource
                   ? selectedCustomSource.url
                   : t(
                       "skill.customStoresHint",
-                      "支持添加你自己的商店地址，并真实拉取远程 skills 内容。",
+                      "Add your own store endpoints here. A later step can connect remote manifests or registries.",
                     )}
               </p>
             </div>
 
             <SkillStoreCustomSources
               customStoreSources={customStoreSources}
-              isZh={isZh}
               loadStoreSource={loadStoreSource}
               loadingSourceId={loadingSourceId}
               remoteStoreEntries={remoteStoreEntries}

@@ -6,19 +6,53 @@ import {
   DownloadIcon,
   CheckSquareIcon,
   SquareIcon,
+  ShieldCheckIcon,
+  ShieldAlertIcon,
+  ShieldIcon,
 } from "lucide-react";
 import { SkillIcon } from "./SkillIcon";
 import { useState, useEffect, useMemo } from "react";
 import { useSkillStore } from "../../stores/skill.store";
 import { PlatformIcon } from "../ui/PlatformIcon";
-import type { Skill } from "../../../shared/types";
+import type { Skill, SkillSafetyLevel } from "../../../shared/types";
 import type { SkillPlatform } from "../../../shared/constants/platforms";
 
 const MAX_STAGGERED_ROWS = 12;
 
-function normalizePlatformStatusMap(
-  value: unknown,
-): Record<string, boolean> {
+function getSafetyIconProps(level: SkillSafetyLevel): {
+  Icon: typeof ShieldCheckIcon;
+  className: string;
+  label: string;
+} {
+  switch (level) {
+    case "safe":
+      return {
+        Icon: ShieldCheckIcon,
+        className: "text-emerald-500",
+        label: "Safe",
+      };
+    case "warn":
+      return {
+        Icon: ShieldAlertIcon,
+        className: "text-yellow-500",
+        label: "Needs review",
+      };
+    case "high-risk":
+      return {
+        Icon: ShieldAlertIcon,
+        className: "text-orange-500",
+        label: "High risk",
+      };
+    case "blocked":
+      return {
+        Icon: ShieldAlertIcon,
+        className: "text-destructive",
+        label: "Blocked",
+      };
+  }
+}
+
+function normalizePlatformStatusMap(value: unknown): Record<string, boolean> {
   if (!value || typeof value !== "object") {
     return {};
   }
@@ -89,7 +123,10 @@ export function SkillListView({
   useEffect(() => {
     const loadStatuses = async () => {
       const nextStatuses = Object.fromEntries(
-        skills.map((skill) => [skill.id, skillPlatformStatusCache.get(skill.name) ?? {}]),
+        skills.map((skill) => [
+          skill.id,
+          skillPlatformStatusCache.get(skill.name) ?? {},
+        ]),
       );
       setPlatformStatuses(nextStatuses);
 
@@ -111,7 +148,10 @@ export function SkillListView({
         )) as Record<string, unknown>;
 
         for (const [name, status] of Object.entries(statusByName)) {
-          skillPlatformStatusCache.set(name, normalizePlatformStatusMap(status));
+          skillPlatformStatusCache.set(
+            name,
+            normalizePlatformStatusMap(status),
+          );
         }
 
         setPlatformStatuses(
@@ -258,6 +298,28 @@ export function SkillListView({
                     >
                       {skill.name}
                     </h3>
+                    {/* Safety shield icon */}
+                    {skill.safetyReport ? (
+                      (() => {
+                        const { Icon, className, label } = getSafetyIconProps(
+                          skill.safetyReport.level,
+                        );
+                        return (
+                          <Icon
+                            className={`w-3.5 h-3.5 shrink-0 ${className}`}
+                            title={`${t("skill.safetyLevelLabel", "Safety")}: ${label}`}
+                          />
+                        );
+                      })()
+                    ) : (
+                      <ShieldIcon
+                        className="w-3.5 h-3.5 shrink-0 text-muted-foreground/30"
+                        title={t(
+                          "skill.safetyAssessmentEmpty",
+                          "No safety scan run yet",
+                        )}
+                      />
+                    )}
                   </div>
                   <p className="text-xs text-muted-foreground truncate mt-0.5">
                     {skill.description || t("skill.defaultDescription")}

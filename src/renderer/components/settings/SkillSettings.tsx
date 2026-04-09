@@ -8,6 +8,7 @@ import { useSkillStore } from "../../stores/skill.store";
 import { PlatformIcon } from "../ui/PlatformIcon";
 import { SettingSection } from "./shared";
 import { useToast } from "../ui/Toast";
+import { getSafetyScanAIConfig } from "../skill/detail-utils";
 
 interface SkillSettingsProps {
   onNavigate: (section: string) => void;
@@ -26,6 +27,7 @@ export function SkillSettings({ onNavigate }: SkillSettingsProps) {
   const scanInstalledSkillSafety = useSkillStore(
     (state) => state.scanInstalledSkillSafety,
   );
+  const aiModels = settings.aiModels;
   const { showToast } = useToast();
   const [newScanPath, setNewScanPath] = useState("");
   const [isBatchScanning, setIsBatchScanning] = useState(false);
@@ -34,13 +36,13 @@ export function SkillSettings({ onNavigate }: SkillSettingsProps) {
   return (
     <div className="space-y-6">
       <SettingSection
-        title={t("settings.skillInstallMethod", "Skill 安装方式")}
+        title={t("settings.skillInstallMethod", "Skill Install Method")}
       >
         <div className="p-4 space-y-3">
           <p className="text-xs text-muted-foreground">
             {t(
               "settings.skillInstallMethodDesc",
-              "选择从 PromptHub 库向 AI 工具平台安装 Skill 的方式。",
+              "Choose how Skills are installed from PromptHub to AI tool platforms.",
             )}
           </p>
           <div className="flex gap-3">
@@ -53,12 +55,12 @@ export function SkillSettings({ onNavigate }: SkillSettingsProps) {
               }`}
             >
               <div className="text-sm font-semibold">
-                {t("settings.skillInstallSymlink", "软链接")}
+                {t("settings.skillInstallSymlink", "Symlink")}
               </div>
               <p className="text-xs text-muted-foreground mt-1">
                 {t(
                   "settings.skillInstallSymlinkDesc",
-                  "在平台目录创建软链接指向 PromptHub 的 Skills 目录，同步更新更高效",
+                  "Create symlinks in platform directories pointing to PromptHub's Skills folder for efficient syncing",
                 )}
               </p>
             </button>
@@ -71,12 +73,12 @@ export function SkillSettings({ onNavigate }: SkillSettingsProps) {
               }`}
             >
               <div className="text-sm font-semibold">
-                {t("settings.skillInstallCopy", "复制文件")}
+                {t("settings.skillInstallCopy", "Copy Files")}
               </div>
               <p className="text-xs text-muted-foreground mt-1">
                 {t(
                   "settings.skillInstallCopyDesc",
-                  "直接将 SKILL.md 复制到平台目录，与平台目录独立",
+                  "Copy SKILL.md files directly to platform directories, independent of PromptHub",
                 )}
               </p>
             </button>
@@ -85,13 +87,13 @@ export function SkillSettings({ onNavigate }: SkillSettingsProps) {
       </SettingSection>
 
       <SettingSection
-        title={t("settings.skillSafetyChecks", "Skill 安全评估")}
+        title={t("settings.skillSafetyChecks", "Skill Safety Checks")}
       >
         <div className="p-4 space-y-3">
           <p className="text-xs text-muted-foreground">
             {t(
               "settings.skillSafetyChecksDesc",
-              "控制已安装 Skill 的自动复查，以及从商店添加前是否自动做一次静态风险评估。",
+              "Control automatic safety scans for installed Skills and pre-install checks from the store.",
             )}
           </p>
           <button
@@ -107,12 +109,15 @@ export function SkillSettings({ onNavigate }: SkillSettingsProps) {
             }`}
           >
             <div className="text-sm font-semibold">
-              {t("settings.autoScanInstalledSkills", "自动复查已安装 Skills")}
+              {t(
+                "settings.autoScanInstalledSkills",
+                "Auto-scan Installed Skills",
+              )}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               {t(
                 "settings.autoScanInstalledSkillsDesc",
-                "打开 Skill 详情页时自动运行一次安全评估，方便持续发现高风险内容变更。",
+                "Automatically run a safety scan when opening a Skill's detail page to detect high-risk changes.",
               )}
             </p>
           </button>
@@ -129,12 +134,15 @@ export function SkillSettings({ onNavigate }: SkillSettingsProps) {
             }`}
           >
             <div className="text-sm font-semibold">
-              {t("settings.autoScanStoreSkillsBeforeInstall", "商店添加前自动评估")}
+              {t(
+                "settings.autoScanStoreSkillsBeforeInstall",
+                "Pre-install Safety Scan",
+              )}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               {t(
                 "settings.autoScanStoreSkillsBeforeInstallDesc",
-                "默认关闭。开启后，从商店添加 Skill 前会先做一次静态风险检查，并拦住明显危险的条目。",
+                "Off by default. When enabled, a safety scan runs before adding a Skill from the store, blocking obviously dangerous entries.",
               )}
             </p>
           </button>
@@ -142,12 +150,15 @@ export function SkillSettings({ onNavigate }: SkillSettingsProps) {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <div className="text-sm font-semibold">
-                  {t("settings.batchScanInstalledSkills", "立即复查已安装 Skills")}
+                  {t(
+                    "settings.batchScanInstalledSkills",
+                    "Scan All Installed Skills Now",
+                  )}
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {t(
                     "settings.batchScanInstalledSkillsDesc",
-                    "手动对当前库里的所有 Skill 运行一次静态安全评估，快速发现高风险内容。",
+                    "Manually run a safety scan on all Skills in your library to quickly find high-risk content.",
                   )}
                 </p>
               </div>
@@ -156,15 +167,17 @@ export function SkillSettings({ onNavigate }: SkillSettingsProps) {
                   const run = async () => {
                     setIsBatchScanning(true);
                     try {
-                      const summary = await scanInstalledSkillSafety();
+                      const summary = await scanInstalledSkillSafety(
+                        undefined,
+                        getSafetyScanAIConfig(aiModels),
+                      );
                       showToast(
                         t("settings.batchScanInstalledSkillsResult", {
                           total: summary.total,
                           blocked: summary.blocked,
                           highRisk: summary.highRisk,
                           warn: summary.warn,
-                          defaultValue:
-                            `Checked ${summary.total} skills · blocked ${summary.blocked} · high risk ${summary.highRisk} · warn ${summary.warn}`,
+                          defaultValue: `Checked ${summary.total} skills · blocked ${summary.blocked} · high risk ${summary.highRisk} · warn ${summary.warn}`,
                         }),
                         summary.blocked > 0 || summary.highRisk > 0
                           ? "error"
@@ -184,8 +197,8 @@ export function SkillSettings({ onNavigate }: SkillSettingsProps) {
                 className="shrink-0 h-9 px-4 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
               >
                 {isBatchScanning
-                  ? t("skill.safetyScanning", "检查中...")
-                  : t("skill.runSafetyAssessment", "立即检查")}
+                  ? t("skill.safetyScanning", "Scanning...")
+                  : t("skill.runSafetyAssessment", "Run Scan")}
               </button>
             </div>
           </div>
@@ -193,13 +206,13 @@ export function SkillSettings({ onNavigate }: SkillSettingsProps) {
       </SettingSection>
 
       <SettingSection
-        title={t("settings.platformSkillPaths", "平台目标目录")}
+        title={t("settings.platformSkillPaths", "Platform Target Directories")}
       >
         <div className="p-4 space-y-3">
           <p className="text-xs text-muted-foreground">
             {t(
               "settings.platformSkillPathsDesc",
-              "为每个 AI 工具覆写默认 Skill 目录。这里会同时影响扫描、分发、卸载和安装状态检测。",
+              "Override default Skill directories for each AI tool. Affects scanning, distribution, uninstall, and install detection.",
             )}
           </p>
           <div className="rounded-lg border border-border overflow-hidden">
@@ -219,7 +232,7 @@ export function SkillSettings({ onNavigate }: SkillSettingsProps) {
                     </span>
                   </div>
                   <div className="text-[11px] text-muted-foreground">
-                    {t("settings.defaultPathLabel", "默认路径")}:
+                    {t("settings.defaultPathLabel", "Default path")}:
                     <span className="ml-1 font-mono">
                       {platform.skillsDir[currentPlatformKey]}
                     </span>
@@ -236,7 +249,7 @@ export function SkillSettings({ onNavigate }: SkillSettingsProps) {
                       }
                       placeholder={t(
                         "settings.platformSkillPathPlaceholder",
-                        "留空则使用默认路径，例如 ~/.trae-cn/skills",
+                        "Leave empty to use default, e.g. ~/.trae-cn/skills",
                       )}
                       className="flex-1 h-9 px-3 rounded-lg bg-muted border-0 text-sm placeholder:text-muted-foreground/50"
                     />
@@ -247,7 +260,7 @@ export function SkillSettings({ onNavigate }: SkillSettingsProps) {
                       disabled={!overridePath}
                       className="h-9 px-3 rounded-lg border border-border text-sm text-muted-foreground hover:border-primary/30 hover:text-foreground disabled:opacity-50 disabled:hover:border-border disabled:hover:text-muted-foreground transition-colors"
                     >
-                      {t("settings.resetPlatformSkillPath", "恢复默认")}
+                      {t("settings.resetPlatformSkillPath", "Reset")}
                     </button>
                   </div>
                 </div>
@@ -258,13 +271,13 @@ export function SkillSettings({ onNavigate }: SkillSettingsProps) {
       </SettingSection>
 
       <SettingSection
-        title={t("settings.extraSkillScanPaths", "额外扫描目录")}
+        title={t("settings.extraSkillScanPaths", "Extra Scan Directories")}
       >
         <div className="p-4 space-y-3">
           <p className="text-xs text-muted-foreground">
             {t(
               "settings.extraSkillScanPathsDesc",
-              "添加额外的 Skill 目录用于导入和发现。这里不会覆盖平台默认目录。",
+              "Add extra Skill directories for import and discovery. These do not override platform defaults.",
             )}
           </p>
           <div className="flex items-center gap-2">
@@ -280,7 +293,7 @@ export function SkillSettings({ onNavigate }: SkillSettingsProps) {
               }}
               placeholder={t(
                 "settings.customSkillScanPathPlaceholder",
-                "输入路径，如 ~/myskills",
+                "Enter path, e.g. ~/myskills",
               )}
               className="flex-1 h-9 px-3 rounded-lg bg-muted border-0 text-sm placeholder:text-muted-foreground/50"
             />
@@ -294,7 +307,7 @@ export function SkillSettings({ onNavigate }: SkillSettingsProps) {
               className="h-9 px-4 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors flex items-center gap-1.5"
             >
               <PlusIcon className="w-4 h-4" />
-              {t("common.add", "添加")}
+              {t("common.add", "Add")}
             </button>
           </div>
           {settings.customSkillScanPaths.length > 0 ? (
@@ -310,7 +323,7 @@ export function SkillSettings({ onNavigate }: SkillSettingsProps) {
                   <button
                     onClick={() => settings.removeCustomSkillScanPath(path)}
                     className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors flex-shrink-0"
-                    title={t("common.delete", "删除")}
+                    title={t("common.delete", "Delete")}
                   >
                     <TrashIcon className="w-3.5 h-3.5" />
                   </button>
@@ -319,7 +332,7 @@ export function SkillSettings({ onNavigate }: SkillSettingsProps) {
             </div>
           ) : (
             <p className="text-xs text-muted-foreground/60 italic">
-              {t("settings.noCustomPaths", "暂未添加自定义路径")}
+              {t("settings.noCustomPaths", "No custom paths added yet")}
             </p>
           )}
         </div>
@@ -330,13 +343,13 @@ export function SkillSettings({ onNavigate }: SkillSettingsProps) {
         <p className="text-xs text-muted-foreground">
           {t(
             "settings.skillBackupHint",
-            "Skill 的备份与恢复请前往「数据」面板 → 全量备份 / 恢复",
+            "For Skill backup and restore, go to the Data panel",
           )}{" "}
           <button
             onClick={() => onNavigate("data")}
             className="text-primary hover:underline font-medium"
           >
-            {t("settings.skillBackupHintLink", "前往数据面板")}
+            {t("settings.skillBackupHintLink", "Go to Data Panel")}
           </button>
         </p>
       </div>

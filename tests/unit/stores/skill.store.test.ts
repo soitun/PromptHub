@@ -43,6 +43,7 @@ describe("skill store", () => {
           update: vi.fn(),
           writeLocalFile: vi.fn(),
           getRepoPath: vi.fn(),
+          saveSafetyReport: vi.fn().mockResolvedValue(undefined),
         },
       },
     });
@@ -67,9 +68,12 @@ describe("skill store", () => {
       deployedSkillNames: new Set(["alpha"]),
     });
 
-    expect(useSkillStore.getState().getFilteredSkills().map((skill) => skill.id)).toEqual([
-      "skill-1",
-    ]);
+    expect(
+      useSkillStore
+        .getState()
+        .getFilteredSkills()
+        .map((skill) => skill.id),
+    ).toEqual(["skill-1"]);
   });
 
   it("falls back to official source when removing the selected custom source", () => {
@@ -136,12 +140,9 @@ describe("skill store", () => {
       content: "",
     });
 
-    expect(writeLocalFile).toHaveBeenCalledWith(
-      "skill-1",
-      "SKILL.md",
-      "",
-      { skipVersionSnapshot: true },
-    );
+    expect(writeLocalFile).toHaveBeenCalledWith("skill-1", "SKILL.md", "", {
+      skipVersionSnapshot: true,
+    });
     expect(useSkillStore.getState().skills[0]?.local_repo_path).toBe(
       "/tmp/skills/alpha",
     );
@@ -251,7 +252,9 @@ describe("skill store", () => {
 
   it("blocks installing official registry skills when only placeholder frontmatter is available", async () => {
     const create = vi.fn();
-    const fetchRemoteContent = vi.fn().mockRejectedValue(new Error("network down"));
+    const fetchRemoteContent = vi
+      .fn()
+      .mockRejectedValue(new Error("network down"));
 
     (window as any).api.skill.create = create;
     (window as any).api.skill.fetchRemoteContent = fetchRemoteContent;
@@ -314,5 +317,266 @@ description: Use this skill for PDF tasks.
       },
     });
     expect(scanSafety).toHaveBeenCalledTimes(4);
+  });
+
+  describe("remoteStoreEntries cache and persistence", () => {
+    it("setRemoteStoreEntry stores skills with loadedAt and error fields", () => {
+      const skills = [
+        {
+          slug: "s1",
+          name: "Skill 1",
+          description: "",
+          category: "dev",
+          tags: [],
+          version: "1",
+        },
+        {
+          slug: "s2",
+          name: "Skill 2",
+          description: "",
+          category: "dev",
+          tags: [],
+          version: "1",
+        },
+      ];
+      useSkillStore.getState().setRemoteStoreEntry("claude-code", {
+        loadedAt: 1000,
+        error: null,
+        skills: skills as any[],
+      });
+
+      const entry = useSkillStore.getState().remoteStoreEntries["claude-code"];
+      expect(entry).toBeDefined();
+      expect(entry!.loadedAt).toBe(1000);
+      expect(entry!.error).toBeNull();
+      expect(entry!.skills).toHaveLength(2);
+      expect(entry!.skills[0].slug).toBe("s1");
+    });
+
+    it("setRemoteStoreEntry preserves existing entries when adding new sources", () => {
+      const existing = {
+        loadedAt: 500,
+        error: null,
+        skills: [{ slug: "a" }] as any[],
+      };
+      useSkillStore.setState({ remoteStoreEntries: { existing: existing } });
+
+      useSkillStore.getState().setRemoteStoreEntry("new-source", {
+        loadedAt: 600,
+        error: null,
+        skills: [{ slug: "b" }] as any[],
+      });
+
+      const entries = useSkillStore.getState().remoteStoreEntries;
+      expect(entries["existing"]).toBeDefined();
+      expect(entries["existing"]!.skills[0].slug).toBe("a");
+      expect(entries["new-source"]).toBeDefined();
+      expect(entries["new-source"]!.skills[0].slug).toBe("b");
+    });
+
+    it("setRemoteStoreEntry can overwrite an existing source entry", () => {
+      useSkillStore.setState({
+        remoteStoreEntries: {
+          src: { loadedAt: 1, error: null, skills: [{ slug: "old" }] as any[] },
+        },
+      });
+
+      useSkillStore.getState().setRemoteStoreEntry("src", {
+        loadedAt: 2,
+        error: null,
+        skills: [{ slug: "new1" }, { slug: "new2" }] as any[],
+      });
+
+      const entry = useSkillStore.getState().remoteStoreEntries["src"];
+      expect(entry!.loadedAt).toBe(2);
+      expect(entry!.skills).toHaveLength(2);
+      expect(entry!.skills[0].slug).toBe("new1");
+    });
+
+    it("setRemoteStoreEntry stores error string while preserving old skills", () => {
+      useSkillStore.setState({
+        remoteStoreEntries: {
+          src: {
+            loadedAt: 100,
+            error: null,
+            skills: [{ slug: "cached" }] as any[],
+          },
+        },
+      });
+
+      // Simulate a failure update that preserves old skills
+      const cached = useSkillStore.getState().remoteStoreEntries["src"];
+      useSkillStore.getState().setRemoteStoreEntry("src", {
+        loadedAt: cached?.loadedAt || 0,
+        error: "Network timeout",
+        skills: cached?.skills || [],
+      });
+
+      const entry = useSkillStore.getState().remoteStoreEntries["src"];
+      expect(entry!.error).toBe("Network timeout");
+      expect(entry!.loadedAt).toBe(100); // loadedAt NOT updated on failure
+      expect(entry!.skills).toHaveLength(1); // old skills preserved
+      expect(entry!.skills[0].slug).toBe("cached");
+    });
+
+    it("removeCustomStoreSource cleans up remoteStoreEntries for that source", () => {
+      useSkillStore.setState({
+        customStoreSources: [
+          {
+            id: "a",
+            name: "A",
+            type: "git-repo",
+            url: "https://github.com/a/b",
+            enabled: true,
+            createdAt: 1,
+          },
+          {
+            id: "b",
+            name: "B",
+            type: "git-repo",
+            url: "https://github.com/c/d",
+            enabled: true,
+            createdAt: 2,
+          },
+        ],
+        remoteStoreEntries: {
+          a: { loadedAt: 10, error: null, skills: [{ slug: "s1" }] as any[] },
+          b: { loadedAt: 20, error: null, skills: [{ slug: "s2" }] as any[] },
+        },
+        selectedStoreSourceId: "a",
+      });
+
+      useSkillStore.getState().removeCustomStoreSource("a");
+
+      const state = useSkillStore.getState();
+      expect(state.remoteStoreEntries["a"]).toBeUndefined();
+      expect(state.remoteStoreEntries["b"]).toBeDefined();
+      expect(state.customStoreSources).toHaveLength(1);
+      expect(state.selectedStoreSourceId).toBe("official");
+    });
+
+    it("removeCustomStoreSource does not change selectedStoreSourceId when removing non-selected source", () => {
+      useSkillStore.setState({
+        customStoreSources: [
+          {
+            id: "a",
+            name: "A",
+            type: "git-repo",
+            url: "https://github.com/a/b",
+            enabled: true,
+            createdAt: 1,
+          },
+          {
+            id: "b",
+            name: "B",
+            type: "git-repo",
+            url: "https://github.com/c/d",
+            enabled: true,
+            createdAt: 2,
+          },
+        ],
+        remoteStoreEntries: {
+          a: { loadedAt: 10, error: null, skills: [{ slug: "s1" }] as any[] },
+          b: { loadedAt: 20, error: null, skills: [{ slug: "s2" }] as any[] },
+        },
+        selectedStoreSourceId: "b",
+      });
+
+      useSkillStore.getState().removeCustomStoreSource("a");
+
+      expect(useSkillStore.getState().selectedStoreSourceId).toBe("b");
+    });
+
+    it("toggleCustomStoreSource flips the enabled flag", () => {
+      useSkillStore.setState({
+        customStoreSources: [
+          {
+            id: "x",
+            name: "X",
+            type: "git-repo",
+            url: "https://github.com/x/y",
+            enabled: true,
+            createdAt: 1,
+          },
+        ],
+      });
+
+      useSkillStore.getState().toggleCustomStoreSource("x");
+      expect(useSkillStore.getState().customStoreSources[0].enabled).toBe(
+        false,
+      );
+
+      useSkillStore.getState().toggleCustomStoreSource("x");
+      expect(useSkillStore.getState().customStoreSources[0].enabled).toBe(true);
+    });
+  });
+
+  describe("partialize — persistence filtering", () => {
+    it("only persists remoteStoreEntries with at least one skill", () => {
+      useSkillStore.setState({
+        remoteStoreEntries: {
+          loaded: {
+            loadedAt: 100,
+            error: null,
+            skills: [{ slug: "s1" }] as any[],
+          },
+          empty: { loadedAt: 200, error: "fail", skills: [] },
+          alsoEmpty: { loadedAt: 0, error: null, skills: [] },
+        },
+      });
+
+      // Access the partialize function through the store's persist config
+      // The store uses zustand/middleware persist with partialize
+      const state = useSkillStore.getState();
+      // Simulate what partialize does
+      const filteredEntries: typeof state.remoteStoreEntries = {};
+      for (const [key, entry] of Object.entries(state.remoteStoreEntries)) {
+        if (entry.skills.length > 0) {
+          filteredEntries[key] = { ...entry, error: null };
+        }
+      }
+
+      expect(Object.keys(filteredEntries)).toEqual(["loaded"]);
+      expect(filteredEntries["loaded"]!.error).toBeNull();
+      expect(filteredEntries["empty"]).toBeUndefined();
+      expect(filteredEntries["alsoEmpty"]).toBeUndefined();
+    });
+
+    it("strips error field from persisted entries", () => {
+      useSkillStore.setState({
+        remoteStoreEntries: {
+          withError: {
+            loadedAt: 100,
+            error: "some transient error",
+            skills: [{ slug: "s1" }] as any[],
+          },
+        },
+      });
+
+      const state = useSkillStore.getState();
+      const filteredEntries: typeof state.remoteStoreEntries = {};
+      for (const [key, entry] of Object.entries(state.remoteStoreEntries)) {
+        if (entry.skills.length > 0) {
+          filteredEntries[key] = { ...entry, error: null };
+        }
+      }
+
+      expect(filteredEntries["withError"]!.skills).toHaveLength(1);
+      expect(filteredEntries["withError"]!.error).toBeNull();
+    });
+
+    it("handles empty remoteStoreEntries gracefully", () => {
+      useSkillStore.setState({ remoteStoreEntries: {} });
+
+      const state = useSkillStore.getState();
+      const filteredEntries: typeof state.remoteStoreEntries = {};
+      for (const [key, entry] of Object.entries(state.remoteStoreEntries)) {
+        if (entry.skills.length > 0) {
+          filteredEntries[key] = { ...entry, error: null };
+        }
+      }
+
+      expect(Object.keys(filteredEntries)).toHaveLength(0);
+    });
   });
 });

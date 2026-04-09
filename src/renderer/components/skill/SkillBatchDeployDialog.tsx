@@ -166,8 +166,8 @@ export function SkillBatchDeployDialog({
               total: result.totalCount,
               defaultValue:
                 actionMode === "deploy"
-                  ? `已同步 ${result.successCount}/${result.totalCount} 个目标`
-                  : `已卸载 ${result.successCount}/${result.totalCount} 个目标`,
+                  ? `Synced ${result.successCount}/${result.totalCount} targets`
+                  : `Uninstalled ${result.successCount}/${result.totalCount} targets`,
             },
           ),
           result.failures.length === 0 ? "success" : "warning",
@@ -183,7 +183,7 @@ export function SkillBatchDeployDialog({
           t("skill.batchDeployFailed", {
             count: result.failures.length,
             preview,
-            defaultValue: `${result.failures.length} 个目标同步失败: ${preview}`,
+            defaultValue: `${result.failures.length} target(s) failed to sync: ${preview}`,
           }),
           "error",
         );
@@ -210,13 +210,13 @@ export function SkillBatchDeployDialog({
             <div className="flex items-center gap-2">
               <SendIcon className="h-5 w-5 text-primary" />
               <h2 className="text-lg font-semibold">
-                {t("skill.batchDeploy", "批量同步到平台")}
+                {t("skill.batchDeploy", "Batch Deploy")}
               </h2>
             </div>
             <p className="mt-1 text-xs text-muted-foreground">
               {t("skill.batchDeployHint", {
                 count: skills.length,
-                defaultValue: `将选中的 ${skills.length} 个 skill 一次同步到多个平台。`,
+                defaultValue: `Deploy ${skills.length} skill(s) to selected platforms.`,
               })}
             </p>
           </div>
@@ -232,13 +232,19 @@ export function SkillBatchDeployDialog({
           <div className="space-y-4">
             <section className="rounded-2xl border border-border bg-background/60 p-4">
               <h3 className="text-sm font-semibold">
-                {t("skill.batchAction", "操作模式")}
+                {t("skill.batchAction", "Action Mode")}
               </h3>
               <div className="mt-3 grid gap-2 sm:grid-cols-2">
                 {(
                   [
-                    ["deploy", t("skill.batchDeploy", "批量同步到平台")],
-                    ["undeploy", t("skill.batchUndeploy", "批量从平台卸载")],
+                    ["deploy", t("skill.batchDeploy", "Batch Deploy")],
+                    [
+                      "undeploy",
+                      t(
+                        "skill.batchUndeploy",
+                        "Batch Uninstall from Platforms",
+                      ),
+                    ],
                   ] as const
                 ).map(([mode, label]) => (
                   <button
@@ -260,8 +266,8 @@ export function SkillBatchDeployDialog({
             <section className="rounded-2xl border border-border bg-background/60 p-4">
               <h3 className="text-sm font-semibold">
                 {actionMode === "deploy"
-                  ? t("skill.installMethod", "安装方式")
-                  : t("skill.operation", "操作")}
+                  ? t("skill.installMethod", "Install Method")
+                  : t("skill.operation", "Operation")}
               </h3>
               {actionMode === "deploy" ? (
                 <div className="mt-3 grid gap-2 sm:grid-cols-2">
@@ -285,11 +291,11 @@ export function SkillBatchDeployDialog({
                         {mode === "symlink"
                           ? t(
                               "skill.symlinkHint",
-                              "平台目录保留软链接，后续更新更轻量。",
+                              "Creates a symlink in the platform directory — lighter updates going forward.",
                             )
                           : t(
                               "skill.copyHint",
-                              "复制一份 SKILL.md 到平台目录，兼容性更稳。",
+                              "Copies SKILL.md to the platform directory — more compatible.",
                             )}
                       </div>
                     </button>
@@ -299,7 +305,7 @@ export function SkillBatchDeployDialog({
                 <div className="mt-3 rounded-xl border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
                   {t(
                     "skill.batchUndeployHint",
-                    "会从所选平台目录移除对应 skill，不影响 PromptHub 本地仓库。",
+                    "Removes corresponding skills from selected platform directories. Your local PromptHub repo is not affected.",
                   )}
                 </div>
               )}
@@ -308,14 +314,14 @@ export function SkillBatchDeployDialog({
             <section className="rounded-2xl border border-border bg-background/60 p-4">
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                 <h3 className="text-sm font-semibold">
-                  {t("skill.targetPlatforms", "目标平台")}
+                  {t("skill.targetPlatforms", "Target Platforms")}
                 </h3>
                 <div className="flex flex-wrap items-center gap-3">
                   {availablePlatforms.length > 0 ? (
                     <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-medium text-primary">
                       {t("skill.selectedPlatforms", {
                         count: selectedPlatforms.size,
-                        defaultValue: `已选 ${selectedPlatforms.size}`,
+                        defaultValue: `${selectedPlatforms.size} selected`,
                       })}
                     </span>
                   ) : null}
@@ -335,13 +341,13 @@ export function SkillBatchDeployDialog({
               {loadingPlatforms ? (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Loader2Icon className="h-4 w-4 animate-spin" />
-                  {t("common.loading", "加载中")}
+                  {t("common.loading", "Loading...")}
                 </div>
               ) : availablePlatforms.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
                   {t(
                     "skill.noDetectedPlatforms",
-                    "当前没有检测到可同步的平台目录。",
+                    "No syncable platform directories detected.",
                   )}
                 </div>
               ) : (
@@ -350,11 +356,11 @@ export function SkillBatchDeployDialog({
                     {actionMode === "deploy"
                       ? t(
                           "skill.batchDeployDefaultsHint",
-                          "默认已选中当前检测到的平台。建议先确认平台目录，再开始批量同步。",
+                          "Detected platforms are selected by default. Confirm the targets before starting batch sync.",
                         )
                       : t(
                           "skill.batchUndeployDefaultsHint",
-                          "仅会移除 PromptHub 分发出去的 skill，不会删除本地仓库中的原始文件。",
+                          "This only removes PromptHub-distributed skills from selected platforms. Your local repo remains untouched.",
                         )}
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2">
@@ -398,7 +404,7 @@ export function SkillBatchDeployDialog({
             <section className="rounded-2xl border border-border bg-background/60 p-4">
               <div className="mb-3 flex items-center justify-between">
                 <h3 className="text-sm font-semibold">
-                  {t("skill.selectedSkills", "已选技能")}
+                  {t("skill.selectedSkills", "Selected Skills")}
                 </h3>
                 <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
                   {skills.length}
@@ -432,12 +438,12 @@ export function SkillBatchDeployDialog({
 
             <section className="rounded-2xl border border-border bg-background/60 p-4">
               <h3 className="text-sm font-semibold">
-                {t("skill.syncSummary", "同步摘要")}
+                {t("skill.syncSummary", "Sync Summary")}
               </h3>
               <div className="mt-4 grid gap-2 grid-cols-3">
                 <div className="rounded-xl border border-border bg-card px-3 py-2">
                   <div className="text-[10px] font-medium uppercase tracking-wide leading-tight text-muted-foreground">
-                    {t("skill.selectedSkills", "已选技能")}
+                    {t("skill.selectedSkills", "Selected Skills")}
                   </div>
                   <div className="mt-1 text-xl font-semibold text-foreground">
                     {skills.length}
@@ -445,7 +451,7 @@ export function SkillBatchDeployDialog({
                 </div>
                 <div className="rounded-xl border border-border bg-card px-3 py-2">
                   <div className="text-[10px] font-medium uppercase tracking-wide leading-tight text-muted-foreground">
-                    {t("skill.targetPlatforms", "目标平台")}
+                    {t("skill.targetPlatforms", "Target Platforms")}
                   </div>
                   <div className="mt-1 text-xl font-semibold text-foreground">
                     {selectedPlatforms.size}
@@ -453,7 +459,7 @@ export function SkillBatchDeployDialog({
                 </div>
                 <div className="rounded-xl border border-border bg-card px-3 py-2">
                   <div className="text-[10px] font-medium uppercase tracking-wide leading-tight text-muted-foreground">
-                    {t("skill.totalTargets", "总目标数")}
+                    {t("skill.totalTargets", "Total Targets")}
                   </div>
                   <div className="mt-1 text-xl font-semibold text-foreground">
                     {totalTargets}
@@ -463,22 +469,27 @@ export function SkillBatchDeployDialog({
 
               <div className="mt-4 rounded-2xl border border-border bg-card px-4 py-3">
                 <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                  {t("skill.executionPlan", "执行计划")}
+                  {t("skill.executionPlan", "Execution Plan")}
                 </div>
                 <div className="mt-2 flex items-center gap-2 text-sm text-foreground">
                   <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
                     {actionMode === "deploy"
-                      ? t("skill.batchDeploy", "批量同步到平台")
-                      : t("skill.batchUndeploy", "批量从平台卸载")}
+                      ? t("skill.batchDeploy", "Batch Deploy")
+                      : t(
+                          "skill.batchUndeploy",
+                          "Batch Uninstall from Platforms",
+                        )}
                   </span>
                   <ArrowRightIcon className="h-4 w-4 text-muted-foreground" />
                   <span className="truncate">
                     {selectedPlatforms.size > 0
                       ? availablePlatforms
-                          .filter((platform) => selectedPlatforms.has(platform.id))
+                          .filter((platform) =>
+                            selectedPlatforms.has(platform.id),
+                          )
                           .map((platform) => platform.name)
                           .join(", ")
-                      : t("skill.noPlatformSelected", "尚未选择平台")}
+                      : t("skill.noPlatformSelected", "No platform selected")}
                   </span>
                 </div>
               </div>
@@ -490,7 +501,7 @@ export function SkillBatchDeployDialog({
                     {t("skill.syncingProgress", {
                       current: progress.current,
                       total: progress.total,
-                      defaultValue: `正在同步 ${progress.current}/${progress.total}`,
+                      defaultValue: `Syncing ${progress.current}/${progress.total}...`,
                     })}
                   </div>
                   <div className="mt-1 text-xs text-muted-foreground">
@@ -513,7 +524,7 @@ export function SkillBatchDeployDialog({
               {lastFailures.length > 0 ? (
                 <div className="mt-4 rounded-xl border border-destructive/20 bg-destructive/5 p-3">
                   <div className="text-sm font-medium text-foreground">
-                    {t("skill.batchDeployFailureList", "未完成的目标")}
+                    {t("skill.batchDeployFailureList", "Failed Targets")}
                   </div>
                   <div className="mt-2 space-y-1 text-xs text-muted-foreground">
                     {lastFailures.slice(0, 6).map((failure) => (
@@ -535,7 +546,7 @@ export function SkillBatchDeployDialog({
             disabled={isDeploying}
             className="rounded-xl border border-border bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-50"
           >
-            {t("common.cancel", "取消")}
+            {t("common.cancel", "Cancel")}
           </button>
           <button
             onClick={handleDeploy}
@@ -550,14 +561,14 @@ export function SkillBatchDeployDialog({
             {isDeploying ? (
               <>
                 <Loader2Icon className="h-4 w-4 animate-spin" />
-                {t("skill.syncing", "同步中")}
+                {t("skill.syncing", "Syncing")}
               </>
             ) : (
               <>
                 <SendIcon className="h-4 w-4" />
                 {actionMode === "deploy"
-                  ? t("skill.batchDeploy", "批量同步到平台")
-                  : t("skill.batchUndeploy", "批量从平台卸载")}
+                  ? t("skill.batchDeploy", "Batch Deploy")
+                  : t("skill.batchUndeploy", "Batch Uninstall from Platforms")}
               </>
             )}
           </button>

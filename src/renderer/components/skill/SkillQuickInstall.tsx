@@ -81,7 +81,7 @@ export function SkillQuickInstall({ skill, onClose }: SkillQuickInstallProps) {
             </div>
             <div>
               <h3 className="font-bold text-foreground">
-                {t("skill.quickInstall", "快速安装")}
+                {t("skill.quickInstall", "Install to Platforms")}
               </h3>
               <p className="text-xs text-muted-foreground truncate max-w-[200px]">
                 {skill.name}
@@ -101,24 +101,27 @@ export function SkillQuickInstall({ skill, onClose }: SkillQuickInstallProps) {
           {availablePlatforms.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <p className="text-sm">
-                {t("skill.noPlatformsDetected", "未检测到可用平台")}
+                {t("skill.noPlatformsDetected", "No platforms detected")}
               </p>
             </div>
           ) : allInstalled ? (
             <div className="text-center py-8">
               <CheckIcon className="w-12 h-12 text-green-500 mx-auto mb-3" />
               <p className="text-foreground font-medium">
-                {t("skill.allPlatformsInstalled", "已安装到所有平台")}
+                {t("skill.allPlatformsInstalled", "Installed on all platforms")}
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                {t("skill.alreadyInstalled", "此技能已安装到检测到的所有平台")}
+                {t(
+                  "skill.alreadyInstalled",
+                  "This skill is already installed on all detected platforms",
+                )}
               </p>
             </div>
           ) : (
             <>
               <div className="flex items-center justify-between">
                 <p className="text-sm text-muted-foreground">
-                  {t("skill.selectPlatforms", "选择要安装的平台")}
+                  {t("skill.selectPlatforms", "Select platforms to install")}
                 </p>
                 <button
                   onClick={selectAllPlatforms}
@@ -204,7 +207,7 @@ export function SkillQuickInstall({ skill, onClose }: SkillQuickInstallProps) {
               ) : (
                 <>
                   <DownloadIcon className="w-4 h-4" />
-                  {t("skill.installSelected", "安装选中项")}{" "}
+                  {t("skill.installSelected", "Install Selected")}{" "}
                   {selectedPlatforms.size > 0 && `(${selectedPlatforms.size})`}
                 </>
               )}

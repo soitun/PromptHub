@@ -315,14 +315,17 @@ export function SkillManager() {
       >
         <SkillRenderBoundary
           resetKey={selectedSkillId}
-          title={t("skill.detailRenderError", "这个 Skill 暂时打不开")}
+          title={t(
+            "skill.detailRenderError",
+            "This skill cannot be opened right now",
+          )}
           description={t(
             "skill.detailRenderErrorHint",
-            "我们已经拦住了这次渲染异常，避免整个页面白屏。你可以先返回列表，或者立即重试加载详情。",
+            "This render error was contained so the page stays usable. You can go back to the list or retry loading the detail view now.",
           )}
-          primaryActionLabel={t("common.back", "返回")}
+          primaryActionLabel={t("common.back", "Back")}
           onPrimaryAction={() => selectSkill(null)}
-          secondaryActionLabel={t("common.retry", "重试")}
+          secondaryActionLabel={t("common.retry", "Retry")}
           onSecondaryAction={() => {
             void loadSkills().then(() => loadDeployedStatus());
           }}
@@ -440,67 +443,73 @@ export function SkillManager() {
   };
 
   const headerTitle = isDistributionView
-    ? t("nav.distribution", "分发")
+    ? t("nav.distribution", "Distribution")
     : filterType === "favorites"
-      ? t("nav.favorites", "收藏")
+      ? t("nav.favorites", "Favorites")
       : filterType === "installed"
-        ? t("skill.imported", "已导入")
+        ? t("skill.imported", "Imported")
         : filterType === "deployed"
-          ? t("skill.deployed", "已分发")
+          ? t("skill.deployed", "Distributed")
           : filterType === "pending"
-            ? t("skill.pendingDeployment", "待分发")
-            : t("nav.mySkills", "我的 Skills");
+            ? t("skill.pendingDeployment", "Pending")
+            : t("nav.mySkills", "My Skills");
 
   const emptyStateTitle = isDistributionView
-    ? t("skill.noSkills", "暂无技能")
+    ? t("skill.noSkills", "No skills yet")
     : filterType === "favorites"
-      ? t("skill.noFavorites", "暂无收藏技能")
+      ? t("skill.noFavorites", "No favorite skills")
       : filterType === "installed"
-        ? t("skill.noImportedSkills", "还没有已导入的技能")
+        ? t("skill.noImportedSkills", "No imported skills yet")
         : filterType === "deployed"
-          ? t("skill.noDeployedSkills", "还没有已分发的技能")
+          ? t("skill.noDeployedSkills", "No distributed skills yet")
           : filterType === "pending"
-            ? t("skill.noPendingSkills", "还没有待分发的技能")
-            : t("skill.noSkills", "暂无技能");
+            ? t("skill.noPendingSkills", "No pending skills")
+            : t("skill.noSkills", "No skills yet");
 
   const emptyStateHint = isDistributionView
     ? t(
         "skill.noDistributionSkillsHint",
-        "先导入 skill，再在这里安装、同步或卸载到 Claude、Cursor 等平台。",
+        "Import skills first, then install, sync, or uninstall them to Claude, Cursor, and other platforms here.",
       )
     : filterType === "favorites"
-      ? t("skill.noFavoritesHint", "点击技能卡片上的星标添加收藏")
+      ? t(
+          "skill.noFavoritesHint",
+          "Click the star on skill cards to add favorites",
+        )
       : filterType === "installed"
         ? t(
             "skill.noImportedSkillsHint",
-            "从 Skill 商店、本地扫描、GitHub 或手动创建导入后，它们会出现在这里。",
+            "After importing from Skill Store, local scan, GitHub, or manual creation, they will appear here.",
           )
         : filterType === "deployed"
           ? t(
               "skill.noDeployedSkillsHint",
-              "将技能分发到 Claude、Cursor 等平台后，这里会显示已分发项目。",
+              "After distributing skills to Claude, Cursor, or other platforms, they will show up here.",
             )
           : filterType === "pending"
             ? t(
                 "skill.noPendingSkillsHint",
-                "尚未分发到任何平台的 skill 会显示在这里。",
+                "Skills not yet distributed to any platform will appear here.",
               )
             : t(
                 "skill.noSkillsHint",
-                "从 Skill 商店添加、扫描本地环境或手动创建技能开始使用",
+                "Import skills from Skill Store, scan local environments, or create one manually to get started",
               );
 
   const headerSubtitle = isDistributionView
     ? t(
         "skill.distributionHint",
-        "集中管理 skill 在各个平台上的安装、同步与卸载。",
+        "Manage install, sync, and uninstall across connected platforms.",
       )
-    : t("skill.workspaceHint", "统一管理所有已导入的 skills，不区分来源渠道。");
+    : t(
+        "skill.workspaceHint",
+        "Manage all imported skills in one place, regardless of where they came from.",
+      );
   const distributionStatsLabel = isDistributionView
     ? t("skill.distributionStats", {
         deployed: deployedSkillNames.size,
         total: skills.length,
-        defaultValue: `已分发 ${deployedSkillNames.size} / 全部 ${skills.length}`,
+        defaultValue: `${deployedSkillNames.size} deployed / ${skills.length} total`,
       })
     : null;
 
@@ -542,10 +551,10 @@ export function SkillManager() {
                   <button
                     onClick={toggleSelectionMode}
                     className="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-sm font-medium text-foreground transition-colors hover:border-primary/25 hover:bg-card"
-                    title={t("skill.batchManage", "批量管理")}
+                    title={t("skill.batchManage", "Batch Manage")}
                   >
                     <CheckSquareIcon className="w-4 h-4" />
-                    {t("skill.batchManage", "批量管理")}
+                    {t("skill.batchManage", "Batch Manage")}
                   </button>
                 ) : null}
                 <div className="flex items-center bg-muted rounded-lg p-0.5">
@@ -556,7 +565,7 @@ export function SkillManager() {
                         ? "bg-background text-foreground shadow-sm"
                         : "text-muted-foreground hover:text-foreground"
                     }`}
-                    title={t("skill.galleryView", "画廊视图")}
+                    title={t("skill.galleryView", "Gallery View")}
                   >
                     <LayoutGridIcon className="w-4 h-4" />
                   </button>
@@ -567,7 +576,7 @@ export function SkillManager() {
                         ? "bg-background text-foreground shadow-sm"
                         : "text-muted-foreground hover:text-foreground"
                     }`}
-                    title={t("skill.listView", "列表视图")}
+                    title={t("skill.listView", "List View")}
                   >
                     <ListIcon className="w-4 h-4" />
                   </button>
@@ -603,12 +612,12 @@ export function SkillManager() {
               <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-primary/15 bg-primary/[0.06] p-2">
                 <div className="px-3 py-2">
                   <div className="text-[11px] font-medium uppercase tracking-wide text-primary/80">
-                    {t("skill.selectionMode", "批量模式")}
+                    {t("skill.selectionMode", "Batch Mode")}
                   </div>
                   <div className="mt-0.5 text-sm font-semibold text-foreground">
                     {t("skill.selectedCount", {
                       count: selectedSkillIds.size,
-                      defaultValue: `已选 ${selectedSkillIds.size} 项`,
+                      defaultValue: `${selectedSkillIds.size} selected`,
                     })}
                   </div>
                 </div>
@@ -617,8 +626,8 @@ export function SkillManager() {
                   className="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-sm font-medium text-foreground transition-colors hover:border-primary/25 hover:bg-card"
                   title={
                     allVisibleSelected
-                      ? t("common.clear", "清空")
-                      : t("common.selectAll", "全选")
+                      ? t("common.clear", "Clear")
+                      : t("common.selectAll", "Select All")
                   }
                 >
                   {allVisibleSelected ? (
@@ -627,8 +636,8 @@ export function SkillManager() {
                     <SquareIcon className="w-4 h-4 text-muted-foreground" />
                   )}
                   {allVisibleSelected
-                    ? t("common.clear", "清空")
-                    : t("common.selectAll", "全选")}
+                    ? t("common.clear", "Clear")
+                    : t("common.selectAll", "Select All")}
                 </button>
                 <button
                   onClick={handleBatchFavorite}
@@ -636,49 +645,49 @@ export function SkillManager() {
                   className="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-sm font-medium text-foreground transition-colors hover:border-primary/25 hover:bg-card disabled:opacity-50"
                   title={
                     selectedSkills.every((skill) => skill.is_favorite)
-                      ? t("skill.removeFavorite", "取消收藏")
-                      : t("skill.addFavorite", "添加收藏")
+                      ? t("skill.removeFavorite", "Remove Favorite")
+                      : t("skill.addFavorite", "Add Favorite")
                   }
                 >
                   <StarIcon className="w-4 h-4 text-amber-500" />
                   {selectedSkills.every((skill) => skill.is_favorite)
-                    ? t("skill.removeFavorite", "取消收藏")
-                    : t("skill.addFavorite", "添加收藏")}
+                    ? t("skill.removeFavorite", "Remove Favorite")
+                    : t("skill.addFavorite", "Add Favorite")}
                 </button>
                 <button
                   onClick={handleBatchTags}
                   disabled={selectedSkillIds.size === 0}
                   className="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-sm font-medium text-foreground transition-colors hover:border-primary/25 hover:bg-card disabled:opacity-50"
-                  title={t("skill.batchTags", "批量管理标签")}
+                  title={t("skill.batchTags", "Batch Tags")}
                 >
                   <TagsIcon className="w-4 h-4 text-primary" />
-                  {t("skill.batchTags", "批量管理标签")}
+                  {t("skill.batchTags", "Batch Tags")}
                 </button>
                 <button
                   onClick={handleBatchDeploy}
                   disabled={selectedSkillIds.size === 0}
                   className="inline-flex items-center gap-2 rounded-xl bg-primary px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/90 disabled:opacity-50"
-                  title={t("skill.batchDeploy", "批量同步到平台")}
+                  title={t("skill.batchDeploy", "Batch Deploy")}
                 >
                   <SendIcon className="w-4 h-4" />
-                  {t("skill.batchDeploy", "批量同步到平台")}
+                  {t("skill.batchDeploy", "Batch Deploy")}
                 </button>
                 <button
                   onClick={handleBatchDelete}
                   disabled={selectedSkillIds.size === 0}
                   className="inline-flex items-center gap-2 rounded-xl border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive/15 disabled:opacity-50"
-                  title={t("common.delete", "删除")}
+                  title={t("common.delete", "Delete")}
                 >
                   <TrashIcon className="w-4 h-4" />
-                  {t("common.delete", "删除")}
+                  {t("common.delete", "Delete")}
                 </button>
                 <button
                   onClick={toggleSelectionMode}
                   className="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-card hover:text-foreground"
-                  title={t("common.cancel", "取消")}
+                  title={t("common.cancel", "Cancel")}
                 >
                   <XIcon className="w-4 h-4" />
-                  {t("common.cancel", "取消")}
+                  {t("common.cancel", "Cancel")}
                 </button>
               </div>
             ) : null}
@@ -828,30 +837,30 @@ export function SkillManager() {
         }
         onConfirm={confirmDelete}
         variant="destructive"
-        title={t("skill.confirmDeleteTitle", "确认删除")}
+        title={t("skill.confirmDeleteTitle", "Confirm Delete")}
         message={
           <div className="space-y-2">
             <p>
               {deleteConfirm.skillNames.length === 1
                 ? t("skill.confirmDeleteSingle", {
                     name: deleteConfirm.skillNames[0],
-                    defaultValue: `确定要删除技能「${deleteConfirm.skillNames[0]}」吗？`,
+                    defaultValue: `Are you sure you want to delete skill "${deleteConfirm.skillNames[0]}"?`,
                   })
                 : t("skill.confirmDeleteMultiple", {
                     count: deleteConfirm.skillNames.length,
-                    defaultValue: `确定要删除选中的 ${deleteConfirm.skillNames.length} 个技能吗？`,
+                    defaultValue: `Are you sure you want to delete ${deleteConfirm.skillNames.length} selected skills?`,
                   })}
             </p>
             <p className="text-xs text-muted-foreground/80">
               {t(
                 "skill.deleteHint",
-                "仅从 PromptHub 库中移除，不会删除源文件目录。已分发到平台的安装会同时卸载。",
+                "This will only remove them from the PromptHub library without deleting the source directory. Any platform distributions will also be uninstalled.",
               )}
             </p>
           </div>
         }
-        confirmText={t("common.delete", "删除")}
-        cancelText={t("common.cancel", "取消")}
+        confirmText={t("common.delete", "Delete")}
+        cancelText={t("common.cancel", "Cancel")}
       />
     </div>
   );

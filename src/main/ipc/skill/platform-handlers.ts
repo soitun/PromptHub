@@ -1,12 +1,18 @@
 import { ipcMain } from "electron";
 import { IPC_CHANNELS } from "../../../shared/constants";
-import type { SkillSafetyScanInput } from "../../../shared/types";
+import type {
+  SkillSafetyScanInput,
+  SkillSafetyReport,
+} from "../../../shared/types";
 import { SkillInstaller } from "../../services/skill-installer";
 import { scanSkillSafety } from "../../services/skill-safety-scan";
+import type { SkillIPCContext } from "./shared";
 
 const SUPPORTED_MCP_PLATFORMS = new Set(["claude", "cursor"]);
 
-export function registerSkillPlatformHandlers(): void {
+export function registerSkillPlatformHandlers(context: SkillIPCContext): void {
+  const { db } = context;
+
   ipcMain.handle(
     IPC_CHANNELS.SKILL_SCAN_SAFETY,
     async (_, input: SkillSafetyScanInput) => {
@@ -14,6 +20,19 @@ export function registerSkillPlatformHandlers(): void {
         throw new Error("skill:scanSafety requires an input object");
       }
       return scanSkillSafety(input);
+    },
+  );
+
+  ipcMain.handle(
+    IPC_CHANNELS.SKILL_SAVE_SAFETY_REPORT,
+    async (_, skillId: string, report: SkillSafetyReport) => {
+      if (typeof skillId !== "string" || skillId.trim().length === 0) {
+        throw new Error("skill:saveSafetyReport requires a non-empty skillId");
+      }
+      if (!report || typeof report !== "object" || Array.isArray(report)) {
+        throw new Error("skill:saveSafetyReport requires a report object");
+      }
+      return db.update(skillId, { safetyReport: report });
     },
   );
 
@@ -208,11 +227,7 @@ export function registerSkillPlatformHandlers(): void {
       if (!["http:", "https:"].includes(parsed.protocol)) {
         throw new Error("skill:fetchRemoteContent only allows http/https URLs");
       }
-      try {
-        return await SkillInstaller.fetchRemoteContent(url);
-      } catch {
-        return null;
-      }
+      return await SkillInstaller.fetchRemoteContent(url);
     },
   );
 }

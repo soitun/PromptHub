@@ -135,6 +135,12 @@ function getRequestModule(protocol: string): typeof http | typeof https {
   return protocol === "https:" ? https : http;
 }
 
+function getSingleHeaderValue(
+  header: string | string[] | undefined,
+): string | undefined {
+  return Array.isArray(header) ? header[0] : header;
+}
+
 export async function resolvePublicAddress(
   hostname: string,
 ): Promise<ResolvedAddress> {
@@ -220,6 +226,18 @@ export async function fetchRemoteText(
         }
 
         if (statusCode !== 200) {
+          const rateLimitRemaining = getSingleHeaderValue(
+            response.headers["x-ratelimit-remaining"],
+          );
+          if (
+            parsedUrl.hostname === "api.github.com" &&
+            (statusCode === 403 || statusCode === 429) &&
+            rateLimitRemaining === "0"
+          ) {
+            response.resume();
+            reject(new Error("GitHub API rate limit reached"));
+            return;
+          }
           response.resume();
           reject(new Error(`HTTP ${statusCode} fetching remote content`));
           return;

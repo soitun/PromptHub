@@ -3,7 +3,11 @@ import { useTranslation } from "react-i18next";
 import { Loader2Icon, TagsIcon } from "lucide-react";
 import { Modal } from "../ui";
 import type { Skill } from "../../../shared/types";
-import { collectSkillTags, updateSkillTags, type SkillBatchTagMode } from "./batch-utils";
+import {
+  collectSkillTags,
+  updateSkillTags,
+  type SkillBatchTagMode,
+} from "./batch-utils";
 
 interface SkillBatchTagDialogProps {
   skills: Skill[];
@@ -48,7 +52,7 @@ export function SkillBatchTagDialog({
     <Modal
       isOpen
       onClose={onClose}
-      title={t("skill.batchTags", "批量管理标签")}
+      title={t("skill.batchTags", "Batch Tags")}
       size="lg"
     >
       <div className="space-y-4">
@@ -57,16 +61,18 @@ export function SkillBatchTagDialog({
             <TagsIcon className="h-4 w-4 text-primary" />
             {t("skill.batchTagsHint", {
               count: skills.length,
-              defaultValue: `对选中的 ${skills.length} 个 skill 统一添加或移除标签。`,
+              defaultValue: `Add or remove tags across ${skills.length} selected skills.`,
             })}
           </div>
         </div>
 
         <div className="grid gap-2 sm:grid-cols-2">
-          {([
-            ["add", t("skill.addTag", "添加标签")],
-            ["remove", t("skill.removeTag", "移除标签")],
-          ] as const).map(([value, label]) => (
+          {(
+            [
+              ["add", t("skill.addTag", "Add tag")],
+              ["remove", t("skill.removeTag", "Remove tag")],
+            ] as const
+          ).map(([value, label]) => (
             <button
               key={value}
               type="button"
@@ -84,7 +90,7 @@ export function SkillBatchTagDialog({
 
         <div className="space-y-2">
           <label className="text-sm font-medium text-foreground">
-            {t("skill.tag", "标签")}
+            {t("skill.tag", "Tag")}
           </label>
           <input
             type="text"
@@ -96,13 +102,16 @@ export function SkillBatchTagDialog({
                 void handleSubmit();
               }
             }}
-            placeholder={t("skill.enterTagHint", "输入新标签后按回车")}
+            placeholder={t(
+              "skill.enterTagHint",
+              "Enter new tag and press Enter",
+            )}
             className="h-11 w-full rounded-xl border border-border bg-card px-3 text-sm outline-none transition-colors focus:border-primary/40"
           />
           <div className="text-xs text-muted-foreground">
             {t("skill.batchTagAffected", {
               count: affectedCount,
-              defaultValue: `预计影响 ${affectedCount} 个 skill`,
+              defaultValue: `${affectedCount} skills will be updated`,
             })}
           </div>
         </div>
@@ -110,7 +119,7 @@ export function SkillBatchTagDialog({
         {suggestedTags.length > 0 ? (
           <div className="space-y-2">
             <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              {t("skill.existingTags", "已有标签")}
+              {t("skill.existingTags", "Existing tags")}
             </div>
             <div className="flex flex-wrap gap-2">
               {suggestedTags.slice(0, 20).map((tag) => (
@@ -134,7 +143,7 @@ export function SkillBatchTagDialog({
             disabled={isSubmitting}
             className="rounded-xl border border-border bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-50"
           >
-            {t("common.cancel", "取消")}
+            {t("common.cancel", "Cancel")}
           </button>
           <button
             type="button"
@@ -145,12 +154,12 @@ export function SkillBatchTagDialog({
             {isSubmitting ? (
               <>
                 <Loader2Icon className="h-4 w-4 animate-spin" />
-                {t("common.saving", "保存中")}
+                {t("common.saving", "Saving")}
               </>
             ) : mode === "add" ? (
-              t("skill.addTag", "添加标签")
+              t("skill.addTag", "Add tag")
             ) : (
-              t("skill.removeTag", "移除标签")
+              t("skill.removeTag", "Remove tag")
             )}
           </button>
         </div>

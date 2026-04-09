@@ -29,6 +29,9 @@ export interface Skill {
   content_url?: string; // Remote SKILL.md URL
   prerequisites?: string[]; // Prerequisites for using this skill
   compatibility?: string[]; // Compatible platforms
+
+  // Safety fields (persisted to DB)
+  safetyReport?: SkillSafetyReport; // Latest safety scan result
 }
 
 export type SkillCategory =
@@ -280,6 +283,24 @@ export interface SkillSafetyReport {
   recommendedAction: "allow" | "review" | "block";
   scannedAt: number;
   checkedFileCount: number;
+  /** Which method produced this report: "ai" or "static" */
+  scanMethod: "ai" | "static";
+  /**
+   * Numeric safety score 0-100 (higher = safer).
+   * blocked=0-10, high-risk=20-40, warn=50-70, safe=80-100
+   */
+  score?: number;
+}
+
+/**
+ * Minimal AI model config passed from renderer to main process
+ * for AI-powered safety scanning.
+ */
+export interface SafetyScanAIConfig {
+  provider: string;
+  apiKey: string;
+  apiUrl: string;
+  model: string;
 }
 
 export interface SkillSafetyScanInput {
@@ -289,6 +310,8 @@ export interface SkillSafetyScanInput {
   contentUrl?: string;
   localRepoPath?: string;
   securityAudits?: string[];
+  /** AI model config for intelligent scanning; omit to use static-only scan */
+  aiConfig?: SafetyScanAIConfig;
 }
 
 export interface ScannedSkill {
