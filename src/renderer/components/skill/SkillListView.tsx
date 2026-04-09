@@ -305,20 +305,24 @@ export function SkillListView({
                           skill.safetyReport.level,
                         );
                         return (
-                          <Icon
-                            className={`w-3.5 h-3.5 shrink-0 ${className}`}
+                          <span
                             title={`${t("skill.safetyLevelLabel", "Safety")}: ${label}`}
-                          />
+                          >
+                            <Icon
+                              className={`w-3.5 h-3.5 shrink-0 ${className}`}
+                            />
+                          </span>
                         );
                       })()
                     ) : (
-                      <ShieldIcon
-                        className="w-3.5 h-3.5 shrink-0 text-muted-foreground/30"
+                      <span
                         title={t(
                           "skill.safetyAssessmentEmpty",
                           "No safety scan run yet",
                         )}
-                      />
+                      >
+                        <ShieldIcon className="w-3.5 h-3.5 shrink-0 text-muted-foreground/30" />
+                      </span>
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground truncate mt-0.5">
