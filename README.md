@@ -179,9 +179,90 @@
 
 除了桌面版，PromptHub 现在也提供轻量级的自部署网页版，适合作为个人浏览器工作区，或作为桌面版的备份源 / 恢复源。
 
-- Web 部署说明：[`apps/web/README.md`](./apps/web/README.md)
-- 支持 Docker / Docker Compose / GHCR 镜像部署
-- 桌面版可在 `设置 -> 数据` 中直接连接自部署网页版，并执行测试连接、上传、下载、启动拉取、定时推送
+它不是 SaaS 云服务，而是一个适合个人或小规模自托管的浏览器版工作区。核心能力包括 Prompt、文件夹、Skill、导入导出、媒体文件、设置，以及作为桌面版的数据同步目标。
+
+### 适合什么场景
+
+- 想在浏览器里访问自己的 PromptHub 数据
+- 想把自部署网页版当成桌面版的备份源 / 恢复源
+- 不想折腾 WebDAV，希望有一个更直观的单机自托管界面
+
+### 首次初始化
+
+- 新实例首次访问时会进入 `/setup`，而不是登录页
+- 第一个用户会被创建为管理员
+- 首个管理员创建完成后，公开注册默认关闭，不适合作为开放注册的多人 SaaS
+
+### 推荐部署方式：Docker Compose
+
+在仓库根目录执行：
+
+```bash
+cp apps/web/.env.example apps/web/.env
+cd apps/web
+docker compose up -d --build
+```
+
+最少需要关注这几个配置：
+
+- `JWT_SECRET`
+  至少 32 位随机字符串，用于登录鉴权
+- `ALLOW_REGISTRATION=false`
+  建议保持关闭，避免初始化后继续开放注册
+- `DATA_DIR`
+  默认是容器内 `/app/data`，实际通过 volume 挂载到宿主机
+
+默认访问地址：
+
+- `http://localhost:3871`
+
+### 也可以直接使用 GHCR 镜像
+
+```bash
+docker pull ghcr.io/legeling/prompthub-web:latest
+docker run -d \
+  --name prompthub-web \
+  -p 3871:3000 \
+  -e JWT_SECRET='replace-with-a-random-secret-at-least-32-chars' \
+  -e ALLOW_REGISTRATION=false \
+  -v "$(pwd)/apps/web/data:/app/data" \
+  ghcr.io/legeling/prompthub-web:latest
+```
+
+### 桌面版如何接入自部署网页版
+
+桌面版进入 `设置 -> 数据` 后，可以直接配置：
+
+- 自部署 PromptHub URL
+- 用户名
+- 密码
+
+配置完成后，桌面版可以执行：
+
+- 测试连接
+- 上传当前本地工作区到自部署网页版
+- 从自部署网页版下载并恢复
+- 启动时自动拉取
+- 定时后台推送
+
+### 数据存放与备份
+
+请备份整个数据目录，而不只是 SQLite 文件。默认 Compose 示例里需要备份的是：
+
+```bash
+apps/web/data
+```
+
+这里面会包含：
+
+- `prompthub.db`
+- `workspace/prompts/...`
+- `workspace/folders.json`
+- `workspace/skills/...`
+- `workspace/settings/...`
+- `workspace/assets/...`
+
+如果你只是想快速部署，上面的内容已经够用了；更细的工程说明、Compose 变体和开发命令仍然可以去看 `apps/web` 目录下的相关文件。
 
 ### 下载
 
