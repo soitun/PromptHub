@@ -1,7 +1,8 @@
 #!/bin/bash
 # Update Homebrew Cask formula with new version and SHA256 hashes
-# Usage: ./scripts/update-homebrew-cask.sh <version>
-# Example: ./scripts/update-homebrew-cask.sh 0.4.0
+# Usage: ./scripts/update-homebrew-cask.sh <version> [release-tag]
+# Example: ./scripts/update-homebrew-cask.sh 0.4.0 v0.4.0
+# Example: ./scripts/update-homebrew-cask.sh 0.5.2 v0.5.2-rebuild.3
 #
 # This script is called by the CI release workflow after assets are uploaded.
 # It downloads the DMG files, computes SHA256, updates the Cask formula,
@@ -9,7 +10,8 @@
 
 set -euo pipefail
 
-VERSION="${1:?Usage: $0 <version>}"
+VERSION="${1:?Usage: $0 <version> [release-tag]}"
+RELEASE_TAG="${2:-v${VERSION}}"
 REPO="legeling/PromptHub"
 TAP_REPO="legeling/homebrew-tap"
 CASK_FILE="Casks/prompthub.rb"
@@ -21,7 +23,7 @@ if [ -z "$TAP_TOKEN" ]; then
   exit 0
 fi
 
-echo "Updating Homebrew Cask for PromptHub v${VERSION}..."
+echo "Updating Homebrew Cask for PromptHub ${VERSION} from release tag ${RELEASE_TAG}..."
 
 download_with_retry() {
   local url="$1"
@@ -41,8 +43,8 @@ download_with_retry() {
 }
 
 # Download DMGs and compute SHA256
-ARM64_URL="https://github.com/${REPO}/releases/download/v${VERSION}/PromptHub-${VERSION}-arm64.dmg"
-X64_URL="https://github.com/${REPO}/releases/download/v${VERSION}/PromptHub-${VERSION}-x64.dmg"
+ARM64_URL="https://github.com/${REPO}/releases/download/${RELEASE_TAG}/PromptHub-${VERSION}-arm64.dmg"
+X64_URL="https://github.com/${REPO}/releases/download/${RELEASE_TAG}/PromptHub-${VERSION}-x64.dmg"
 
 download_with_retry "$ARM64_URL" /tmp/prompthub-arm64.dmg "arm64 DMG"
 ARM64_SHA=$(shasum -a 256 /tmp/prompthub-arm64.dmg | awk '{print $1}')
@@ -109,4 +111,4 @@ fi
 # Cleanup
 rm -rf "$WORK_DIR" /tmp/prompthub-arm64.dmg /tmp/prompthub-x64.dmg
 
-echo "Done! Homebrew Cask updated to v${VERSION}"
+echo "Done! Homebrew Cask updated to ${VERSION} from ${RELEASE_TAG}"

@@ -433,7 +433,7 @@ jobs:
         run: |
           # Wait for release assets to be fully available
           sleep 15
-          bash apps/desktop/scripts/update-homebrew-cask.sh "$VERSION"
+          bash apps/desktop/scripts/update-homebrew-cask.sh "$VERSION" "$RELEASE_TAG"
         env:
           HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
 
