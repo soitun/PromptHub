@@ -1,10 +1,13 @@
-name: Build and Release
+name: Desktop Build and Release
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 on:
   push:
+    branches:
+      - main
+      - master
     tags:
       - "v*"
   workflow_dispatch:
@@ -205,7 +208,11 @@ jobs:
         shell: bash
         working-directory: apps/desktop
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          else
+            VERSION="$(node -p "require('./package.json').version")"
+          fi
           mkdir -p upload_dist
 
           copy_if_exists() {
@@ -241,7 +248,7 @@ jobs:
             fi
           else
             copy_if_exists "dist/PromptHub-${VERSION}-x64.AppImage"
-            copy_if_exists "dist/prompthub_${VERSION}_amd64.deb"
+            copy_if_exists "dist/PromptHub-${VERSION}-amd64.deb"
             copy_if_exists "dist/latest-linux.yml"
           fi
 
@@ -299,7 +306,7 @@ jobs:
           |------|------|
           | Windows | [![Windows x64](https://img.shields.io/badge/Windows_x64-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-Setup-${VERSION}-x64.exe) [![Windows arm64](https://img.shields.io/badge/Windows_arm64-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-Setup-${VERSION}-arm64.exe) |
           | macOS | [![macOS Apple Silicon](https://img.shields.io/badge/macOS_Apple_Silicon-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-${VERSION}-arm64.dmg) [![macOS Intel](https://img.shields.io/badge/macOS_Intel-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-${VERSION}-x64.dmg) |
-          | Linux | [![Linux AppImage](https://img.shields.io/badge/Linux_AppImage-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-${VERSION}-x64.AppImage) [![Linux deb](https://img.shields.io/badge/Linux_deb-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/legeling/PromptHub/releases/latest/download/prompthub_${VERSION}_amd64.deb) |
+          | Linux | [![Linux AppImage](https://img.shields.io/badge/Linux_AppImage-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-${VERSION}-x64.AppImage) [![Linux deb](https://img.shields.io/badge/Linux_deb-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-${VERSION}-amd64.deb) |
 
           ### ⚠️ macOS 首次启动
           如果提示"无法打开"或"已损坏"，请在终端执行：
@@ -353,7 +360,7 @@ jobs:
           copy_unique "PromptHub-${VERSION}-x64.AppImage"
           copy_unique "PromptHub-Setup-${VERSION}-x64.exe"
           copy_unique "PromptHub-Setup-${VERSION}-arm64.exe"
-          copy_unique "prompthub_${VERSION}_amd64.deb"
+          copy_unique "PromptHub-${VERSION}-amd64.deb"
           copy_unique "latest.yml"
           copy_unique "latest-x64.yml"
           copy_unique "latest-arm64.yml"

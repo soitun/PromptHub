@@ -10,14 +10,14 @@ COPY apps/desktop/package.json apps/desktop/package.json
 COPY packages/shared/package.json packages/shared/package.json
 COPY packages/db/package.json packages/db/package.json
 
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
 COPY apps/web apps/web
 COPY apps/desktop apps/desktop
 COPY packages/shared packages/shared
 COPY packages/db packages/db
 
-RUN pnpm --filter @prompthub/web build
+RUN pnpm rebuild esbuild && pnpm --filter @prompthub/web build
 
 FROM node:22-bookworm-slim AS runner
 
