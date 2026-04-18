@@ -47,6 +47,12 @@ export interface RecoverableDatabase {
   skillCount: number;
   /** Size of the database file in bytes. */
   dbSizeBytes: number;
+  /** Whether a readable SQLite database file exists at this location. */
+  hasDatabaseFile?: boolean;
+  /** Whether prompt workspace files exist at this location. */
+  hasWorkspaceData?: boolean;
+  /** Whether browser storage artifacts exist at this location. */
+  hasBrowserStorage?: boolean;
 }
 
 const BROWSER_STORAGE_DIRS = [
@@ -252,6 +258,104 @@ export function detectRecoverableDatabases(
       skillCount,
       dbSizeBytes:
         dbSizeBytes > 0 ? dbSizeBytes : browserStorageBytes + fileStorageBytes,
+      hasDatabaseFile: dbSizeBytes >= 4096,
+      hasWorkspaceData:
+        workspaceStats.promptCount > 0 || workspaceStats.folderCount > 0,
+      hasBrowserStorage: browserStorageBytes > 0,
+    });
+  }
+
+  return results;
+}
+
+/**
+ * Inspect standalone SQLite backup files (for example
+ * `prompthub.db.backup-before-0.5.3.*.db`) and surface those that still
+ * contain user data.
+ */
+export function detectRecoverableDatabaseFiles(
+  currentDataPath: string,
+  candidateFiles: string[],
+): RecoverableDatabase[] {
+  const results: RecoverableDatabase[] = [];
+  const normalizedCurrentDb = path
+    .resolve(path.join(currentDataPath, "prompthub.db"))
+    .toLowerCase();
+
+  for (const candidateFile of candidateFiles) {
+    const normalizedCandidate = path.resolve(candidateFile).toLowerCase();
+    if (normalizedCandidate === normalizedCurrentDb) {
+      continue;
+    }
+    if (!fs.existsSync(candidateFile)) {
+      continue;
+    }
+
+    let stat: fs.Stats;
+    try {
+      stat = fs.statSync(candidateFile);
+    } catch {
+      continue;
+    }
+
+    if (!stat.isFile() || stat.size < 4096) {
+      continue;
+    }
+
+    let promptCount = 0;
+    let folderCount = 0;
+    let skillCount = 0;
+    let candidateDb: DatabaseAdapter.Database | null = null;
+
+    try {
+      candidateDb = new DatabaseAdapter(candidateFile, { readOnly: true });
+      candidateDb.pragma("foreign_keys = OFF");
+
+      const promptRow = candidateDb
+        .prepare("SELECT COUNT(*) as count FROM prompts")
+        .get() as { count: number } | undefined;
+      promptCount = promptRow?.count ?? 0;
+
+      const folderRow = candidateDb
+        .prepare("SELECT COUNT(*) as count FROM folders")
+        .get() as { count: number } | undefined;
+      folderCount = folderRow?.count ?? 0;
+
+      try {
+        const skillRow = candidateDb
+          .prepare("SELECT COUNT(*) as count FROM skills")
+          .get() as { count: number } | undefined;
+        skillCount = skillRow?.count ?? 0;
+      } catch {
+        // skills table may not exist in very old databases
+      }
+    } catch (err) {
+      console.warn(
+        `[Recovery] Failed to inspect backup database file at ${candidateFile}:`,
+        err,
+      );
+      continue;
+    } finally {
+      try {
+        candidateDb?.close();
+      } catch {
+        // ignore close errors
+      }
+    }
+
+    if (promptCount === 0 && folderCount === 0 && skillCount === 0) {
+      continue;
+    }
+
+    results.push({
+      sourcePath: candidateFile,
+      promptCount,
+      folderCount,
+      skillCount,
+      dbSizeBytes: stat.size,
+      hasDatabaseFile: true,
+      hasWorkspaceData: false,
+      hasBrowserStorage: false,
     });
   }
 
@@ -266,13 +370,19 @@ export function performDatabaseRecovery(
   sourcePath: string,
   currentDataPath: string,
 ): { success: boolean; error?: string; backupPath?: string } {
-  const sourceDb = path.join(sourcePath, "prompthub.db");
+  const sourceExists = fs.existsSync(sourcePath);
+  const sourceStat = sourceExists ? fs.statSync(sourcePath) : null;
+  const sourceIsDbFile =
+    sourceStat?.isFile() === true && path.extname(sourcePath).toLowerCase() === ".db";
+  const sourceDb = sourceIsDbFile ? sourcePath : path.join(sourcePath, "prompthub.db");
   const targetDb = path.join(currentDataPath, "prompthub.db");
 
   if (
     !fs.existsSync(sourceDb) &&
-    getBrowserStorageBytes(sourcePath) === 0 &&
-    getFileStorageBytes(sourcePath) === 0
+    (!sourceExists ||
+      sourceIsDbFile ||
+      (getBrowserStorageBytes(sourcePath) === 0 &&
+        getFileStorageBytes(sourcePath) === 0))
   ) {
     return {
       success: false,
@@ -297,35 +407,37 @@ export function performDatabaseRecovery(
     }
 
     // 3. Copy associated asset directories if they exist in source but not in target
-    const assetDirs = [
-      "images",
-      "videos",
-      "skills",
-      ...FILE_STORAGE_DIRS,
-      ...BROWSER_STORAGE_DIRS,
-    ];
-    for (const dir of assetDirs) {
-      const sourceDir = path.join(sourcePath, dir);
-      const targetDir = path.join(currentDataPath, dir);
-      if (fs.existsSync(sourceDir) && fs.statSync(sourceDir).isDirectory()) {
-        copyDirMerge(sourceDir, targetDir);
-        console.log(`[Recovery] Merged asset directory: ${dir}`);
+    if (!sourceIsDbFile) {
+      const assetDirs = [
+        "images",
+        "videos",
+        "skills",
+        ...FILE_STORAGE_DIRS,
+        ...BROWSER_STORAGE_DIRS,
+      ];
+      for (const dir of assetDirs) {
+        const sourceDir = path.join(sourcePath, dir);
+        const targetDir = path.join(currentDataPath, dir);
+        if (fs.existsSync(sourceDir) && fs.statSync(sourceDir).isDirectory()) {
+          copyDirMerge(sourceDir, targetDir);
+          console.log(`[Recovery] Merged asset directory: ${dir}`);
+        }
       }
-    }
 
-    // 4. Copy config files
-    const configFiles = ["shortcuts.json", "shortcut-mode.json"];
-    for (const file of configFiles) {
-      const sourceFile = fs.existsSync(path.join(sourcePath, "config", file))
-        ? path.join(sourcePath, "config", file)
-        : path.join(sourcePath, file);
-      const targetFile = fs.existsSync(path.join(currentDataPath, "config"))
-        ? path.join(currentDataPath, "config", file)
-        : path.join(currentDataPath, file);
-      if (fs.existsSync(sourceFile) && !fs.existsSync(targetFile)) {
-        fs.mkdirSync(path.dirname(targetFile), { recursive: true });
-        fs.copyFileSync(sourceFile, targetFile);
-        console.log(`[Recovery] Copied config file: ${file}`);
+      // 4. Copy config files
+      const configFiles = ["shortcuts.json", "shortcut-mode.json"];
+      for (const file of configFiles) {
+        const sourceFile = fs.existsSync(path.join(sourcePath, "config", file))
+          ? path.join(sourcePath, "config", file)
+          : path.join(sourcePath, file);
+        const targetFile = fs.existsSync(path.join(currentDataPath, "config"))
+          ? path.join(currentDataPath, "config", file)
+          : path.join(currentDataPath, file);
+        if (fs.existsSync(sourceFile) && !fs.existsSync(targetFile)) {
+          fs.mkdirSync(path.dirname(targetFile), { recursive: true });
+          fs.copyFileSync(sourceFile, targetFile);
+          console.log(`[Recovery] Copied config file: ${file}`);
+        }
       }
     }
 

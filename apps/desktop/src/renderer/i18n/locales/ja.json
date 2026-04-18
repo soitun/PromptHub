@@ -1285,18 +1285,45 @@
   },
   "recovery": {
     "title": "復元可能なデータがあります",
-    "description": "現在のデータベースは空ですが、別の場所に既存のデータが見つかりました。アプリの更新後に発生した可能性があります。",
+    "description": "復元候補が見つかりました。件数、更新時刻、プレビューを確認してから、復元したいデータを選択してください。",
     "sourceLabel": "データの場所：",
     "promptCount": "{{count}} 件のプロンプト",
     "folderCount": "{{count}} 件のフォルダ",
     "skillCount": "{{count}} 件のスキル",
     "dbSize": "データベースサイズ：{{size}}",
     "recover": "データを復元",
+    "recoverSelected": "選択したソースを復元",
     "dismiss": "新規で開始",
     "recovering": "データを復元中...",
     "success": "データの復元に成功しました！アプリが再起動します。",
     "restarting": "アプリを再起動しています...",
     "failed": "復元に失敗しました：{{error}}",
-    "confirmDismiss": "空のデータベースで開始してもよろしいですか？元のデータは元の場所に残り、後で手動で復元できます。"
+    "confirmDismiss": "空のデータベースで開始してもよろしいですか？元のデータは元の場所に残り、後で手動で復元できます。",
+    "sourcesTitle": "復元ソース",
+    "sourcesDescription": "実際のデータに最も近いソースを選んでください。",
+    "sourceCount": "{{count}} 件のソース",
+    "previewTitle": "プレビュー",
+    "previewLoading": "プレビューを読み込み中...",
+    "previewEmpty": "このソースには表示できるプレビュー項目がまだありません。",
+    "previewUnavailable": "このソースではプレビューを利用できません。",
+    "previewTruncated": "プレビューは一部のみ表示しています。完全な内容は復元後に確認できます。",
+    "sourceType": {
+      "current-residual": "現在のディレクトリの残留データ",
+      "external-user-data": "以前のデータディレクトリ",
+      "upgrade-backup": "自動アップグレードバックアップ",
+      "standalone-db-backup": "単独データベースバックアップ"
+    },
+    "dataSource": {
+      "sqlite": "SQLite",
+      "workspace": "ワークスペースファイル",
+      "browser-storage": "ブラウザストレージ",
+      "skills": "スキルディレクトリ",
+      "legacy-layout": "旧レイアウト"
+    },
+    "previewKind": {
+      "prompt": "Prompt",
+      "folder": "Folder",
+      "skill": "Skill"
+    }
   }
 }

@@ -4,3 +4,4 @@ export * from './skill';
 export * from './settings';
 export * from './ai';
 export * from './upgrade-backup';
+export * from './recovery';

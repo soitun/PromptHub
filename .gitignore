@@ -102,3 +102,4 @@ packages/shared/types/index.js.map
 *.tmp
 *.temp
 *.tsbuildinfo
+.omx/

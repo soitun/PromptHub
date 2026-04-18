@@ -1285,18 +1285,45 @@
   },
   "recovery": {
     "title": "可復原資料",
-    "description": "目前資料庫為空，但在其他位置發現了現有資料。這可能是應用程式更新後造成的。",
+    "description": "我們找到了一個或多個可復原來源。請先檢視數量、時間與預覽內容，再選擇要復原的那份資料。",
     "sourceLabel": "資料位置：",
     "promptCount": "{{count}} 個 Prompt",
     "folderCount": "{{count}} 個資料夾",
     "skillCount": "{{count}} 個技能",
     "dbSize": "資料庫大小：{{size}}",
     "recover": "復原資料",
+    "recoverSelected": "復原所選來源",
     "dismiss": "全新開始",
     "recovering": "正在復原資料...",
     "success": "資料復原成功！應用程式即將重新啟動。",
     "restarting": "應用程式正在重新啟動...",
     "failed": "復原失敗：{{error}}",
-    "confirmDismiss": "確定要使用空白資料庫嗎？原有資料仍保留在原位置，之後可以手動復原。"
+    "confirmDismiss": "確定要使用空白資料庫嗎？原有資料仍保留在原位置，之後可以手動復原。",
+    "sourcesTitle": "復原來源",
+    "sourcesDescription": "請選擇最像你真實資料的來源。",
+    "sourceCount": "{{count}} 個來源",
+    "previewTitle": "預覽",
+    "previewLoading": "正在載入預覽...",
+    "previewEmpty": "這個來源目前沒有可顯示的預覽項目。",
+    "previewUnavailable": "這個來源目前不支援預覽。",
+    "previewTruncated": "預覽只顯示部分項目，復原後可查看完整資料。",
+    "sourceType": {
+      "current-residual": "目前目錄殘留資料",
+      "external-user-data": "舊資料目錄",
+      "upgrade-backup": "自動升級備份",
+      "standalone-db-backup": "獨立資料庫備份"
+    },
+    "dataSource": {
+      "sqlite": "SQLite",
+      "workspace": "工作區檔案",
+      "browser-storage": "瀏覽器儲存",
+      "skills": "技能目錄",
+      "legacy-layout": "舊版佈局"
+    },
+    "previewKind": {
+      "prompt": "Prompt",
+      "folder": "資料夾",
+      "skill": "技能"
+    }
   }
 }

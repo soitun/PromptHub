@@ -10,6 +10,7 @@ import {
 import {
   isDatabaseEmpty,
   detectRecoverableDatabases,
+  detectRecoverableDatabaseFiles,
   performDatabaseRecovery,
 } from "../../../src/main/database/index";
 
@@ -303,6 +304,43 @@ describe("Data Recovery", () => {
     });
   });
 
+  describe("detectRecoverableDatabaseFiles", () => {
+    it("detects standalone database backup files with prompt data", () => {
+      const currentDir = path.join(tmpBase, "current");
+      fs.mkdirSync(currentDir);
+      createTestDatabase(currentDir, { prompts: 3, folders: 1, skills: 2 });
+
+      const backupFile = path.join(
+        currentDir,
+        "prompthub.db.backup-before-0.5.3.2026-04-18T10-00-00-000Z.db",
+      );
+      fs.copyFileSync(path.join(currentDir, "prompthub.db"), backupFile);
+
+      const results = detectRecoverableDatabaseFiles(currentDir, [backupFile]);
+      expect(results).toHaveLength(1);
+      expect(results[0].sourcePath).toBe(backupFile);
+      expect(results[0].promptCount).toBe(3);
+      expect(results[0].folderCount).toBe(1);
+      expect(results[0].skillCount).toBe(2);
+      expect(results[0].dbSizeBytes).toBeGreaterThan(4096);
+    });
+
+    it("skips standalone backup files with no prompts, folders, or skills", () => {
+      const currentDir = path.join(tmpBase, "current");
+      fs.mkdirSync(currentDir);
+      createTestDatabase(currentDir);
+
+      const backupFile = path.join(
+        currentDir,
+        "prompthub.db.backup-before-0.5.3.2026-04-18T10-00-00-000Z.db",
+      );
+      fs.copyFileSync(path.join(currentDir, "prompthub.db"), backupFile);
+
+      const results = detectRecoverableDatabaseFiles(currentDir, [backupFile]);
+      expect(results).toEqual([]);
+    });
+  });
+
   // ─────────────────────────────────────────────
   // performDatabaseRecovery
   // ─────────────────────────────────────────────
@@ -513,6 +551,43 @@ describe("Data Recovery", () => {
       expect(
         fs.readFileSync(path.join(targetDir, "shortcuts.json"), "utf-8"),
       ).toBe('{"target":"data"}');
+    });
+
+    it("restores data directly from a standalone database backup file", () => {
+      const sourceDir = path.join(tmpBase, "source");
+      fs.mkdirSync(sourceDir);
+      createTestDatabase(sourceDir, { prompts: 4, folders: 2, skills: 1 });
+
+      const backupFile = path.join(
+        sourceDir,
+        "prompthub.db.backup-before-0.5.3.2026-04-18T10-00-00-000Z.db",
+      );
+      fs.copyFileSync(path.join(sourceDir, "prompthub.db"), backupFile);
+
+      const targetDir = path.join(tmpBase, "target");
+      fs.mkdirSync(targetDir);
+      createTestDatabase(targetDir);
+
+      const result = performDatabaseRecovery(backupFile, targetDir);
+      expect(result.success).toBe(true);
+
+      const recoveredDb = new DatabaseAdapter(
+        path.join(targetDir, "prompthub.db"),
+        { readonly: true },
+      );
+      const promptRow = recoveredDb
+        .prepare("SELECT COUNT(*) as count FROM prompts")
+        .get() as { count: number };
+      const folderRow = recoveredDb
+        .prepare("SELECT COUNT(*) as count FROM folders")
+        .get() as { count: number };
+      const skillRow = recoveredDb
+        .prepare("SELECT COUNT(*) as count FROM skills")
+        .get() as { count: number };
+      expect(promptRow.count).toBe(4);
+      expect(folderRow.count).toBe(2);
+      expect(skillRow.count).toBe(1);
+      recoveredDb.close();
     });
 
     it("returns error when source path has no recoverable data", () => {

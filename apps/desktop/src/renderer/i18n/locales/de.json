@@ -1285,18 +1285,45 @@
   },
   "recovery": {
     "title": "Wiederherstellbare Daten verfügbar",
-    "description": "Ihre aktuelle Datenbank ist leer, aber wir haben vorhandene Daten an einem anderen Speicherort gefunden. Dies kann nach einem App-Update passiert sein.",
+    "description": "Wir haben eine oder mehrere Wiederherstellungsquellen gefunden. Prüfen Sie Anzahl, Zeitstempel und Vorschau und wählen Sie dann die Quelle aus, die Sie wiederherstellen möchten.",
     "sourceLabel": "Daten gefunden unter:",
     "promptCount": "{{count}} Prompts",
     "folderCount": "{{count}} Ordner",
     "skillCount": "{{count}} Skills",
     "dbSize": "Datenbankgröße: {{size}}",
     "recover": "Daten wiederherstellen",
+    "recoverSelected": "Ausgewählte Quelle wiederherstellen",
     "dismiss": "Neu beginnen",
     "recovering": "Daten werden wiederhergestellt...",
     "success": "Daten erfolgreich wiederhergestellt! Die App wird neu gestartet.",
     "restarting": "Die App wird neu gestartet...",
     "failed": "Wiederherstellung fehlgeschlagen: {{error}}",
-    "confirmDismiss": "Sind Sie sicher, dass Sie mit einer leeren Datenbank beginnen möchten? Ihre alten Daten bleiben am ursprünglichen Speicherort erhalten und können später manuell wiederhergestellt werden."
+    "confirmDismiss": "Sind Sie sicher, dass Sie mit einer leeren Datenbank beginnen möchten? Ihre alten Daten bleiben am ursprünglichen Speicherort erhalten und können später manuell wiederhergestellt werden.",
+    "sourcesTitle": "Wiederherstellungsquellen",
+    "sourcesDescription": "Wählen Sie die Quelle, die Ihren echten Daten am ehesten entspricht.",
+    "sourceCount": "{{count}} Quellen",
+    "previewTitle": "Vorschau",
+    "previewLoading": "Vorschau wird geladen...",
+    "previewEmpty": "Für diese Quelle sind noch keine Vorschaueinträge verfügbar.",
+    "previewUnavailable": "Für diese Quelle ist keine Vorschau verfügbar.",
+    "previewTruncated": "Die Vorschau ist gekürzt. Stellen Sie die Quelle wieder her, um alle Einträge zu sehen.",
+    "sourceType": {
+      "current-residual": "Reste im aktuellen Verzeichnis",
+      "external-user-data": "Früheres Datenverzeichnis",
+      "upgrade-backup": "Automatisches Upgrade-Backup",
+      "standalone-db-backup": "Eigenständiges Datenbank-Backup"
+    },
+    "dataSource": {
+      "sqlite": "SQLite",
+      "workspace": "Workspace-Dateien",
+      "browser-storage": "Browser-Speicher",
+      "skills": "Skills",
+      "legacy-layout": "Altes Layout"
+    },
+    "previewKind": {
+      "prompt": "Prompt",
+      "folder": "Ordner",
+      "skill": "Skill"
+    }
   }
 }

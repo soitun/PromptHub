@@ -22,6 +22,8 @@ import type {
   SkillVersion,
   SkillMCPConfig,
   MCPServerConfig,
+  RecoveryCandidate,
+  RecoveryPreviewResult,
 } from "@prompthub/shared/types";
 
 const listenerMap = new Map<
@@ -151,6 +153,8 @@ contextBridge.exposeInMainWorld("electron", {
   // Data recovery
   // 数据恢复
   checkRecovery: () => ipcRenderer.invoke("data:checkRecovery"),
+  previewRecovery: (sourcePath: string) =>
+    ipcRenderer.invoke(IPC_CHANNELS.DATA_PREVIEW_RECOVERY, sourcePath),
   performRecovery: (sourcePath: string) =>
     ipcRenderer.invoke("data:performRecovery", sourcePath),
   dismissRecovery: () => ipcRenderer.invoke("data:dismissRecovery"),
@@ -348,14 +352,9 @@ declare global {
       }>;
       // Data recovery
       checkRecovery?: () => Promise<
-        Array<{
-          sourcePath: string;
-          promptCount: number;
-          folderCount: number;
-          skillCount: number;
-          dbSizeBytes: number;
-        }>
+        RecoveryCandidate[]
       >;
+      previewRecovery?: (sourcePath: string) => Promise<RecoveryPreviewResult>;
       performRecovery?: (sourcePath: string) => Promise<{
         success: boolean;
         needsRestart?: boolean;

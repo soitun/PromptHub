@@ -1285,18 +1285,45 @@
   },
   "recovery": {
     "title": "Données récupérables disponibles",
-    "description": "Votre base de données actuelle est vide, mais nous avons trouvé des données existantes à un autre emplacement. Cela peut être dû à une mise à jour de l'application.",
+    "description": "Nous avons trouvé une ou plusieurs sources récupérables. Vérifiez les volumes, les dates et l’aperçu, puis choisissez la source à restaurer.",
     "sourceLabel": "Données trouvées à :",
     "promptCount": "{{count}} prompts",
     "folderCount": "{{count}} dossiers",
     "skillCount": "{{count}} compétences",
     "dbSize": "Taille de la base de données : {{size}}",
     "recover": "Récupérer les données",
+    "recoverSelected": "Restaurer la source sélectionnée",
     "dismiss": "Recommencer à zéro",
     "recovering": "Récupération des données en cours...",
     "success": "Données récupérées avec succès ! L'application va redémarrer.",
     "restarting": "L'application redémarre...",
     "failed": "Échec de la récupération : {{error}}",
-    "confirmDismiss": "Êtes-vous sûr de vouloir commencer avec une base de données vide ? Vos anciennes données resteront à leur emplacement d'origine et pourront être récupérées manuellement plus tard."
+    "confirmDismiss": "Êtes-vous sûr de vouloir commencer avec une base de données vide ? Vos anciennes données resteront à leur emplacement d'origine et pourront être récupérées manuellement plus tard.",
+    "sourcesTitle": "Sources de récupération",
+    "sourcesDescription": "Choisissez la source qui ressemble le plus à vos vraies données.",
+    "sourceCount": "{{count}} sources",
+    "previewTitle": "Aperçu",
+    "previewLoading": "Chargement de l’aperçu...",
+    "previewEmpty": "Aucun élément d’aperçu n’est disponible pour cette source.",
+    "previewUnavailable": "L’aperçu n’est pas disponible pour cette source.",
+    "previewTruncated": "L’aperçu est tronqué. Restaurez la source pour voir l’ensemble des éléments.",
+    "sourceType": {
+      "current-residual": "Résidus du répertoire actuel",
+      "external-user-data": "Ancien répertoire de données",
+      "upgrade-backup": "Sauvegarde automatique de mise à niveau",
+      "standalone-db-backup": "Sauvegarde de base de données autonome"
+    },
+    "dataSource": {
+      "sqlite": "SQLite",
+      "workspace": "Fichiers d’espace de travail",
+      "browser-storage": "Stockage du navigateur",
+      "skills": "Compétences",
+      "legacy-layout": "Ancienne disposition"
+    },
+    "previewKind": {
+      "prompt": "Prompt",
+      "folder": "Dossier",
+      "skill": "Compétence"
+    }
   }
 }

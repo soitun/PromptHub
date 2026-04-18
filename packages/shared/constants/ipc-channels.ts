@@ -111,6 +111,7 @@ export const IPC_CHANNELS = {
 
   // Data Recovery
   DATA_CHECK_RECOVERY: "data:checkRecovery",
+  DATA_PREVIEW_RECOVERY: "data:previewRecovery",
   DATA_PERFORM_RECOVERY: "data:performRecovery",
   DATA_DISMISS_RECOVERY: "data:dismissRecovery",
   UPGRADE_BACKUP_LIST: "upgradeBackup:list",

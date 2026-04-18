@@ -141,6 +141,15 @@ export function createWindowElectronMock(overrides?: DeepPartial<MockRecord>) {
       getDataPath: vi.fn(),
       getDataPathStatus: vi.fn(),
       migrateData: vi.fn(),
+      checkRecovery: vi.fn().mockResolvedValue([]),
+      previewRecovery: vi.fn().mockResolvedValue({
+        sourcePath: "",
+        previewAvailable: false,
+        items: [],
+        truncated: false,
+      }),
+      performRecovery: vi.fn(),
+      dismissRecovery: vi.fn(),
       updater: {
         check: vi.fn(),
         download: vi.fn(),

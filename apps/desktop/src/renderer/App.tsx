@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, lazy, Suspense } from "react";
+import type { RecoveryCandidate } from "@prompthub/shared/types";
 import { Sidebar, TopBar, MainContent, TitleBar } from "./components/layout";
 import { usePromptStore } from "./stores/prompt.store";
 import { useFolderStore } from "./stores/folder.store";
@@ -88,13 +89,7 @@ function App() {
   // Data recovery state
   const [showRecoveryDialog, setShowRecoveryDialog] = useState(false);
   const [recoverableDatabases, setRecoverableDatabases] = useState<
-    Array<{
-      sourcePath: string;
-      promptCount: number;
-      folderCount: number;
-      skillCount: number;
-      dbSizeBytes: number;
-    }>
+    RecoveryCandidate[]
   >([]);
 
   // Update status (used for TopBar indicator)

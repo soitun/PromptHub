@@ -1285,18 +1285,45 @@
   },
   "recovery": {
     "title": "Datos recuperables disponibles",
-    "description": "Su base de datos actual está vacía, pero encontramos datos existentes en otra ubicación. Esto puede haber ocurrido después de una actualización de la aplicación.",
+    "description": "Encontramos una o más fuentes recuperables. Revise las cantidades, la fecha y la vista previa antes de elegir qué origen restaurar.",
     "sourceLabel": "Datos encontrados en:",
     "promptCount": "{{count}} prompts",
     "folderCount": "{{count}} carpetas",
     "skillCount": "{{count}} habilidades",
     "dbSize": "Tamaño de la base de datos: {{size}}",
     "recover": "Recuperar datos",
+    "recoverSelected": "Restaurar origen seleccionado",
     "dismiss": "Empezar de cero",
     "recovering": "Recuperando datos...",
     "success": "¡Datos recuperados con éxito! La aplicación se reiniciará.",
     "restarting": "La aplicación se está reiniciando...",
     "failed": "Error en la recuperación: {{error}}",
-    "confirmDismiss": "¿Está seguro de que desea comenzar con una base de datos vacía? Sus datos antiguos permanecerán en la ubicación original y podrán recuperarse manualmente más tarde."
+    "confirmDismiss": "¿Está seguro de que desea comenzar con una base de datos vacía? Sus datos antiguos permanecerán en la ubicación original y podrán recuperarse manualmente más tarde.",
+    "sourcesTitle": "Fuentes de recuperación",
+    "sourcesDescription": "Elija la fuente que más se parezca a sus datos reales.",
+    "sourceCount": "{{count}} fuentes",
+    "previewTitle": "Vista previa",
+    "previewLoading": "Cargando vista previa...",
+    "previewEmpty": "Todavía no hay elementos de vista previa para esta fuente.",
+    "previewUnavailable": "La vista previa no está disponible para esta fuente.",
+    "previewTruncated": "La vista previa está truncada. Restaure la fuente para ver todos los elementos.",
+    "sourceType": {
+      "current-residual": "Residuos del directorio actual",
+      "external-user-data": "Directorio de datos anterior",
+      "upgrade-backup": "Copia automática de actualización",
+      "standalone-db-backup": "Copia independiente de base de datos"
+    },
+    "dataSource": {
+      "sqlite": "SQLite",
+      "workspace": "Archivos del espacio de trabajo",
+      "browser-storage": "Almacenamiento del navegador",
+      "skills": "Habilidades",
+      "legacy-layout": "Diseño heredado"
+    },
+    "previewKind": {
+      "prompt": "Prompt",
+      "folder": "Carpeta",
+      "skill": "Habilidad"
+    }
   }
 }

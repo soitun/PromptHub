@@ -1395,18 +1395,45 @@
   },
   "recovery": {
     "title": "Data Recovery Available",
-    "description": "Your current database is empty, but we found existing data at another location. This may have happened after an app update.",
+    "description": "We found one or more recovery sources. Review the counts, timestamps, and preview data below, then choose the source you want to restore.",
     "sourceLabel": "Found data at:",
     "promptCount": "{{count}} prompts",
     "folderCount": "{{count}} folders",
     "skillCount": "{{count}} skills",
     "dbSize": "Database size: {{size}}",
     "recover": "Recover Data",
+    "recoverSelected": "Restore Selected Source",
     "dismiss": "Start Fresh",
     "recovering": "Recovering data...",
     "success": "Data recovered successfully! The app will restart.",
     "restarting": "The app is restarting...",
     "failed": "Recovery failed: {{error}}",
-    "confirmDismiss": "Are you sure you want to start with an empty database? Your old data will remain at the original location and can be recovered manually later."
+    "confirmDismiss": "Are you sure you want to start with an empty database? Your old data will remain at the original location and can be recovered manually later.",
+    "sourcesTitle": "Recovery Sources",
+    "sourcesDescription": "Choose the source that looks like your real data.",
+    "sourceCount": "{{count}} sources",
+    "previewTitle": "Preview",
+    "previewLoading": "Loading preview...",
+    "previewEmpty": "No preview items are available for this source yet.",
+    "previewUnavailable": "Preview is not available for this source.",
+    "previewTruncated": "Preview is truncated. Restore the source to inspect all items.",
+    "sourceType": {
+      "current-residual": "Current directory residuals",
+      "external-user-data": "Previous data directory",
+      "upgrade-backup": "Automatic upgrade backup",
+      "standalone-db-backup": "Standalone database backup"
+    },
+    "dataSource": {
+      "sqlite": "SQLite",
+      "workspace": "Workspace files",
+      "browser-storage": "Browser storage",
+      "skills": "Skills",
+      "legacy-layout": "Legacy layout"
+    },
+    "previewKind": {
+      "prompt": "Prompt",
+      "folder": "Folder",
+      "skill": "Skill"
+    }
   }
 }

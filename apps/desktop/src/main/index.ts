@@ -13,14 +13,15 @@ import {
 } from "electron";
 import path from "path";
 import fs from "fs";
+import type { RecoveryCandidate } from "@prompthub/shared/types";
 import Database from "./database/sqlite";
 import { initDatabase, closeDatabase } from "./database";
 import {
   isDatabaseEmpty,
   detectRecoverableDatabases,
+  detectRecoverableDatabaseFiles,
   performDatabaseRecovery,
 } from "./database";
-import type { RecoverableDatabase } from "./database";
 import { registerAllIPC } from "./ipc";
 import { getMinimizeOnLaunchSetting } from "./ipc/settings.ipc";
 import { createMenu } from "./menu";
@@ -52,8 +53,17 @@ import { runCli } from "../cli/run";
 import { PromptDB } from "./database/prompt";
 import { FolderDB } from "./database/folder";
 import { bootstrapPromptWorkspace, writeRestoreMarker } from "./services/prompt-workspace";
-import { migrateLegacyDataLayout, detectResidualLegacyEntries, getDataLayoutMigrationMarkerPath } from "./services/data-layout-migration";
+import { migrateLegacyDataLayout, detectResidualLegacyEntries } from "./services/data-layout-migration";
+import { listUpgradeBackups } from "./services/upgrade-backup";
 import { runUpgradeBackupStartupTasks } from "./services/upgrade-backup-startup";
+import {
+  buildDirectoryRecoveryCandidate,
+  buildResidualLegacyRecoveryCandidate,
+  buildStandaloneDbBackupCandidate,
+  buildUpgradeBackupRecoveryCandidate,
+  listStandaloneDatabaseBackupFiles,
+  previewRecoveryCandidate,
+} from "./services/recovery-candidates";
 import { logStartupEvent, scrubPath } from "./startup-log";
 
 // Disable GPU acceleration (optional; may be needed on some systems)
@@ -666,7 +676,7 @@ ipcMain.handle("data:getStatus", () => {
 
 // Data recovery: check for recoverable databases at known locations
 // 数据恢复：在已知位置检查可恢复的数据库
-let cachedRecoveryResult: RecoverableDatabase[] | null = null;
+let cachedRecoveryResult: RecoveryCandidate[] | null = null;
 const RECOVERY_DISMISS_MARKER = ".recovery-dismissed";
 // Process-lifetime guard: we only allow performRecovery to trigger a relaunch
 // ONCE per app session. Historically a combination of auto-recovery in the
@@ -678,48 +688,7 @@ const RECOVERY_DISMISS_MARKER = ".recovery-dismissed";
 // restart, not an infinite loop.
 let recoveryAttemptedThisSession = false;
 
-function countDirectEntriesSafe(dirPath: string): number {
-  try {
-    if (!fs.existsSync(dirPath)) {
-      return 0;
-    }
-
-    return fs
-      .readdirSync(dirPath, { withFileTypes: true })
-      .filter((entry) => entry.isFile() || entry.isDirectory()).length;
-  } catch {
-    return 0;
-  }
-}
-
-function buildResidualLegacyRecoveryCandidate(
-  currentPath: string,
-): RecoverableDatabase | null {
-  const migrationMarker = getDataLayoutMigrationMarkerPath(currentPath);
-  if (!fs.existsSync(migrationMarker)) {
-    return null;
-  }
-
-  const residual = detectResidualLegacyEntries(currentPath);
-  if (residual.length === 0) {
-    return null;
-  }
-
-  const residualPromptCount = countDirectEntriesSafe(
-    path.join(currentPath, "workspace", "prompts"),
-  );
-  const residualSkillCount = countDirectEntriesSafe(path.join(currentPath, "skills"));
-
-  return {
-    sourcePath: currentPath,
-    promptCount: residualPromptCount,
-    folderCount: 0,
-    skillCount: residualSkillCount,
-    dbSizeBytes: 0,
-  };
-}
-
-ipcMain.handle("data:checkRecovery", () => {
+ipcMain.handle("data:checkRecovery", async () => {
   if (isE2E) {
     cachedRecoveryResult = [];
     return [];
@@ -736,7 +705,7 @@ ipcMain.handle("data:checkRecovery", () => {
     return [];
   }
 
-  const results: RecoverableDatabase[] = [];
+  const results: RecoveryCandidate[] = [];
   const residualCandidate = buildResidualLegacyRecoveryCandidate(currentPath);
   if (residualCandidate) {
     results.push(residualCandidate);
@@ -745,22 +714,115 @@ ipcMain.handle("data:checkRecovery", () => {
   const isDbEmpty = !!appDb && isDatabaseEmpty(appDb);
   const candidatePaths = getRecoveryCandidatePaths(currentPath);
   if (isDbEmpty) {
-    results.push(...detectRecoverableDatabases(currentPath, candidatePaths));
+    results.push(
+      ...detectRecoverableDatabases(currentPath, candidatePaths).map((candidate) =>
+        buildDirectoryRecoveryCandidate(candidate),
+      ),
+    );
+    try {
+      const upgradeBackups = await listUpgradeBackups(currentPath);
+      if (upgradeBackups.length > 0) {
+        const detectedUpgradeCandidates = detectRecoverableDatabases(
+          currentPath,
+          upgradeBackups.map((backup) => backup.backupPath),
+        );
+        const detectedByPath = new Map(
+          detectedUpgradeCandidates.map((candidate) => [
+            path.resolve(candidate.sourcePath).toLowerCase(),
+            candidate,
+          ]),
+        );
+        for (const backup of upgradeBackups) {
+          const matched = detectedByPath.get(
+            path.resolve(backup.backupPath).toLowerCase(),
+          );
+          if (!matched) {
+            continue;
+          }
+          results.push(buildUpgradeBackupRecoveryCandidate(matched, backup));
+        }
+      }
+    } catch (error) {
+      console.warn("[Recovery] failed to inspect upgrade backup candidates:", error);
+    }
+
+    results.push(
+      ...detectRecoverableDatabaseFiles(
+        currentPath,
+        listStandaloneDatabaseBackupFiles(currentPath),
+      ).map((candidate) => buildStandaloneDbBackupCandidate(candidate)),
+    );
   }
 
-  cachedRecoveryResult = results;
+  const dedupedResults = results
+    .filter((candidate, index, array) => {
+      return (
+        array.findIndex(
+          (other) =>
+            path.resolve(other.sourcePath).toLowerCase() ===
+            path.resolve(candidate.sourcePath).toLowerCase(),
+        ) === index
+      );
+    })
+    .sort((a, b) => {
+      const timeA = a.lastModified ? new Date(a.lastModified).getTime() : 0;
+      const timeB = b.lastModified ? new Date(b.lastModified).getTime() : 0;
+      if (timeA !== timeB) {
+        return timeB - timeA;
+      }
+      if (a.promptCount !== b.promptCount) {
+        return b.promptCount - a.promptCount;
+      }
+      return b.folderCount + b.skillCount - (a.folderCount + a.skillCount);
+    });
+
+  cachedRecoveryResult = dedupedResults;
   logStartupEvent({
     event: "recovery:candidates_detected",
     currentPath: scrubPath(currentPath),
     candidatePathCount: candidatePaths.length,
-    resultCount: results.length,
-    results: results.map((r) => ({
+    resultCount: dedupedResults.length,
+    results: dedupedResults.map((r) => ({
+      sourceType: r.sourceType,
       sourcePath: scrubPath(r.sourcePath),
+      displayPath: scrubPath(r.displayPath),
       promptCount: r.promptCount,
       folderCount: r.folderCount,
+      skillCount: r.skillCount,
+      lastModified: r.lastModified,
     })),
   });
-  return results;
+  return dedupedResults;
+});
+
+ipcMain.handle("data:previewRecovery", async (_event, sourcePath: string) => {
+  if (typeof sourcePath !== "string" || sourcePath.trim().length === 0) {
+    return {
+      sourcePath: "",
+      previewAvailable: false,
+      description: "sourcePath is required",
+      items: [],
+      truncated: false,
+    };
+  }
+
+  const candidates = cachedRecoveryResult ?? [];
+  const matched = candidates.find(
+    (candidate) =>
+      path.resolve(candidate.sourcePath).toLowerCase() ===
+      path.resolve(sourcePath).toLowerCase(),
+  );
+  if (!matched) {
+    return {
+      sourcePath,
+      previewAvailable: false,
+      description: "Recovery candidate not found",
+      items: [],
+      truncated: false,
+    };
+  }
+
+  return previewRecoveryCandidate(matched);
 });
 
 ipcMain.handle("data:performRecovery", async (_event, sourcePath: string) => {
@@ -804,12 +866,29 @@ ipcMain.handle("data:performRecovery", async (_event, sourcePath: string) => {
   if (path.resolve(sourcePath) === path.resolve(currentPath)) {
     try {
       const migResult = await migrateLegacyDataLayout(currentPath, app.getVersion());
+      const residualAfterRetry = detectResidualLegacyEntries(currentPath);
       logStartupEvent({
         event: "recovery:residual_migration_retry",
         status: migResult.status,
         movedEntries: migResult.movedEntries,
         failedEntries: migResult.failedEntries,
+        residualEntriesAfterRetry: residualAfterRetry,
       });
+
+      if (
+        migResult.status === "partial-failure" ||
+        residualAfterRetry.length > 0
+      ) {
+        recoveryAttemptedThisSession = false;
+        cachedRecoveryResult = null;
+        return {
+          success: false,
+          error:
+            "Residual legacy data could not be fully migrated automatically. " +
+            `Remaining entries: ${residualAfterRetry.join(", ") || migResult.failedEntries.join(", ")}`,
+        };
+      }
+
       cachedRecoveryResult = null;
       closeDatabase();
       setTimeout(() => {

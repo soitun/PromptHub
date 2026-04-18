@@ -1317,18 +1317,45 @@
   },
   "recovery": {
     "title": "可恢复数据",
-    "description": "当前数据库为空，但在其他位置发现了已有数据。这可能是应用更新后导致的。",
+    "description": "我们发现了一个或多个可恢复来源。请先查看数量、时间和预览内容，再选择你要恢复的那一份数据。",
     "sourceLabel": "数据位置：",
     "promptCount": "{{count}} 个 Prompt",
     "folderCount": "{{count}} 个文件夹",
     "skillCount": "{{count}} 个技能",
     "dbSize": "数据库大小：{{size}}",
     "recover": "恢复数据",
+    "recoverSelected": "恢复所选来源",
     "dismiss": "全新开始",
     "recovering": "正在恢复数据...",
     "success": "数据恢复成功！应用即将重启。",
     "restarting": "应用正在重启...",
     "failed": "恢复失败：{{error}}",
-    "confirmDismiss": "确定要使用空数据库吗？原有数据仍保留在原位置，之后可以手动恢复。"
+    "confirmDismiss": "确定要使用空数据库吗？原有数据仍保留在原位置，之后可以手动恢复。",
+    "sourcesTitle": "恢复来源",
+    "sourcesDescription": "请选择最像你真实数据的来源。",
+    "sourceCount": "{{count}} 个来源",
+    "previewTitle": "预览",
+    "previewLoading": "正在加载预览...",
+    "previewEmpty": "这个来源暂时没有可展示的预览条目。",
+    "previewUnavailable": "这个来源暂不支持预览。",
+    "previewTruncated": "预览只展示部分条目，恢复后可查看完整数据。",
+    "sourceType": {
+      "current-residual": "当前目录残留数据",
+      "external-user-data": "旧数据目录",
+      "upgrade-backup": "自动升级备份",
+      "standalone-db-backup": "独立数据库备份"
+    },
+    "dataSource": {
+      "sqlite": "SQLite",
+      "workspace": "工作区文件",
+      "browser-storage": "浏览器存储",
+      "skills": "技能目录",
+      "legacy-layout": "旧版布局"
+    },
+    "previewKind": {
+      "prompt": "Prompt",
+      "folder": "文件夹",
+      "skill": "技能"
+    }
   }
 }
