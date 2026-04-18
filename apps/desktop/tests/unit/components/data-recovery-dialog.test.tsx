@@ -38,7 +38,7 @@ describe("DataRecoveryDialog", () => {
     });
   });
 
-  it("closes non-destructively when dismissed via Escape", async () => {
+  it("does not close or dismiss when startup recovery dialog receives Escape", async () => {
     const onClose = vi.fn();
 
     await act(async () => {
@@ -46,6 +46,44 @@ describe("DataRecoveryDialog", () => {
         <DataRecoveryDialog
           isOpen={true}
           onClose={onClose}
+          databases={[
+            {
+              sourcePath: "C:/Users/test/AppData/Roaming/PromptHub",
+              sourceType: "external-user-data",
+              displayName: "Previous data directory",
+              displayPath: "C:/Users/test/AppData/Roaming/PromptHub",
+              promptCount: 3,
+              folderCount: 1,
+              skillCount: 0,
+              dbSizeBytes: 8192,
+              lastModified: "2026-04-18T10:00:00.000Z",
+              previewAvailable: true,
+              dataSources: ["sqlite", "workspace"],
+            },
+          ]}
+        />,
+        { language: "en" },
+      );
+    });
+
+    await act(async () => {
+      fireEvent.keyDown(document, { key: "Escape" });
+    });
+
+    expect(dismissRecoveryMock).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("allows settings-triggered recovery browser to close without writing dismiss marker", async () => {
+    const onClose = vi.fn();
+
+    await act(async () => {
+      await renderWithI18n(
+        <DataRecoveryDialog
+          isOpen={true}
+          onClose={onClose}
+          allowWindowClose={true}
+          persistDismiss={false}
           databases={[
             {
               sourcePath: "C:/Users/test/AppData/Roaming/PromptHub",

@@ -41,6 +41,7 @@ import {
   testSelfHostedConnection,
 } from "../../services/self-hosted-sync";
 import { useSettingsStore } from "../../stores/settings.store";
+import { usePromptStore } from "../../stores/prompt.store";
 import { useToast } from "../ui/Toast";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { DataRecoveryDialog } from "../ui/DataRecoveryDialog";
@@ -110,6 +111,7 @@ export function DataSettings() {
   const { showToast } = useToast();
   const webRuntime = isWebRuntime();
   const settings = useSettingsStore();
+  const currentPromptCount = usePromptStore((state) => state.prompts.length);
   const persistedDataPath = settings.dataPath;
   const setDataPath = settings.setDataPath;
   const [currentDataPath, setCurrentDataPath] = useState("");
@@ -126,6 +128,7 @@ export function DataSettings() {
   } | null>(null);
   const [confirmingImport, setConfirmingImport] = useState(false);
   const [manualRecoveryPaths, setManualRecoveryPaths] = useState<string[]>([]);
+  const [manualPathInputValue, setManualPathInputValue] = useState("");
   const [scanningRecoverySources, setScanningRecoverySources] = useState(false);
   const [manualRecoveryCandidates, setManualRecoveryCandidates] = useState<
     RecoveryCandidate[]
@@ -490,6 +493,25 @@ export function DataSettings() {
     updateManualRecoveryPaths([...manualRecoveryPaths, normalized]);
   };
 
+  const handleAddManualRecoveryPathFromInput = () => {
+    const normalized = manualPathInputValue.trim();
+    if (!normalized) {
+      return;
+    }
+    if (manualRecoveryPaths.includes(normalized)) {
+      showToast(
+        t(
+          "settings.manualRecoveryPathExists",
+          "This scan directory has already been added.",
+        ),
+        "error",
+      );
+      return;
+    }
+    updateManualRecoveryPaths([...manualRecoveryPaths, normalized]);
+    setManualPathInputValue("");
+  };
+
   const handleRemoveManualRecoveryPath = (targetPath: string) => {
     updateManualRecoveryPaths(
       manualRecoveryPaths.filter((entry) => entry !== targetPath),
@@ -663,6 +685,32 @@ export function DataSettings() {
                   >
                     <PlusIcon className="w-4 h-4" />
                     {t("settings.recoveryAddScanDir", "Add folder")}
+                  </button>
+                </div>
+
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={manualPathInputValue}
+                    onChange={(e) => setManualPathInputValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        handleAddManualRecoveryPathFromInput();
+                      }
+                    }}
+                    placeholder={t(
+                      "settings.recoveryManualPathPlaceholder",
+                      "Paste or type a path…",
+                    )}
+                    className="flex-1 h-8 px-3 rounded-lg border border-border bg-background text-sm font-mono placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                  <button
+                    onClick={handleAddManualRecoveryPathFromInput}
+                    disabled={!manualPathInputValue.trim()}
+                    className="h-8 px-3 rounded-lg bg-muted text-sm hover:bg-muted/80 transition-colors flex items-center gap-2 disabled:opacity-40"
+                  >
+                    <PlusIcon className="w-4 h-4" />
+                    {t("settings.recoveryAddPathBtn", "Add")}
                   </button>
                 </div>
 
@@ -1775,6 +1823,8 @@ export function DataSettings() {
         onClose={() => setShowRecoveryBrowser(false)}
         databases={manualRecoveryCandidates}
         persistDismiss={false}
+        allowWindowClose={true}
+        currentPromptCount={currentPromptCount}
       />
     </>
   );

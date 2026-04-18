@@ -11,6 +11,9 @@ interface ModalProps {
   headerActions?: ReactNode;
   children: ReactNode;
   size?: "sm" | "md" | "lg" | "xl" | "2xl" | "full" | "fullscreen";
+  showCloseButton?: boolean;
+  closeOnBackdrop?: boolean;
+  closeOnEscape?: boolean;
 }
 
 /**
@@ -40,6 +43,9 @@ export function Modal({
   headerActions,
   children,
   size = "md",
+  showCloseButton = true,
+  closeOnBackdrop = true,
+  closeOnEscape = true,
 }: ModalProps) {
   const [isAnimating, setIsAnimating] = useState(false);
   const [shouldRender, setShouldRender] = useState(false);
@@ -70,15 +76,17 @@ export function Modal({
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
-    if (isOpen) {
+    if (isOpen && closeOnEscape) {
       document.addEventListener("keydown", handleEsc);
+    }
+    if (isOpen) {
       document.body.style.overflow = "hidden";
     }
     return () => {
       document.removeEventListener("keydown", handleEsc);
       document.body.style.overflow = "";
     };
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, closeOnEscape]);
 
   if (!shouldRender) return null;
 
@@ -101,7 +109,7 @@ export function Modal({
           "absolute inset-0 bg-white/40 dark:bg-black/40 backdrop-blur-md transition-opacity duration-200",
           isAnimating ? "opacity-100" : "opacity-0",
         )}
-        onClick={onClose}
+        onClick={closeOnBackdrop ? onClose : undefined}
       />
 
       {/* Modal Container */}
@@ -138,13 +146,17 @@ export function Modal({
             </div>
             <div className="flex items-center gap-3 shrink-0 ml-4">
               {headerActions}
-              <div className="w-[1px] h-4 bg-border mx-1" />
-              <button
-                onClick={onClose}
-                className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent transition-all duration-200"
-              >
-                <XIcon className="w-5 h-5" />
-              </button>
+              {showCloseButton ? (
+                <>
+                  <div className="w-[1px] h-4 bg-border mx-1" />
+                  <button
+                    onClick={onClose}
+                    className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent transition-all duration-200"
+                  >
+                    <XIcon className="w-5 h-5" />
+                  </button>
+                </>
+              ) : null}
             </div>
           </div>
         )}

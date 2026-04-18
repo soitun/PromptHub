@@ -23,6 +23,10 @@ interface DataRecoveryDialogProps {
   onClose: () => void;
   databases: RecoveryCandidate[];
   persistDismiss?: boolean;
+  allowWindowClose?: boolean;
+  /** Number of prompts currently in the active database. When > 0, a warning
+   *  banner is shown to inform the user that recovery will overwrite their data. */
+  currentPromptCount?: number;
 }
 
 function formatBytes(bytes: number): string {
@@ -76,6 +80,8 @@ export function DataRecoveryDialog({
   onClose,
   databases,
   persistDismiss = true,
+  allowWindowClose = false,
+  currentPromptCount = 0,
 }: DataRecoveryDialogProps): JSX.Element | null {
   const { t } = useTranslation();
   const [selectedSourcePath, setSelectedSourcePath] = useState<string | null>(
@@ -174,7 +180,9 @@ export function DataRecoveryDialog({
     if (isSuccess || isRecovering) {
       return;
     }
-    onClose();
+    if (allowWindowClose) {
+      onClose();
+    }
   };
 
   const handleRecover = async (): Promise<void> => {
@@ -216,6 +224,9 @@ export function DataRecoveryDialog({
       onClose={requestClose}
       title={t("recovery.title")}
       size="lg"
+      showCloseButton={allowWindowClose}
+      closeOnBackdrop={allowWindowClose}
+      closeOnEscape={allowWindowClose}
     >
       <div className="flex flex-col gap-5">
         {isSuccess ? (
@@ -397,6 +408,15 @@ export function DataRecoveryDialog({
                 </div>
               </div>
             </div>
+
+            {currentPromptCount > 0 && (
+              <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-3 flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 text-yellow-600 dark:text-yellow-400 shrink-0 mt-0.5" />
+                <p className="text-xs text-yellow-700 dark:text-yellow-400">
+                  {t("recovery.overwriteWarning", { count: currentPromptCount })}
+                </p>
+              </div>
+            )}
 
             {error && (
               <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 flex items-start gap-2">

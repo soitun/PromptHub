@@ -4,6 +4,7 @@ import path from "path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
+  getHistoricalDefaultUserDataPath,
   getInstallScopedDataPath,
   hasExistingAppData,
   isDefaultPerUserInstallDir,
@@ -42,6 +43,21 @@ describe("data path bootstrap", () => {
         platform: "win32",
       }),
     ).toBe(configuredPath);
+  });
+
+  it("always uses PromptHub as the historical default userData directory name", () => {
+    expect(
+      getHistoricalDefaultUserDataPath(
+        "C:\\Users\\Alice\\AppData\\Roaming",
+        "win32",
+      ),
+    ).toBe("C:\\Users\\Alice\\AppData\\Roaming\\PromptHub");
+    expect(
+      getHistoricalDefaultUserDataPath(
+        "/Users/alice/Library/Application Support",
+        "darwin",
+      ),
+    ).toBe("/Users/alice/Library/Application Support/PromptHub");
   });
 
   it("keeps existing legacy userData for existing installs", () => {

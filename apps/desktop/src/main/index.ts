@@ -40,6 +40,7 @@ import {
   shouldUseDevServer,
 } from "./testing/e2e";
 import {
+  getHistoricalDefaultUserDataPath,
   readConfiguredDataPath,
   resolveInitialUserDataPath,
   writeConfiguredDataPath,
@@ -124,9 +125,13 @@ const desktopCliArgs = extractDesktopCliArgs(process.argv);
 const isDesktopCliMode = desktopCliArgs !== null;
 configureE2ETestProfile();
 if (!isE2E) {
+  const appDataPath = app.getPath("appData");
   const resolvedUserDataPath = resolveInitialUserDataPath({
-    appDataPath: app.getPath("appData"),
-    defaultUserDataPath: app.getPath("userData"),
+    appDataPath,
+    defaultUserDataPath: getHistoricalDefaultUserDataPath(
+      appDataPath,
+      process.platform,
+    ),
     exePath: process.execPath,
     isPackaged: app.isPackaged,
     platform: process.platform,
@@ -136,6 +141,7 @@ if (!isE2E) {
 configureRuntimePaths({
   appDataPath: app.getPath("appData"),
   userDataPath: app.getPath("userData"),
+  productName: "PromptHub",
   exePath: process.execPath,
   isPackaged: app.isPackaged,
   platform: process.platform,
@@ -678,6 +684,7 @@ ipcMain.handle("data:getStatus", () => {
 // Data recovery: check for recoverable databases at known locations
 // 数据恢复：在已知位置检查可恢复的数据库
 let cachedRecoveryResult: RecoveryCandidate[] | null = null;
+let transientRecoveryResult: RecoveryCandidate[] | null = null;
 const RECOVERY_DISMISS_MARKER = ".recovery-dismissed";
 // Process-lifetime guard: we only allow performRecovery to trigger a relaunch
 // ONCE per app session. Historically a combination of auto-recovery in the
@@ -712,6 +719,7 @@ ipcMain.handle("data:checkRecovery", async (_event, options?: RecoveryScanOption
   const dismissMarkerPath = path.join(currentPath, RECOVERY_DISMISS_MARKER);
   if (!ignoreDismissMarker && fs.existsSync(dismissMarkerPath)) {
     cachedRecoveryResult = [];
+    transientRecoveryResult = null;
     return [];
   }
 
@@ -722,6 +730,10 @@ ipcMain.handle("data:checkRecovery", async (_event, options?: RecoveryScanOption
   }
 
   const isDbEmpty = !!appDb && isDatabaseEmpty(appDb);
+  // When the user explicitly requests a scan (ignoreDismissMarker: true) from
+  // the Settings page, always scan all candidate paths regardless of DB state.
+  // Without this, users whose DB has any data can never surface recovery candidates.
+  const shouldScanCandidates = isDbEmpty || ignoreDismissMarker;
   const candidatePaths = getRecoveryCandidatePaths({
     currentPath,
     appDataPath: app.getPath("appData"),
@@ -733,7 +745,7 @@ ipcMain.handle("data:checkRecovery", async (_event, options?: RecoveryScanOption
   const mergedCandidatePaths = Array.from(
     new Set([...candidatePaths, ...extraPaths].map((value) => path.resolve(value))),
   );
-  if (isDbEmpty) {
+  if (shouldScanCandidates) {
     results.push(
       ...detectRecoverableDatabases(currentPath, mergedCandidatePaths).map((candidate) =>
         buildDirectoryRecoveryCandidate(candidate),
@@ -796,7 +808,6 @@ ipcMain.handle("data:checkRecovery", async (_event, options?: RecoveryScanOption
       return b.folderCount + b.skillCount - (a.folderCount + a.skillCount);
     });
 
-  cachedRecoveryResult = dedupedResults;
   logStartupEvent({
     event: "recovery:candidates_detected",
     currentPath: scrubPath(currentPath),
@@ -814,6 +825,9 @@ ipcMain.handle("data:checkRecovery", async (_event, options?: RecoveryScanOption
   });
   if (!hasManualOverrides) {
     cachedRecoveryResult = dedupedResults;
+    transientRecoveryResult = null;
+  } else {
+    transientRecoveryResult = dedupedResults;
   }
   return dedupedResults;
 });
@@ -829,7 +843,7 @@ ipcMain.handle("data:previewRecovery", async (_event, sourcePath: string) => {
     };
   }
 
-  const candidates = cachedRecoveryResult ?? [];
+  const candidates = transientRecoveryResult ?? cachedRecoveryResult ?? [];
   const matched = candidates.find(
     (candidate) =>
       path.resolve(candidate.sourcePath).toLowerCase() ===
@@ -913,6 +927,19 @@ ipcMain.handle("data:performRecovery", async (_event, sourcePath: string) => {
       }
 
       cachedRecoveryResult = null;
+      transientRecoveryResult = null;
+      try {
+        fs.writeFileSync(
+          path.join(currentPath, RECOVERY_DISMISS_MARKER),
+          new Date().toISOString(),
+          "utf8",
+        );
+      } catch (dismissMarkerError) {
+        console.warn(
+          "[Recovery] failed to write dismiss marker after residual recovery (continuing):",
+          dismissMarkerError,
+        );
+      }
       closeDatabase();
       setTimeout(() => {
         app.relaunch();
@@ -934,13 +961,22 @@ ipcMain.handle("data:performRecovery", async (_event, sourcePath: string) => {
   if (result.success) {
     // Clear cache so next check sees the recovered data
     cachedRecoveryResult = null;
+    transientRecoveryResult = null;
+    // Write (not delete) the dismiss marker so the auto-recovery dialog does
+    // NOT reappear on the next boot after a successful recovery. The user
+    // already chose to restore; showing the dialog again would be confusing.
+    // They can still manually trigger a scan from Settings → Data if needed.
+    // 写入（而非删除）dismiss 标记，防止恢复成功重启后对话框再次弹出。
+    // 用户可以在「设置 → 数据」中手动触发扫描。
     try {
-      fs.rmSync(path.join(currentPath, RECOVERY_DISMISS_MARKER), {
-        force: true,
-      });
+      fs.writeFileSync(
+        path.join(currentPath, RECOVERY_DISMISS_MARKER),
+        new Date().toISOString(),
+        "utf8",
+      );
     } catch (dismissMarkerError) {
       console.warn(
-        "[Recovery] failed to clear dismiss marker (continuing):",
+        "[Recovery] failed to write dismiss marker after recovery (continuing):",
         dismissMarkerError,
       );
     }
@@ -994,6 +1030,7 @@ ipcMain.handle("data:performRecovery", async (_event, sourcePath: string) => {
 
 ipcMain.handle("data:dismissRecovery", () => {
   cachedRecoveryResult = [];
+  transientRecoveryResult = null;
   try {
     fs.writeFileSync(
       path.join(app.getPath("userData"), RECOVERY_DISMISS_MARKER),

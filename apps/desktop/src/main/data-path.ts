@@ -3,6 +3,7 @@ import path from "path";
 
 const CONFIG_DIR_NAME = "PromptHub";
 const CONFIG_FILE_NAME = "data-path.json";
+export const LEGACY_PRODUCT_NAME = "PromptHub";
 
 const DATA_MARKERS = [
   "prompthub.db",
@@ -73,6 +74,13 @@ const defaultDeps: DataPathResolverDeps = {
 
 function getConfigFilePath(appDataPath: string): string {
   return path.join(appDataPath, CONFIG_DIR_NAME, CONFIG_FILE_NAME);
+}
+
+export function getHistoricalDefaultUserDataPath(
+  appDataPath: string,
+  platform: NodeJS.Platform,
+): string {
+  return joinPlatformPath(appDataPath, LEGACY_PRODUCT_NAME, platform);
 }
 
 export function readConfiguredDataPath(appDataPath: string): string | null {
