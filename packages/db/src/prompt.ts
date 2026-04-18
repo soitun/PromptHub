@@ -11,6 +11,8 @@ import type {
 
 interface PromptRow {
   id: string;
+  owner_user_id: string | null;
+  visibility: string;
   title: string;
   description: string | null;
   prompt_type: PromptType | null;
@@ -30,8 +32,8 @@ interface PromptRow {
   source: string | null;
   notes: string | null;
   last_ai_response: string | null;
-  created_at: string;
-  updated_at: string;
+  created_at: number;
+  updated_at: number;
 }
 
 interface PromptVersionRow {
@@ -45,7 +47,7 @@ interface PromptVersionRow {
   variables: string | null;
   note: string | null;
   ai_response: string | null;
-  created_at: string;
+  created_at: number;
 }
 
 export class PromptDB {
@@ -541,6 +543,8 @@ export class PromptDB {
   private rowToPrompt(row: PromptRow): Prompt {
     return {
       id: row.id,
+      ownerUserId: row.owner_user_id ?? undefined,
+      visibility: (row.visibility as import("@prompthub/shared/types").ResourceVisibility) ?? "private",
       title: row.title,
       description: row.description,
       promptType: row.prompt_type || "text",

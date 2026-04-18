@@ -4,12 +4,17 @@ import {
   MailIcon,
   ExternalLinkIcon,
   MessageSquareIcon,
+  RefreshCwIcon,
+  CheckCircleIcon,
+  ArrowUpCircleIcon,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useSettingsStore } from "../../stores/settings.store";
 import { SettingSection, SettingItem, ToggleSwitch } from "./shared";
 import appIconUrl from "../../../assets/icon.png";
 import { isWebRuntime } from "../../runtime";
+
+type UpdateCheckState = "idle" | "checking" | "latest" | "available";
 
 export function AboutSettings() {
   const { t } = useTranslation();
@@ -19,10 +24,44 @@ export function AboutSettings() {
   // Get application version
   // 获取应用版本号
   const [appVersion, setAppVersion] = useState<string>("");
+  const [webVersion, setWebVersion] = useState<string>("");
+  const [updateState, setUpdateState] = useState<UpdateCheckState>("idle");
+  const [latestVersion, setLatestVersion] = useState<string>("");
+
   useEffect(() => {
     window.electron?.updater?.getVersion().then((v) => setAppVersion(v || ""));
   }, []);
 
+  useEffect(() => {
+    if (!webRuntime) return;
+    // Fetch current deployed version from server
+    fetch("/health")
+      .then((r) => r.json())
+      .then((data: { version?: string }) => setWebVersion(data.version || ""))
+      .catch(() => {});
+  }, [webRuntime]);
+
+  const checkWebUpdate = async () => {
+    setUpdateState("checking");
+    try {
+      const res = await fetch(
+        "https://api.github.com/repos/legeling/PromptHub/releases/latest",
+        { headers: { Accept: "application/vnd.github+json" } },
+      );
+      if (!res.ok) throw new Error("fetch failed");
+      const data = (await res.json()) as { tag_name?: string };
+      const latest = (data.tag_name || "").replace(/^v/, "");
+      setLatestVersion(latest);
+      const isNewer =
+        latest &&
+        webVersion &&
+        latest !== webVersion &&
+        latest.localeCompare(webVersion, undefined, { numeric: true }) > 0;
+      setUpdateState(isNewer ? "available" : "latest");
+    } catch {
+      setUpdateState("idle");
+    }
+  };
   return (
     <div className="space-y-6">
       {/* 应用信息卡片 */}
@@ -36,7 +75,7 @@ export function AboutSettings() {
         </div>
         <h2 className="text-lg font-semibold">PromptHub</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          {t("settings.version")} {appVersion || "..."}
+          {t("settings.version")} {webRuntime ? (webVersion || "...") : (appVersion || "...")}
         </p>
       </div>
 
@@ -56,9 +95,46 @@ export function AboutSettings() {
 
       {webRuntime ? (
         <SettingSection title={t("settings.checkUpdate")}>
-          <div className="px-4 py-3 text-sm text-muted-foreground">
-            {t("settings.webUpdatesManagedDesc")}
-          </div>
+          <SettingItem
+            label={t("settings.checkUpdate")}
+            description={
+              updateState === "latest"
+                ? t("settings.noUpdateDesc", { version: webVersion })
+                : updateState === "available"
+                  ? t("settings.updateAvailableDesc", { version: latestVersion })
+                  : t("settings.webUpdatesManagedDesc")
+            }
+          >
+            {updateState === "available" ? (
+              <a
+                href="https://github.com/legeling/PromptHub/releases/latest"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="h-8 px-4 rounded-lg bg-primary text-white text-sm hover:bg-primary/90 transition-colors inline-flex items-center gap-1.5"
+              >
+                <ArrowUpCircleIcon className="w-4 h-4" />
+                {t("settings.newVersion", { version: latestVersion })}
+              </a>
+            ) : updateState === "latest" ? (
+              <span className="flex items-center gap-1.5 text-sm text-green-600 dark:text-green-400">
+                <CheckCircleIcon className="w-4 h-4" />
+                {t("settings.noUpdateDesc", { version: webVersion })}
+              </span>
+            ) : (
+              <button
+                onClick={checkWebUpdate}
+                disabled={updateState === "checking"}
+                className="h-8 px-4 rounded-lg bg-primary text-white text-sm hover:bg-primary/90 transition-colors disabled:opacity-60 inline-flex items-center gap-1.5"
+              >
+                <RefreshCwIcon
+                  className={`w-4 h-4 ${updateState === "checking" ? "animate-spin" : ""}`}
+                />
+                {updateState === "checking"
+                  ? t("common.loading", "检查中...")
+                  : t("settings.checkUpdate")}
+              </button>
+            )}
+          </SettingItem>
         </SettingSection>
       ) : (
         <SettingSection title={t("settings.checkUpdate")}>

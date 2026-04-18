@@ -17,7 +17,10 @@ COPY apps/desktop apps/desktop
 COPY packages/shared packages/shared
 COPY packages/db packages/db
 
-RUN pnpm rebuild esbuild && pnpm --filter @prompthub/web build
+# Extract version from root package.json and inject into client build via Vite's define
+RUN VITE_APP_VERSION=$(node -p "require('./package.json').version") \
+    pnpm rebuild esbuild && \
+    VITE_APP_VERSION=$VITE_APP_VERSION pnpm --filter @prompthub/web build
 
 FROM node:22-bookworm-slim AS runner
 
@@ -47,4 +50,5 @@ VOLUME ["/app/data"]
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
   CMD ["node", "-e", "fetch('http://127.0.0.1:3000/health').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"]
 
-CMD ["node", "dist/server/index.js"]
+# Read version from package.json at startup and expose as APP_VERSION
+CMD ["node", "-e", "process.env.APP_VERSION=require('/app/package.json').version; require('./dist/server/index.js')"]

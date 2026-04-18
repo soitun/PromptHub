@@ -2,9 +2,23 @@ import Database from "./adapter";
 import { v4 as uuidv4 } from "uuid";
 import type {
   Folder,
+  FolderVisibility,
   CreateFolderDTO,
   UpdateFolderDTO,
 } from "@prompthub/shared/types";
+
+interface FolderRow {
+  id: string;
+  owner_user_id: string | null;
+  visibility: string;
+  name: string;
+  icon: string | null;
+  parent_id: string | null;
+  sort_order: number;
+  is_private: number;
+  created_at: number;
+  updated_at: number;
+}
 
 export class FolderDB {
   constructor(private db: Database.Database) {}
@@ -52,7 +66,7 @@ export class FolderDB {
    */
   getById(id: string): Folder | null {
     const stmt = this.db.prepare("SELECT * FROM folders WHERE id = ?");
-    const row = stmt.get(id) as any;
+    const row = stmt.get(id) as FolderRow | undefined;
     return row ? this.rowToFolder(row) : null;
   }
 
@@ -64,7 +78,7 @@ export class FolderDB {
     const stmt = this.db.prepare(
       "SELECT * FROM folders ORDER BY sort_order ASC",
     );
-    const rows = stmt.all() as any[];
+    const rows = stmt.all() as FolderRow[];
     return rows.map((row) => this.rowToFolder(row));
   }
 
@@ -116,11 +130,9 @@ export class FolderDB {
 
     // Build updated folder in memory instead of re-querying (performance optimization)
     // 在内存中构建更新后的 folder 对象，而不是重新查询（性能优化）
-    // Note: updatedAt is stored as number in DB but typed as string - using 'as any' for compatibility
-    // 注意：updatedAt 在数据库中存储为数字但类型定义为字符串 - 使用 'as any' 保持兼容
     const updatedFolder: Folder = {
       ...existingFolder,
-      updatedAt: now as any,
+      updatedAt: now,
       ...(data.name !== undefined && { name: data.name }),
       ...(data.icon !== undefined && { icon: data.icon }),
       ...(data.parentId !== undefined && { parentId: data.parentId }),
@@ -186,9 +198,11 @@ export class FolderDB {
    * Convert database row to Folder object
    * 数据库行转 Folder 对象
    */
-  private rowToFolder(row: any): Folder {
+  private rowToFolder(row: FolderRow): Folder {
     return {
       id: row.id,
+      ownerUserId: row.owner_user_id ?? undefined,
+      visibility: (row.visibility as FolderVisibility) ?? "private",
       name: row.name,
       icon: row.icon,
       parentId: row.parent_id,

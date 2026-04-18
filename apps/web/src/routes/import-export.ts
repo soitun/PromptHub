@@ -6,6 +6,7 @@ import { getAuthUser } from '../middleware/auth.js';
 import { BackupService } from '../services/backup.service.js';
 import { error, ErrorCode, success } from '../utils/response.js';
 import { parseJsonBody } from '../utils/validation.js';
+import { unzipSync, strFromU8 } from 'fflate';
 
 const importExport = new Hono();
 const backupService = new BackupService();
@@ -286,6 +287,52 @@ importExport.get('/export', async (c) => {
 });
 
 importExport.post('/import', async (c) => {
+  const contentType = c.req.header('content-type') ?? '';
+
+  // Handle ZIP file upload (from desktop export)
+  if (contentType.includes('application/zip') || contentType.includes('application/octet-stream') || contentType.includes('multipart/form-data')) {
+    try {
+      let zipBuffer: Uint8Array;
+
+      if (contentType.includes('multipart/form-data')) {
+        const formData = await c.req.formData();
+        const file = formData.get('file');
+        if (!file || typeof file === 'string') {
+          return error(c, 400, ErrorCode.BAD_REQUEST, 'Missing file field in form data');
+        }
+        zipBuffer = new Uint8Array(await file.arrayBuffer());
+      } else {
+        zipBuffer = new Uint8Array(await c.req.arrayBuffer());
+      }
+
+      const files = unzipSync(zipBuffer);
+      // Desktop ZIP contains import-with-prompthub.json as the importable payload
+      const jsonEntry = files['import-with-prompthub.json'];
+      if (!jsonEntry) {
+        return error(c, 400, ErrorCode.BAD_REQUEST, 'Invalid ZIP file: missing import-with-prompthub.json');
+      }
+
+      const jsonText = strFromU8(jsonEntry);
+      let rawData: unknown;
+      try {
+        rawData = JSON.parse(jsonText);
+      } catch {
+        return error(c, 400, ErrorCode.BAD_REQUEST, 'Invalid JSON in import-with-prompthub.json');
+      }
+
+      const parsed = backupPayloadSchema.safeParse(rawData);
+      if (!parsed.success) {
+        return error(c, 400, ErrorCode.BAD_REQUEST, `Invalid backup format: ${parsed.error.message}`);
+      }
+
+      const result = backupService.import(getAuthUser(c), normalizeBackupPayload(parsed.data));
+      return success(c, result, 201);
+    } catch (routeError) {
+      return toRouteErrorResponse(c, routeError);
+    }
+  }
+
+  // Handle JSON import (web export format)
   const parsed = await parseJsonBody(c, backupPayloadSchema);
   if (!parsed.success) {
     return parsed.response;

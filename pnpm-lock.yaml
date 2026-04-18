@@ -200,6 +200,9 @@ importers:
       dotenv:
         specifier: ^16.4.7
         version: 16.6.1
+      fflate:
+        specifier: ^0.8.2
+        version: 0.8.2
       hono:
         specifier: ^4.7.4
         version: 4.12.12

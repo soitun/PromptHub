@@ -61,7 +61,7 @@ export async function pushWebDavFile(config: WebDavConfig, fileName: string, pay
     },
     body: payload,
     allowedProtocols: ['https:'],
-    maxBytes: 512 * 1024,
+    maxBytes: 100 * 1024 * 1024,
   });
 
   return {

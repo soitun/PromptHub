@@ -58,6 +58,11 @@ export type PromptHubFile =
 export function normalizeImportedBackup(
   backup: Partial<DatabaseBackup> | null | undefined,
 ): DatabaseBackup {
+  // Support web backup format which uses "promptVersions" instead of "versions"
+  const versions = Array.isArray(backup?.versions) && backup.versions.length > 0
+    ? backup.versions
+    : Array.isArray((backup as any)?.promptVersions) ? (backup as any).promptVersions : [];
+
   return {
     version:
       typeof backup?.version === "number" && Number.isFinite(backup.version)
@@ -69,7 +74,7 @@ export function normalizeImportedBackup(
         : new Date().toISOString(),
     prompts: Array.isArray(backup?.prompts) ? backup.prompts : [],
     folders: Array.isArray(backup?.folders) ? backup.folders : [],
-    versions: Array.isArray(backup?.versions) ? backup.versions : [],
+    versions,
     images:
       backup?.images && typeof backup.images === "object"
         ? backup.images

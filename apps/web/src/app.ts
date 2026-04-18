@@ -45,7 +45,7 @@ export function createApp(): Hono {
 
   app.route('/api', protectedApi);
 
-  app.get('/health', (c) => c.json({ status: 'ok' }));
+  app.get('/health', (c) => c.json({ status: 'ok', version: process.env.APP_VERSION || 'unknown' }));
 
   return app;
 }
