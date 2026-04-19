@@ -132,7 +132,7 @@ export class FolderDB {
     // 在内存中构建更新后的 folder 对象，而不是重新查询（性能优化）
     const updatedFolder: Folder = {
       ...existingFolder,
-      updatedAt: now,
+      updatedAt: new Date(now).toISOString(),
       ...(data.name !== undefined && { name: data.name }),
       ...(data.icon !== undefined && { icon: data.icon }),
       ...(data.parentId !== undefined && { parentId: data.parentId }),
@@ -204,12 +204,12 @@ export class FolderDB {
       ownerUserId: row.owner_user_id ?? undefined,
       visibility: (row.visibility as FolderVisibility) ?? "private",
       name: row.name,
-      icon: row.icon,
-      parentId: row.parent_id,
+      icon: row.icon ?? undefined,
+      parentId: row.parent_id ?? undefined,
       order: row.sort_order,
       isPrivate: !!row.is_private,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at || row.created_at,
+      createdAt: new Date(row.created_at).toISOString(),
+      updatedAt: new Date(row.updated_at || row.created_at).toISOString(),
     };
   }
 }

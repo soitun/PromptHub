@@ -565,8 +565,8 @@ export class PromptDB {
       source: row.source,
       notes: row.notes,
       lastAiResponse: row.last_ai_response,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
+      createdAt: new Date(row.created_at).toISOString(),
+      updatedAt: new Date(row.updated_at).toISOString(),
     };
   }
 
@@ -586,7 +586,7 @@ export class PromptDB {
       variables: JSON.parse(row.variables || "[]"),
       note: row.note,
       aiResponse: row.ai_response,
-      createdAt: row.created_at,
+      createdAt: new Date(row.created_at).toISOString(),
     };
   }
 }
