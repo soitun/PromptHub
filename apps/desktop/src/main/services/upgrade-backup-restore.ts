@@ -7,6 +7,7 @@ import {
   createUpgradeDataSnapshot,
   getUpgradeBackup,
   getUpgradeBackupRoot,
+  RUNTIME_CACHE_ENTRIES,
 } from "./upgrade-backup";
 import { writeRestoreMarker } from "./prompt-workspace";
 
@@ -26,7 +27,8 @@ function getRestoreCandidates(currentDataPath: string, backupPath: string): stri
   ]).filter(
     (name) =>
       name !== "backup-manifest.json" &&
-      name !== path.basename(getUpgradeBackupRoot(currentDataPath)),
+      name !== path.basename(getUpgradeBackupRoot(currentDataPath)) &&
+      !RUNTIME_CACHE_ENTRIES.has(name),
   );
 }
 

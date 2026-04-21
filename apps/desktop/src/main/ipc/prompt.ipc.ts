@@ -22,6 +22,35 @@ export function registerPromptIPC(db: PromptDB, folderDb: FolderDB, rawDb: Datab
     syncPromptWorkspaceFromDatabase(db, folderDb);
   };
 
+  const sortFoldersForInsert = (folders: Folder[]): Folder[] => {
+    const pending = new Map(folders.map((folder) => [folder.id, folder]));
+    const ordered: Folder[] = [];
+    const emitted = new Set<string>();
+
+    while (pending.size > 0) {
+      let progressed = false;
+
+      for (const [id, folder] of pending) {
+        if (!folder.parentId || emitted.has(folder.parentId) || !pending.has(folder.parentId)) {
+          ordered.push(folder);
+          emitted.add(id);
+          pending.delete(id);
+          progressed = true;
+        }
+      }
+
+      if (progressed) {
+        continue;
+      }
+
+      const remaining = [...pending.values()].sort((left, right) => left.id.localeCompare(right.id));
+      ordered.push(...remaining);
+      break;
+    }
+
+    return ordered;
+  };
+
   // Create Prompt
   // 创建 Prompt
   ipcMain.handle(IPC_CHANNELS.PROMPT_CREATE, async (_, data: CreatePromptDTO) => {
@@ -142,7 +171,7 @@ export function registerPromptIPC(db: PromptDB, folderDb: FolderDB, rawDb: Datab
       // Wrap all inserts in a single transaction for atomicity.
       // 使用单事务包裹所有插入，确保原子性。
       const migrate = rawDb.transaction(() => {
-        for (const folder of folders) {
+        for (const folder of sortFoldersForInsert(folders)) {
           folderDb.insertFolderDirect(folder);
         }
         for (const prompt of prompts) {

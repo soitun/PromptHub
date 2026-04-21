@@ -82,4 +82,31 @@ describe("upgrade-backup-restore", () => {
       error: "Upgrade backup not found: v0.5.3-unknown",
     });
   });
+
+  it("ignores runtime cache directories during restore", async () => {
+    const userDataPath = path.join(tmpBase, "PromptHub");
+    fs.mkdirSync(userDataPath, { recursive: true });
+    fs.writeFileSync(path.join(userDataPath, "prompthub.db"), "old-db");
+
+    const snapshot = await createUpgradeDataSnapshot(userDataPath, {
+      fromVersion: "0.5.3",
+      toVersion: "0.5.4",
+    });
+
+    fs.mkdirSync(path.join(userDataPath, "DawnGraphiteCache"), { recursive: true });
+    fs.writeFileSync(
+      path.join(userDataPath, "DawnGraphiteCache", "data_0"),
+      "live-cache",
+    );
+
+    const result = await restoreFromUpgradeBackupAsync(
+      userDataPath,
+      snapshot.backupId,
+    );
+
+    expect(result.success).toBe(true);
+    expect(
+      fs.readFileSync(path.join(userDataPath, "DawnGraphiteCache", "data_0"), "utf8"),
+    ).toBe("live-cache");
+  });
 });

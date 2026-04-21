@@ -268,6 +268,25 @@ Summarize the latest status.
     expect(fs.existsSync(exportedPath)).toBe(true);
   });
 
+  it("exports prompts without folders directly under data/prompts", () => {
+    const prompt = promptDb.create({
+      title: "Inbox Prompt",
+      userPrompt: "Unfiled prompt body",
+    });
+
+    const result = syncPromptWorkspaceFromDatabase(promptDb, folderDb);
+
+    expect(result.promptCount).toBe(1);
+    expect(result.folderCount).toBe(0);
+    expect(
+      fs.existsSync(path.join(getPromptsWorkspaceDir(), "inbox-prompt.md")),
+    ).toBe(true);
+    expect(
+      fs.readFileSync(path.join(getPromptsWorkspaceDir(), "inbox-prompt.md"), "utf8"),
+    ).toContain("Unfiled prompt body");
+    expect(promptDb.getById(prompt.id)?.folderId).toBeNull();
+  });
+
   it("Q4: merges workspace-newer prompt into DB, then re-syncs to disk", () => {
     // Seed DB with older version.
     const prompt = promptDb.create({

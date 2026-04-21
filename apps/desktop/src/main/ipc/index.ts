@@ -10,6 +10,13 @@ import { FolderDB } from '../database/folder';
 import { SkillDB } from '../database/skill';
 import { registerSecurityIPC } from './security.ipc';
 import { registerBackupIPC } from './backup.ipc';
+import { IPC_CHANNELS } from '@prompthub/shared/constants/ipc-channels';
+
+function resetAllRegisteredIpcHandlers(): void {
+  for (const channel of Object.values(IPC_CHANNELS)) {
+    ipcMain.removeHandler(channel);
+  }
+}
 
 /**
  * Register all IPC handlers
@@ -19,6 +26,8 @@ export function registerAllIPC(
   db: Database.Database,
   setDbRef: (db: Database.Database) => void,
 ): void {
+  resetAllRegisteredIpcHandlers();
+
   const promptDB = new PromptDB(db);
   const folderDB = new FolderDB(db);
   const skillDB = new SkillDB(db);
@@ -28,7 +37,7 @@ export function registerAllIPC(
   registerSkillIPC(skillDB);
   registerSettingsIPC(db);
   registerSecurityIPC(db);
-  registerBackupIPC(setDbRef);
+  registerBackupIPC(setDbRef, (nextDb) => registerAllIPC(nextDb, setDbRef));
   registerImageIPC();
   registerAIIPC();
 }

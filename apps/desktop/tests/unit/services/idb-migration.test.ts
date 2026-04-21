@@ -289,4 +289,68 @@ describe("migrateLegacyIndexedDbToMainProcess", () => {
     expect(promptGetAll).toHaveBeenCalledTimes(2);
     expect(folderGetAll).toHaveBeenCalledTimes(2);
   });
+
+  it("passes parent folders before child folders during batch migration", async () => {
+    const parentFolder: Folder = {
+      ...legacyFolder,
+      id: "folder-parent",
+      name: "Parent",
+      parentId: null,
+    };
+    const childFolder: Folder = {
+      ...legacyFolder,
+      id: "folder-child",
+      name: "Child",
+      parentId: "folder-parent",
+    };
+    const childPrompt: Prompt = {
+      ...legacyPrompt,
+      id: "prompt-child",
+      folderId: "folder-child",
+    };
+    const childVersion: PromptVersion = {
+      ...legacyVersion,
+      id: "version-child",
+      promptId: "prompt-child",
+    };
+
+    installIndexedDbMock({
+      prompts: [childPrompt],
+      folders: [childFolder, parentFolder],
+      versions: [childVersion],
+    });
+
+    const migrateIdbBatch = vi.fn().mockResolvedValue({
+      imported: true,
+      promptCount: 1,
+      folderCount: 2,
+      versionCount: 1,
+    });
+
+    (window as Window & { api: any }).api = {
+      prompt: {
+        getAll: vi.fn().mockResolvedValue([]),
+        migrateIdbBatch,
+      },
+      folder: {
+        getAll: vi.fn().mockResolvedValue([]),
+      },
+      version: {
+        getAll: vi.fn().mockResolvedValue([]),
+      },
+    };
+
+    const { migrateLegacyIndexedDbToMainProcess } = await import(
+      "../../../src/renderer/services/database"
+    );
+
+    const result = await migrateLegacyIndexedDbToMainProcess();
+
+    expect(result.migrated).toBe(true);
+    expect(migrateIdbBatch).toHaveBeenCalledWith({
+      folders: [childFolder, parentFolder],
+      prompts: [childPrompt],
+      versions: [childVersion],
+    });
+  });
 });

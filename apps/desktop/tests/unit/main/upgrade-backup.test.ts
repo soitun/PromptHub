@@ -36,6 +36,11 @@ function seedUserData(userDataPath: string): void {
     path.join(userDataPath, "shortcut-mode.json"),
     '{"showApp":"global"}',
   );
+  fs.mkdirSync(path.join(userDataPath, "DawnGraphiteCache"), { recursive: true });
+  fs.writeFileSync(
+    path.join(userDataPath, "DawnGraphiteCache", "data_0"),
+    "runtime-cache",
+  );
 }
 
 describe("upgrade-backup", () => {
@@ -99,6 +104,8 @@ describe("upgrade-backup", () => {
           "shortcut-mode.json",
         ]),
       );
+      expect(snapshot.manifest.copiedItems).not.toContain("DawnGraphiteCache");
+      expect(fs.existsSync(path.join(snapshot.backupPath, "DawnGraphiteCache"))).toBe(false);
       expect(
         fs.readFileSync(path.join(snapshot.backupPath, "prompthub.db"), "utf8"),
       ).toBe("db-bytes");

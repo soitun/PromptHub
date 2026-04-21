@@ -16,6 +16,7 @@ const deleteUpgradeBackupMock = vi.fn();
 const restoreFromUpgradeBackupAsyncMock = vi.fn();
 const closeDatabaseMock = vi.fn();
 const initDatabaseMock = vi.fn(() => ({ prepare: vi.fn() }));
+const registerAllIpcMock = vi.fn();
 
 vi.mock("electron", () => ({
   app: {
@@ -42,6 +43,10 @@ vi.mock("../../../src/main/database", () => ({
   initDatabase: initDatabaseMock,
 }));
 
+vi.mock("../../../src/main/ipc/index", () => ({
+  registerAllIPC: registerAllIpcMock,
+}));
+
 type RegisteredHandlers = Record<string, (...args: unknown[]) => unknown>;
 
 async function setupBackupIpc() {
@@ -55,6 +60,7 @@ async function setupBackupIpc() {
   restoreFromUpgradeBackupAsyncMock.mockReset();
   closeDatabaseMock.mockReset();
   initDatabaseMock.mockReset();
+  registerAllIpcMock.mockReset();
   initDatabaseMock.mockReturnValue({ prepare: vi.fn() });
 
   const [{ registerBackupIPC }, { IPC_CHANNELS }] = await Promise.all([
@@ -63,7 +69,7 @@ async function setupBackupIpc() {
   ]);
 
   const setDbRef = vi.fn();
-  registerBackupIPC(setDbRef);
+  registerBackupIPC(setDbRef, registerAllIpcMock);
 
   const handlers = Object.fromEntries(
     handleMock.mock.calls.map(([channel, handler]) => [channel, handler]),
@@ -151,6 +157,7 @@ describe("backup IPC", () => {
     });
     expect(initDatabaseMock).toHaveBeenCalledTimes(1);
     expect(setDbRef).toHaveBeenCalledWith(reopenedDb);
+    expect(registerAllIpcMock).toHaveBeenCalledWith(reopenedDb);
     expect(relaunchMock).not.toHaveBeenCalled();
     expect(quitMock).not.toHaveBeenCalled();
   });

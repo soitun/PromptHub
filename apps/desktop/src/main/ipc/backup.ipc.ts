@@ -10,8 +10,9 @@ import { restoreFromUpgradeBackupAsync } from "../services/upgrade-backup-restor
 import { closeDatabase, initDatabase } from "../database";
 
 type SetDbRef = (db: ReturnType<typeof initDatabase>) => void;
+type RebindAllIpc = (db: ReturnType<typeof initDatabase>) => void;
 
-export function registerBackupIPC(setDbRef: SetDbRef): void {
+export function registerBackupIPC(setDbRef: SetDbRef, rebindAllIpc: RebindAllIpc): void {
   ipcMain.handle(IPC_CHANNELS.UPGRADE_BACKUP_LIST, async () => {
     return listUpgradeBackups(app.getPath("userData"));
   });
@@ -87,7 +88,9 @@ export function registerBackupIPC(setDbRef: SetDbRef): void {
       );
 
       if (!result.success) {
-        setDbRef(initDatabase());
+        const reopenedDb = initDatabase();
+        setDbRef(reopenedDb);
+        rebindAllIpc(reopenedDb);
       }
 
       if (result.success && result.needsRestart) {

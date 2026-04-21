@@ -27,6 +27,21 @@ import path from "path";
 /** New backup root name (lives INSIDE userData). */
 const UPGRADE_BACKUP_ROOT_NAME = "backups";
 
+export const RUNTIME_CACHE_ENTRIES = new Set([
+  "Cache",
+  "Code Cache",
+  "GPUCache",
+  "DawnGraphiteCache",
+  "DawnWebGPUCache",
+  "blob_storage",
+  "Shared Dictionary",
+  "SharedStorage",
+  "Network Persistent State",
+  "TransportSecurity",
+  "Trust Tokens",
+  "Trust Tokens-journal",
+]);
+
 /** Legacy backup root name (sibling of userData). Kept for one-time migration. */
 const LEGACY_UPGRADE_BACKUP_ROOT_NAME = "PromptHub-upgrade-backups";
 
@@ -224,7 +239,10 @@ export async function createUpgradeDataSnapshot(
   const copiedItems = entries
     .map((entry) => entry.name)
     // Skip the backup root itself so we don't recursively copy previous snapshots.
-    .filter((entryName) => entryName !== UPGRADE_BACKUP_ROOT_NAME);
+    .filter(
+      (entryName) =>
+        entryName !== UPGRADE_BACKUP_ROOT_NAME && !RUNTIME_CACHE_ENTRIES.has(entryName),
+    );
 
   if (copiedItems.length === 0) {
     throw new Error(
