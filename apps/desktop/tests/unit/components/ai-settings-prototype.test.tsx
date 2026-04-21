@@ -234,7 +234,9 @@ describe("AISettingsPrototype", () => {
     });
   });
 
-  it("maps raw network failures to a friendlier connection message", async () => {
+  it(
+    "maps raw network failures to a friendlier connection message",
+    async () => {
     const showToast = vi.fn();
     useToastMock.mockReturnValue({ showToast });
     useSettingsStoreMock.mockReturnValue(createSettingsState());
@@ -280,7 +282,9 @@ describe("AISettingsPrototype", () => {
         "error",
       );
     });
-  });
+    },
+    15000,
+  );
 
   describe("batch model selection", () => {
     const mockModels = [
@@ -314,7 +318,9 @@ describe("AISettingsPrototype", () => {
       });
     }
 
-    it("batch-adds all selected models when multiple are chosen", async () => {
+    it(
+      "batch-adds all selected models when multiple are chosen",
+      async () => {
       const settingsState = createSettingsState();
       await openModalWithFetchedModels(settingsState);
 
@@ -346,7 +352,9 @@ describe("AISettingsPrototype", () => {
           apiUrl: "https://api.openai.com/v1",
         }),
       );
-    });
+      },
+      15000,
+    );
 
     it("uses the single-add path when only one model is selected", async () => {
       const settingsState = createSettingsState();

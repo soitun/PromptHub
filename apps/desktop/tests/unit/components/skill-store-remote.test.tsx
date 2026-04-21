@@ -111,12 +111,25 @@ describe("SkillStore remote loading", () => {
         return JSON.stringify({ default_branch: "main", owner: { login: "anthropics" } });
       }
 
+      if (url === "https://api.github.com/repos/openai/skills") {
+        return JSON.stringify({ default_branch: "main", owner: { login: "openai" } });
+      }
+
       if (
         url ===
         "https://api.github.com/repos/anthropics/skills/git/trees/main?recursive=1"
       ) {
         return JSON.stringify({
-          tree: [{ path: "demo-skill/SKILL.md", type: "blob" }],
+            tree: [{ path: "demo-skill/SKILL.md", type: "blob" }],
+          });
+      }
+
+      if (
+        url ===
+        "https://api.github.com/repos/openai/skills/git/trees/main?recursive=1"
+      ) {
+        return JSON.stringify({
+          tree: [{ path: "skills/.curated/openai-skill/SKILL.md", type: "blob" }],
         });
       }
 
@@ -132,6 +145,21 @@ describe("SkillStore remote loading", () => {
           "---",
           "",
           "# Demo",
+        ].join("\n");
+      }
+
+      if (
+        url ===
+        "https://raw.githubusercontent.com/openai/skills/main/skills/.curated/openai-skill/SKILL.md"
+      ) {
+        return [
+          "---",
+          "name: openai-skill",
+          "description: OpenAI demo skill",
+          "tags: [openai]",
+          "---",
+          "",
+          "# OpenAI Demo",
         ].join("\n");
       }
 
@@ -183,6 +211,95 @@ describe("SkillStore remote loading", () => {
       ([url]) => url === "https://skills.sh",
     );
     expect(communityRequests).toHaveLength(0);
+
+    const openAiRepoRequests = fetchRemoteContent.mock.calls.filter(
+      ([url]) => url === "https://api.github.com/repos/openai/skills",
+    );
+    expect(openAiRepoRequests).toHaveLength(0);
+  });
+
+  it("loads the built-in OpenAI Codex store from the curated subdirectory", async () => {
+    const fetchRemoteContent = vi.fn(async (url: string) => {
+      if (url === "https://api.github.com/repos/openai/skills") {
+        return JSON.stringify({ default_branch: "main", owner: { login: "openai" } });
+      }
+
+      if (
+        url ===
+        "https://api.github.com/repos/openai/skills/git/trees/main?recursive=1"
+      ) {
+        return JSON.stringify({
+          tree: [{ path: "skills/.curated/openai-skill/SKILL.md", type: "blob" }],
+        });
+      }
+
+      if (
+        url ===
+        "https://raw.githubusercontent.com/openai/skills/main/skills/.curated/openai-skill/SKILL.md"
+      ) {
+        return [
+          "---",
+          "name: openai-skill",
+          "description: OpenAI demo skill",
+          "tags: [openai]",
+          "---",
+          "",
+          "# OpenAI Demo",
+        ].join("\n");
+      }
+
+      throw new Error(`Unexpected URL: ${url}`);
+    });
+
+    installWindowMocks({
+      api: {
+        settings: {
+          get: vi.fn().mockResolvedValue({
+            device: {
+              storeAutoSync: false,
+              storeSyncCadence: "manual",
+            },
+          }),
+        },
+        skill: {
+          fetchRemoteContent,
+          scanLocalPreview: vi.fn().mockResolvedValue([]),
+          scanSafety: vi.fn().mockResolvedValue({
+            level: "safe",
+            summary: "safe",
+            findings: [],
+            recommendedAction: "allow",
+            scannedAt: Date.now(),
+            checkedFileCount: 1,
+            scanMethod: "static",
+          }),
+        },
+      },
+    });
+
+    useSkillStore.setState({
+      selectedStoreSourceId: "openai-codex",
+    });
+
+    await act(async () => {
+      await renderWithI18n(<SkillStore />, { language: "en" });
+    });
+
+    await waitFor(() => {
+      expect(
+        useSkillStore.getState().remoteStoreEntries["openai-codex"]?.skills,
+      ).toHaveLength(1);
+    });
+
+    expect(
+      useSkillStore.getState().remoteStoreEntries["openai-codex"]?.skills[0],
+    ).toEqual(
+      expect.objectContaining({
+        source_url: "https://github.com/openai/skills/tree/main/skills/.curated/openai-skill",
+        content_url:
+          "https://raw.githubusercontent.com/openai/skills/main/skills/.curated/openai-skill/SKILL.md",
+      }),
+    );
   });
 
   it("falls back to repository root README when no SKILL.md exists", async () => {

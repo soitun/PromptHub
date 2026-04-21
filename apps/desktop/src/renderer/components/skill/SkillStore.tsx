@@ -88,6 +88,31 @@ const MAX_REMOTE_STORE_DEPTH = 3;
 const MAX_SKILLS_SH_SKILLS = 24;
 const SKILLS_SH_CONCURRENCY = 4;
 
+const BUILTIN_REMOTE_STORES: Record<
+  string,
+  {
+    id: string;
+    type: "git-repo" | "skills-sh";
+    url: string;
+  }
+> = {
+  "claude-code": {
+    id: "claude-code",
+    type: "git-repo",
+    url: "https://github.com/anthropics/skills",
+  },
+  "openai-codex": {
+    id: "openai-codex",
+    type: "git-repo",
+    url: "https://github.com/openai/skills/tree/main/skills/.curated",
+  },
+  community: {
+    id: "community",
+    type: "skills-sh",
+    url: SKILLS_SH_BASE_URL,
+  },
+};
+
 function slugify(value: string) {
   return value
     .toLowerCase()
@@ -327,6 +352,7 @@ export function SkillStore() {
   const selectedRemoteEntry = remoteStoreEntries[selectedStoreSourceId];
   const isSelectedSourceRemote =
     selectedStoreSourceId === "claude-code" ||
+    selectedStoreSourceId === "openai-codex" ||
     selectedStoreSourceId === "community" ||
     Boolean(selectedCustomSource);
 
@@ -563,20 +589,7 @@ export function SkillStore() {
         return;
       }
 
-      const source =
-        sourceId === "claude-code"
-          ? {
-              id: "claude-code",
-              type: "git-repo" as const,
-              url: "https://github.com/anthropics/skills",
-            }
-          : sourceId === "community"
-            ? {
-                id: "community",
-                type: "skills-sh" as const,
-                url: SKILLS_SH_BASE_URL,
-              }
-            : customStoreSources.find((item) => item.id === sourceId);
+      const source = BUILTIN_REMOTE_STORES[sourceId] ?? customStoreSources.find((item) => item.id === sourceId);
 
       if (!source) return;
       if ("enabled" in source && !source.enabled) return;
@@ -673,7 +686,7 @@ export function SkillStore() {
     const enabledCustomSourceIds = customStoreSources
       .filter((source) => source.enabled)
       .map((source) => source.id);
-    const remoteSourceIds = ["claude-code", "community", ...enabledCustomSourceIds];
+    const remoteSourceIds = ["claude-code", "openai-codex", "community", ...enabledCustomSourceIds];
 
     const refreshStoreSources = async (forceRefresh: boolean, intervalMs: number | null) => {
       if (typeof loadRegistryRef.current === "function") {
@@ -907,6 +920,19 @@ export function SkillStore() {
       };
     }
 
+    if (selectedStoreSourceId === "openai-codex") {
+      return {
+        title: t("skill.openaiCodexStore", "OpenAI Codex Store"),
+        hint: t(
+          "skill.openaiCodexStoreHint",
+          "Built-in OpenAI Codex source with first-class support for the curated openai/skills catalog.",
+        ),
+        count: sourceRegistrySkills.length,
+        showCatalog: true,
+        canRefresh: true,
+      };
+    }
+
     if (selectedStoreSourceId === "new-custom") {
       return {
         title: t("skill.addStoreSource", "Add Store"),
@@ -1051,6 +1077,11 @@ export function SkillStore() {
                   "skill.loadingRemoteStore",
                   "Loading Claude Code skills from the remote source...",
                 )
+              : selectedStoreSourceId === "openai-codex"
+                ? t(
+                    "skill.loadingOpenAiStore",
+                    "Loading OpenAI Codex skills from the remote source...",
+                  )
               : selectedStoreSourceId === "community"
                 ? t(
                     "skill.loadingCommunityStore",
@@ -1195,6 +1226,49 @@ export function SkillStore() {
                   https://github.com/anthropics/skills
                   <br />
                   https://raw.githubusercontent.com/docker/claude-code-plugin-manager/main/marketplace.json
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {selectedStoreSourceId === "openai-codex" && (
+          <div className="bg-card border border-border rounded-2xl p-6 space-y-4">
+            <div className="flex items-center gap-2 text-foreground">
+              <GlobeIcon className="w-5 h-5 text-primary" />
+              <h3 className="text-base font-semibold">
+                {t("skill.openaiCodexStore", "OpenAI Codex Store")}
+              </h3>
+            </div>
+            <p className="text-sm text-muted-foreground leading-7">
+              {t(
+                "skill.openaiCodexStoreDetail",
+                "This built-in source is meant for the OpenAI Codex ecosystem. It focuses on the curated openai/skills catalog and keeps the install flow compatible with directory-style SKILL.md repositories.",
+              )}
+            </p>
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="rounded-xl border border-border bg-muted/30 p-4">
+                <div className="text-sm font-medium text-foreground mb-1">
+                  {t("skill.supportedFormat", "Supported Formats")}
+                </div>
+                <div className="text-xs text-muted-foreground leading-6">
+                  {t(
+                    "skill.formatDirectoryRepo",
+                    "`SKILL.md` directory-style repository",
+                  )}
+                  <br />
+                  {t(
+                    "skill.formatCuratedSubdir",
+                    "Curated subdirectory inside a larger Git repository",
+                  )}
+                </div>
+              </div>
+              <div className="rounded-xl border border-border bg-muted/30 p-4">
+                <div className="text-sm font-medium text-foreground mb-1">
+                  {t("skill.exampleSources", "Built-in Reference Sources")}
+                </div>
+                <div className="text-xs text-muted-foreground leading-6 break-all">
+                  https://github.com/openai/skills/tree/main/skills/.curated
                 </div>
               </div>
             </div>

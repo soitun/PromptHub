@@ -127,6 +127,10 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
     () => remoteStoreEntries['claude-code']?.skills.length || 0,
     [remoteStoreEntries],
   );
+  const openAiCodexStoreCount = useMemo(
+    () => remoteStoreEntries['openai-codex']?.skills.length || 0,
+    [remoteStoreEntries],
+  );
   const [showAllSkillTags, setShowAllSkillTags] = useState(false);
   const promptStats = useMemo(() => buildPromptStats(prompts), [prompts]);
   const skillStats = useMemo(
@@ -844,6 +848,25 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
                   </span>
                   <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-sidebar-accent/80 text-sidebar-foreground/50 border border-white/5">
                     {claudeCodeStoreCount}
+                  </span>
+                </button>
+                <button
+                  onClick={() => {
+                    selectStoreSource('openai-codex');
+                    if (currentPage !== 'home') onNavigate('home');
+                  }}
+                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
+                    selectedStoreSourceId === 'openai-codex'
+                      ? 'bg-sidebar-accent text-sidebar-foreground'
+                      : 'text-sidebar-foreground/60 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground'
+                  }`}
+                >
+                  <GlobeIcon className="w-4 h-4" />
+                  <span className="flex-1 text-left truncate">
+                    {t('skill.openaiCodexStore', 'OpenAI Codex 商店')}
+                  </span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-sidebar-accent/80 text-sidebar-foreground/50 border border-white/5">
+                    {openAiCodexStoreCount}
                   </span>
                 </button>
                 {customStoreSources.map((source) => (

@@ -4,7 +4,7 @@
 import fs from "fs";
 import os from "os";
 import path from "path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createUpgradeDataSnapshot, getUpgradeBackupRoot } from "../../../src/main/services/upgrade-backup";
 import { restoreFromUpgradeBackupAsync } from "../../../src/main/services/upgrade-backup-restore";
@@ -108,5 +108,54 @@ describe("upgrade-backup-restore", () => {
     expect(
       fs.readFileSync(path.join(userDataPath, "DawnGraphiteCache", "data_0"), "utf8"),
     ).toBe("live-cache");
+  });
+
+  it("rolls back to the insurance snapshot when restore fails mid-flight", async () => {
+    const userDataPath = path.join(tmpBase, "PromptHub");
+    fs.mkdirSync(userDataPath, { recursive: true });
+    fs.writeFileSync(path.join(userDataPath, "prompthub.db"), "old-db");
+    fs.writeFileSync(path.join(userDataPath, "shortcut-mode.json"), '{"mode":"old"}');
+
+    const snapshot = await createUpgradeDataSnapshot(userDataPath, {
+      fromVersion: "0.5.3",
+      toVersion: "0.5.4",
+    });
+
+    fs.writeFileSync(path.join(userDataPath, "prompthub.db"), "new-db");
+    fs.writeFileSync(path.join(userDataPath, "shortcut-mode.json"), '{"mode":"new"}');
+
+    const originalCpSync = fs.cpSync;
+    const cpSpy = vi
+      .spyOn(fs, "cpSync")
+      .mockImplementation(((source: fs.PathLike, destination: fs.PathLike, options?: fs.CopySyncOptions) => {
+        const sourceText = source.toString();
+        const destinationText = destination.toString();
+        if (
+          sourceText.includes(snapshot.backupId) &&
+          destinationText.endsWith(path.join("PromptHub", "shortcut-mode.json"))
+        ) {
+          throw new Error("simulated restore failure");
+        }
+        return originalCpSync(source, destination, options);
+      }) as typeof fs.cpSync);
+
+    const result = await restoreFromUpgradeBackupAsync(
+      userDataPath,
+      snapshot.backupId,
+    );
+
+    cpSpy.mockRestore();
+
+    expect(result).toEqual({
+      success: false,
+      needsRestart: false,
+      error: "simulated restore failure",
+    });
+    expect(fs.readFileSync(path.join(userDataPath, "prompthub.db"), "utf8")).toBe(
+      "new-db",
+    );
+    expect(
+      fs.readFileSync(path.join(userDataPath, "shortcut-mode.json"), "utf8"),
+    ).toBe('{"mode":"new"}');
   });
 });

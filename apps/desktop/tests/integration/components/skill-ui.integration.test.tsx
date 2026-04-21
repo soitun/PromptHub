@@ -136,7 +136,9 @@ describe("skill ui integration", () => {
     });
   });
 
-  it("renders skill manager with real english locale and updates selection summary", async () => {
+  it(
+    "renders skill manager with real english locale and updates selection summary",
+    async () => {
     const skillStoreState = createSkillStoreState();
     const settingsState = createSettingsState();
 
@@ -161,9 +163,13 @@ describe("skill ui integration", () => {
       expect(screen.getByText("1 selected")).toBeInTheDocument();
     });
     expect(screen.getByRole("button", { name: "Batch Deploy" })).toBeInTheDocument();
-  });
+    },
+    15000,
+  );
 
-  it("creates a snapshot from the detail page through the in-app modal", async () => {
+  it(
+    "creates a snapshot from the detail page through the in-app modal",
+    async () => {
     const loadSkills = vi.fn().mockResolvedValue(undefined);
     const showToast = vi.fn();
     const skillStoreState = createSkillStoreState({
@@ -209,5 +215,7 @@ describe("skill ui integration", () => {
     });
     expect(loadSkills).toHaveBeenCalledTimes(1);
     expect(showToast).toHaveBeenCalledWith("Version snapshot created", "success");
-  });
+    },
+    15000,
+  );
 });

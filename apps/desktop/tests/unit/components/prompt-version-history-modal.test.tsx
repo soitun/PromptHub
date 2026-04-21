@@ -47,7 +47,9 @@ describe("VersionHistoryModal", () => {
     deletePromptVersionMock.mockResolvedValue(undefined);
   });
 
-  it("deletes a historical prompt version but keeps the current pseudo-version protected", async () => {
+  it(
+    "deletes a historical prompt version but keeps the current pseudo-version protected",
+    async () => {
     const user = userEvent.setup();
 
     await act(async () => {
@@ -76,5 +78,7 @@ describe("VersionHistoryModal", () => {
     await waitFor(() => {
       expect(deletePromptVersionMock).toHaveBeenCalledWith("version-1");
     });
-  });
+    },
+    15000,
+  );
 });

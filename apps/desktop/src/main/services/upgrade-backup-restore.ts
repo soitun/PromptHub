@@ -53,6 +53,20 @@ function restoreEntry(sourcePath: string, targetPath: string): void {
   });
 }
 
+function restoreSnapshotIntoCurrentData(
+  currentDataPath: string,
+  backupPath: string,
+): void {
+  const restoreCandidates = getRestoreCandidates(currentDataPath, backupPath);
+
+  for (const entryName of restoreCandidates) {
+    const sourcePath = path.join(backupPath, entryName);
+    const targetPath = path.join(currentDataPath, entryName);
+    removePathIfExists(targetPath);
+    restoreEntry(sourcePath, targetPath);
+  }
+}
+
 export async function restoreFromUpgradeBackupAsync(
   currentDataPath: string,
   backupId: string,
@@ -88,16 +102,31 @@ export async function restoreFromUpgradeBackupAsync(
       toVersion: backupEntry.manifest.fromVersion,
     });
 
-    const restoreCandidates = getRestoreCandidates(
-      currentDataPath,
-      backupEntry.backupPath,
-    );
+    try {
+      restoreSnapshotIntoCurrentData(currentDataPath, backupEntry.backupPath);
+    } catch (restoreError) {
+      try {
+        restoreSnapshotIntoCurrentData(currentDataPath, insuranceBackup.backupPath);
+      } catch (rollbackError) {
+        const restoreMessage =
+          restoreError instanceof Error ? restoreError.message : String(restoreError);
+        const rollbackMessage =
+          rollbackError instanceof Error ? rollbackError.message : String(rollbackError);
+        return {
+          success: false,
+          needsRestart: false,
+          error:
+            `Restore failed and automatic rollback also failed. ` +
+            `restore=${restoreMessage}; rollback=${rollbackMessage}`,
+        };
+      }
 
-    for (const entryName of restoreCandidates) {
-      const sourcePath = path.join(backupEntry.backupPath, entryName);
-      const targetPath = path.join(currentDataPath, entryName);
-      removePathIfExists(targetPath);
-      restoreEntry(sourcePath, targetPath);
+      return {
+        success: false,
+        needsRestart: false,
+        error:
+          restoreError instanceof Error ? restoreError.message : String(restoreError),
+      };
     }
 
     writeRestoreMarker(currentDataPath);
