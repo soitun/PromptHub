@@ -8,6 +8,8 @@
 - [x] 4. Add or update tests for the settings interaction and update behavior
 - [x] 5. Update `implementation.md`
 - [x] 6. Sync README and release download tables with a preview entry
+- [x] 7. Sync localized README download tables and clean up preview-channel i18n copy
+- [x] 8. Add GitHub issue templates with default labels and triage metadata
 
 ## Verification
 

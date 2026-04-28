@@ -154,7 +154,7 @@ export function AboutSettings() {
                     className={`w-4 h-4 ${updateState === "checking" ? "animate-spin" : ""}`}
                   />
                   {updateState === "checking"
-                    ? t("common.loading", "检查中...")
+                    ? t("settings.checking")
                     : t("settings.checkUpdate")}
                 </button>
               )}
@@ -273,13 +273,10 @@ export function AboutSettings() {
         </SettingSection>
 
         {!webRuntime ? (
-          <SettingSection title={t("settings.developer", "开发者选项")}>
+          <SettingSection title={t("settings.developer")}>
             <SettingItem
-              label={t("settings.debugMode", "调试模式")}
-              description={t(
-                "settings.debugModeDesc",
-                "启用控制台调试 (支持 Ctrl+Shift+I / Cmd+Option+I 唤起)",
-              )}
+              label={t("settings.debugMode")}
+              description={t("settings.debugModeDesc")}
             >
               <ToggleSwitch
                 checked={settings.debugMode}
