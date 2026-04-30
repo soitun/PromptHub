@@ -30,6 +30,7 @@ import qoderIcon from "../../assets/platforms/qoder.png";
 import qoderworkIcon from "../../assets/platforms/qoderwork.png";
 import codebuddyLightIcon from "../../assets/platforms/codebuddy-light.svg";
 import codebuddyDarkIcon from "../../assets/platforms/codebuddy-dark.svg";
+import hermesIcon from "@renderer/assets/platforms/hermes.svg";
 
 type PlatformIconSource = string | { light: string; dark: string };
 
@@ -55,6 +56,7 @@ const PLATFORM_ICONS: Record<string, PlatformIconSource> = {
     light: codebuddyLightIcon,
     dark: codebuddyDarkIcon,
   },
+  hermes: hermesIcon,
 };
 
 // Fallback Lucide icons for platforms without PNG
@@ -76,6 +78,7 @@ const FALLBACK_ICONS: Record<string, React.ReactNode> = {
   qoder: <BotIcon />,
   qoderwork: <BotIcon />,
   codebuddy: <BotIcon />,
+  hermes: <BotIcon />,
 };
 
 interface PlatformIconProps {
