@@ -20,7 +20,83 @@ import {
 } from "../../stores/settings.store";
 import { SettingSection } from "./shared";
 import { isWebRuntime } from "../../runtime";
-import { LocalImage } from "../ui/LocalImage";
+import { BackgroundImageBackdrop } from "../ui/BackgroundImageBackdrop";
+
+interface BackgroundPreviewStageProps {
+  backgroundImageFileName?: string;
+  renderedBackgroundOpacity: number;
+  renderedBackgroundBlur: number;
+  imageAlt: string;
+  emptyLabel: string;
+}
+
+function BackgroundPreviewStage({
+  backgroundImageFileName,
+  renderedBackgroundOpacity,
+  renderedBackgroundBlur,
+  imageAlt,
+  emptyLabel,
+}: BackgroundPreviewStageProps) {
+  if (!backgroundImageFileName) {
+    return (
+      <div className="h-full w-full flex flex-col items-center justify-center gap-2 text-muted-foreground">
+        <ImageIcon className="w-8 h-8 opacity-50" />
+        <span className="text-sm">{emptyLabel}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="background-preview-stage pointer-events-none relative h-full w-full select-none overflow-hidden rounded-xl bg-background text-foreground app-background-mode-image">
+      <BackgroundImageBackdrop
+        src={backgroundImageFileName}
+        alt={imageAlt}
+        opacity={renderedBackgroundOpacity}
+        blur={renderedBackgroundBlur}
+      />
+
+      <div className="background-preview-shell relative z-10 flex h-full w-full flex-col overflow-hidden app-wallpaper-shell">
+        <div className="flex h-9 shrink-0 items-center gap-2 border-b border-border px-2.5 app-wallpaper-toolbar">
+          <div className="h-5 w-5 shrink-0 rounded-md app-wallpaper-surface" />
+          <div className="flex-1">
+            <div className="h-5 rounded-md border border-border app-wallpaper-search" />
+          </div>
+          <div className="h-5 w-5 shrink-0 rounded-md app-wallpaper-surface" />
+        </div>
+
+        <div className="flex flex-1 overflow-hidden">
+          <div className="app-left-rail-glass flex w-20 shrink-0 flex-col gap-2 border-r border-border p-2 app-wallpaper-panel-strong">
+            <div className="h-5 rounded-md app-wallpaper-surface-strong" />
+            <div className="h-4 rounded-md app-wallpaper-surface" />
+            <div className="h-4 rounded-md app-wallpaper-surface" />
+            <div className="sidebar-tag-section mt-auto h-8 rounded-lg app-wallpaper-panel" />
+          </div>
+
+          <div className="flex flex-1 overflow-hidden app-wallpaper-section">
+            <div className="prompt-list-pane flex w-28 shrink-0 flex-col border-r border-border">
+              <div className="prompt-list-header flex h-8 shrink-0 items-center justify-between gap-2 border-b border-border px-2 app-wallpaper-toolbar">
+                <div className="h-2 w-8 rounded bg-foreground/15" />
+                <div className="prompt-list-view-toggle h-5 w-10 rounded-md border border-border app-wallpaper-surface" />
+              </div>
+
+              <div className="flex flex-1 flex-col gap-2 p-2">
+                <div className="prompt-list-card h-10 rounded-lg border border-border app-wallpaper-surface-strong" />
+                <div className="prompt-list-card h-10 rounded-lg border border-border app-wallpaper-surface" />
+                <div className="prompt-list-card h-10 rounded-lg border border-border app-wallpaper-surface" />
+              </div>
+            </div>
+
+            <div className="flex flex-1 flex-col gap-2 p-2">
+              <div className="h-8 w-24 rounded-lg app-wallpaper-surface" />
+              <div className="h-12 rounded-xl border border-border app-wallpaper-panel" />
+              <div className="flex-1 rounded-xl border border-border app-wallpaper-panel" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function AppearanceSettings() {
   const { t } = useTranslation();
@@ -328,36 +404,19 @@ export function AppearanceSettings() {
 
             <div className="rounded-2xl app-settings-subtle p-3 space-y-3">
               <div className="aspect-[16/9] w-full overflow-hidden rounded-xl app-settings-input relative">
-                {hasBackgroundImage && settings.backgroundImageFileName ? (
-                  <>
-                    <div
-                      className="absolute inset-0 overflow-hidden"
-                      style={{
-                        opacity: renderedBackgroundOpacity,
-                        filter: `blur(${renderedBackgroundBlur}px)`,
-                        transform: renderedBackgroundBlur > 0 ? "scale(1.03)" : undefined,
-                      }}
-                    >
-                      <LocalImage
-                        src={settings.backgroundImageFileName}
-                        alt={t("settings.backgroundImagePreviewAlt", "Background image preview")}
-                        className="h-full w-full object-cover"
-                        fallbackClassName="h-full w-full"
-                      />
-                    </div>
-                    <div className="absolute inset-0 bg-background/15 dark:bg-background/30" />
-                  </>
-                ) : (
-                  <div className="h-full w-full flex flex-col items-center justify-center gap-2 text-muted-foreground">
-                    <ImageIcon className="w-8 h-8 opacity-50" />
-                    <span className="text-sm">
-                      {t(
-                        "settings.backgroundImageEmpty",
-                        "No background image selected",
-                      )}
-                    </span>
-                  </div>
-                )}
+                <BackgroundPreviewStage
+                  backgroundImageFileName={settings.backgroundImageFileName}
+                  renderedBackgroundOpacity={renderedBackgroundOpacity}
+                  renderedBackgroundBlur={renderedBackgroundBlur}
+                  imageAlt={t(
+                    "settings.backgroundImagePreviewAlt",
+                    "Background image preview",
+                  )}
+                  emptyLabel={t(
+                    "settings.backgroundImageEmpty",
+                    "No background image selected",
+                  )}
+                />
               </div>
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

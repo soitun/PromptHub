@@ -30,7 +30,7 @@ import i18n from "./i18n";
 import { UpdateDialog, UpdateStatus } from "./components/UpdateDialog";
 import { CloseDialog } from "./components/ui/CloseDialog";
 import { DataRecoveryDialog } from "./components/ui/DataRecoveryDialog";
-import { LocalImage } from "./components/ui/LocalImage";
+import { BackgroundImageBackdrop } from "./components/ui/BackgroundImageBackdrop";
 import { isWebRuntime } from "./runtime";
 
 // Lazy load heavy components for better initial load performance
@@ -871,28 +871,12 @@ function App() {
         }`}
       >
         {hasBackgroundImage ? (
-          <>
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-0 z-0 overflow-hidden"
-              style={{
-                opacity: renderedBackgroundImageOpacity,
-                filter: `blur(${renderedBackgroundBlur}px)`,
-                transform: renderedBackgroundBlur > 0 ? "scale(1.03)" : undefined,
-              }}
-            >
-              <LocalImage
-                src={normalizedBackgroundImageFileName!}
-                alt="App background"
-                className="h-full w-full object-cover object-center"
-                fallbackClassName="h-full w-full"
-              />
-            </div>
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-0 z-0 app-wallpaper-blanket"
-            />
-          </>
+          <BackgroundImageBackdrop
+            src={normalizedBackgroundImageFileName!}
+            alt="App background"
+            opacity={renderedBackgroundImageOpacity}
+            blur={renderedBackgroundBlur}
+          />
         ) : null}
 
         <div

@@ -15,9 +15,12 @@
 - 优化了虚化设置滑块体验：将虚化的调节范围设定为 0 到 50px，并且步长 (step) 设置为 0.5，以便于进行微调。
 - 修复了“无背景图时 UI 也被透明化”的回归：将 `app-wallpaper-*` 的默认样式恢复为普通实心层级，只在 `.app-background-mode-image` 作用域下才启用透明/通透覆写；同时把 `App.tsx` 中背景图启用条件收紧为“存在非空白文件名”才切换图片模式。
 - 修复了 Prompt 列表卡片的默认外观回归：将 `MainContent` 中卡片列表的未选中项和左侧列表容器恢复为提交前的 `bg-card` / `bg-card/50` 默认样式，并新增 `.prompt-list-card`、`.prompt-list-pane` 仅在图片模式下启用透明覆写，确保无图时与原始 UI 一致。
-- 修复了“导入 PNG 后点击没反应”的核心链路：新增 `applyBackgroundImageSelection()`，在首次进入图片模式时自动写入可见的默认档（当前为 `opacity=0.88`、`blur=16`），避免沿用历史持久化里的低可见度参数；如果用户已经在图片模式中手调过参数，再次换图时保留当前调节值。
+- 修正背景图选择逻辑，移除了首次进入图片模式时偷偷注入的 `opacity=0.88` / `blur=16` 默认档；现在无论首次选图还是换图，都严格沿用设置中的当前透明度与模糊值。
 - 将图片模式从零散覆写收束为独立的 light/dark glass token 层：`globals.css` 新增一组语义化 surface / settings / prompt-list token，默认 UI 继续走基础 token，进入 `app-background-mode-image` 后再整体切换到图片模式主题，降低与默认 UI 的耦合，便于后续主题市场扩展。
 - 加深了亮色图片模式的文本、次级文本、边框与玻璃面板层级，不再依赖 `text-shadow` 一类兜底手段；暗色图片模式也同步切到了同一套 token 体系，保持风格一致。
+- 把设置页中的背景图预览改成了实际应用界面的缩略版：抽出了共享的背景层组件，复用真实的 image + blanket + wallpaper shell 结构，避免出现“预览一套、实际一套”的效果偏差。
+- 修正了图片模式玻璃材质职责：背景图透明度与模糊仍只由设置滑块控制，但侧边栏、toolbar、surface、prompt list pane 与排序菜单恢复为独立的默认 glass blur / tint token，避免 UI 壳层退化为纯透明薄片。
+- 将默认玻璃材质进一步收口到主左侧菜单栏：设置页左导航不再接入 `.app-left-rail-glass`，避免设置区也吃到默认 blur；同时把 `Sidebar` 底部 `标签` 区从 `panel-strong` 降回普通 `panel` 材质，避免该区域在有背景图时显得过白。预览缩略图仍保留左栏玻璃层级，用来对应实际主菜单栏效果。
 - `settings.store` 新增背景图文件名、透明度、虚化状态，补齐 `persist` version `5` migration、rehydrate 和 CSS 变量同步。
 - Skill 导出主入口从详情视图收敛为 `SKILL.md` + `ZIP`，`ZIP` 通过新的 `skill:exportZip` 主进程 handler 直接从本地仓库打包整个目录。
 - Skill ZIP 导出修正为按原始字节读取本地仓库文件，避免图片或其他二进制资源在导出时被文本占位符破坏。

@@ -51,8 +51,6 @@ export const FONT_SIZES = [
 const DEFAULT_TAGS_SECTION_HEIGHT = 140;
 const DEFAULT_BACKGROUND_IMAGE_OPACITY = 1;
 const DEFAULT_BACKGROUND_IMAGE_BLUR = 0;
-const DEFAULT_BACKGROUND_IMAGE_ENTRY_OPACITY = 0.88;
-const DEFAULT_BACKGROUND_IMAGE_ENTRY_BLUR = 16;
 const LEGACY_BACKGROUND_IMAGE_BLUR_DEFAULT = 14;
 
 type Hs = { hue: number; saturation: number };
@@ -659,14 +657,8 @@ export const useSettingsStore = create<SettingsState>()(
             return;
           }
 
-          const currentFileName = get().backgroundImageFileName?.trim();
-          const isEnteringImageMode = !currentFileName;
-          const nextOpacity = isEnteringImageMode
-            ? DEFAULT_BACKGROUND_IMAGE_ENTRY_OPACITY
-            : get().backgroundImageOpacity;
-          const nextBlur = isEnteringImageMode
-            ? DEFAULT_BACKGROUND_IMAGE_ENTRY_BLUR
-            : get().backgroundImageBlur;
+          const nextOpacity = get().backgroundImageOpacity;
+          const nextBlur = get().backgroundImageBlur;
 
           setTouched({
             backgroundImageFileName: normalized,

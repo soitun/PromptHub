@@ -29,6 +29,7 @@
 - `DataSettings` 为升级回滚列表增加计数摘要、展开控制和独立滚动区域
 - `AppearanceSettings` 增加桌面背景图预览、选择、清除、透明度和虚化滑杆
 - `App.tsx` 在根布局下注入背景层，不大面积修改现有布局组件
+- 背景图预览不再单独拼一张图片和蒙层，而是复用应用真实背景层（image + blanket）并在设置页内渲染缩略版 wallpaper shell，保证预览和实际走同一套材质链路
 - `globals.css` 拆分图片模式的玻璃材质合同，并新增 search / chip / toolbar 等局部材质 token
 - `TopBar`、`Sidebar`、`PromptListHeader`、`MainContent` 接入更明确的海拔梯度：搜索框最亮、toolbar 次之、pane / panel 更稳、card 最轻
 - Skill 详情导出按钮改为 `SKILL.md` + `ZIP`

@@ -53,27 +53,29 @@ describe("settings background image actions", () => {
     ).toBe("50px");
   });
 
-  it("applies image mode defaults when selecting the first background image", async () => {
+  it("keeps the current tuning when selecting the first background image", async () => {
     const { useSettingsStore } = await import(
       "../../../src/renderer/stores/settings.store"
     );
 
+    useSettingsStore.getState().setBackgroundImageOpacity(1);
+    useSettingsStore.getState().setBackgroundImageBlur(0);
     useSettingsStore.getState().applyBackgroundImageSelection(" wallpaper.png ");
 
     expect(useSettingsStore.getState().backgroundImageFileName).toBe(
       "wallpaper.png"
     );
-    expect(useSettingsStore.getState().backgroundImageOpacity).toBe(0.88);
-    expect(useSettingsStore.getState().backgroundImageBlur).toBe(16);
+    expect(useSettingsStore.getState().backgroundImageOpacity).toBe(1);
+    expect(useSettingsStore.getState().backgroundImageBlur).toBe(0);
     expect(
       document.documentElement.style.getPropertyValue("--app-background-image")
     ).toBe('url("local-image://wallpaper.png")');
     expect(
       document.documentElement.style.getPropertyValue("--app-background-opacity")
-    ).toBe("0.88");
+    ).toBe("1");
     expect(
       document.documentElement.style.getPropertyValue("--app-background-blur")
-    ).toBe("16px");
+    ).toBe("0px");
   });
 
   it("keeps the current tuning when replacing an existing background image", async () => {

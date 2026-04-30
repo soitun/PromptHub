@@ -92,7 +92,7 @@ export function PromptListHeader({ count }: PromptListHeaderProps) {
   };
 
   return (
-    <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-border app-wallpaper-toolbar sticky top-0 z-20">
+    <div className="prompt-list-header flex items-center justify-between gap-2 px-3 py-2 border-b border-border app-wallpaper-toolbar sticky top-0 z-20">
       {/* Left side: Prompt count */}
       {/* 左侧：Prompt 数量 */}
       <span className="text-xs text-muted-foreground whitespace-nowrap">
@@ -115,9 +115,9 @@ export function PromptListHeader({ count }: PromptListHeaderProps) {
           </button>
 
           {isOpen && createPortal(
-            <div 
+            <div
               ref={dropdownRef}
-              className="fixed w-32 py-1 rounded-lg bg-popover border border-border shadow-lg z-[9999]"
+              className="prompt-list-sort-menu fixed w-32 py-1 rounded-lg bg-popover border border-border shadow-lg z-[9999]"
               style={{ top: menuPosition.top, right: menuPosition.right }}
             >
               {sortOptions.map((option) => (
@@ -195,7 +195,7 @@ export function PromptListHeader({ count }: PromptListHeaderProps) {
 
         {/* View toggle buttons - with sliding indicator */}
         {/* 视图切换按钮 - 带滑动指示器 */}
-        <div className="relative flex items-center rounded-md border border-border overflow-hidden bg-muted/30">
+        <div className="prompt-list-view-toggle relative flex items-center rounded-md border border-border overflow-hidden bg-muted/30">
           {/* Sliding indicator */}
           {/* 滑动指示器 */}
           <div

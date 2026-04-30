@@ -224,7 +224,7 @@ export function SkillDetailView() {
   return (
     <div className="flex flex-col h-full app-wallpaper-panel border-l border-border animate-in slide-in-from-right duration-300 w-full md:w-[500px] lg:w-[650px] shadow-2xl relative z-30">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-border sticky top-0 app-wallpaper-surface backdrop-blur-md z-10">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-border sticky top-0 app-wallpaper-surface z-10">
         <div className="flex items-center gap-4">
           <div className="p-3 bg-primary text-white rounded-2xl shadow-lg shadow-primary/20">
             <CuboidIcon className="w-6 h-6" />

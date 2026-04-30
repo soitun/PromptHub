@@ -765,7 +765,7 @@ export function SkillFullDetailPage() {
       {showBackToTop && activeTab !== "files" && (
         <button
           onClick={scrollToTop}
-          className="absolute bottom-6 left-1/2 z-20 -translate-x-1/2 inline-flex items-center gap-2 rounded-full border border-border app-wallpaper-surface px-4 py-2 text-sm font-medium text-foreground shadow-lg backdrop-blur-md hover:bg-accent transition-colors"
+          className="absolute bottom-6 left-1/2 z-20 -translate-x-1/2 inline-flex items-center gap-2 rounded-full border border-border app-wallpaper-surface px-4 py-2 text-sm font-medium text-foreground shadow-lg hover:bg-accent transition-colors"
         >
           <ArrowUpIcon className="w-4 h-4" />
           {t("common.backToTop", "Back to Top")}

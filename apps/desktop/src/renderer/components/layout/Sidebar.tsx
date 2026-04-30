@@ -337,7 +337,7 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
   return (
     <aside
       ref={sidebarRef}
-      className={`group relative z-20 app-wallpaper-panel-strong border-r border-sidebar-border flex flex-col transition-all duration-300 ease-in-out ${isCollapsed ? (isMac ? 'w-20' : 'w-16') : 'w-60'
+      className={`group relative z-20 app-left-rail-glass app-wallpaper-panel-strong border-r border-sidebar-border flex flex-col transition-all duration-300 ease-in-out ${isCollapsed ? (isMac ? 'w-20' : 'w-16') : 'w-60'
         }`}
     >
       {/* Top spacing - Extra padding for Mac traffic lights */}
@@ -366,7 +366,7 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
         <div className={`
           relative flex transition-all duration-300
           ${isCollapsed
-            ? 'justify-center gap-2'
+            ? 'flex-col items-center justify-center gap-2'
             : 'p-1 bg-sidebar-accent/50 rounded-xl border border-white/5'
           }
         `}>
@@ -589,8 +589,8 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
 
         {/* Tags Section - Hard pinned to the bottom */}
         {uniqueTags.length > 0 && (
-          <div 
-            className={`shrink-0 flex flex-col overflow-hidden app-wallpaper-panel-strong ${isCollapsed ? 'items-center' : ''}`}
+          <div
+            className={`sidebar-tag-section shrink-0 flex flex-col overflow-hidden app-wallpaper-panel ${isCollapsed ? 'items-center' : ''}`}
             style={{ height: isCollapsed || isTagsCollapsed ? 'auto' : `${tagsSectionHeight}px` }}
           >
             {!isCollapsed && (
@@ -930,8 +930,8 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
 
           {/* Tags Content */}
           {uniqueSkillTags.length > 0 && (
-            <div 
-              className={`shrink-0 flex flex-col overflow-hidden app-wallpaper-panel-strong ${isCollapsed ? 'items-center' : ''}`}
+            <div
+              className={`sidebar-tag-section shrink-0 flex flex-col overflow-hidden app-wallpaper-panel ${isCollapsed ? 'items-center' : ''}`}
               style={{ height: isCollapsed || isSkillTagsCollapsed ? 'auto' : `${skillTagsSectionHeight}px` }}
             >
               {!isCollapsed && (

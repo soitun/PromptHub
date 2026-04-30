@@ -606,7 +606,7 @@ export function SkillManager() {
                 {!isSelectionMode ? (
                   <button
                     onClick={toggleSelectionMode}
-                    className="inline-flex items-center gap-2 rounded-xl border border-border app-wallpaper-surface px-3 py-2 text-sm font-medium text-foreground transition-colors hover:border-primary/25 hover:bg-accent backdrop-blur-md"
+                    className="inline-flex items-center gap-2 rounded-xl border border-border app-wallpaper-surface px-3 py-2 text-sm font-medium text-foreground transition-colors hover:border-primary/25 hover:bg-accent"
                     title={t("skill.batchManage", "Batch Manage")}
                   >
                     <CheckSquareIcon className="w-4 h-4" />

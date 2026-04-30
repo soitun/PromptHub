@@ -56,5 +56,6 @@ describe("SettingsPage", () => {
     expect(nav).toHaveTextContent("常规设置");
     expect(nav).toHaveTextContent("数据设置");
     expect(nav).toHaveTextContent("安全");
+    expect(nav.parentElement).not.toHaveClass("app-left-rail-glass");
   });
 });
