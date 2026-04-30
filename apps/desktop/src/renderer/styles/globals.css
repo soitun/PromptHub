@@ -52,6 +52,21 @@
     /* Semantic UI surface tokens */
     --app-ui-shell-bg: hsl(var(--background));
     --app-ui-shell-backdrop: none;
+    --app-glass-blur-soft: blur(0px);
+    --app-glass-blur-medium: blur(0px);
+    --app-glass-blur-strong: blur(0px);
+    --app-glass-tint-soft: hsl(var(--card));
+    --app-glass-tint-medium: hsl(var(--card));
+    --app-glass-tint-strong: hsl(var(--card));
+    --app-glass-stroke-soft: hsl(var(--border));
+    --app-glass-stroke-medium: hsl(var(--border));
+    --app-glass-stroke-strong: hsl(var(--border));
+    --app-glass-specular-soft: linear-gradient(180deg, transparent 0%, transparent 100%);
+    --app-glass-specular-medium: linear-gradient(180deg, transparent 0%, transparent 100%);
+    --app-glass-specular-strong: linear-gradient(180deg, transparent 0%, transparent 100%);
+    --app-glass-shadow-soft: none;
+    --app-glass-shadow-medium: none;
+    --app-glass-shadow-strong: none;
     --app-ui-panel-bg: hsl(var(--card));
     --app-ui-panel-border: hsl(var(--border));
     --app-ui-panel-shadow: none;
@@ -63,6 +78,22 @@
     --app-ui-section-bg: hsl(var(--background));
     --app-ui-section-border: hsl(var(--border));
     --app-ui-section-backdrop: none;
+    --app-ui-toolbar-bg: var(--app-ui-panel-strong-bg);
+    --app-ui-toolbar-border: var(--app-ui-panel-strong-border);
+    --app-ui-toolbar-shadow: var(--app-ui-panel-strong-shadow);
+    --app-ui-toolbar-backdrop: var(--app-ui-panel-strong-backdrop);
+    --app-ui-toolbar-highlight: linear-gradient(180deg, transparent 0%, transparent 100%);
+    --app-ui-search-bg: var(--app-ui-surface-strong-bg);
+    --app-ui-search-border: var(--app-ui-surface-strong-border);
+    --app-ui-search-shadow: var(--app-ui-surface-strong-shadow);
+    --app-ui-search-backdrop: var(--app-ui-surface-strong-backdrop);
+    --app-ui-search-highlight: linear-gradient(180deg, transparent 0%, transparent 100%);
+    --app-ui-search-ornament: transparent;
+    --app-ui-chip-bg: transparent;
+    --app-ui-chip-border: transparent;
+    --app-ui-chip-shadow: none;
+    --app-ui-chip-backdrop: none;
+    --app-ui-chip-highlight: linear-gradient(180deg, transparent 0%, transparent 100%);
     --app-ui-surface-bg: hsl(var(--card));
     --app-ui-surface-border: hsl(var(--border));
     --app-ui-surface-shadow: none;
@@ -292,48 +323,115 @@ body {
 
 
 .app-wallpaper-shell {
-  background: var(--app-ui-shell-bg);
-  backdrop-filter: var(--app-ui-shell-backdrop);
-  -webkit-backdrop-filter: var(--app-ui-shell-backdrop);
+  background: var(--app-ui-shell-bg) !important;
+  backdrop-filter: var(--app-ui-shell-backdrop) !important;
+  -webkit-backdrop-filter: var(--app-ui-shell-backdrop) !important;
 }
 
 .app-wallpaper-panel {
-  background: var(--app-ui-panel-bg);
-  border-color: var(--app-ui-panel-border);
-  box-shadow: var(--app-ui-panel-shadow);
-  backdrop-filter: var(--app-ui-panel-backdrop);
-  -webkit-backdrop-filter: var(--app-ui-panel-backdrop);
+  background: var(--app-ui-panel-bg) !important;
+  border-color: var(--app-ui-panel-border) !important;
+  box-shadow: var(--app-ui-panel-shadow) !important;
+  backdrop-filter: var(--app-ui-panel-backdrop) !important;
+  -webkit-backdrop-filter: var(--app-ui-panel-backdrop) !important;
 }
 
 .app-wallpaper-panel-strong {
-  background: var(--app-ui-panel-strong-bg);
-  border-color: var(--app-ui-panel-strong-border);
-  box-shadow: var(--app-ui-panel-strong-shadow);
-  backdrop-filter: var(--app-ui-panel-strong-backdrop);
-  -webkit-backdrop-filter: var(--app-ui-panel-strong-backdrop);
+  background: var(--app-ui-panel-strong-bg) !important;
+  border-color: var(--app-ui-panel-strong-border) !important;
+  box-shadow: var(--app-ui-panel-strong-shadow) !important;
+  backdrop-filter: var(--app-ui-panel-strong-backdrop) !important;
+  -webkit-backdrop-filter: var(--app-ui-panel-strong-backdrop) !important;
 }
 
 .app-wallpaper-section {
-  background: var(--app-ui-section-bg);
-  border-color: var(--app-ui-section-border);
-  backdrop-filter: var(--app-ui-section-backdrop);
-  -webkit-backdrop-filter: var(--app-ui-section-backdrop);
+  background: var(--app-ui-section-bg) !important;
+  border-color: var(--app-ui-section-border) !important;
+  backdrop-filter: var(--app-ui-section-backdrop) !important;
+  -webkit-backdrop-filter: var(--app-ui-section-backdrop) !important;
+}
+
+.app-wallpaper-toolbar {
+  position: relative;
+  overflow: hidden;
+  background: var(--app-ui-toolbar-bg) !important;
+  border-color: var(--app-ui-toolbar-border) !important;
+  box-shadow: var(--app-ui-toolbar-shadow) !important;
+  backdrop-filter: var(--app-ui-toolbar-backdrop) !important;
+  -webkit-backdrop-filter: var(--app-ui-toolbar-backdrop) !important;
+}
+
+.app-wallpaper-toolbar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: var(--app-ui-toolbar-highlight) !important;
+}
+
+.app-wallpaper-search {
+  position: relative;
+  overflow: hidden;
+  background: var(--app-ui-search-bg) !important;
+  border-color: var(--app-ui-search-border) !important;
+  box-shadow: var(--app-ui-search-shadow) !important;
+  backdrop-filter: var(--app-ui-search-backdrop) !important;
+  -webkit-backdrop-filter: var(--app-ui-search-backdrop) !important;
+}
+
+.app-wallpaper-search::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: var(--app-ui-search-highlight) !important;
+}
+
+.app-wallpaper-search::after {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(circle at top left, var(--app-ui-search-ornament) 0%, transparent 55%),
+    radial-gradient(circle at bottom right, var(--app-ui-search-ornament) 0%, transparent 50%) !important;
+}
+
+.app-wallpaper-chip {
+  position: relative;
+  overflow: hidden;
+}
+
+.app-background-mode-image .app-wallpaper-chip {
+  background: var(--app-ui-chip-bg) !important;
+  border-color: var(--app-ui-chip-border) !important;
+  box-shadow: var(--app-ui-chip-shadow) !important;
+  backdrop-filter: var(--app-ui-chip-backdrop) !important;
+  -webkit-backdrop-filter: var(--app-ui-chip-backdrop) !important;
+}
+
+.app-background-mode-image .app-wallpaper-chip::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: var(--app-ui-chip-highlight) !important;
 }
 
 .app-wallpaper-surface {
-  background: var(--app-ui-surface-bg);
-  border-color: var(--app-ui-surface-border);
-  box-shadow: var(--app-ui-surface-shadow);
-  backdrop-filter: var(--app-ui-surface-backdrop);
-  -webkit-backdrop-filter: var(--app-ui-surface-backdrop);
+  background: var(--app-ui-surface-bg) !important;
+  border-color: var(--app-ui-surface-border) !important;
+  box-shadow: var(--app-ui-surface-shadow) !important;
+  backdrop-filter: var(--app-ui-surface-backdrop) !important;
+  -webkit-backdrop-filter: var(--app-ui-surface-backdrop) !important;
 }
 
 .app-wallpaper-surface-strong {
-  background: var(--app-ui-surface-strong-bg);
-  border-color: var(--app-ui-surface-strong-border);
-  box-shadow: var(--app-ui-surface-strong-shadow);
-  backdrop-filter: var(--app-ui-surface-strong-backdrop);
-  -webkit-backdrop-filter: var(--app-ui-surface-strong-backdrop);
+  background: var(--app-ui-surface-strong-bg) !important;
+  border-color: var(--app-ui-surface-strong-border) !important;
+  box-shadow: var(--app-ui-surface-strong-shadow) !important;
+  backdrop-filter: var(--app-ui-surface-strong-backdrop) !important;
+  -webkit-backdrop-filter: var(--app-ui-surface-strong-backdrop) !important;
 }
 
 .app-wallpaper-blanket {
@@ -398,6 +496,8 @@ body {
 .prompt-list-pane {
   background: var(--app-prompt-list-pane-bg);
   border-color: var(--app-prompt-list-pane-border);
+  backdrop-filter: var(--app-glass-blur-medium);
+  -webkit-backdrop-filter: var(--app-glass-blur-medium);
 }
 
 .prompt-list-card {
@@ -436,51 +536,108 @@ body {
   --sidebar-border: 214 22% 74%;
 
   --app-ui-shell-bg: transparent;
-  --app-ui-panel-bg: hsl(0 0% 100% / 0.3);
-  --app-ui-panel-border: hsl(0 0% 100% / 0.52);
-  --app-ui-panel-shadow: 0 18px 48px rgba(15, 23, 42, 0.1);
-  --app-ui-panel-strong-bg: hsl(0 0% 100% / 0.42);
-  --app-ui-panel-strong-border: hsl(0 0% 100% / 0.68);
-  --app-ui-panel-strong-shadow: 0 22px 56px rgba(15, 23, 42, 0.16);
-  --app-ui-section-bg: hsl(210 40% 98% / 0.14);
-  --app-ui-section-border: hsl(0 0% 100% / 0.36);
-  --app-ui-surface-bg: hsl(0 0% 100% / 0.2);
-  --app-ui-surface-border: hsl(0 0% 100% / 0.46);
-  --app-ui-surface-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22);
-  --app-ui-surface-strong-bg: hsl(0 0% 100% / 0.34);
-  --app-ui-surface-strong-border: hsl(0 0% 100% / 0.58);
-  --app-ui-surface-strong-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.28),
-    0 12px 30px rgba(15, 23, 42, 0.1);
-  --app-ui-blanket-bg:
-    linear-gradient(
-      180deg,
-      hsl(210 40% 98% / 0.24) 0%,
-      hsl(210 35% 97% / 0.12) 24%,
-      hsl(210 32% 95% / 0.2) 100%
-    );
+  
+  /* Apple-like Glass Materials */
+  --app-glass-blur-soft: blur(12px) saturate(140%);
+  --app-glass-blur-medium: blur(24px) saturate(160%);
+  --app-glass-blur-strong: blur(40px) saturate(180%);
+  
+  --app-glass-stroke-soft: hsl(0 0% 100% / 0.4);
+  --app-glass-stroke-medium: hsl(0 0% 100% / 0.5);
+  --app-glass-stroke-strong: hsl(0 0% 100% / 0.6);
+  
+  /* Crisp inner top highlight + soft drop shadow */
+  --app-glass-shadow-soft: 
+    0 2px 8px rgba(0, 0, 0, 0.04),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  --app-glass-shadow-medium: 
+    0 8px 24px rgba(0, 0, 0, 0.08),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  --app-glass-shadow-strong: 
+    0 16px 40px rgba(0, 0, 0, 0.12),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
 
-  --app-settings-card-bg: hsl(0 0% 100% / 0.36);
-  --app-settings-card-border: hsl(0 0% 100% / 0.64);
-  --app-settings-card-shadow: 0 18px 46px rgba(15, 23, 42, 0.12);
-  --app-settings-subtle-bg: hsl(0 0% 100% / 0.22);
-  --app-settings-subtle-border: hsl(0 0% 100% / 0.46);
+  /* Component Mappings */
+  --app-ui-panel-bg: hsl(0 0% 100% / 0.4);
+  --app-ui-panel-border: transparent; /* Use shadow for border to avoid sizing issues */
+  --app-ui-panel-shadow: var(--app-glass-shadow-medium);
+  --app-ui-panel-backdrop: var(--app-glass-blur-medium);
+  
+  --app-ui-panel-strong-bg: hsl(0 0% 100% / 0.5);
+  --app-ui-panel-strong-border: transparent;
+  --app-ui-panel-strong-shadow: var(--app-glass-shadow-strong);
+  --app-ui-panel-strong-backdrop: var(--app-glass-blur-strong);
+  
+  --app-ui-section-bg: hsl(0 0% 100% / 0.2);
+  --app-ui-section-border: transparent;
+  --app-ui-section-backdrop: var(--app-glass-blur-soft);
+  
+  --app-ui-toolbar-bg: hsl(0 0% 100% / 0.35);
+  --app-ui-toolbar-border: transparent;
+  --app-ui-toolbar-shadow: var(--app-glass-shadow-medium);
+  --app-ui-toolbar-backdrop: var(--app-glass-blur-medium);
+  --app-ui-toolbar-highlight: transparent;
+  
+  --app-ui-search-bg: hsl(0 0% 100% / 0.3);
+  --app-ui-search-border: transparent;
+  --app-ui-search-shadow: 
+    inset 0 2px 4px rgba(0,0,0,0.04),
+    inset 0 0 0 1px rgba(255,255,255,0.4);
+  --app-ui-search-backdrop: var(--app-glass-blur-medium);
+  --app-ui-search-highlight: transparent;
+  --app-ui-search-ornament: transparent;
+  
+  --app-ui-chip-bg: hsl(0 0% 100% / 0.2);
+  --app-ui-chip-border: transparent;
+  --app-ui-chip-shadow: 
+    0 2px 6px rgba(0,0,0,0.03),
+    inset 0 0 0 1px rgba(255,255,255,0.3),
+    inset 0 1px 0 rgba(255,255,255,0.6);
+  --app-ui-chip-backdrop: var(--app-glass-blur-soft);
+  --app-ui-chip-highlight: transparent;
+  
+  --app-ui-surface-bg: hsl(0 0% 100% / 0.35);
+  --app-ui-surface-border: transparent;
+  --app-ui-surface-shadow: var(--app-glass-shadow-soft);
+  --app-ui-surface-backdrop: var(--app-glass-blur-soft);
+  
+  --app-ui-surface-strong-bg: hsl(0 0% 100% / 0.45);
+  --app-ui-surface-strong-border: transparent;
+  --app-ui-surface-strong-shadow: var(--app-glass-shadow-medium);
+  --app-ui-surface-strong-backdrop: var(--app-glass-blur-medium);
+  
+  --app-ui-blanket-bg: hsl(210 40% 98% / 0.1);
+
+  --app-settings-card-bg: hsl(0 0% 100% / 0.4);
+  --app-settings-card-border: transparent;
+  --app-settings-card-shadow: var(--app-glass-shadow-strong);
+  
+  --app-settings-subtle-bg: hsl(0 0% 100% / 0.2);
+  --app-settings-subtle-border: transparent;
+  
   --app-settings-input-bg: hsl(0 0% 100% / 0.3);
-  --app-settings-input-border: hsl(0 0% 100% / 0.54);
+  --app-settings-input-border: transparent;
+  
   --app-settings-segment-color: hsl(220 22% 18%);
   --app-settings-segment-hover-bg: hsl(0 0% 100% / 0.3);
   --app-settings-segment-hover-color: hsl(220 26% 10%);
-  --app-settings-segment-active-bg: hsl(0 0% 100% / 0.5);
+  --app-settings-segment-active-bg: hsl(0 0% 100% / 0.6);
   --app-settings-segment-active-color: hsl(220 26% 10%);
-  --app-settings-segment-active-border: hsl(0 0% 100% / 0.74);
-  --app-settings-segment-active-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+  --app-settings-segment-active-border: transparent;
+  --app-settings-segment-active-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.08),
+    inset 0 0 0 1px rgba(255,255,255,0.4),
+    inset 0 1px 0 rgba(255,255,255,0.7);
 
-  --app-prompt-list-pane-bg: hsl(0 0% 100% / 0.24);
-  --app-prompt-list-pane-border: hsl(0 0% 100% / 0.44);
-  --app-prompt-list-card-bg: hsl(0 0% 100% / 0.14);
-  --app-prompt-list-card-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.34);
-  --app-prompt-list-card-hover-bg: hsl(0 0% 100% / 0.24);
-  --app-prompt-list-card-hover-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.52);
+  --app-prompt-list-pane-bg: hsl(0 0% 100% / 0.5);
+  --app-prompt-list-pane-border: transparent;
+  --app-prompt-list-card-bg: hsl(0 0% 100% / 0.3);
+  --app-prompt-list-card-shadow: var(--app-glass-shadow-soft);
+  --app-prompt-list-card-hover-bg: hsl(0 0% 100% / 0.45);
+  --app-prompt-list-card-hover-shadow: var(--app-glass-shadow-medium);
 }
 
 .dark .app-background-mode-image {
@@ -503,51 +660,107 @@ body {
   --sidebar-accent: 220 18% 18%;
   --sidebar-border: 220 18% 28%;
 
-  --app-ui-panel-bg: hsl(220 30% 10% / 0.34);
-  --app-ui-panel-border: hsl(220 30% 96% / 0.14);
-  --app-ui-panel-shadow: 0 20px 52px rgba(0, 0, 0, 0.36);
-  --app-ui-panel-strong-bg: hsl(220 30% 10% / 0.48);
-  --app-ui-panel-strong-border: hsl(220 30% 96% / 0.2);
-  --app-ui-panel-strong-shadow: 0 24px 60px rgba(0, 0, 0, 0.42);
-  --app-ui-section-bg: hsl(220 30% 8% / 0.16);
-  --app-ui-section-border: hsl(220 30% 96% / 0.12);
-  --app-ui-surface-bg: hsl(220 28% 10% / 0.28);
-  --app-ui-surface-border: hsl(220 30% 96% / 0.14);
-  --app-ui-surface-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  --app-ui-surface-strong-bg: hsl(220 28% 10% / 0.42);
-  --app-ui-surface-strong-border: hsl(220 30% 96% / 0.2);
-  --app-ui-surface-strong-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.1),
-    0 14px 34px rgba(0, 0, 0, 0.28);
-  --app-ui-blanket-bg:
-    linear-gradient(
-      180deg,
-      hsl(220 30% 6% / 0.14) 0%,
-      hsl(220 30% 6% / 0.08) 24%,
-      hsl(220 30% 6% / 0.24) 100%
-    );
+  /* Apple-like Glass Materials - Dark */
+  --app-glass-blur-soft: blur(14px) saturate(140%);
+  --app-glass-blur-medium: blur(28px) saturate(160%);
+  --app-glass-blur-strong: blur(48px) saturate(180%);
+  
+  --app-glass-stroke-soft: hsl(220 30% 96% / 0.1);
+  --app-glass-stroke-medium: hsl(220 30% 96% / 0.15);
+  --app-glass-stroke-strong: hsl(220 30% 96% / 0.2);
+  
+  /* Crisp inner top highlight + deeper drop shadow */
+  --app-glass-shadow-soft: 
+    0 4px 12px rgba(0, 0, 0, 0.2),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  --app-glass-shadow-medium: 
+    0 12px 32px rgba(0, 0, 0, 0.3),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  --app-glass-shadow-strong: 
+    0 24px 56px rgba(0, 0, 0, 0.4),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
 
-  --app-settings-card-bg: hsl(220 28% 10% / 0.42);
-  --app-settings-card-border: hsl(220 30% 96% / 0.18);
-  --app-settings-card-shadow: 0 20px 50px rgba(0, 0, 0, 0.34);
-  --app-settings-subtle-bg: hsl(220 28% 10% / 0.28);
-  --app-settings-subtle-border: hsl(220 30% 96% / 0.12);
-  --app-settings-input-bg: hsl(220 28% 10% / 0.34);
-  --app-settings-input-border: hsl(220 30% 96% / 0.16);
+  /* Component Mappings */
+  --app-ui-panel-bg: hsl(220 30% 10% / 0.3);
+  --app-ui-panel-border: transparent;
+  --app-ui-panel-shadow: var(--app-glass-shadow-medium);
+  --app-ui-panel-backdrop: var(--app-glass-blur-medium);
+  
+  --app-ui-panel-strong-bg: hsl(220 30% 10% / 0.4);
+  --app-ui-panel-strong-border: transparent;
+  --app-ui-panel-strong-shadow: var(--app-glass-shadow-strong);
+  --app-ui-panel-strong-backdrop: var(--app-glass-blur-strong);
+  
+  --app-ui-section-bg: hsl(220 30% 10% / 0.1);
+  --app-ui-section-border: transparent;
+  --app-ui-section-backdrop: var(--app-glass-blur-soft);
+  
+  --app-ui-toolbar-bg: hsl(220 30% 10% / 0.2);
+  --app-ui-toolbar-border: transparent;
+  --app-ui-toolbar-shadow: var(--app-glass-shadow-medium);
+  --app-ui-toolbar-backdrop: var(--app-glass-blur-medium);
+  --app-ui-toolbar-highlight: transparent;
+  
+  --app-ui-search-bg: hsl(220 30% 15% / 0.25);
+  --app-ui-search-border: transparent;
+  --app-ui-search-shadow: 
+    inset 0 2px 4px rgba(0,0,0,0.1),
+    inset 0 0 0 1px rgba(255,255,255,0.1);
+  --app-ui-search-backdrop: var(--app-glass-blur-medium);
+  --app-ui-search-highlight: transparent;
+  --app-ui-search-ornament: transparent;
+  
+  --app-ui-chip-bg: hsl(220 30% 20% / 0.15);
+  --app-ui-chip-border: transparent;
+  --app-ui-chip-shadow: 
+    0 4px 12px rgba(0,0,0,0.15),
+    inset 0 0 0 1px rgba(255,255,255,0.06),
+    inset 0 1px 0 rgba(255,255,255,0.12);
+  --app-ui-chip-backdrop: var(--app-glass-blur-soft);
+  --app-ui-chip-highlight: transparent;
+  
+  --app-ui-surface-bg: hsl(220 30% 10% / 0.2);
+  --app-ui-surface-border: transparent;
+  --app-ui-surface-shadow: var(--app-glass-shadow-soft);
+  --app-ui-surface-backdrop: var(--app-glass-blur-soft);
+  
+  --app-ui-surface-strong-bg: hsl(220 30% 10% / 0.35);
+  --app-ui-surface-strong-border: transparent;
+  --app-ui-surface-strong-shadow: var(--app-glass-shadow-medium);
+  --app-ui-surface-strong-backdrop: var(--app-glass-blur-medium);
+  
+  --app-ui-blanket-bg: hsl(220 30% 0% / 0.1);
+
+  --app-settings-card-bg: hsl(220 30% 12% / 0.3);
+  --app-settings-card-border: transparent;
+  --app-settings-card-shadow: var(--app-glass-shadow-strong);
+  
+  --app-settings-subtle-bg: hsl(220 30% 12% / 0.15);
+  --app-settings-subtle-border: transparent;
+  
+  --app-settings-input-bg: hsl(220 30% 15% / 0.25);
+  --app-settings-input-border: transparent;
+  
   --app-settings-segment-color: hsl(220 16% 84%);
-  --app-settings-segment-hover-bg: hsl(220 30% 96% / 0.08);
+  --app-settings-segment-hover-bg: hsl(220 30% 25% / 0.2);
   --app-settings-segment-hover-color: hsl(220 18% 97%);
-  --app-settings-segment-active-bg: hsl(220 30% 96% / 0.16);
+  --app-settings-segment-active-bg: hsl(220 30% 30% / 0.35);
   --app-settings-segment-active-color: hsl(220 18% 97%);
-  --app-settings-segment-active-border: hsl(220 30% 96% / 0.2);
-  --app-settings-segment-active-shadow: 0 10px 26px rgba(0, 0, 0, 0.28);
+  --app-settings-segment-active-border: transparent;
+  --app-settings-segment-active-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.2),
+    inset 0 0 0 1px rgba(255,255,255,0.1),
+    inset 0 1px 0 rgba(255,255,255,0.18);
 
-  --app-prompt-list-pane-bg: hsl(220 28% 10% / 0.32);
-  --app-prompt-list-pane-border: hsl(220 30% 96% / 0.14);
-  --app-prompt-list-card-bg: hsl(220 28% 10% / 0.22);
-  --app-prompt-list-card-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
-  --app-prompt-list-card-hover-bg: hsl(220 30% 96% / 0.1);
-  --app-prompt-list-card-hover-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+  --app-prompt-list-pane-bg: hsl(220 30% 10% / 0.45);
+  --app-prompt-list-pane-border: transparent;
+  --app-prompt-list-card-bg: hsl(220 30% 15% / 0.25);
+  --app-prompt-list-card-shadow: var(--app-glass-shadow-soft);
+  --app-prompt-list-card-hover-bg: hsl(220 30% 20% / 0.35);
+  --app-prompt-list-card-hover-shadow: var(--app-glass-shadow-medium);
 }
 
 /* Markdown rendering styles */

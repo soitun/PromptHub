@@ -401,7 +401,7 @@ export function TopBar({
   return (
     <>
       <header
-        className="h-12 app-wallpaper-panel-strong border-b border-border flex items-center px-4 shrink-0"
+        className="h-12 app-wallpaper-toolbar border-b border-border flex items-center px-4 shrink-0"
         style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
       >
         <div
@@ -425,6 +425,7 @@ export function TopBar({
         {/* 搜索框 - 居中，带清除按钮、结果计数和导航 */}
         <div className="flex-1 flex justify-center px-3">
           <div className="w-full max-w-lg relative flex items-center">
+            <div className="app-wallpaper-search absolute inset-0 rounded-lg border pointer-events-none" />
             <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none z-10" />
             <input
               ref={searchInputRef}
@@ -437,7 +438,7 @@ export function TopBar({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={handleKeyDown}
-              className="w-full h-9 pl-9 pr-32 rounded-lg app-wallpaper-surface-strong border text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all"
+              className="relative z-10 w-full h-9 pl-9 pr-32 rounded-lg border border-transparent bg-transparent text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all"
               style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
             />
             {/* 右侧控件：结果计数 + 导航按钮 + 清除按钮 */}

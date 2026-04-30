@@ -2,11 +2,12 @@
 
 ## Overview
 
-这次改动拆成三条独立但轻量的链路：
+这次改动拆成四条独立但轻量的链路：
 
 1. `DataSettings` 内的升级快照列表改成“摘要 + 默认前几项 + 展开后的滚动容器”。
 2. `AppearanceSettings` 基于现有 `window.electron` 图片存储能力保存背景图文件名，设置里只持久化引用与展示参数。
-3. Skill 导出增加 `skill:exportZip`，由主进程直接读取 Skill 本地仓库并打 zip，前端只负责下载结果。
+3. 图片模式主题层从“半透明覆写”提升为独立的 Liquid Glass 合同：先定义 blur / tint / stroke / specular / shadow 这组材质 token，再由 panel / surface / toolbar / chip / search 等语义层消费。
+4. Skill 导出增加 `skill:exportZip`，由主进程直接读取 Skill 本地仓库并打 zip，前端只负责下载结果。
 
 ## Affected Areas
 
@@ -28,10 +29,13 @@
 - `DataSettings` 为升级回滚列表增加计数摘要、展开控制和独立滚动区域
 - `AppearanceSettings` 增加桌面背景图预览、选择、清除、透明度和虚化滑杆
 - `App.tsx` 在根布局下注入背景层，不大面积修改现有布局组件
+- `globals.css` 拆分图片模式的玻璃材质合同，并新增 search / chip / toolbar 等局部材质 token
+- `TopBar`、`Sidebar`、`PromptListHeader`、`MainContent` 接入更明确的海拔梯度：搜索框最亮、toolbar 次之、pane / panel 更稳、card 最轻
 - Skill 详情导出按钮改为 `SKILL.md` + `ZIP`
 
 ## Tradeoffs
 
 - 背景图继续放在通用图片目录，而不是单独开 `backgrounds/` 目录。优点是复用现有读写链路；代价是目录里会混合 Prompt 图片和背景图，但对当前产品成本最低。
+- Liquid Glass 优化优先走 CSS token + 少量 class 接入，而不是引入新的渲染层或 Canvas 特效。优点是风险小、容易和现有 Tailwind / 语义类兼容；代价是折射与液态流动感仍主要依赖渐变、描边和 backdrop filter，而不是更复杂的实时材质模拟。
 - Skill zip 导出直接返回 base64 zip 内容给渲染层下载，而不是弹系统保存框。优点是保持现有下载交互一致；代价是大仓库会经过一次 renderer 桥接，但 Skill 仓库规模在当前场景下可接受。
 - 回滚列表默认只展开前几项，牺牲了“全部立即可见”，换取设置页总体可读性和纵向稳定性。

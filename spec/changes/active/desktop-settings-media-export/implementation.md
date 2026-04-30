@@ -42,3 +42,14 @@
 
 - 如果这组改动准备正式交付，再决定是否把 `specs` 中的稳定文档同步到 `spec/specs/` 或 `spec/architecture/`。
 - PR #110 仍不建议直接合并；`ScannedSkill` 可空字段契约与 Hermes / nested 扫描测试缺口仍需单独处理。
+
+### Liquid Glass Refinement
+- Removed harsh `linear-gradient` specular highlights from `.app-wallpaper-chip`.
+- Shifted to authentic iOS materials using:
+  - Strong, consistent `backdrop-filter: blur(24px) saturate(160%)`.
+  - Subtle `rgba` tint layers instead of stark overlays.
+  - Rim lighting via crisp 0.5px/1px inner `box-shadow` instead of opaque `border`.
+  - Minimal drop shadow to avoid the "cheap capsule" floating look.
+- Refactored `Sidebar.tsx`:
+  - Cleaned up excessive use of `.app-wallpaper-chip` on unselected items. Unselected items now properly sit flush with the `.app-wallpaper-panel` layer (using pure text colors + hover transitions) rather than creating dozens of glass cutouts.
+  - Removed `border-border` from UI containers (`TopBar`, `MainContent`, etc.) utilizing `.app-wallpaper-*` to let the transparent glass rims shine through accurately.
