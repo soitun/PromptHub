@@ -92,7 +92,7 @@ export function PromptListHeader({ count }: PromptListHeaderProps) {
   };
 
   return (
-    <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-20">
+    <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-border app-wallpaper-panel-strong sticky top-0 z-20">
       {/* Left side: Prompt count */}
       {/* 左侧：Prompt 数量 */}
       <span className="text-xs text-muted-foreground whitespace-nowrap">

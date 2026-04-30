@@ -923,7 +923,7 @@ export function CreateSkillModal({ isOpen, onClose }: CreateSkillModalProps) {
       {/* Modal - wider for manual/scan mode */}
       <div
         data-testid="create-skill-modal-container"
-        className={`relative bg-card rounded-2xl shadow-2xl border border-border overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col transition-all ${
+        className={`relative app-wallpaper-panel-strong rounded-2xl shadow-2xl border border-border overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col transition-all ${
           isManualMode
             ? isFullscreen
               ? "w-[95vw] h-[95vh]"
@@ -1196,7 +1196,7 @@ export function CreateSkillModal({ isOpen, onClose }: CreateSkillModalProps) {
                                   ? "border-border bg-muted/30 opacity-70 cursor-not-allowed"
                                   : isSelected
                                     ? "border-primary/40 bg-primary/5 shadow-primary/10"
-                                    : "border-border bg-card hover:border-primary/30 hover:shadow-md"
+                                    : "border-border app-wallpaper-surface hover:border-primary/30 hover:shadow-md"
                               }`}
                             >
                               <div className="flex items-start gap-3">
@@ -1523,7 +1523,7 @@ export function CreateSkillModal({ isOpen, onClose }: CreateSkillModalProps) {
                   />
                 ) : (
                   <div
-                    className={`p-4 rounded-lg bg-card border border-border text-sm break-words overflow-auto ${
+                    className={`p-4 rounded-lg app-wallpaper-surface border border-border text-sm break-words overflow-auto ${
                       isFullscreen ? "min-h-[400px]" : "min-h-[200px]"
                     }`}
                   >
@@ -1741,7 +1741,7 @@ export function CreateSkillModal({ isOpen, onClose }: CreateSkillModalProps) {
                           "skill.searchImportPlaceholder",
                           "搜索名称、描述、标签、平台或路径",
                         )}
-                        className="h-10 w-full rounded-xl border border-border bg-card pl-9 pr-3 text-sm outline-none transition-colors focus:border-primary/40"
+                        className="h-10 w-full rounded-xl border border-border app-wallpaper-surface pl-9 pr-3 text-sm outline-none transition-colors focus:border-primary/40"
                       />
                     </label>
                     <button
@@ -1750,7 +1750,7 @@ export function CreateSkillModal({ isOpen, onClose }: CreateSkillModalProps) {
                       className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition-colors ${
                         showScanOptionalTags
                           ? "border-primary/40 bg-primary/5 text-primary"
-                          : "border-border bg-card text-muted-foreground hover:text-foreground"
+                          : "border-border app-wallpaper-surface text-muted-foreground hover:text-foreground"
                       }`}
                     >
                       <HashIcon className="h-4 w-4" />
@@ -1818,7 +1818,7 @@ export function CreateSkillModal({ isOpen, onClose }: CreateSkillModalProps) {
                                 ? "border-border bg-muted/30 opacity-70 cursor-not-allowed"
                                 : isSelected
                                   ? "border-primary/40 bg-primary/5 shadow-primary/10"
-                                  : "border-border bg-card hover:border-primary/30 hover:shadow-md"
+                                  : "border-border app-wallpaper-surface hover:border-primary/30 hover:shadow-md"
                             }`}
                             disabled={skill.isImported}
                           >
@@ -1963,7 +1963,7 @@ export function CreateSkillModal({ isOpen, onClose }: CreateSkillModalProps) {
                                               skill.localPath
                                             ]?.trim()
                                           }
-                                          className="rounded-xl bg-background px-3 text-xs font-medium text-foreground transition-colors hover:bg-card disabled:opacity-50"
+                                          className="rounded-xl bg-background px-3 text-xs font-medium text-foreground transition-colors hover:app-wallpaper-surface disabled:opacity-50"
                                         >
                                           {t("skill.addTag", "添加标签")}
                                         </button>
@@ -2036,7 +2036,7 @@ export function CreateSkillModal({ isOpen, onClose }: CreateSkillModalProps) {
         {isGitHubMode && (
           <div
             data-testid="github-mode-footer"
-            className="flex items-center justify-end gap-3 border-t border-border bg-card px-6 py-4 shrink-0"
+            className="flex items-center justify-end gap-3 border-t border-border app-wallpaper-surface px-6 py-4 shrink-0"
           >
             <button
               onClick={() => setMode("select")}
@@ -2069,7 +2069,7 @@ export function CreateSkillModal({ isOpen, onClose }: CreateSkillModalProps) {
         )}
 
         {isScanMode && scanDone && annotatedScanResults.length > 0 && (
-          <div className="flex items-center justify-between px-6 py-3 border-t border-border shrink-0 bg-card">
+          <div className="flex items-center justify-between px-6 py-3 border-t border-border shrink-0 app-wallpaper-surface">
             <span className="text-xs text-muted-foreground">
               {
                 visibleSelectableScanResults.filter((skill) =>
@@ -2103,7 +2103,7 @@ export function CreateSkillModal({ isOpen, onClose }: CreateSkillModalProps) {
 
         {/* Footer for manual mode */}
         {isManualMode && (
-          <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border shrink-0 bg-card">
+          <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border shrink-0 app-wallpaper-surface">
             <button
               onClick={() => setMode("select")}
               className="px-4 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"

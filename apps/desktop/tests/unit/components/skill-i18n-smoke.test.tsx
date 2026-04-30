@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import en from "../../../src/renderer/i18n/locales/en.json";
 import zh from "../../../src/renderer/i18n/locales/zh.json";
@@ -11,6 +11,7 @@ import es from "../../../src/renderer/i18n/locales/es.json";
 import type { Skill } from "@prompthub/shared/types";
 import { SkillFullDetailPage } from "../../../src/renderer/components/skill/SkillFullDetailPage";
 import { SkillManager } from "../../../src/renderer/components/skill/SkillManager";
+import { SkillPlatformPanel } from "../../../src/renderer/components/skill/SkillPlatformPanel";
 
 type TranslationTree = Record<string, unknown>;
 
@@ -183,6 +184,20 @@ describe("skill i18n smoke", () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
+    Object.defineProperty(URL, "createObjectURL", {
+      configurable: true,
+      writable: true,
+      value: vi.fn(),
+    });
+    Object.defineProperty(URL, "revokeObjectURL", {
+      configurable: true,
+      writable: true,
+      value: vi.fn(),
+    });
+
+    vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:skill-export");
+    vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
+
     useToastMock.mockReturnValue({ showToast: vi.fn() });
     useSkillPlatformMock.mockReturnValue({
       availablePlatforms: [],
@@ -203,6 +218,11 @@ describe("skill i18n smoke", () => {
 
     (window as any).api = {
       skill: {
+        export: vi.fn().mockResolvedValue("---\nname: write\n---\n# Write"),
+        exportZip: vi.fn().mockResolvedValue({
+          fileName: "write.zip",
+          base64: "UEsDBA==",
+        }),
         readLocalFiles: vi.fn().mockResolvedValue([
           {
             path: "SKILL.md",
@@ -212,6 +232,11 @@ describe("skill i18n smoke", () => {
         ]),
       },
     };
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    delete (window as Window & { __PROMPTHUB_WEB__?: boolean }).__PROMPTHUB_WEB__;
   });
 
   it("renders skill manager actions in english and updates selection summary", async () => {
@@ -279,6 +304,75 @@ describe("skill i18n smoke", () => {
     expect(screen.queryByText("批量管理")).not.toBeInTheDocument();
   });
 
+  it("exports a full local repo zip from the detail panel", async () => {
+    const skillStoreState = createSkillStoreState({
+      selectedSkillId: baseSkill.id,
+      syncSkillFromRepo: vi.fn().mockResolvedValue(baseSkill),
+    });
+    const settingsState = createSettingsState();
+    const originalCreateElement = document.createElement.bind(document);
+
+    useSkillStoreMock.mockImplementation((selector) => selector(skillStoreState));
+    useSettingsStoreMock.mockImplementation((selector) => selector(settingsState));
+
+    await act(async () => {
+      render(<SkillFullDetailPage />);
+    });
+
+    const anchor = originalCreateElement("a");
+    const clickSpy = vi.spyOn(anchor, "click").mockImplementation(() => {});
+    const appendChild = vi.spyOn(document.body, "appendChild");
+    const removeChild = vi.spyOn(document.body, "removeChild");
+    const createElementSpy = vi
+      .spyOn(document, "createElement")
+      .mockImplementation((tagName) => {
+        if (tagName === "a") {
+          return anchor;
+        }
+        return originalCreateElement(tagName);
+      });
+
+    fireEvent.click(screen.getByRole("button", { name: "ZIP" }));
+
+    await waitFor(() => {
+      expect(window.api.skill.exportZip).toHaveBeenCalledWith(baseSkill.id);
+    });
+    expect(anchor.download).toBe("write.zip");
+    expect(clickSpy).toHaveBeenCalledTimes(1);
+    expect(appendChild).toHaveBeenCalledWith(anchor);
+    expect(removeChild).toHaveBeenCalledWith(anchor);
+
+    createElementSpy.mockRestore();
+    clickSpy.mockRestore();
+  });
+
+  it("renders zip as the primary archive export in the platform panel", () => {
+    render(
+      <SkillPlatformPanel
+        availablePlatforms={[]}
+        handleExport={vi.fn()}
+        installMode="symlink"
+        installProgress={null}
+        isBatchInstalling={false}
+        onBatchInstall={vi.fn()}
+        selectedPlatforms={new Set<string>()}
+        selectedSkill={baseSkill}
+        selectAllPlatforms={vi.fn()}
+        deselectAllPlatforms={vi.fn()}
+        setInstallMode={vi.fn()}
+        skillMdInstallStatus={{}}
+        t={translate as any}
+        togglePlatformSelection={vi.fn()}
+        uninstallFromPlatform={vi.fn()}
+        uninstalledPlatforms={[]}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: /SKILL\.md/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /ZIP/i })).toBeInTheDocument();
+    expect(screen.queryByText("JSON")).not.toBeInTheDocument();
+  });
+
   it("hides desktop-only skill surfaces in web runtime", async () => {
     (window as Window & { __PROMPTHUB_WEB__?: boolean }).__PROMPTHUB_WEB__ = true;
 
@@ -318,8 +412,6 @@ describe("skill i18n smoke", () => {
     expect(screen.queryByText("Files")).not.toBeInTheDocument();
     expect(screen.queryByText("Platform Integration")).not.toBeInTheDocument();
     expect(screen.getByText("Skill Workspace")).toBeInTheDocument();
-
-    delete (window as Window & { __PROMPTHUB_WEB__?: boolean }).__PROMPTHUB_WEB__;
   });
 
   it("finishes progressive rendering for large skill lists", async () => {

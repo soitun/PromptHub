@@ -61,13 +61,13 @@ export function ConfirmDialog({
       {/* Background mask */}
       {/* 背景遮罩 */}
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        className="absolute inset-0 bg-background/60 backdrop-blur-sm"
         onClick={onClose}
       />
 
       {/* Dialog */}
       {/* 对话框 */}
-      <div className="relative bg-card rounded-xl shadow-2xl border border-border w-full max-w-sm p-6 animate-in fade-in zoom-in-95 duration-200">
+      <div className="relative app-wallpaper-panel-strong rounded-xl shadow-2xl border border-border w-full max-w-sm p-6 animate-in fade-in zoom-in-95 duration-200">
         {/* Icon */}
         {/* 图标 */}
         {variant === 'destructive' && (
@@ -97,7 +97,7 @@ export function ConfirmDialog({
             ref={cancelButtonRef}
             onClick={onClose}
             disabled={isLoading}
-            className="flex-1 h-10 px-4 rounded-lg border border-border bg-background hover:bg-muted transition-colors text-sm font-medium disabled:opacity-50"
+            className="flex-1 h-10 px-4 rounded-lg border border-border app-wallpaper-surface hover:bg-accent transition-colors text-sm font-medium disabled:opacity-50"
           >
             {cancelText}
           </button>

@@ -18,7 +18,7 @@ export function SettingSection({
       <h3 className="text-sm font-medium text-muted-foreground mb-2">
         {title}
       </h3>
-      <div className="bg-card rounded-xl border border-border shadow-sm">
+      <div className="app-settings-card">
         {children}
       </div>
     </div>
@@ -116,7 +116,7 @@ export const PasswordInput = memo(function PasswordInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className={`w-full h-10 px-3 pr-10 rounded-lg bg-muted border-0 text-sm placeholder:text-muted-foreground/60 ${className}`}
+        className={`w-full h-10 px-3 pr-10 rounded-lg app-settings-input text-sm placeholder:text-muted-foreground/60 ${className}`}
       />
       <button
         type="button"
@@ -253,7 +253,7 @@ export const ShortcutItem = memo(function ShortcutItem({
           className={`w-40 h-9 px-3 text-center text-xs font-medium rounded-md border shadow-sm cursor-pointer transition-all ${
             recording
               ? "border-primary ring-2 ring-primary/20 bg-primary/5 text-primary"
-              : "border-input bg-card hover:bg-accent hover:text-accent-foreground"
+              : "app-settings-input hover:bg-accent/70 hover:text-accent-foreground"
           }`}
         />
         <div className="w-8 flex justify-center">

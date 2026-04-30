@@ -47,13 +47,13 @@ export function UnsavedChangesDialog({
       {/* Backdrop */}
       {/* 背景遮罩 */}
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        className="absolute inset-0 bg-background/60 backdrop-blur-sm"
         onClick={onClose}
       />
 
       {/* Dialog */}
       {/* 对话框 */}
-      <div className="relative bg-card rounded-xl shadow-2xl border border-border w-full max-w-md p-6 animate-in fade-in zoom-in-95 duration-200">
+      <div className="relative app-wallpaper-panel-strong rounded-xl shadow-2xl border border-border w-full max-w-md p-6 animate-in fade-in zoom-in-95 duration-200">
         {/* Icon */}
         {/* 图标 */}
         <div className="flex justify-center mb-4">
@@ -79,13 +79,13 @@ export function UnsavedChangesDialog({
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 h-10 px-4 rounded-lg border border-border bg-background hover:bg-muted transition-colors text-sm font-medium"
+            className="flex-1 h-10 px-4 rounded-lg border border-border app-wallpaper-surface hover:bg-accent transition-colors text-sm font-medium text-foreground"
           >
             {t("common.cancel", "取消")}
           </button>
           <button
             onClick={onDiscard}
-            className="flex-1 h-10 px-4 rounded-lg border border-border bg-background hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 transition-colors text-sm font-medium"
+            className="flex-1 h-10 px-4 rounded-lg border border-border app-wallpaper-surface hover:bg-destructive/10 text-destructive transition-colors text-sm font-medium"
           >
             {t("prompt.discardChanges", "不保存")}
           </button>

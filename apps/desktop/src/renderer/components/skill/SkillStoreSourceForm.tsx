@@ -39,7 +39,7 @@ export function SkillStoreSourceForm({
   typeOptions,
 }: SkillStoreSourceFormProps) {
   return (
-    <div className="space-y-4 bg-card border border-border rounded-2xl p-4">
+    <div className="space-y-4 app-wallpaper-surface border border-border rounded-2xl p-4">
       <div className="space-y-2">
         <div className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
           {t("skill.storeSourceType", "Store Type")}

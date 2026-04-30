@@ -3,8 +3,8 @@ import {
   CheckSquareIcon,
   CopyPlusIcon,
   DownloadIcon,
-  FileJsonIcon,
   FileTextIcon,
+  PackageIcon,
   FolderOpenIcon,
   GithubIcon,
   LinkIcon,
@@ -21,7 +21,7 @@ import { getRuntimeCapabilities } from "../../runtime";
 
 interface SkillPlatformPanelProps {
   availablePlatforms: SkillPlatform[];
-  handleExport: (format: "skillmd" | "json") => void;
+  handleExport: (format: "skillmd" | "zip") => void;
   installMode: "copy" | "symlink";
   installProgress: { current: number; total: number } | null;
   isBatchInstalling: boolean;
@@ -75,7 +75,7 @@ export function SkillPlatformPanel({
         </h3>
 
         {showPlatformIntegration && availablePlatforms.length > 0 && (
-          <section className="bg-card rounded-2xl border border-border p-5 space-y-4">
+          <section className="app-wallpaper-panel rounded-2xl border border-border p-5 space-y-4">
           <div className="flex items-center gap-1 p-1 bg-accent/50 rounded-lg">
             <button
               onClick={() => setInstallMode("copy")}
@@ -230,7 +230,7 @@ export function SkillPlatformPanel({
           </section>
         )}
 
-        <section className="bg-card rounded-2xl border border-border p-5 space-y-4">
+        <section className="app-wallpaper-panel rounded-2xl border border-border p-5 space-y-4">
           <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-[0.2em]">
             {t("skill.metadata")}
           </h3>
@@ -263,7 +263,7 @@ export function SkillPlatformPanel({
           </div>
         </section>
 
-        <section className="bg-card rounded-2xl border border-border p-5 space-y-4">
+        <section className="app-wallpaper-panel rounded-2xl border border-border p-5 space-y-4">
           <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-[0.2em]">
             {t("skill.export")}
           </h3>
@@ -276,11 +276,11 @@ export function SkillPlatformPanel({
               <span className="font-medium text-xs">SKILL.md</span>
             </button>
             <button
-              onClick={() => handleExport("json")}
+              onClick={() => handleExport("zip")}
               className="flex flex-col items-center gap-1 p-3 bg-accent/50 hover:bg-accent border border-border rounded-xl transition-colors"
             >
-              <FileJsonIcon className="w-5 h-5 text-primary" />
-              <span className="font-medium text-xs">JSON</span>
+              <PackageIcon className="w-5 h-5 text-primary" />
+              <span className="font-medium text-xs">ZIP</span>
             </button>
           </div>
         </section>

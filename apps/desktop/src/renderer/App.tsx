@@ -4,6 +4,10 @@ import { Sidebar, TopBar, MainContent, TitleBar } from "./components/layout";
 import { usePromptStore } from "./stores/prompt.store";
 import { useFolderStore } from "./stores/folder.store";
 import { useSettingsStore } from "./stores/settings.store";
+import {
+  getRenderedBackgroundImageBlur,
+  getRenderedBackgroundImageOpacity,
+} from "./stores/settings.store";
 import { initDatabase, migrateLegacyIndexedDbToMainProcess } from "./services/database";
 import { ImportedPromptData } from "./components/prompt/ImportPromptModal";
 import { autoSync } from "./services/webdav";
@@ -26,6 +30,7 @@ import i18n from "./i18n";
 import { UpdateDialog, UpdateStatus } from "./components/UpdateDialog";
 import { CloseDialog } from "./components/ui/CloseDialog";
 import { DataRecoveryDialog } from "./components/ui/DataRecoveryDialog";
+import { LocalImage } from "./components/ui/LocalImage";
 import { isWebRuntime } from "./runtime";
 
 // Lazy load heavy components for better initial load performance
@@ -54,6 +59,15 @@ function App() {
   const selectedIds = usePromptStore((state) => state.selectedIds);
   const applyTheme = useSettingsStore((state) => state.applyTheme);
   const inferUpdateChannel = useSettingsStore((state) => state.inferUpdateChannel);
+  const backgroundImageFileName = useSettingsStore(
+    (state) => state.backgroundImageFileName,
+  );
+  const backgroundImageOpacity = useSettingsStore(
+    (state) => state.backgroundImageOpacity,
+  );
+  const backgroundImageBlur = useSettingsStore(
+    (state) => state.backgroundImageBlur,
+  );
   const debugMode = useSettingsStore((state) => state.debugMode);
   const shortcutModes = useSettingsStore((state) => state.shortcutModes);
   const [currentPage, setCurrentPage] = useState<PageType>("home");
@@ -104,6 +118,13 @@ function App() {
   // 局部快捷键状态
   const [localShortcuts, setLocalShortcuts] = useState<Record<string, string>>(
     {},
+  );
+  const normalizedBackgroundImageFileName = backgroundImageFileName?.trim();
+  const hasBackgroundImage =
+    !isWebRuntime() && typeof normalizedBackgroundImageFileName === "string";
+  const renderedBackgroundBlur = getRenderedBackgroundImageBlur(backgroundImageBlur);
+  const renderedBackgroundImageOpacity = getRenderedBackgroundImageOpacity(
+    backgroundImageOpacity,
   );
 
   useEffect(() => {
@@ -844,92 +865,127 @@ function App() {
 
   return (
     <DndContext onDragEnd={handleDragEnd} collisionDetection={pointerWithin}>
-      <div className="flex flex-col h-screen bg-background text-foreground overflow-hidden">
-        {/* Windows title bar */}
-        {/* Windows 标题栏 */}
-        {!isWebRuntime() && <TitleBar />}
-
-        <div className="flex flex-1 overflow-y-hidden overflow-x-visible">
-          {/* Sidebar */}
-          {/* 侧边栏 */}
-          <Sidebar currentPage={currentPage} onNavigate={setCurrentPage} />
-
-          {/* Main content */}
-          {/* 主内容区 */}
-          <div className="flex flex-1 flex-col overflow-hidden">
-            {/* Top bar */}
-            {/* 顶部栏 */}
-            <TopBar
-              onOpenSettings={() => setCurrentPage("settings")}
-              updateAvailable={updateAvailable}
-              onShowUpdateDialog={() => setShowUpdateDialog(true)}
-            />
-
-            {/* Page content */}
-            {/* 页面内容 */}
-            {currentPage === "home" ? (
-              <MainContent />
-            ) : (
-              <Suspense
-                fallback={
-                  <div className="flex-1 flex items-center justify-center">
-                    <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                  </div>
-                }
-              >
-                <SettingsPage onBack={() => setCurrentPage("home")} />
-              </Suspense>
-            )}
-          </div>
-        </div>
-
-        <UpdateDialog
-          isOpen={showUpdateDialog}
-          onClose={() => setShowUpdateDialog(false)}
-          initialStatus={initialUpdateStatus}
-        />
-
-        {/* Windows close dialog */}
-        {/* Windows 关闭对话框 */}
-        <CloseDialog
-          isOpen={showCloseDialog}
-          onClose={() => setShowCloseDialog(false)}
-        />
-
-        {/* Data recovery dialog */}
-        <DataRecoveryDialog
-          isOpen={showRecoveryDialog}
-          onClose={() => setShowRecoveryDialog(false)}
-          databases={recoverableDatabases}
-        />
-
-        {/* Use EditPromptModal for importing, passing clipboard data as initialData */}
-        {showImportModal && (
-          <Suspense fallback={null}>
-            <EditPromptModal
-              isOpen={showImportModal}
-              onClose={() => {
-                setShowImportModal(false);
-                setImportData(null);
+      <div
+        className={`relative flex flex-col h-screen bg-background text-foreground overflow-hidden ${
+          hasBackgroundImage ? "app-background-mode-image" : ""
+        }`}
+      >
+        {hasBackgroundImage ? (
+          <>
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 z-0 overflow-hidden"
+              style={{
+                opacity: renderedBackgroundImageOpacity,
+                filter: `blur(${renderedBackgroundBlur}px)`,
+                transform: renderedBackgroundBlur > 0 ? "scale(1.03)" : undefined,
               }}
-              initialData={
-                importData
-                  ? {
-                      title: importData.name || importData.title,
-                      description: importData.description,
-                      promptType: importData.promptType,
-                      userPrompt: importData.userPrompt,
-                      systemPrompt: importData.systemPrompt,
-                      userPromptEn: importData.userPromptEn,
-                      systemPromptEn: importData.systemPromptEn,
-                      tags: importData.tags,
-                      source: importData.source || "clipboard",
-                    }
-                  : undefined
-              }
+            >
+              <LocalImage
+                src={normalizedBackgroundImageFileName!}
+                alt="App background"
+                className="h-full w-full object-cover object-center"
+                fallbackClassName="h-full w-full"
+              />
+            </div>
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 z-0 app-wallpaper-blanket"
             />
-          </Suspense>
-        )}
+          </>
+        ) : null}
+
+        <div
+          className={`relative z-10 flex flex-col h-screen overflow-hidden ${
+            hasBackgroundImage ? "app-wallpaper-shell" : ""
+          }`}
+        >
+          {/* Windows title bar */}
+          {/* Windows 标题栏 */}
+          {!isWebRuntime() && <TitleBar />}
+
+          <div className="flex flex-1 overflow-y-hidden overflow-x-visible">
+            {/* Sidebar */}
+            {/* 侧边栏 */}
+            <Sidebar currentPage={currentPage} onNavigate={setCurrentPage} />
+
+            {/* Main content */}
+            {/* 主内容区 */}
+            <div className="flex flex-1 flex-col overflow-hidden">
+              {/* Top bar */}
+              {/* 顶部栏 */}
+              <TopBar
+                onOpenSettings={() => setCurrentPage("settings")}
+                updateAvailable={updateAvailable}
+                onShowUpdateDialog={() => setShowUpdateDialog(true)}
+              />
+
+              {/* Page content */}
+              {/* 页面内容 */}
+              {currentPage === "home" ? (
+                <MainContent />
+              ) : (
+                <Suspense
+                  fallback={
+                    <div className="flex-1 flex items-center justify-center">
+                      <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                    </div>
+                  }
+                >
+                  <SettingsPage onBack={() => setCurrentPage("home")} />
+                </Suspense>
+              )}
+            </div>
+          </div>
+
+          <UpdateDialog
+            isOpen={showUpdateDialog}
+            onClose={() => setShowUpdateDialog(false)}
+            initialStatus={initialUpdateStatus}
+          />
+
+          {/* Windows close dialog */}
+          {/* Windows 关闭对话框 */}
+          <CloseDialog
+            isOpen={showCloseDialog}
+            onClose={() => setShowCloseDialog(false)}
+          />
+
+          {/* Data recovery dialog */}
+          <DataRecoveryDialog
+            isOpen={showRecoveryDialog}
+            onClose={() => setShowRecoveryDialog(false)}
+            databases={recoverableDatabases}
+          />
+
+          {/* Use EditPromptModal for importing, passing clipboard data as initialData */}
+          {showImportModal && (
+            <Suspense fallback={null}>
+              <EditPromptModal
+                isOpen={showImportModal}
+                onClose={() => {
+                  setShowImportModal(false);
+                  setImportData(null);
+                }}
+                initialData={
+                  importData
+                    ? {
+                        title: importData.name || importData.title,
+                        description: importData.description,
+                        promptType: importData.promptType,
+                        userPrompt: importData.userPrompt,
+                        systemPrompt: importData.systemPrompt,
+                        userPromptEn: importData.userPromptEn,
+                        systemPromptEn: importData.systemPromptEn,
+                        tags: importData.tags,
+                        source: importData.source || "clipboard",
+                      }
+                    : undefined
+                }
+              />
+            </Suspense>
+          )}
+        </div>
       </div>
     </DndContext>
   );

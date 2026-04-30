@@ -66,6 +66,7 @@ import {
   listLocalRepoFilesByPath,
   readLocalRepoFile,
   readLocalRepoFileByPath,
+  readLocalRepoFileBuffersByPath,
   readLocalRepoFiles,
   readLocalRepoFilesByPath,
   renameManagedLocalRepo,
@@ -118,6 +119,7 @@ export class SkillInstaller {
   static saveContentToLocalRepo = saveContentToLocalRepo;
   static readLocalRepoFiles = readLocalRepoFiles;
   static readLocalRepoFilesByPath = readLocalRepoFilesByPath;
+  static readLocalRepoFileBuffersByPath = readLocalRepoFileBuffersByPath;
   static listLocalRepoFiles = listLocalRepoFiles;
   static listLocalRepoFilesByPath = listLocalRepoFilesByPath;
   static readLocalRepoFile = readLocalRepoFile;

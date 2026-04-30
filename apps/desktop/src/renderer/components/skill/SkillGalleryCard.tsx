@@ -45,7 +45,7 @@ function SkillGalleryCardComponent({
         contentVisibility: "auto",
         containIntrinsicSize: "220px",
       }}
-      className={`group relative bg-card border rounded-2xl p-5 transition-all cursor-pointer animate-in fade-in slide-in-from-bottom-4 ${
+      className={`group relative app-wallpaper-panel border rounded-2xl p-5 transition-all cursor-pointer animate-in fade-in slide-in-from-bottom-4 ${
         isSelectionMode
           ? isSelected
             ? "border-primary bg-primary/5 shadow-lg shadow-primary/10"

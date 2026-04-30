@@ -4,6 +4,7 @@ import i18n, { changeLanguage } from "../i18n";
 import type { Settings } from "@prompthub/shared/types";
 import type { UpdateChannel } from "@prompthub/shared/types";
 import { isPrereleaseVersion } from "../../utils/version";
+import { resolveLocalImageSrc } from "../utils/media-url";
 
 const SUPPORTED_LANGUAGES = [
   "zh",
@@ -48,11 +49,82 @@ export const FONT_SIZES = [
 ];
 
 const DEFAULT_TAGS_SECTION_HEIGHT = 140;
+const DEFAULT_BACKGROUND_IMAGE_OPACITY = 1;
+const DEFAULT_BACKGROUND_IMAGE_BLUR = 0;
+const DEFAULT_BACKGROUND_IMAGE_ENTRY_OPACITY = 0.88;
+const DEFAULT_BACKGROUND_IMAGE_ENTRY_BLUR = 16;
+const LEGACY_BACKGROUND_IMAGE_BLUR_DEFAULT = 14;
 
 type Hs = { hue: number; saturation: number };
 
 const clamp = (n: number, min: number, max: number): number =>
   Math.max(min, Math.min(max, n));
+
+function clampBackgroundImageOpacity(value: number): number {
+  if (!Number.isFinite(value)) {
+    return DEFAULT_BACKGROUND_IMAGE_OPACITY;
+  }
+  return clamp(Number(value), 0, 1);
+}
+
+function clampBackgroundImageBlur(value: number): number {
+  if (!Number.isFinite(value)) {
+    return DEFAULT_BACKGROUND_IMAGE_BLUR;
+  }
+  return Number(clamp(Number(value), 0, 50).toFixed(1));
+}
+
+function normalizeBackgroundImageBlur(value: number, persistedVersion?: number): number {
+  const normalized = clampBackgroundImageBlur(value);
+
+  // Migrate older installs that are still using the old heavy default blur.
+  if ((persistedVersion ?? 0) < 6 && normalized === LEGACY_BACKGROUND_IMAGE_BLUR_DEFAULT) {
+    return DEFAULT_BACKGROUND_IMAGE_BLUR;
+  }
+
+  return normalized;
+}
+
+export function getRenderedBackgroundImageOpacity(value: number): number {
+  return clamp(value, 0, 1);
+}
+
+export function getRenderedBackgroundImageBlur(value: number): number {
+  return clampBackgroundImageBlur(value);
+}
+
+function applyBackgroundImageVars(options: {
+  backgroundImageFileName?: string;
+  backgroundImageOpacity?: number;
+  backgroundImageBlur?: number;
+}): void {
+  if (typeof document === "undefined") {
+    return;
+  }
+
+  const root = document.documentElement;
+  const fileName = options.backgroundImageFileName?.trim();
+  const resolvedSrc = fileName ? resolveLocalImageSrc(fileName) : "";
+
+  root.style.setProperty(
+    "--app-background-image",
+    resolvedSrc ? `url(\"${resolvedSrc.replace(/\"/g, '\\\"')}\")` : "none",
+  );
+  root.style.setProperty(
+    "--app-background-opacity",
+    String(
+      clampBackgroundImageOpacity(
+        options.backgroundImageOpacity ?? DEFAULT_BACKGROUND_IMAGE_OPACITY,
+      ),
+    ),
+  );
+  root.style.setProperty(
+    "--app-background-blur",
+    `${clampBackgroundImageBlur(
+      options.backgroundImageBlur ?? DEFAULT_BACKGROUND_IMAGE_BLUR,
+    )}px`,
+  );
+}
 
 /**
  * Convert HEX color to HSL hue/saturation (lightness is defined by CSS variables)
@@ -170,6 +242,9 @@ interface SettingsState {
   settingsUpdatedAt: string; // Settings last update time (used for WebDAV/backup consistency check)
   // 设置最后更新时间（用于 WebDAV/备份一致性判断）
   fontSize: string;
+  backgroundImageFileName?: string;
+  backgroundImageOpacity: number;
+  backgroundImageBlur: number;
   renderMarkdown: boolean; // Default use Markdown rendering in detail page
   // 详情页默认使用 Markdown 渲染
   editorMarkdownPreview: boolean; // Editor default enable preview
@@ -295,6 +370,10 @@ interface SettingsState {
   setCustomThemeHex: (hex: string) => void;
   setClipboardImportEnabled: (enabled: boolean) => void;
   setFontSize: (size: string) => void;
+  applyBackgroundImageSelection: (fileName: string) => void;
+  setBackgroundImageFileName: (fileName?: string) => void;
+  setBackgroundImageOpacity: (opacity: number) => void;
+  setBackgroundImageBlur: (blur: number) => void;
   setRenderMarkdown: (enabled: boolean) => void;
   setEditorMarkdownPreview: (enabled: boolean) => void;
   setAutoSave: (enabled: boolean) => void;
@@ -403,6 +482,9 @@ export const useSettingsStore = create<SettingsState>()(
         customThemeHex: "#3b82f6",
         settingsUpdatedAt: new Date().toISOString(),
         fontSize: "medium",
+        backgroundImageFileName: undefined,
+        backgroundImageOpacity: DEFAULT_BACKGROUND_IMAGE_OPACITY,
+        backgroundImageBlur: DEFAULT_BACKGROUND_IMAGE_BLUR,
         renderMarkdown: true,
         editorMarkdownPreview: false,
         autoSave: true,
@@ -566,6 +648,66 @@ export const useSettingsStore = create<SettingsState>()(
               `${fontConfig.value}px`,
             );
           }
+        },
+
+        applyBackgroundImageSelection: (fileName) => {
+          const normalized =
+            typeof fileName === "string" && fileName.trim().length > 0
+              ? fileName.trim()
+              : undefined;
+          if (!normalized) {
+            return;
+          }
+
+          const currentFileName = get().backgroundImageFileName?.trim();
+          const isEnteringImageMode = !currentFileName;
+          const nextOpacity = isEnteringImageMode
+            ? DEFAULT_BACKGROUND_IMAGE_ENTRY_OPACITY
+            : get().backgroundImageOpacity;
+          const nextBlur = isEnteringImageMode
+            ? DEFAULT_BACKGROUND_IMAGE_ENTRY_BLUR
+            : get().backgroundImageBlur;
+
+          setTouched({
+            backgroundImageFileName: normalized,
+            backgroundImageOpacity: nextOpacity,
+            backgroundImageBlur: nextBlur,
+          });
+          applyBackgroundImageVars({
+            backgroundImageFileName: normalized,
+            backgroundImageOpacity: nextOpacity,
+            backgroundImageBlur: nextBlur,
+          });
+        },
+        setBackgroundImageFileName: (fileName) => {
+          const normalized =
+            typeof fileName === "string" && fileName.trim().length > 0
+              ? fileName.trim()
+              : undefined;
+          setTouched({ backgroundImageFileName: normalized });
+          applyBackgroundImageVars({
+            backgroundImageFileName: normalized,
+            backgroundImageOpacity: get().backgroundImageOpacity,
+            backgroundImageBlur: get().backgroundImageBlur,
+          });
+        },
+        setBackgroundImageOpacity: (opacity) => {
+          const normalized = clampBackgroundImageOpacity(opacity);
+          setTouched({ backgroundImageOpacity: normalized });
+          applyBackgroundImageVars({
+            backgroundImageFileName: get().backgroundImageFileName,
+            backgroundImageOpacity: normalized,
+            backgroundImageBlur: get().backgroundImageBlur,
+          });
+        },
+        setBackgroundImageBlur: (blur) => {
+          const normalized = clampBackgroundImageBlur(blur);
+          setTouched({ backgroundImageBlur: normalized });
+          applyBackgroundImageVars({
+            backgroundImageFileName: get().backgroundImageFileName,
+            backgroundImageOpacity: get().backgroundImageOpacity,
+            backgroundImageBlur: normalized,
+          });
         },
 
         setClipboardImportEnabled: (enabled) =>
@@ -830,6 +972,7 @@ export const useSettingsStore = create<SettingsState>()(
               `${fontConfig.value}px`,
             );
           }
+          applyBackgroundImageVars(state);
           // Initialize tray status
           // 初始化托盘状态
           if (state.minimizeOnLaunch) {
@@ -922,8 +1065,8 @@ export const useSettingsStore = create<SettingsState>()(
     },
     {
       name: "prompthub-settings",
-      version: 4,
-      migrate: (state) => {
+      version: 6,
+      migrate: (state, version) => {
         if (!state || typeof state !== "object") {
           return state as SettingsState;
         }
@@ -965,9 +1108,33 @@ export const useSettingsStore = create<SettingsState>()(
         if (typeof next.updateChannelExplicitlySet !== "boolean") {
           next.updateChannelExplicitlySet = false;
         }
+        if (
+          typeof next.backgroundImageFileName !== "string" ||
+          next.backgroundImageFileName.trim().length === 0
+        ) {
+          next.backgroundImageFileName = undefined;
+        } else {
+          next.backgroundImageFileName = next.backgroundImageFileName.trim();
+        }
+        next.backgroundImageOpacity = clampBackgroundImageOpacity(
+          typeof next.backgroundImageOpacity === "number"
+            ? next.backgroundImageOpacity
+            : DEFAULT_BACKGROUND_IMAGE_OPACITY,
+        );
+        next.backgroundImageBlur = normalizeBackgroundImageBlur(
+          typeof next.backgroundImageBlur === "number"
+            ? next.backgroundImageBlur
+            : DEFAULT_BACKGROUND_IMAGE_BLUR,
+          version,
+        );
         return next;
       },
       onRehydrateStorage: () => (state) => {
+        applyBackgroundImageVars({
+          backgroundImageFileName: state?.backgroundImageFileName,
+          backgroundImageOpacity: state?.backgroundImageOpacity,
+          backgroundImageBlur: state?.backgroundImageBlur,
+        });
         syncSettingsToMain({
           customSkillPlatformPaths: state?.customSkillPlatformPaths || {},
           skillPlatformOrder: state?.skillPlatformOrder || [],

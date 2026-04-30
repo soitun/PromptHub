@@ -75,7 +75,7 @@ const GalleryCard = memo(({
 
     return (
         <div
-            className="group relative flex flex-col bg-card rounded-xl overflow-hidden border border-border hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer h-full"
+            className="group relative flex flex-col app-wallpaper-panel rounded-xl overflow-hidden border border-border hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer h-full"
             onClick={onSelect}
         >
             {/* Image / Video / Placeholder Area */}

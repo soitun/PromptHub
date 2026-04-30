@@ -26,7 +26,7 @@ export function SkillCodePane({
         <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-[0.2em]">
           {t("skill.metadata")}
         </h3>
-        <div className="rounded-2xl border border-border bg-card p-4">
+        <div className="rounded-2xl border border-border app-wallpaper-surface p-4">
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             <div>
               <div className="text-[11px] font-medium text-muted-foreground">{t("skill.id")}</div>
@@ -62,7 +62,7 @@ export function SkillCodePane({
           }}
           target={sourceMeta.kind === "local" ? undefined : "_blank"}
           rel={sourceMeta.kind === "local" ? undefined : "noreferrer"}
-          className="grid grid-cols-[auto,minmax(0,1fr)] items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 text-left transition-colors hover:bg-accent"
+          className="grid grid-cols-[auto,minmax(0,1fr)] items-center gap-3 rounded-2xl border border-border app-wallpaper-surface px-4 py-3 text-left transition-colors hover:bg-accent"
           title={sourceMeta.displayValue}
         >
           <div className="text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">
@@ -96,7 +96,7 @@ export function SkillCodePane({
             </button>
           )}
         </div>
-        <div className="bg-card border border-border rounded-2xl overflow-hidden">
+        <div className="app-wallpaper-panel border border-border rounded-2xl overflow-hidden">
           {skillContent.trim() ? (
             <pre className="p-5 text-xs font-mono text-foreground/80 overflow-x-auto whitespace-pre-wrap break-words max-h-[68vh] overflow-y-auto">
               {skillContent}

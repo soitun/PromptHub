@@ -3,6 +3,7 @@ import { KeyIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useToast } from "../ui/Toast";
 import { SettingSection, PasswordInput } from "./shared";
+import { SkillSafetySettingsSection } from "./SkillSettings";
 
 export function SecuritySettings() {
   const { t } = useTranslation();
@@ -279,6 +280,8 @@ export function SecuritySettings() {
           </p>
         </div>
       </SettingSection>
+
+      <SkillSafetySettingsSection />
     </div>
   );
 }

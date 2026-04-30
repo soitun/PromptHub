@@ -80,7 +80,7 @@ export function SkillBatchTagDialog({
               className={`rounded-xl border px-3 py-3 text-left transition-colors ${
                 mode === value
                   ? "border-primary/40 bg-primary/5 text-primary"
-                  : "border-border bg-card hover:border-primary/25"
+                  : "border-border app-wallpaper-surface hover:border-primary/25"
               }`}
             >
               <div className="text-sm font-medium">{label}</div>
@@ -106,7 +106,7 @@ export function SkillBatchTagDialog({
               "skill.enterTagHint",
               "Enter new tag and press Enter",
             )}
-            className="h-11 w-full rounded-xl border border-border bg-card px-3 text-sm outline-none transition-colors focus:border-primary/40"
+            className="h-11 w-full rounded-xl border border-border app-wallpaper-surface px-3 text-sm outline-none transition-colors focus:border-primary/40"
           />
           <div className="text-xs text-muted-foreground">
             {t("skill.batchTagAffected", {
@@ -127,7 +127,7 @@ export function SkillBatchTagDialog({
                   key={tag}
                   type="button"
                   onClick={() => setTagInput(tag)}
-                  className="rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/25 hover:text-foreground"
+                  className="rounded-full border border-border app-wallpaper-surface px-3 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/25 hover:text-foreground"
                 >
                   {tag}
                 </button>

@@ -401,7 +401,7 @@ export function TopBar({
   return (
     <>
       <header
-        className="h-12 bg-card border-b border-border flex items-center px-4 shrink-0"
+        className="h-12 app-wallpaper-panel-strong border-b border-border flex items-center px-4 shrink-0"
         style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
       >
         <div
@@ -437,7 +437,7 @@ export function TopBar({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={handleKeyDown}
-              className="w-full h-9 pl-9 pr-32 rounded-lg bg-muted/50 border-0 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all"
+              className="w-full h-9 pl-9 pr-32 rounded-lg app-wallpaper-surface-strong border text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all"
               style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
             />
             {/* 右侧控件：结果计数 + 导航按钮 + 清除按钮 */}
@@ -457,14 +457,14 @@ export function TopBar({
                   <>
                     <button
                       onClick={() => navigateResult("prev")}
-                      className="p-1 rounded hover:bg-muted transition-colors"
+                      className="p-1 rounded hover:bg-accent/60 transition-colors"
                       title={t("header.prevResult", "上一个 (Shift+Tab)")}
                     >
                       <ChevronUpIcon className="w-3.5 h-3.5 text-muted-foreground" />
                     </button>
                     <button
                       onClick={() => navigateResult("next")}
-                      className="p-1 rounded hover:bg-muted transition-colors"
+                      className="p-1 rounded hover:bg-accent/60 transition-colors"
                       title={t("header.nextResult", "下一个 (Tab)")}
                     >
                       <ChevronDownIcon className="w-3.5 h-3.5 text-muted-foreground" />
@@ -474,7 +474,7 @@ export function TopBar({
                 {/* 清除按钮 */}
                 <button
                   onClick={() => setSearchQuery("")}
-                  className="p-1 rounded hover:bg-muted transition-colors"
+                    className="p-1 rounded hover:bg-accent/60 transition-colors"
                   title={t("header.clearSearch", "清除搜索")}
                 >
                   <XIcon className="w-3.5 h-3.5 text-muted-foreground" />
@@ -554,7 +554,7 @@ export function TopBar({
                 </button>
 
                 {isCreateMenuOpen && (
-                  <div className="absolute top-full right-0 mt-1 w-48 bg-popover rounded-lg border border-border shadow-lg p-1 z-50 animate-in fade-in zoom-in-95 duration-100">
+                  <div className="absolute top-full right-0 mt-1 w-48 rounded-lg border border-border app-wallpaper-panel-strong p-1 z-50 animate-in fade-in zoom-in-95 duration-100">
                     <button
                       onClick={() => {
                         useSettingsStore.getState().setCreationMode("manual");
@@ -610,7 +610,7 @@ export function TopBar({
           {/* 主题切换 */}
           <button
             onClick={toggleTheme}
-            className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/60 transition-colors"
             style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
           >
             {isDarkMode ? (
@@ -623,7 +623,7 @@ export function TopBar({
           {webRuntime && (
             <button
               onClick={() => void logoutWebSession()}
-              className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground"
               style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
               title={t("settings.signOut")}
             >

@@ -225,7 +225,7 @@ export function PromptEditor({ prompt, onSave, onCancel }: PromptEditorProps) {
   return (
     <div className="h-full flex flex-col">
       {/* 工具栏 */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-card/50">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-border app-wallpaper-surface">
         <h2 className="text-lg font-semibold">{t('prompt.editPrompt')}</h2>
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm" onClick={onCancel}>
@@ -424,7 +424,7 @@ export function PromptEditor({ prompt, onSave, onCancel }: PromptEditorProps) {
                 className="min-h-[200px]"
               />
             ) : (
-              <div className="p-4 rounded-xl bg-card border border-border text-[15px] leading-[1.7] markdown-content break-words space-y-3 min-h-[200px]">
+              <div className="p-4 rounded-xl app-wallpaper-panel border border-border text-[15px] leading-[1.7] markdown-content break-words space-y-3 min-h-[200px]">
                 {userPrompt ? (
                   <ReactMarkdown
                     remarkPlugins={[remarkGfm]}
@@ -466,7 +466,7 @@ export function PromptEditor({ prompt, onSave, onCancel }: PromptEditorProps) {
                 ))}
               </div>
 
-              <div className="p-4 rounded-xl bg-card border border-border">
+              <div className="p-4 rounded-xl app-wallpaper-panel border border-border">
                 <p className="text-xs text-muted-foreground mb-2">{t('prompt.previewResult')}:</p>
                 <pre className="text-sm font-mono whitespace-pre-wrap">{generatePreview()}</pre>
               </div>

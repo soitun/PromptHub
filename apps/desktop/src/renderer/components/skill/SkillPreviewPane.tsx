@@ -61,7 +61,7 @@ export function SkillPreviewPane({
         <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-[0.2em] flex items-center gap-2">
           {t("skill.skillDescription", "技能描述")}
         </h3>
-        <div className="bg-card rounded-2xl border border-border p-5 space-y-4">
+        <div className="app-wallpaper-panel rounded-2xl border border-border p-5 space-y-4">
           {showTranslation && cachedDescriptionTranslation ? (
             <p className="text-sm text-primary/80 leading-relaxed italic">
               {cachedDescriptionTranslation}
@@ -155,7 +155,7 @@ export function SkillPreviewPane({
           </div>
         </div>
 
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border app-wallpaper-panel shadow-sm">
           <div className="skill-markdown-body min-h-0 flex-1 overflow-y-auto overscroll-contain p-6">
             <SkillRenderBoundary
               compact

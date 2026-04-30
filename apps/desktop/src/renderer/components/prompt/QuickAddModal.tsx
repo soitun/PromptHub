@@ -214,7 +214,7 @@ ${tagsString}
         onClick={handleCloseRequest}
       />
 
-      <div className="relative w-full max-w-2xl mx-4 bg-card rounded-2xl shadow-2xl border border-border overflow-hidden">
+      <div className="relative w-full max-w-2xl mx-4 app-wallpaper-panel-strong rounded-2xl shadow-2xl border border-border overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <div className="flex items-center gap-2">
             <SparklesIcon className="w-5 h-5 text-primary" />

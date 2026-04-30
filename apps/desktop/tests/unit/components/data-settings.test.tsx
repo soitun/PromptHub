@@ -15,6 +15,7 @@ import {
 
 const useSettingsStoreMock = vi.fn();
 const useToastMock = vi.fn();
+const useSkillStoreMock = vi.fn();
 
 vi.mock("../../../src/renderer/stores/settings.store", () => ({
   useSettingsStore: () => useSettingsStoreMock(),
@@ -22,6 +23,15 @@ vi.mock("../../../src/renderer/stores/settings.store", () => ({
 
 vi.mock("../../../src/renderer/components/ui/Toast", () => ({
   useToast: () => useToastMock(),
+}));
+
+vi.mock("../../../src/renderer/stores/skill.store", () => ({
+  useSkillStore: (selector?: (state: unknown) => unknown) => {
+    const state = {
+      scanInstalledSkillSafety: useSkillStoreMock,
+    };
+    return typeof selector === "function" ? selector(state) : state;
+  },
 }));
 
 vi.mock("../../../src/renderer/services/database-backup", () => ({
@@ -57,8 +67,20 @@ vi.mock("../../../src/renderer/services/upgrade-backup", () => ({
 
 function createSettingsState() {
   return {
+    aiModels: [],
     dataPath: "/stale/path",
     setDataPath: vi.fn(),
+    skillInstallMethod: "symlink",
+    setSkillInstallMethod: vi.fn(),
+    customSkillPlatformPaths: {},
+    setCustomSkillPlatformPath: vi.fn(),
+    resetCustomSkillPlatformPath: vi.fn(),
+    skillPlatformOrder: [],
+    setSkillPlatformOrder: vi.fn(),
+    resetSkillPlatformOrder: vi.fn(),
+    customSkillScanPaths: [],
+    addCustomSkillScanPath: vi.fn(),
+    removeCustomSkillScanPath: vi.fn(),
     webdavEnabled: false,
     setWebdavEnabled: vi.fn(),
     webdavUrl: "",
@@ -107,6 +129,12 @@ describe("DataSettings", () => {
     vi.restoreAllMocks();
     vi.clearAllMocks();
     originalCreateElement = document.createElement.bind(document);
+    useSkillStoreMock.mockResolvedValue({
+      total: 0,
+      blocked: 0,
+      highRisk: 0,
+      warn: 0,
+    });
 
     installWindowMocks({
       api: {
@@ -448,6 +476,93 @@ describe("DataSettings", () => {
     expect(
       screen.getByRole("button", { name: "Roll back to this snapshot" }),
     ).toBeInTheDocument();
+  });
+
+  it("shows only the latest three upgrade backups until expanded", async () => {
+    vi.mocked(listUpgradeBackups).mockResolvedValue([
+      {
+        backupId: "backup-1",
+        backupPath: "/tmp/PromptHub/backups/backup-1",
+        sizeBytes: 1024,
+        manifest: {
+          kind: "prompthub-upgrade-backup",
+          schemaVersion: 2,
+          createdAt: "2026-04-17T00:00:00.000Z",
+          fromVersion: "0.5.1",
+          toVersion: "0.5.2",
+          sourcePath: "/tmp/PromptHub",
+          copiedItems: ["prompthub.db"],
+          platform: "darwin",
+        },
+      },
+      {
+        backupId: "backup-2",
+        backupPath: "/tmp/PromptHub/backups/backup-2",
+        sizeBytes: 1024,
+        manifest: {
+          kind: "prompthub-upgrade-backup",
+          schemaVersion: 2,
+          createdAt: "2026-04-18T00:00:00.000Z",
+          fromVersion: "0.5.2",
+          toVersion: "0.5.3",
+          sourcePath: "/tmp/PromptHub",
+          copiedItems: ["prompthub.db"],
+          platform: "darwin",
+        },
+      },
+      {
+        backupId: "backup-3",
+        backupPath: "/tmp/PromptHub/backups/backup-3",
+        sizeBytes: 1024,
+        manifest: {
+          kind: "prompthub-upgrade-backup",
+          schemaVersion: 2,
+          createdAt: "2026-04-19T00:00:00.000Z",
+          fromVersion: "0.5.3",
+          toVersion: "0.5.4",
+          sourcePath: "/tmp/PromptHub",
+          copiedItems: ["prompthub.db"],
+          platform: "darwin",
+        },
+      },
+      {
+        backupId: "backup-4",
+        backupPath: "/tmp/PromptHub/backups/backup-4",
+        sizeBytes: 1024,
+        manifest: {
+          kind: "prompthub-upgrade-backup",
+          schemaVersion: 2,
+          createdAt: "2026-04-20T00:00:00.000Z",
+          fromVersion: "0.5.4",
+          toVersion: "0.5.5",
+          sourcePath: "/tmp/PromptHub",
+          copiedItems: ["prompthub.db"],
+          platform: "darwin",
+        },
+      },
+    ]);
+
+    await act(async () => {
+      await renderWithI18n(<DataSettings />, { language: "en" });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("4 rollback snapshot(s)")).toBeInTheDocument();
+    });
+
+    expect(
+      screen.getAllByRole("button", { name: "Roll back to this snapshot" }),
+    ).toHaveLength(3);
+    expect(screen.queryByText("0.5.4 -> 0.5.5")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Show all 4" }));
+
+    await waitFor(() => {
+      expect(
+        screen.getAllByRole("button", { name: "Roll back to this snapshot" }),
+      ).toHaveLength(4);
+    });
+    expect(screen.getByText("0.5.4 -> 0.5.5")).toBeInTheDocument();
   });
 
   it("confirms and restores an upgrade backup", async () => {

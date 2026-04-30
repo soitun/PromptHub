@@ -337,7 +337,7 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
   return (
     <aside
       ref={sidebarRef}
-      className={`group relative z-20 bg-sidebar border-r border-sidebar-border flex flex-col transition-all duration-300 ease-in-out ${isCollapsed ? (isMac ? 'w-20' : 'w-16') : 'w-60'
+      className={`group relative z-20 app-wallpaper-panel-strong border-r border-sidebar-border flex flex-col transition-all duration-300 ease-in-out ${isCollapsed ? (isMac ? 'w-20' : 'w-16') : 'w-60'
         }`}
     >
       {/* Top spacing - Extra padding for Mac traffic lights */}
@@ -350,7 +350,7 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
             setIsCollapsed(!isCollapsed);
             closeTagPopover();
           }}
-          className="h-12 w-7 rounded-full border border-border bg-background shadow-sm hover:shadow-md hover:bg-accent hover:text-accent-foreground flex items-center justify-center transition-all duration-200"
+          className="h-12 w-7 rounded-full border border-border app-wallpaper-surface shadow-sm hover:shadow-md hover:bg-accent hover:text-accent-foreground flex items-center justify-center transition-all duration-200"
           title={isCollapsed ? t('common.expand', '展开') : t('common.collapse', '收起')}
         >
           {isCollapsed ? (
@@ -381,7 +381,7 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
               relative flex items-center justify-center transition-all duration-300 z-10
               ${isCollapsed
                 ? `w-10 h-10 rounded-xl ${viewMode === 'prompt' ? 'bg-primary text-white shadow-lg' : 'text-sidebar-foreground/50 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'}` 
-                : `flex-1 py-1.5 gap-2 text-xs font-semibold rounded-lg ${viewMode === 'prompt' ? 'bg-background text-foreground shadow-sm' : 'text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-white/5'}`
+                : `flex-1 py-1.5 gap-2 text-xs font-semibold rounded-lg ${viewMode === 'prompt' ? 'app-wallpaper-surface text-foreground shadow-sm' : 'text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-white/5'}`
               }
             `}
           >
@@ -400,7 +400,7 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
               relative flex items-center justify-center transition-all duration-300 z-10
               ${isCollapsed
                 ? `w-10 h-10 rounded-xl ${viewMode === 'skill' ? 'bg-primary text-white shadow-lg' : 'text-sidebar-foreground/50 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'}` 
-                : `flex-1 py-1.5 gap-2 text-xs font-semibold rounded-lg ${viewMode === 'skill' ? 'bg-background text-foreground shadow-sm' : 'text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-white/5'}`
+                : `flex-1 py-1.5 gap-2 text-xs font-semibold rounded-lg ${viewMode === 'skill' ? 'app-wallpaper-surface text-foreground shadow-sm' : 'text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-white/5'}`
               }
             `}
           >
@@ -427,8 +427,8 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
                   }}
                   className={`flex flex-col items-center justify-center py-2 rounded-md transition-all duration-200 ${
                     selectedFolderId === null && currentPage === 'home' && promptTypeFilter === 'all'
-                      ? 'bg-background shadow-sm text-primary'
-                      : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground'
+                      ? 'app-wallpaper-surface-strong shadow-sm text-primary'
+                      : 'text-muted-foreground hover:bg-sidebar-accent app-background-mode-image:hover:bg-foreground/10 hover:text-foreground'
                   }`}
                   title={t('nav.allPrompts')}
                 >
@@ -443,8 +443,8 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
                   }}
                   className={`flex flex-col items-center justify-center py-2 rounded-md transition-all duration-200 ${
                     selectedFolderId === null && currentPage === 'home' && promptTypeFilter === 'text'
-                      ? 'bg-background shadow-sm text-primary'
-                      : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground'
+                      ? 'app-wallpaper-surface-strong shadow-sm text-primary'
+                      : 'text-muted-foreground hover:bg-sidebar-accent app-background-mode-image:hover:bg-foreground/10 hover:text-foreground'
                   }`}
                   title={t('nav.textPrompts', '文本提示词')}
                 >
@@ -459,8 +459,8 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
                   }}
                   className={`flex flex-col items-center justify-center py-2 rounded-md transition-all duration-200 ${
                     selectedFolderId === null && currentPage === 'home' && promptTypeFilter === 'image'
-                      ? 'bg-background shadow-sm text-primary'
-                      : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground'
+                      ? 'app-wallpaper-surface-strong shadow-sm text-primary'
+                      : 'text-muted-foreground hover:bg-sidebar-accent app-background-mode-image:hover:bg-foreground/10 hover:text-foreground'
                   }`}
                   title={t('nav.imagePrompts', '绘图提示词')}
                 >
@@ -544,7 +544,7 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
             </div>
           )}
           {isCollapsed && (
-            <div className="h-px bg-sidebar-border/50 my-2 mx-4 shrink-0" />
+            <div className="h-px app-wallpaper-panel-strong-border/50 my-2 mx-4 shrink-0" />
           )}
 
           <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide px-3 pb-4">
@@ -590,7 +590,7 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
         {/* Tags Section - Hard pinned to the bottom */}
         {uniqueTags.length > 0 && (
           <div 
-            className={`shrink-0 flex flex-col overflow-hidden bg-sidebar ${isCollapsed ? 'items-center' : ''}`}
+            className={`shrink-0 flex flex-col overflow-hidden app-wallpaper-panel-strong ${isCollapsed ? 'items-center' : ''}`}
             style={{ height: isCollapsed || isTagsCollapsed ? 'auto' : `${tagsSectionHeight}px` }}
           >
             {!isCollapsed && (
@@ -680,7 +680,7 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
             maxHeight: 'min(420px, calc(100vh - 24px))' 
           }}
         >
-          <div className="bg-card border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+          <div className="app-wallpaper-panel-strong border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col">
             <div className="flex items-center justify-between px-4 py-3 border-b border-border">
               <div className="text-sm font-medium text-foreground">
                 {t('nav.tags')}
@@ -718,7 +718,7 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
                       }}
                       className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${active
                         ? 'bg-primary text-white'
-                        : 'bg-muted text-foreground/80 hover:bg-primary hover:text-white'
+                        : 'app-wallpaper-surface text-foreground/80 hover:bg-primary hover:text-white'
                         }`}
                     >
                       <HashIcon className="w-4 h-4" />
@@ -795,7 +795,7 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
             )}
             {runtimeCapabilities.skillStore && (
               <>
-                <div className="h-px bg-sidebar-border/50 my-2" />
+                <div className="h-px app-wallpaper-panel-strong-border/50 my-2" />
                 <NavItem
                   icon={<StoreIcon className="w-5 h-5" />}
                   label={t('nav.skillStore', 'Skill 商店')}
@@ -931,7 +931,7 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
           {/* Tags Content */}
           {uniqueSkillTags.length > 0 && (
             <div 
-              className={`shrink-0 flex flex-col overflow-hidden bg-sidebar ${isCollapsed ? 'items-center' : ''}`}
+              className={`shrink-0 flex flex-col overflow-hidden app-wallpaper-panel-strong ${isCollapsed ? 'items-center' : ''}`}
               style={{ height: isCollapsed || isSkillTagsCollapsed ? 'auto' : `${skillTagsSectionHeight}px` }}
             >
               {!isCollapsed && (
@@ -1037,7 +1037,7 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
               maxHeight: 'min(420px, calc(100vh - 24px))' 
             }}
           >
-            <div className="bg-card border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+            <div className="app-wallpaper-panel-strong border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col">
               <div className="flex items-center justify-between px-4 py-3 border-b border-border">
                 <div className="text-sm font-medium text-foreground">
                   {t('nav.tags')}
@@ -1076,7 +1076,7 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
                         }}
                         className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${active
                           ? 'bg-primary text-white'
-                          : 'bg-muted text-foreground/80 hover:bg-primary hover:text-white'
+                          : 'app-wallpaper-surface text-foreground/80 hover:bg-primary hover:text-white'
                         }`}
                       >
                         <HashIcon className="w-4 h-4" />

@@ -204,7 +204,7 @@ export function SkillBatchDeployDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm">
-      <div className="flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-2xl">
+      <div className="flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-border app-wallpaper-panel-strong shadow-2xl">
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <div>
             <div className="flex items-center gap-2">
@@ -254,7 +254,7 @@ export function SkillBatchDeployDialog({
                     className={`rounded-xl border px-4 py-3 text-left transition-colors ${
                       actionMode === mode
                         ? "border-primary/40 bg-primary/5 text-primary"
-                        : "border-border bg-card hover:border-primary/25"
+                        : "border-border app-wallpaper-surface hover:border-primary/25"
                     }`}
                   >
                     <div className="text-sm font-medium">{label}</div>
@@ -279,7 +279,7 @@ export function SkillBatchDeployDialog({
                       className={`rounded-xl border px-4 py-3 text-left transition-colors ${
                         installMode === mode
                           ? "border-primary/40 bg-primary/5"
-                          : "border-border bg-card hover:border-primary/25"
+                          : "border-border app-wallpaper-surface hover:border-primary/25"
                       }`}
                     >
                       <div className="text-sm font-medium">
@@ -302,7 +302,7 @@ export function SkillBatchDeployDialog({
                   ))}
                 </div>
               ) : (
-                <div className="mt-3 rounded-xl border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
+                <div className="mt-3 rounded-xl border border-border app-wallpaper-surface px-4 py-3 text-sm text-muted-foreground">
                   {t(
                     "skill.batchUndeployHint",
                     "Removes corresponding skills from selected platform directories. Your local PromptHub repo is not affected.",
@@ -374,7 +374,7 @@ export function SkillBatchDeployDialog({
                           className={`flex items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-all ${
                             isSelected
                               ? "border-primary/40 bg-primary/5 shadow-sm shadow-primary/10"
-                              : "border-border bg-card hover:border-primary/25"
+                              : "border-border app-wallpaper-surface hover:border-primary/25"
                           }`}
                         >
                           <div className="rounded-xl bg-accent p-2">
@@ -414,7 +414,7 @@ export function SkillBatchDeployDialog({
                 {skills.map((skill) => (
                   <div
                     key={skill.id}
-                    className="flex items-center justify-between rounded-xl border border-border bg-card px-3 py-2"
+                    className="flex items-center justify-between rounded-xl border border-border app-wallpaper-surface px-3 py-2"
                   >
                     <div className="min-w-0">
                       <div className="truncate text-sm font-medium">
@@ -441,7 +441,7 @@ export function SkillBatchDeployDialog({
                 {t("skill.syncSummary", "Sync Summary")}
               </h3>
               <div className="mt-4 grid gap-2 grid-cols-3">
-                <div className="rounded-xl border border-border bg-card px-3 py-2">
+                <div className="rounded-xl border border-border app-wallpaper-surface px-3 py-2">
                   <div className="text-[10px] font-medium uppercase tracking-wide leading-tight text-muted-foreground">
                     {t("skill.selectedSkills", "Selected Skills")}
                   </div>
@@ -449,7 +449,7 @@ export function SkillBatchDeployDialog({
                     {skills.length}
                   </div>
                 </div>
-                <div className="rounded-xl border border-border bg-card px-3 py-2">
+                <div className="rounded-xl border border-border app-wallpaper-surface px-3 py-2">
                   <div className="text-[10px] font-medium uppercase tracking-wide leading-tight text-muted-foreground">
                     {t("skill.targetPlatforms", "Target Platforms")}
                   </div>
@@ -457,7 +457,7 @@ export function SkillBatchDeployDialog({
                     {selectedPlatforms.size}
                   </div>
                 </div>
-                <div className="rounded-xl border border-border bg-card px-3 py-2">
+                <div className="rounded-xl border border-border app-wallpaper-surface px-3 py-2">
                   <div className="text-[10px] font-medium uppercase tracking-wide leading-tight text-muted-foreground">
                     {t("skill.totalTargets", "Total Targets")}
                   </div>
@@ -467,7 +467,7 @@ export function SkillBatchDeployDialog({
                 </div>
               </div>
 
-              <div className="mt-4 rounded-2xl border border-border bg-card px-4 py-3">
+              <div className="mt-4 rounded-2xl border border-border app-wallpaper-surface px-4 py-3">
                 <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                   {t("skill.executionPlan", "Execution Plan")}
                 </div>

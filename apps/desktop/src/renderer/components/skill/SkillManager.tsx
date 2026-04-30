@@ -570,10 +570,10 @@ export function SkillManager() {
     : null;
 
   return (
-    <div className="flex-1 flex flex-row h-full bg-background overflow-hidden relative">
+    <div className="flex-1 flex flex-row h-full app-wallpaper-section overflow-hidden relative">
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <div className="border-b border-border bg-background/80 px-4 py-4 backdrop-blur-sm z-10 sm:px-6">
+        <div className="border-b border-border app-wallpaper-panel-strong px-4 py-4 z-10 sm:px-6">
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
               <div className="min-w-0 flex-1">
@@ -606,7 +606,7 @@ export function SkillManager() {
                 {!isSelectionMode ? (
                   <button
                     onClick={toggleSelectionMode}
-                    className="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-sm font-medium text-foreground transition-colors hover:border-primary/25 hover:bg-card"
+                    className="inline-flex items-center gap-2 rounded-xl border border-border app-wallpaper-surface px-3 py-2 text-sm font-medium text-foreground transition-colors hover:border-primary/25 hover:bg-accent backdrop-blur-md"
                     title={t("skill.batchManage", "Batch Manage")}
                   >
                     <CheckSquareIcon className="w-4 h-4" />
@@ -618,7 +618,7 @@ export function SkillManager() {
                     onClick={() => setViewMode("gallery")}
                     className={`p-2 rounded-md transition-colors ${
                       viewMode === "gallery"
-                        ? "bg-background text-foreground shadow-sm"
+                        ? "app-wallpaper-surface text-foreground shadow-sm"
                         : "text-muted-foreground hover:text-foreground"
                     }`}
                     title={t("skill.galleryView", "Gallery View")}
@@ -629,7 +629,7 @@ export function SkillManager() {
                     onClick={() => setViewMode("list")}
                     className={`p-2 rounded-md transition-colors ${
                       viewMode === "list"
-                        ? "bg-background text-foreground shadow-sm"
+                        ? "app-wallpaper-surface text-foreground shadow-sm"
                         : "text-muted-foreground hover:text-foreground"
                     }`}
                     title={t("skill.listView", "List View")}
@@ -685,7 +685,7 @@ export function SkillManager() {
                 </div>
                 <button
                   onClick={handleSelectAllVisible}
-                  className="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-sm font-medium text-foreground transition-colors hover:border-primary/25 hover:bg-card"
+                  className="inline-flex items-center gap-2 rounded-xl border border-border app-wallpaper-surface px-3 py-2 text-sm font-medium text-foreground transition-colors hover:border-primary/25 hover:bg-accent"
                   title={
                     allVisibleSelected
                       ? t("common.clear", "Clear")
@@ -704,7 +704,7 @@ export function SkillManager() {
                 <button
                   onClick={handleBatchFavorite}
                   disabled={selectedSkillIds.size === 0}
-                  className="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-sm font-medium text-foreground transition-colors hover:border-primary/25 hover:bg-card disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-xl border border-border app-wallpaper-surface px-3 py-2 text-sm font-medium text-foreground transition-colors hover:border-primary/25 hover:bg-accent disabled:opacity-50"
                   title={
                     selectedSkills.every((skill) => skill.is_favorite)
                       ? t("skill.removeFavorite", "Remove Favorite")
@@ -719,7 +719,7 @@ export function SkillManager() {
                 <button
                   onClick={handleBatchTags}
                   disabled={selectedSkillIds.size === 0}
-                  className="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-sm font-medium text-foreground transition-colors hover:border-primary/25 hover:bg-card disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-xl border border-border app-wallpaper-surface px-3 py-2 text-sm font-medium text-foreground transition-colors hover:border-primary/25 hover:bg-accent disabled:opacity-50"
                   title={t("skill.batchTags", "Batch Tags")}
                 >
                   <TagsIcon className="w-4 h-4 text-primary" />
@@ -747,7 +747,7 @@ export function SkillManager() {
                 </button>
                 <button
                   onClick={toggleSelectionMode}
-                  className="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-card hover:text-foreground"
+                  className="inline-flex items-center gap-2 rounded-xl border border-border app-wallpaper-surface px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                   title={t("common.cancel", "Cancel")}
                 >
                   <XIcon className="w-4 h-4" />

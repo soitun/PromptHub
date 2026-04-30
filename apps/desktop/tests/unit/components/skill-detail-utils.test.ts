@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  downloadSkillZipExport,
   generateTextDiff,
   getSkillSourceMeta,
   groupSkillSafetyFindings,
@@ -165,6 +166,72 @@ description: |
       severity: "warn",
       count: 2,
       filePaths: ["scripts/a.ts", "scripts/b.ts"],
+    });
+  });
+
+  it("downloads zip exports using the provided file name", () => {
+    const originalCreateObjectURL = URL.createObjectURL;
+    const originalRevokeObjectURL = URL.revokeObjectURL;
+    const originalCreateElement = document.createElement.bind(document);
+
+    Object.defineProperty(URL, "createObjectURL", {
+      configurable: true,
+      writable: true,
+      value: vi.fn(),
+    });
+    Object.defineProperty(URL, "revokeObjectURL", {
+      configurable: true,
+      writable: true,
+      value: vi.fn(),
+    });
+
+    const createObjectURL = vi
+      .spyOn(URL, "createObjectURL")
+      .mockReturnValue("blob:skill-zip");
+    const revokeObjectURL = vi
+      .spyOn(URL, "revokeObjectURL")
+      .mockImplementation(() => {});
+    const anchor = originalCreateElement("a");
+    const clickSpy = vi.spyOn(anchor, "click").mockImplementation(() => {});
+    const appendChild = vi.spyOn(document.body, "appendChild");
+    const removeChild = vi.spyOn(document.body, "removeChild");
+    const createElementSpy = vi
+      .spyOn(document, "createElement")
+      .mockImplementation((tagName) => {
+      if (tagName === "a") {
+        return anchor;
+      }
+      return originalCreateElement(tagName);
+    });
+
+    downloadSkillZipExport({
+      fileName: "write.zip",
+      base64: "UEsDBA==",
+    });
+
+    expect(anchor.download).toBe("write.zip");
+    expect(clickSpy).toHaveBeenCalledTimes(1);
+    expect(createObjectURL).toHaveBeenCalledTimes(1);
+    expect(createObjectURL.mock.calls[0]?.[0]).toBeInstanceOf(Blob);
+    expect((createObjectURL.mock.calls[0]?.[0] as Blob).type).toBe(
+      "application/zip",
+    );
+    expect(appendChild).toHaveBeenCalledWith(anchor);
+    expect(removeChild).toHaveBeenCalledWith(anchor);
+    expect(revokeObjectURL).toHaveBeenCalledWith("blob:skill-zip");
+
+    createElementSpy.mockRestore();
+    clickSpy.mockRestore();
+
+    Object.defineProperty(URL, "createObjectURL", {
+      configurable: true,
+      writable: true,
+      value: originalCreateObjectURL,
+    });
+    Object.defineProperty(URL, "revokeObjectURL", {
+      configurable: true,
+      writable: true,
+      value: originalRevokeObjectURL,
     });
   });
 });

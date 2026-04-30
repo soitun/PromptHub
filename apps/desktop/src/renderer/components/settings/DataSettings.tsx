@@ -12,6 +12,8 @@ import {
   SearchIcon,
   PlusIcon,
   XIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
@@ -47,6 +49,7 @@ import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { DataRecoveryDialog } from "../ui/DataRecoveryDialog";
 import { Select } from "../ui/Select";
 import { Checkbox } from "../ui";
+import { SkillDesktopDataSettingsSection } from "./SkillSettings";
 import {
   SettingSection,
   SettingItem,
@@ -58,6 +61,8 @@ import type { RecoveryCandidate, UpgradeBackupEntry } from "@prompthub/shared/ty
 import type { ImportPreviewSummary } from "../../services/database-backup";
 
 const MANUAL_RECOVERY_PATHS_STORAGE_KEY = "prompthub-manual-recovery-paths";
+const DEFAULT_VISIBLE_UPGRADE_BACKUPS = 3;
+const EXPANDED_UPGRADE_BACKUP_MAX_HEIGHT = 420;
 
 function loadManualRecoveryPaths(): string[] {
   try {
@@ -120,6 +125,7 @@ export function DataSettings() {
   const [upgradeBackups, setUpgradeBackups] = useState<UpgradeBackupEntry[]>([]);
   const [loadingUpgradeBackups, setLoadingUpgradeBackups] = useState(false);
   const [upgradeBackupActionId, setUpgradeBackupActionId] = useState<string | null>(null);
+  const [showAllUpgradeBackups, setShowAllUpgradeBackups] = useState(false);
   const [restoreCandidate, setRestoreCandidate] = useState<UpgradeBackupEntry | null>(null);
   const [deleteCandidate, setDeleteCandidate] = useState<UpgradeBackupEntry | null>(null);
   const [importPreview, setImportPreview] = useState<{
@@ -214,6 +220,14 @@ export function DataSettings() {
     if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
     return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
   };
+
+  const visibleUpgradeBackups = showAllUpgradeBackups
+    ? upgradeBackups
+    : upgradeBackups.slice(0, DEFAULT_VISIBLE_UPGRADE_BACKUPS);
+  const hiddenUpgradeBackupsCount = Math.max(
+    0,
+    upgradeBackups.length - DEFAULT_VISIBLE_UPGRADE_BACKUPS,
+  );
 
   useEffect(() => {
     window.api?.security?.status().then((status) => {
@@ -1562,8 +1576,72 @@ export function DataSettings() {
                     : t("settings.upgradeBackupsEmpty", "No automatic upgrade backups found yet.")}
                 </div>
               ) : (
-                <div className="space-y-2">
-                  {upgradeBackups.map((backup) => {
+                <div className="space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-muted/20 px-3 py-2.5">
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="font-medium text-foreground">
+                        {t(
+                          "settings.upgradeBackupsSummary",
+                          "{{count}} rollback snapshot(s)",
+                          { count: upgradeBackups.length },
+                        )}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {showAllUpgradeBackups
+                          ? t(
+                              "settings.upgradeBackupsSummaryExpanded",
+                              "Showing full history in a scrollable list",
+                            )
+                          : hiddenUpgradeBackupsCount > 0
+                            ? t(
+                                "settings.upgradeBackupsSummaryCollapsed",
+                                "Latest {{count}} shown by default",
+                                {
+                                  count: DEFAULT_VISIBLE_UPGRADE_BACKUPS,
+                                },
+                              )
+                            : t(
+                                "settings.upgradeBackupsSummaryCompact",
+                                "All snapshots fit in the compact list",
+                              )}
+                      </span>
+                    </div>
+
+                    {hiddenUpgradeBackupsCount > 0 ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setShowAllUpgradeBackups((current) => !current)
+                        }
+                        className="h-8 px-3 rounded-lg bg-background text-sm hover:bg-accent transition-colors inline-flex items-center gap-2"
+                      >
+                        {showAllUpgradeBackups ? (
+                          <ChevronUpIcon className="w-4 h-4" />
+                        ) : (
+                          <ChevronDownIcon className="w-4 h-4" />
+                        )}
+                        {showAllUpgradeBackups
+                          ? t("common.collapse", "Collapse")
+                          : t(
+                              "settings.upgradeBackupsShowAll",
+                              "Show all {{count}}",
+                              { count: upgradeBackups.length },
+                            )}
+                      </button>
+                    ) : null}
+                  </div>
+
+                  <div
+                    className="space-y-2 overflow-y-auto pr-1"
+                    style={{
+                      maxHeight:
+                        showAllUpgradeBackups &&
+                        upgradeBackups.length > DEFAULT_VISIBLE_UPGRADE_BACKUPS
+                          ? `${EXPANDED_UPGRADE_BACKUP_MAX_HEIGHT}px`
+                          : undefined,
+                    }}
+                  >
+                  {visibleUpgradeBackups.map((backup) => {
                     const busy = upgradeBackupActionId === backup.backupId;
                     return (
                       <div
@@ -1624,6 +1702,7 @@ export function DataSettings() {
                       </div>
                     );
                   })}
+                  </div>
                 </div>
               )}
             </div>
@@ -1643,6 +1722,8 @@ export function DataSettings() {
             </SettingItem>
           ) : null}
         </SettingSection>
+
+        {!webRuntime ? <SkillDesktopDataSettingsSection /> : null}
 
         <SettingSection title={t("settings.dbInfo", "本地数据路径")}>
           <div className="p-4 text-sm text-muted-foreground space-y-1">

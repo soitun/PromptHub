@@ -34,7 +34,7 @@ export function TitleBar() {
   };
 
   return (
-    <div className="h-8 bg-background flex items-center justify-between select-none titlebar-drag border-b border-border">
+    <div className="h-8 app-wallpaper-panel-strong flex items-center justify-between select-none titlebar-drag border-b border-border">
       {/* 应用图标和标题 */}
       <div className="flex items-center gap-2 px-3">
         <div className="w-4 h-4 rounded bg-primary flex items-center justify-center">

@@ -9,7 +9,6 @@ import {
   ArrowLeftIcon,
   BrainIcon,
   KeyIcon,
-  SparklesIcon,
   KeyboardIcon,
   ServerCogIcon,
 } from "lucide-react";
@@ -20,7 +19,6 @@ import { LanguageSettings } from "./LanguageSettings";
 import { NotificationsSettings } from "./NotificationsSettings";
 import { SecuritySettings } from "./SecuritySettings";
 import { ShortcutsSettings } from "./ShortcutsSettings";
-import { SkillSettings } from "./SkillSettings";
 import { AboutSettings } from "./AboutSettings";
 import { DataSettings } from "./DataSettings";
 import { AISettingsPrototype } from "./AISettingsPrototype";
@@ -39,7 +37,6 @@ const DESKTOP_SETTINGS_MENU = [
   { id: "appearance", labelKey: "settings.appearance", icon: PaletteIcon },
   { id: "data", labelKey: "settings.data", icon: DatabaseIcon },
   { id: "ai", labelKey: "settings.ai", icon: BrainIcon },
-  { id: "skill", labelKey: "settings.skill", icon: SparklesIcon },
   { id: "shortcuts", labelKey: "settings.shortcuts", icon: KeyboardIcon },
   { id: "language", labelKey: "settings.language", icon: GlobeIcon },
   { id: "notifications", labelKey: "settings.notifications", icon: BellIcon },
@@ -87,8 +84,6 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
         return <LanguageSettings />;
       case "notifications":
         return <NotificationsSettings />;
-      case "skill":
-        return <SkillSettings onNavigate={setActiveSection} />;
       case "about":
         return <AboutSettings />;
     }
@@ -97,7 +92,7 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
   return (
     <div className="flex flex-1 overflow-hidden">
       {/* 设置侧边栏 */}
-      <div className="w-56 bg-card border-r border-border flex flex-col">
+      <div className="w-56 app-wallpaper-panel border-r border-border flex flex-col">
         {/* 返回按钮 */}
         <div className="p-3 border-b border-border">
           <button
@@ -129,7 +124,7 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
       </div>
 
       {/* 设置内容区 - 自适应宽度 */}
-      <div className="flex-1 overflow-y-auto px-6 py-5">
+      <div className="flex-1 overflow-y-auto px-6 py-5 app-wallpaper-section">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-lg font-semibold mb-4">
             {t(

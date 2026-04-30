@@ -497,6 +497,32 @@ describe("SkillInstaller.readLocalRepoFiles", () => {
   });
 });
 
+describe("SkillInstaller.readLocalRepoFileBuffersByPath", () => {
+  it("returns original bytes for nested binary files", async () => {
+    const repoPath = await SkillInstaller.saveContentToLocalRepo(
+      "archive-skill",
+      "---\nname: archive-skill\n---\n# Archive",
+    );
+    const binaryPath = path.join(repoPath, "assets", "icon.bin");
+    const binaryBytes = Uint8Array.from([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0xff,
+    ]);
+
+    await fs.mkdir(path.dirname(binaryPath), { recursive: true });
+    await fs.writeFile(binaryPath, binaryBytes);
+
+    const files = await SkillInstaller.readLocalRepoFileBuffersByPath(repoPath);
+
+    const skillMd = files.find((file) => file.path === "SKILL.md");
+    const binaryFile = files.find((file) => file.path === "assets/icon.bin");
+
+    expect(skillMd).toBeDefined();
+    expect(new TextDecoder().decode(skillMd!.data)).toContain("# Archive");
+    expect(binaryFile).toBeDefined();
+    expect(Array.from(binaryFile!.data)).toEqual(Array.from(binaryBytes));
+  });
+});
+
 // ---------- deleteLocalRepo ----------
 
 describe("SkillInstaller.deleteLocalRepo", () => {

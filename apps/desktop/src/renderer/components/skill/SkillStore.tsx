@@ -1006,8 +1006,8 @@ export function SkillStore() {
     Boolean(selectedRemoteEntry?.skills.length);
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-background overflow-hidden">
-      <div className="px-6 py-4 border-b border-border shrink-0 bg-background/50 backdrop-blur-sm z-10 flex items-start justify-between gap-4">
+    <div className="flex-1 flex flex-col h-full app-wallpaper-section overflow-hidden">
+      <div className="px-6 py-4 border-b border-border shrink-0 app-wallpaper-panel-strong z-10 flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
           <div>
             <h2 className="text-lg font-semibold">{sourceMeta.title}</h2>
@@ -1054,7 +1054,7 @@ export function SkillStore() {
         </div>
       </div>
 
-      <div className="px-6 py-3 border-b border-border bg-background/30 space-y-3">
+      <div className="px-6 py-3 border-b border-border app-wallpaper-section space-y-3">
         {sourceMeta.showCatalog && (
           <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
             {categories.map((cat) => (
@@ -1091,7 +1091,7 @@ export function SkillStore() {
 
       <div className="flex-1 overflow-y-auto scrollbar-hide p-6 space-y-8">
         {shouldShowInitialLoading && (
-          <div className="rounded-2xl border border-border bg-card p-4 text-sm text-muted-foreground inline-flex items-center gap-2">
+          <div className="rounded-2xl border border-border app-wallpaper-panel p-4 text-sm text-muted-foreground inline-flex items-center gap-2">
             <Loader2Icon className="w-4 h-4 animate-spin" />
             {selectedStoreSourceId === "claude-code"
               ? t(
@@ -1213,7 +1213,7 @@ export function SkillStore() {
         )}
 
         {selectedStoreSourceId === "claude-code" && (
-          <div className="bg-card border border-border rounded-2xl p-6 space-y-4">
+          <div className="app-wallpaper-panel border border-border rounded-2xl p-6 space-y-4">
             <div className="flex items-center gap-2 text-foreground">
               <GlobeIcon className="w-5 h-5 text-primary" />
               <h3 className="text-base font-semibold">
@@ -1258,7 +1258,7 @@ export function SkillStore() {
         )}
 
         {selectedStoreSourceId === "openai-codex" && (
-          <div className="bg-card border border-border rounded-2xl p-6 space-y-4">
+          <div className="app-wallpaper-panel border border-border rounded-2xl p-6 space-y-4">
             <div className="flex items-center gap-2 text-foreground">
               <GlobeIcon className="w-5 h-5 text-primary" />
               <h3 className="text-base font-semibold">
@@ -1301,7 +1301,7 @@ export function SkillStore() {
         )}
 
         {selectedStoreSourceId === "community" && (
-          <div className="bg-card border border-border rounded-2xl p-6 space-y-4">
+          <div className="app-wallpaper-panel border border-border rounded-2xl p-6 space-y-4">
             <div className="flex items-center gap-2 mb-3 text-foreground">
               <BoxesIcon className="w-5 h-5 text-primary" />
               <h3 className="text-base font-semibold">

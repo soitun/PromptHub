@@ -57,7 +57,7 @@ export class SkillRenderBoundary extends React.Component<
 
     return (
       <div
-        className={`flex flex-col items-center justify-center rounded-2xl border border-border bg-card/80 text-center ${
+        className={`flex flex-col items-center justify-center rounded-2xl border border-border app-wallpaper-surface/80 text-center ${
           compact ? "min-h-[220px] px-6 py-10" : "h-full min-h-[360px] px-8 py-12"
         }`}
       >

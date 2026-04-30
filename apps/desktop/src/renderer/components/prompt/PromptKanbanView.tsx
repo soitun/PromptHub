@@ -103,7 +103,7 @@ const KanbanCard = memo(({
   return (
     <div
       className={`
-        group relative flex flex-col bg-card rounded-xl border transition-all duration-300
+        group relative flex flex-col app-wallpaper-panel rounded-xl border transition-all duration-300
         ${isPinned 
           ? 'border-primary/50 shadow-lg shadow-primary/10 ring-2 ring-primary/20' 
           : 'border-border hover:border-primary/30 hover:shadow-md'
@@ -112,7 +112,7 @@ const KanbanCard = memo(({
       `}
     >
       {/* Header */}
-      <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-border/50 bg-muted/30 flex-shrink-0">
+      <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-border/50 app-wallpaper-surface flex-shrink-0">
         <div className="flex items-center gap-2 flex-1 min-w-0">
           {/* Title */}
           <h3 
@@ -191,7 +191,7 @@ const KanbanCard = memo(({
               <SparklesIcon className="w-3 h-3" />
               System Prompt
             </div>
-            <div className={`text-xs text-foreground/80 bg-muted/30 rounded-lg p-2 ${isExpanded ? '' : 'line-clamp-4'}`}>
+            <div className={`text-xs text-foreground/80 app-wallpaper-surface rounded-lg p-2 border border-border/70 ${isExpanded ? '' : 'line-clamp-4'}`}>
               {prompt.systemPrompt}
             </div>
           </div>
@@ -202,7 +202,7 @@ const KanbanCard = memo(({
           <div className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
             User Prompt
           </div>
-          <div className={`text-xs text-foreground/80 bg-muted/30 rounded-lg p-2 ${isExpanded ? '' : isPinned ? 'line-clamp-6' : 'line-clamp-3'}`}>
+          <div className={`text-xs text-foreground/80 app-wallpaper-surface rounded-lg p-2 border border-border/70 ${isExpanded ? '' : isPinned ? 'line-clamp-6' : 'line-clamp-3'}`}>
             {prompt.userPrompt}
           </div>
         </div>

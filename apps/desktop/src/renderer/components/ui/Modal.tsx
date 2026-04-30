@@ -106,7 +106,7 @@ export function Modal({
       {/* Backdrop */}
       <div
         className={clsx(
-          "absolute inset-0 bg-white/40 dark:bg-black/40 backdrop-blur-md transition-opacity duration-200",
+          "absolute inset-0 bg-background/60 backdrop-blur-md transition-opacity duration-200",
           isAnimating ? "opacity-100" : "opacity-0",
         )}
         onClick={closeOnBackdrop ? onClose : undefined}
@@ -115,7 +115,7 @@ export function Modal({
       {/* Modal Container */}
       <div
         className={clsx(
-          "relative bg-card shadow-[0_0_100px_-20px_rgba(0,0,0,0.6)] border border-border",
+          "relative app-wallpaper-panel-strong shadow-[0_0_100px_-20px_rgba(0,0,0,0.6)] border border-border",
           "overflow-hidden flex flex-col rounded-2xl",
           "transition-all duration-200 ease-out", // Faster transition without bounce
           // Mount/Unmount animation states (opacity + scale + drift)
@@ -133,7 +133,7 @@ export function Modal({
       >
         {/* Header / Title Bar */}
         {title && (
-          <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0 relative z-10 bg-card/90 backdrop-blur-sm">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0 relative z-10 app-wallpaper-surface backdrop-blur-sm">
             <div className="flex-1 min-w-0">
               <h2 className="text-xl font-bold tracking-tight text-foreground truncate">
                 {title}

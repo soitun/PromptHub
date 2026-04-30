@@ -92,7 +92,7 @@ export function ImportPromptModal({
               {t("common.preview", "PREVIEW")}
             </span>
           </div>
-          <div className="p-4 space-y-4 bg-card">
+          <div className="p-4 space-y-4 app-wallpaper-panel">
             <div className="grid grid-cols-[80px_1fr] gap-4 text-sm">
               <span className="text-muted-foreground font-medium text-right">
                 {t("prompt.title")}:

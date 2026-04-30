@@ -953,7 +953,7 @@ export function CreatePromptModal({
                 className="min-h-[120px]"
               />
             ) : (
-              <div className="p-4 rounded-xl bg-card border border-border text-sm break-words min-h-[120px] whitespace-pre-wrap">
+              <div className="p-4 rounded-xl app-wallpaper-panel border border-border text-sm break-words min-h-[120px] whitespace-pre-wrap">
                 {systemPrompt || (
                   <span className="text-muted-foreground italic">
                     {t("prompt.noContent")}
@@ -1035,7 +1035,7 @@ export function CreatePromptModal({
                 className="min-h-[200px]"
               />
             ) : (
-              <div className="p-4 rounded-xl bg-card border border-border text-sm break-words min-h-[200px] whitespace-pre-wrap">
+              <div className="p-4 rounded-xl app-wallpaper-panel border border-border text-sm break-words min-h-[200px] whitespace-pre-wrap">
                 {userPrompt || (
                   <span className="text-muted-foreground italic">
                     {t("prompt.noContent")}

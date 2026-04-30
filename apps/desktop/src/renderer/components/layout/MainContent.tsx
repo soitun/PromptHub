@@ -136,7 +136,7 @@ const PromptCard = memo(function PromptCard({
         transition-all duration-200 animate-in fade-in slide-in-from-left-2
         ${isSelected
           ? 'bg-primary text-white'
-          : 'bg-card hover:bg-accent'
+          : 'prompt-list-card bg-card hover:bg-accent'
         }
       `}
     >
@@ -530,7 +530,7 @@ export function MainContent() {
   const renderPromptContent = (content?: string) => {
     if (!content) {
       return (
-        <div className="p-4 rounded-xl bg-card border border-border text-sm text-muted-foreground">
+        <div className="p-4 rounded-xl app-wallpaper-surface border border-border text-sm text-muted-foreground">
           {t('prompt.noContent')}
         </div>
       );
@@ -538,14 +538,14 @@ export function MainContent() {
 
     if (!renderMarkdownEnabled) {
       return (
-        <div className="p-4 rounded-xl bg-card border border-border font-mono text-[14px] leading-relaxed whitespace-pre-wrap break-words">
+        <div className="p-4 rounded-xl app-wallpaper-surface border border-border font-mono text-[14px] leading-relaxed whitespace-pre-wrap break-words">
           {renderHighlightedText(content, highlightTerms, highlightClassName)}
         </div>
       );
     }
 
     return (
-      <div className="p-4 rounded-xl bg-card border border-border text-[15px] leading-relaxed markdown-content space-y-3 break-words">
+      <div className="p-4 rounded-xl app-wallpaper-surface border border-border text-[15px] leading-relaxed markdown-content space-y-3 break-words">
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
           rehypePlugins={rehypePlugins}
@@ -1239,7 +1239,7 @@ export function MainContent() {
   const getViewClass = useCallback((mode: ViewMode, layout: 'col' | 'row' = 'col') => {
     const isActive = viewMode === mode;
     const layoutClass = layout === 'col' ? 'flex flex-col' : 'flex overflow-hidden';
-    return `absolute inset-0 ${layoutClass} bg-background transition-opacity ease-out ${
+    return `absolute inset-0 ${layoutClass} transition-opacity ease-out ${
       isActive
         ? 'opacity-100 z-10 pointer-events-auto duration-200'
         : 'opacity-0 z-0 pointer-events-none duration-0'
@@ -1247,7 +1247,7 @@ export function MainContent() {
   }, [viewMode]);
 
   return (
-    <main className="flex-1 relative overflow-hidden bg-background">
+    <main className="flex-1 relative overflow-hidden app-wallpaper-section">
       {/* Skill Mode */}
       {uiViewMode === 'skill' ? (
         <Suspense fallback={<div className="flex-1 flex items-center justify-center"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>}>
@@ -1338,7 +1338,7 @@ export function MainContent() {
       >
         {/* Prompt list */}
         {/* Prompt 列表 */}
-        <div className="w-80 border-r border-border flex flex-col bg-card/50">
+        <div className="prompt-list-pane w-80 border-r border-border flex flex-col bg-card/50">
           {/* List header: sort + view switch */}
           {/* 列表头部：排序 + 视图切换 */}
           <PromptListHeader count={sortedPrompts.length} />
@@ -1486,7 +1486,7 @@ export function MainContent() {
                         <GlobeIcon className="w-3.5 h-3.5" />
                         {t('prompt.source')}
                       </div>
-                      <div className="text-sm bg-muted/30 rounded-xl p-3 border border-border/50 break-all">
+                      <div className="text-sm rounded-xl p-3 app-wallpaper-surface border border-border break-all">
                         {selectedPrompt.source.startsWith('http') ? (
                           <a href={selectedPrompt.source} target="_blank" rel="noreferrer" className="text-primary hover:underline flex items-center gap-1 inline-flex">
                             <span className="truncate max-w-full">{selectedPrompt.source}</span>
@@ -1504,7 +1504,7 @@ export function MainContent() {
                       <div className="flex items-center gap-1 text-sm font-medium text-muted-foreground mb-1.5">
                         {t('prompt.notes')}
                       </div>
-                      <div className="text-sm bg-yellow-500/5 border border-yellow-500/10 rounded-xl p-3 text-foreground/80 italic">
+                       <div className="text-sm bg-yellow-500/6 border border-yellow-500/12 rounded-xl p-3 text-foreground/80 italic">
                         {selectedPrompt.notes}
                       </div>
                     </div>
@@ -1565,7 +1565,7 @@ export function MainContent() {
                   {/* Multi-model comparison */}
                   {/* 多模型对比区域 */}
                   {selectedPrompt.promptType !== 'image' && compareModels.length > 0 && (
-                    <div className="mb-4 p-4 rounded-xl bg-card border border-border">
+                    <div className="mb-4 p-4 rounded-xl app-wallpaper-panel border border-border">
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2">
                           <GitCompareIcon className="w-4 h-4 text-primary" />
@@ -1693,7 +1693,7 @@ export function MainContent() {
                   {/* AI response panel */}
                   {/* AI 测试响应区域 */}
                   {(isTestingAI || aiResponse) && (
-                    <div className="mb-4 p-4 rounded-xl bg-card border border-border">
+                    <div className="mb-4 p-4 rounded-xl app-wallpaper-panel border border-border">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
                           <SparklesIcon className="w-4 h-4 text-primary" />
@@ -1801,7 +1801,7 @@ export function MainContent() {
               </div>
               {/* Action buttons - sticky bottom */}
               {/* 操作按钮 - 固定底部 */}
-              <div className="flex-shrink-0 border-t border-border bg-card/80 backdrop-blur-sm px-6 py-3">
+              <div className="flex-shrink-0 border-t border-border app-wallpaper-panel-strong px-6 py-3">
                 <div className="max-w-5xl mx-auto flex items-center gap-3 flex-wrap">
                   <button
                     onClick={async () => {
@@ -1862,7 +1862,7 @@ export function MainContent() {
                   </button>
                   <button
                     onClick={() => handleVersionHistory(selectedPrompt)}
-                    className="flex items-center gap-2 h-9 px-4 rounded-lg bg-card border border-border text-sm font-medium hover:bg-accent transition-colors"
+                    className="flex items-center gap-2 h-9 px-4 rounded-lg app-wallpaper-surface-strong border border-border text-sm font-medium hover:bg-accent/60 transition-colors"
                   >
                     <HistoryIcon className="w-4 h-4" />
                     <span>{t('prompt.history')}</span>

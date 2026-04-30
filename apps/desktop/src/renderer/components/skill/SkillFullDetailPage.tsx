@@ -36,6 +36,7 @@ import "highlight.js/styles/github-dark.css";
 import "./SkillMarkdown.css";
 import {
   downloadSkillExport,
+  downloadSkillZipExport,
   getErrorMessage,
   getSafetyScanAIConfig,
   groupSkillSafetyFindings,
@@ -367,11 +368,16 @@ export function SkillFullDetailPage() {
     }, 2000);
   };
 
-  const handleExport = async (format: "skillmd" | "json") => {
+  const handleExport = async (format: "skillmd" | "zip") => {
     if (!selectedSkill) return;
     try {
-      const content = await window.api.skill.export(selectedSkill.id, format);
-      downloadSkillExport(content, selectedSkill.name, format);
+      if (format === "zip") {
+        const zipResult = await window.api.skill.exportZip(selectedSkill.id);
+        downloadSkillZipExport(zipResult);
+      } else {
+        const content = await window.api.skill.export(selectedSkill.id, format);
+        downloadSkillExport(content, selectedSkill.name, format);
+      }
 
       setCopyStatus({ ...copyStatus, [`export_${format}`]: true });
       setTimeout(() => {
@@ -506,9 +512,9 @@ export function SkillFullDetailPage() {
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-background overflow-hidden animate-in fade-in slide-in-from-right-4 duration-300">
+    <div className="flex-1 flex flex-col h-full app-wallpaper-section overflow-hidden animate-in fade-in slide-in-from-right-4 duration-300">
       {/* Header with back button */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-border sticky top-0 bg-background/80 backdrop-blur-md z-10">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-border sticky top-0 app-wallpaper-panel-strong z-10">
         <div className="flex items-center gap-4">
           <button
             onClick={() => {
@@ -695,7 +701,7 @@ export function SkillFullDetailPage() {
       >
         {runtimeCapabilities.skillFileEditing && activeTab === "files" ? (
           /* Files Tab: inline file editor fills the entire content area */
-          <div className="flex-1 flex flex-col bg-card min-h-0 overflow-hidden">
+          <div className="flex-1 flex flex-col app-wallpaper-panel min-h-0 overflow-hidden">
             <SkillFileEditor
               skillId={selectedSkill.id}
               skillName={selectedSkill.name}
@@ -759,7 +765,7 @@ export function SkillFullDetailPage() {
       {showBackToTop && activeTab !== "files" && (
         <button
           onClick={scrollToTop}
-          className="absolute bottom-6 left-1/2 z-20 -translate-x-1/2 inline-flex items-center gap-2 rounded-full border border-border bg-card/95 px-4 py-2 text-sm font-medium text-foreground shadow-lg backdrop-blur hover:bg-accent transition-colors"
+          className="absolute bottom-6 left-1/2 z-20 -translate-x-1/2 inline-flex items-center gap-2 rounded-full border border-border app-wallpaper-surface px-4 py-2 text-sm font-medium text-foreground shadow-lg backdrop-blur-md hover:bg-accent transition-colors"
         >
           <ArrowUpIcon className="w-4 h-4" />
           {t("common.backToTop", "Back to Top")}

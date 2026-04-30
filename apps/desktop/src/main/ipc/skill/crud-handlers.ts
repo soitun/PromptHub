@@ -1,6 +1,7 @@
 import { ipcMain } from "electron";
 import { IPC_CHANNELS } from "@prompthub/shared/constants";
 import { SkillInstaller } from "../../services/skill-installer";
+import { ensureLocalRepoPath } from "./shared";
 import {
   hasMetadataChanges,
   syncFrontmatterToRepo,
@@ -10,7 +11,7 @@ import type {
   UpdateSkillParams,
 } from "@prompthub/shared/types";
 import type { SkillIPCContext } from "./shared";
-import { ensureLocalRepoPath, readCurrentFilesSnapshot } from "./shared";
+import { readCurrentFilesSnapshot } from "./shared";
 
 export function registerSkillCrudHandlers({ db }: SkillIPCContext): void {
   ipcMain.handle(
@@ -231,6 +232,44 @@ export function registerSkillCrudHandlers({ db }: SkillIPCContext): void {
     return format === "skillmd"
       ? SkillInstaller.exportAsSkillMd(skill)
       : SkillInstaller.exportAsJson(skill);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.SKILL_EXPORT_ZIP, async (_, id: string) => {
+    if (typeof id !== "string" || id.trim().length === 0) {
+      throw new Error("skill:exportZip requires a non-empty id");
+    }
+
+    const skill = db.getById(id);
+    if (!skill) {
+      throw new Error("Skill not found");
+    }
+
+    const repoPath = await ensureLocalRepoPath(db, id);
+    if (!repoPath) {
+      throw new Error(`Unable to resolve local repo for skill: ${id}`);
+    }
+
+    const fileEntries = await SkillInstaller.readLocalRepoFileBuffersByPath(
+      repoPath,
+    );
+
+    if (fileEntries.length === 0) {
+      throw new Error(`Skill repo is empty: ${skill.name}`);
+    }
+
+    const { zipSync } = await import("fflate");
+    const zipFiles: Record<string, Uint8Array> = {};
+
+    for (const file of fileEntries) {
+      zipFiles[file.path.replace(/\\/g, "/")] = file.data;
+    }
+
+    const zipped = zipSync(zipFiles, { level: 1 });
+
+    return {
+      fileName: `${skill.name}.zip`,
+      base64: Buffer.from(zipped).toString("base64"),
+    };
   });
 
   ipcMain.handle(IPC_CHANNELS.SKILL_IMPORT, async (_, jsonContent: string) => {

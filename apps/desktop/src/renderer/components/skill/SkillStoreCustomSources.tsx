@@ -32,7 +32,7 @@ export function SkillStoreCustomSources({
 }: SkillStoreCustomSourcesProps) {
   if (!selectedCustomSource && customStoreSources.length === 0) {
     return (
-      <div className="bg-card border border-dashed border-border rounded-2xl p-8 text-center text-muted-foreground">
+      <div className="app-wallpaper-panel border border-dashed border-border rounded-2xl p-8 text-center text-muted-foreground">
         <LinkIcon className="w-10 h-10 mx-auto opacity-30 mb-3" />
         <h4 className="text-base font-semibold text-foreground mb-1">
           {t("skill.noCustomStores", "No custom stores yet")}
@@ -49,7 +49,7 @@ export function SkillStoreCustomSources({
 
   if (selectedCustomSource) {
     return (
-      <div className="bg-card border border-border rounded-2xl p-6 space-y-4">
+      <div className="app-wallpaper-panel border border-border rounded-2xl p-6 space-y-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
             <LinkIcon className="w-4 h-4" />
@@ -121,7 +121,7 @@ export function SkillStoreCustomSources({
           <div
             key={source.id}
             onClick={() => selectStoreSource(source.id)}
-            className={`bg-card border rounded-2xl p-4 flex items-center gap-4 text-left ${
+            className={`app-wallpaper-panel border rounded-2xl p-4 flex items-center gap-4 text-left ${
               isSelected ? "border-primary shadow-sm" : "border-border"
             }`}
           >

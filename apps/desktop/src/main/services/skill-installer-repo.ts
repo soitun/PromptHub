@@ -23,6 +23,11 @@ import {
   validateSkillName,
 } from "./skill-installer-internal";
 
+export interface SkillLocalFileBufferEntry {
+  path: string;
+  data: Uint8Array;
+}
+
 // ==================== Constants ====================
 
 /** Maximum recursion depth for directory walking */
@@ -294,6 +299,33 @@ export async function readLocalRepoFilesByPath(
       }
       const content = await readFileContent(fullPath, dirent.name);
       return { path: relativePath, content, isDirectory: false };
+    },
+  });
+}
+
+export async function readLocalRepoFileBuffersByPath(
+  absolutePath: string,
+): Promise<SkillLocalFileBufferEntry[]> {
+  const { realBasePath } = await resolveRepoBasePath(absolutePath);
+
+  if (!(await fileExists(absolutePath))) {
+    return [];
+  }
+
+  const baseDir = absolutePath;
+
+  return walkRepoDir<SkillLocalFileBufferEntry>({
+    baseDir,
+    realBasePath,
+    onEntry: async ({ relativePath, fullPath, isDirectory }) => {
+      if (isDirectory) {
+        return null;
+      }
+
+      return {
+        path: relativePath,
+        data: await fs.readFile(fullPath),
+      };
     },
   });
 }

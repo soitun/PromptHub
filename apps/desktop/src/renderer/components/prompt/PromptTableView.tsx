@@ -312,7 +312,7 @@ export function PromptTableView({
             onReset={resetToDefaults}
           />
         </div>
-        <div className="rounded-xl border border-border overflow-x-auto bg-card">
+        <div className="rounded-xl border border-border overflow-x-auto app-wallpaper-panel">
           <table className="w-full text-sm min-w-[1000px]">
             <thead className="sticky top-0 z-20">
               <tr className="bg-muted/30 dark:bg-muted/20 border-b border-border">
@@ -334,7 +334,7 @@ export function PromptTableView({
                     return (
                       <th
                         key={column.id}
-                        className="sticky right-0 z-40 p-0 bg-card shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.15)]"
+                        className="sticky right-0 z-40 p-0 app-wallpaper-surface-strong shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.15)]"
                         style={{ width: column.width }}
                       >
                         <div className="absolute inset-0 bg-muted/30 dark:bg-muted/20" />
@@ -494,7 +494,7 @@ export function PromptTableView({
                       return (
                         <td 
                           key={column.id}
-                          className="sticky right-0 z-30 p-0 bg-card shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.15)]"
+                           className="sticky right-0 z-30 p-0 app-wallpaper-surface-strong shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.15)]"
                           style={colWidth}
                         >
                           {isSelected && <div className="absolute inset-0 bg-primary/5 pointer-events-none" />}
@@ -586,7 +586,7 @@ export function PromptTableView({
         </div>
 
         {prompts.length === 0 && (
-          <div className="flex items-center justify-center h-40 text-muted-foreground rounded-xl border border-border bg-card mt-2">
+          <div className="flex items-center justify-center h-40 text-muted-foreground rounded-xl border border-border app-wallpaper-surface mt-2">
             {t('prompt.noPrompts')}
           </div>
         )}

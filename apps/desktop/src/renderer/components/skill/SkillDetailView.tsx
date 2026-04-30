@@ -12,8 +12,8 @@ import {
   CodeIcon,
   ChevronRightIcon,
   PencilIcon,
-  FileJsonIcon,
   FileTextIcon,
+  PackageIcon,
   Loader2Icon,
   CheckSquareIcon,
   SquareIcon,
@@ -36,6 +36,7 @@ import rehypeSanitize from "rehype-sanitize";
 import "highlight.js/styles/github-dark.css";
 import {
   downloadSkillExport,
+  downloadSkillZipExport,
   getErrorMessage,
   getSkillSourceMeta,
 } from "./detail-utils";
@@ -197,11 +198,16 @@ export function SkillDetailView() {
     }
   };
 
-  const handleExport = async (format: "skillmd" | "json") => {
+  const handleExport = async (format: "skillmd" | "zip") => {
     if (!selectedSkill) return;
     try {
-      const content = await window.api.skill.export(selectedSkill.id, format);
-      downloadSkillExport(content, selectedSkill.name, format);
+      if (format === "zip") {
+        const zipResult = await window.api.skill.exportZip(selectedSkill.id);
+        downloadSkillZipExport(zipResult);
+      } else {
+        const content = await window.api.skill.export(selectedSkill.id, format);
+        downloadSkillExport(content, selectedSkill.name, format);
+      }
 
       setCopyStatus({ ...copyStatus, [`export_${format}`]: true });
       setTimeout(() => {
@@ -216,9 +222,9 @@ export function SkillDetailView() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-card border-l border-border animate-in slide-in-from-right duration-300 w-full md:w-[500px] lg:w-[650px] shadow-2xl relative z-30">
+    <div className="flex flex-col h-full app-wallpaper-panel border-l border-border animate-in slide-in-from-right duration-300 w-full md:w-[500px] lg:w-[650px] shadow-2xl relative z-30">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-border sticky top-0 bg-card/80 backdrop-blur-md z-10">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-border sticky top-0 app-wallpaper-surface backdrop-blur-md z-10">
         <div className="flex items-center gap-4">
           <div className="p-3 bg-primary text-white rounded-2xl shadow-lg shadow-primary/20">
             <CuboidIcon className="w-6 h-6" />
@@ -629,14 +635,14 @@ export function SkillDetailView() {
                   </div>
                 </button>
                 <button
-                  onClick={() => handleExport("json")}
+                  onClick={() => handleExport("zip")}
                   className="flex items-center justify-center gap-2 p-4 bg-accent/50 hover:bg-accent border border-border rounded-xl transition-colors group"
                 >
-                  <FileJsonIcon className="w-5 h-5 text-primary" />
+                  <PackageIcon className="w-5 h-5 text-primary" />
                   <div className="text-left">
-                    <div className="font-medium text-sm">JSON</div>
+                    <div className="font-medium text-sm">ZIP</div>
                     <div className="text-[10px] text-muted-foreground">
-                      {t("skill.exportJson", "Backup/Share format")}
+                      {t("skill.exportZip", "Full local repo archive")}
                     </div>
                   </div>
                 </button>

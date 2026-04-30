@@ -79,11 +79,11 @@ function SkillDiffView({
       </div>
 
       {isUnchanged ? (
-        <div className="rounded-2xl border border-border bg-card px-4 py-8 text-center text-sm text-muted-foreground">
+        <div className="rounded-2xl border border-border app-wallpaper-surface px-4 py-8 text-center text-sm text-muted-foreground">
           {emptyLabel}
         </div>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-border bg-card font-mono text-xs">
+        <div className="overflow-hidden rounded-2xl border border-border app-wallpaper-surface font-mono text-xs">
           <div className="max-h-[360px] overflow-auto">
             {diff.map((line, index) => (
               <div
@@ -352,7 +352,7 @@ export function SkillVersionHistoryModal({
                   className={`w-full rounded-xl border px-3 py-2 text-left transition-colors ${
                     version.id === selectedVersionId
                       ? "border-primary/40 bg-primary/5"
-                      : "border-transparent hover:border-border hover:bg-card"
+                      : "border-transparent hover:border-border hover:app-wallpaper-surface"
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
@@ -395,7 +395,7 @@ export function SkillVersionHistoryModal({
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="inline-flex rounded-xl border border-border bg-card p-1">
+                  <div className="inline-flex rounded-xl border border-border app-wallpaper-surface p-1">
                     <button
                       type="button"
                       onClick={() => setView("preview")}
@@ -470,7 +470,7 @@ export function SkillVersionHistoryModal({
                         onChange={(event) =>
                           setCompareTarget(event.target.value as CompareTarget)
                         }
-                        className="h-10 rounded-xl border border-border bg-card px-3 text-sm outline-none transition-colors focus:border-primary/40"
+                        className="h-10 rounded-xl border border-border app-wallpaper-surface px-3 text-sm outline-none transition-colors focus:border-primary/40"
                       >
                         {compareOptions.map((option) => (
                           <option key={option.id} value={option.id}>
@@ -483,21 +483,21 @@ export function SkillVersionHistoryModal({
                       <button
                         type="button"
                         onClick={expandAllFiles}
-                        className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium transition-colors hover:bg-accent"
+                        className="rounded-lg border border-border app-wallpaper-surface px-3 py-1.5 text-xs font-medium transition-colors hover:bg-accent"
                       >
                         {t("skill.expandAll", "Expand All")}
                       </button>
                       <button
                         type="button"
                         onClick={collapseAllFiles}
-                        className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium transition-colors hover:bg-accent"
+                        className="rounded-lg border border-border app-wallpaper-surface px-3 py-1.5 text-xs font-medium transition-colors hover:bg-accent"
                       >
                         {t("skill.collapseAll", "Collapse All")}
                       </button>
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                    <span className="rounded-full bg-card px-3 py-1">
+                    <span className="rounded-full app-wallpaper-surface px-3 py-1">
                       {t("skill.filesInVersion", "Files in Version")}:{" "}
                       {fileDiffEntries.length}
                     </span>
@@ -549,7 +549,7 @@ export function SkillVersionHistoryModal({
                             <div
                               className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${
                                 entry.unchanged
-                                  ? "bg-card text-muted-foreground"
+                                  ? "app-wallpaper-surface text-muted-foreground"
                                   : "bg-primary/10 text-primary"
                               }`}
                             >
@@ -579,7 +579,7 @@ export function SkillVersionHistoryModal({
                     <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                       {t("skill.currentVersion", "Current Version")}
                     </div>
-                    <pre className="min-h-[280px] overflow-auto rounded-2xl border border-border bg-card p-4 text-xs leading-6 text-foreground whitespace-pre-wrap">
+                    <pre className="min-h-[280px] overflow-auto rounded-2xl border border-border app-wallpaper-surface p-4 text-xs leading-6 text-foreground whitespace-pre-wrap">
                       {currentContent ||
                         t("skill.noContent", "No content available")}
                     </pre>
@@ -591,7 +591,7 @@ export function SkillVersionHistoryModal({
                         ? `v${selectedVersion.version}`
                         : t("skill.selectedVersion", "Selected Version")}
                     </div>
-                    <pre className="min-h-[280px] overflow-auto rounded-2xl border border-border bg-card p-4 text-xs leading-6 text-foreground whitespace-pre-wrap">
+                    <pre className="min-h-[280px] overflow-auto rounded-2xl border border-border app-wallpaper-surface p-4 text-xs leading-6 text-foreground whitespace-pre-wrap">
                       {selectedVersion?.content ||
                         t("skill.noContent", "No content available")}
                     </pre>

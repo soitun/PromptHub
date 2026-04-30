@@ -8,6 +8,9 @@ export interface Settings {
   language: Language;
   autoSave: boolean;
   defaultFolderId?: string;
+  backgroundImageFileName?: string;
+  backgroundImageOpacity?: number;
+  backgroundImageBlur?: number;
   customSkillPlatformPaths?: Record<string, string>;
   skillPlatformOrder?: string[];
   lastManualBackupAt?: string;
@@ -48,6 +51,8 @@ export const DEFAULT_SETTINGS: Settings = {
   theme: 'system',
   language: 'zh',
   autoSave: true,
+  backgroundImageOpacity: 0.22,
+  backgroundImageBlur: 14,
   customSkillPlatformPaths: {},
   skillPlatformOrder: [],
   sync: {

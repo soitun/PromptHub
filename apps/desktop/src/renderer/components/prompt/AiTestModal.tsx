@@ -762,7 +762,7 @@ export function AiTestModal({
                   isLoading={isSingleLoading}
                 />
 
-                <div className="bg-card border border-border rounded-lg p-4 max-h-64 overflow-y-auto">
+                <div className="app-wallpaper-surface border border-border rounded-lg p-4 max-h-64 overflow-y-auto">
                   {renderAiResponseContent(aiResponse)}
                 </div>
               </div>
@@ -818,7 +818,7 @@ export function AiTestModal({
                 {compareResults.map((res, idx) => (
                   <div
                     key={idx}
-                    className={`p-3 rounded-lg border ${res.success ? 'border-border bg-card' : 'border-destructive/50 bg-destructive/5'
+                    className={`p-3 rounded-lg border ${res.success ? 'border-border app-wallpaper-surface' : 'border-destructive/50 bg-destructive/5'
                       }`}
                   >
                     <div className="flex items-center justify-between mb-2">

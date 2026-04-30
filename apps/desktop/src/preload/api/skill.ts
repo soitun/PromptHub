@@ -54,6 +54,8 @@ export const skillApi = {
     ipcRenderer.invoke(IPC_CHANNELS.SKILL_GET_PLATFORM_STATUS, name),
   export: (id: string, format: "skillmd" | "json") =>
     ipcRenderer.invoke(IPC_CHANNELS.SKILL_EXPORT, id, format),
+  exportZip: (id: string): Promise<{ fileName: string; base64: string }> =>
+    ipcRenderer.invoke(IPC_CHANNELS.SKILL_EXPORT_ZIP, id),
   import: (jsonContent: string) =>
     ipcRenderer.invoke(IPC_CHANNELS.SKILL_IMPORT, jsonContent),
   getSupportedPlatforms: () =>

@@ -342,7 +342,7 @@ export function FolderModal({ isOpen, onClose, folder }: FolderModalProps) {
         />
 
         {/* 弹窗内容 */}
-        <div className="relative bg-card rounded-xl w-full max-w-2xl mx-4 border border-border flex flex-col max-h-[85vh]">
+        <div className="relative app-wallpaper-panel-strong rounded-xl w-full max-w-2xl mx-4 border border-border flex flex-col max-h-[85vh]">
         {/* 标题栏 */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <h2 className="text-lg font-semibold">
@@ -370,7 +370,7 @@ export function FolderModal({ isOpen, onClose, folder }: FolderModalProps) {
                 onClick={() => setIconMode('emoji')}
                 className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
                   iconMode === 'emoji'
-                    ? 'bg-card text-foreground shadow-sm'
+                    ? 'app-wallpaper-surface-strong text-foreground shadow-sm'
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
@@ -381,7 +381,7 @@ export function FolderModal({ isOpen, onClose, folder }: FolderModalProps) {
                 onClick={() => setIconMode('icon')}
                 className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
                   iconMode === 'icon'
-                    ? 'bg-card text-foreground shadow-sm'
+                    ? 'app-wallpaper-surface-strong text-foreground shadow-sm'
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
@@ -552,7 +552,7 @@ export function FolderModal({ isOpen, onClose, folder }: FolderModalProps) {
                 aria-hidden="true"
               >
                 <span
-                  className={`absolute left-0.5 h-4 w-4 rounded-full bg-card shadow transition-transform ${
+                  className={`absolute left-0.5 h-4 w-4 rounded-full app-wallpaper-surface-strong shadow transition-transform ${
                     isPrivate ? 'translate-x-5' : 'translate-x-0'
                   }`}
                 />
@@ -572,7 +572,7 @@ export function FolderModal({ isOpen, onClose, folder }: FolderModalProps) {
 
           </div>
           {/* 操作按钮 */}
-          <div className="flex items-center justify-between px-5 pb-5 pt-3 border-t border-border bg-card">
+          <div className="flex items-center justify-between px-5 pb-5 pt-3 border-t border-border app-wallpaper-surface">
             {isEditMode ? (
               <button
                 type="button"
@@ -610,7 +610,7 @@ export function FolderModal({ isOpen, onClose, folder }: FolderModalProps) {
     {showUnlockModal && (
       <div className="fixed inset-0 z-[60] flex items-center justify-center">
         <div className="absolute inset-0 bg-black/50" onClick={() => setShowUnlockModal(false)} />
-        <div className="relative bg-card rounded-xl w-full max-w-sm mx-4 p-5 border border-border space-y-4">
+        <div className="relative app-wallpaper-panel-strong rounded-xl w-full max-w-sm mx-4 p-5 border border-border space-y-4">
           <h3 className="text-base font-semibold">{t('folder.unlockTitle', '输入主密码')}</h3>
           <p className="text-xs text-muted-foreground">{t('folder.unlockDesc', '保存私密文件夹前需要先解锁主密码')}</p>
           <input
@@ -652,7 +652,7 @@ export function FolderModal({ isOpen, onClose, folder }: FolderModalProps) {
     {showDeleteOptions && (
       <div className="fixed inset-0 z-[60] flex items-center justify-center">
         <div className="absolute inset-0 bg-black/50" onClick={() => setShowDeleteOptions(false)} />
-        <div className="relative bg-card rounded-xl w-full max-w-md mx-4 p-5 border border-border space-y-4">
+        <div className="relative app-wallpaper-panel-strong rounded-xl w-full max-w-md mx-4 p-5 border border-border space-y-4">
           <div className="flex items-start gap-3">
             <div className="p-2 rounded-lg bg-destructive/10">
               <AlertTriangleIcon className="w-5 h-5 text-destructive" />
@@ -750,7 +750,7 @@ export function FolderModal({ isOpen, onClose, folder }: FolderModalProps) {
     {showDuplicateConfirm && (
       <div className="fixed inset-0 z-[60] flex items-center justify-center">
         <div className="absolute inset-0 bg-black/50" onClick={() => setShowDuplicateConfirm(false)} />
-        <div className="relative bg-card rounded-xl w-full max-w-sm mx-4 p-5 border border-border space-y-4">
+        <div className="relative app-wallpaper-panel-strong rounded-xl w-full max-w-sm mx-4 p-5 border border-border space-y-4">
           <div className="flex items-start gap-3">
             <div className="p-2 rounded-lg bg-primary/10">
               <AlertTriangleIcon className="w-5 h-5 text-primary" />
@@ -786,7 +786,7 @@ export function FolderModal({ isOpen, onClose, folder }: FolderModalProps) {
     {showDeleteConfirm && (
       <div className="fixed inset-0 z-[60] flex items-center justify-center">
         <div className="absolute inset-0 bg-black/50" onClick={() => setShowDeleteConfirm(false)} />
-        <div className="relative bg-card rounded-xl w-full max-w-sm mx-4 p-5 border border-border space-y-4">
+        <div className="relative app-wallpaper-panel-strong rounded-xl w-full max-w-sm mx-4 p-5 border border-border space-y-4">
           <h3 className="text-base font-semibold text-destructive">{t('folder.deletePrivateTitle', '删除私密文件夹')}</h3>
           <p className="text-xs text-muted-foreground">
             {t('folder.deletePrivateDesc', '此操作将删除文件夹「{{name}}」及其内的所有加密内容，请输入主密码确认', { name: folder?.name || '' })}

@@ -366,7 +366,7 @@ export function SkillStoreDetail({
       />
 
       {/* Modal */}
-      <div className="relative w-full max-w-2xl max-h-[85vh] bg-card border border-border rounded-2xl shadow-2xl flex flex-col animate-in fade-in zoom-in-95 duration-200">
+      <div className="relative w-full max-w-2xl max-h-[85vh] app-wallpaper-panel-strong border border-border rounded-2xl shadow-2xl flex flex-col animate-in fade-in zoom-in-95 duration-200">
         {/* Header */}
         <div className="flex items-start gap-3 p-5 border-b border-border shrink-0">
           <SkillIcon

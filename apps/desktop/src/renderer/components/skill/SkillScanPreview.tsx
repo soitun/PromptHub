@@ -208,7 +208,7 @@ export function SkillScanPreview({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-in fade-in duration-200">
-      <div className="bg-card rounded-xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+      <div className="app-wallpaper-panel-strong rounded-xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
         {/* Header */}
         <div className="h-14 px-6 border-b border-border flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
@@ -271,7 +271,7 @@ export function SkillScanPreview({
                 {customPaths.map((p) => (
                   <div
                     key={p}
-                    className="flex items-center gap-2 text-xs bg-card border border-border rounded px-2 py-1"
+                    className="flex items-center gap-2 text-xs app-wallpaper-surface border border-border rounded px-2 py-1"
                   >
                     <FolderIcon className="w-3 h-3 text-primary shrink-0" />
                     <span className="flex-1 truncate font-mono">{p}</span>
@@ -293,7 +293,7 @@ export function SkillScanPreview({
                 onChange={(e) => setNewPathInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleAddPath()}
                 placeholder={t("skill.pathPlaceholder", "~/path/to/skills")}
-                className="flex-1 text-xs bg-background border border-border rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary/50 font-mono"
+                className="flex-1 text-xs app-wallpaper-surface border border-border rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary/50 font-mono"
               />
               <button
                 onClick={handleAddPath}
@@ -309,7 +309,7 @@ export function SkillScanPreview({
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-3">
           {allSkills.length > 0 && (
-            <div className="flex flex-col gap-3 rounded-2xl border border-border bg-background/60 p-4">
+            <div className="flex flex-col gap-3 rounded-2xl border border-border app-wallpaper-surface/60 p-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <label className="relative block flex-1">
                   <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -321,7 +321,7 @@ export function SkillScanPreview({
                       "skill.searchImportPlaceholder",
                       "Search by name, description, tags, platform, or path",
                     )}
-                    className="h-10 w-full rounded-xl border border-border bg-card pl-9 pr-3 text-sm outline-none transition-colors focus:border-primary/40"
+                    className="h-10 w-full rounded-xl border border-border app-wallpaper-surface pl-9 pr-3 text-sm outline-none transition-colors focus:border-primary/40"
                   />
                 </label>
                 <button
@@ -330,7 +330,7 @@ export function SkillScanPreview({
                   className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition-colors ${
                     showOptionalTags
                       ? "border-primary/40 bg-primary/5 text-primary"
-                      : "border-border bg-card text-muted-foreground hover:text-foreground"
+                      : "border-border app-wallpaper-surface text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   <TagsIcon className="h-4 w-4" />
@@ -418,7 +418,7 @@ export function SkillScanPreview({
                           ? "bg-muted/30 border-border opacity-70 cursor-default"
                           : isSelected
                             ? "bg-primary/5 border-primary/40 shadow-primary/10"
-                            : "bg-card border-border hover:border-primary/30 hover:shadow-md"
+                            : "app-wallpaper-surface border-border hover:border-primary/30 hover:shadow-md"
                       }`}
                       onClick={() =>
                         !skill.isInstalled && handleToggleSkill(skill.localPath)
@@ -554,7 +554,7 @@ export function SkillScanPreview({
                                       "skill.enterTagHint",
                                       "Type a tag and press Enter",
                                     )}
-                                    className="flex-1 h-9 rounded-xl border-0 bg-background px-3 text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                                    className="flex-1 h-9 rounded-xl border-0 app-wallpaper-surface px-3 text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
                                   />
                                   <button
                                     type="button"
@@ -565,7 +565,7 @@ export function SkillScanPreview({
                                     disabled={
                                       !tagInputs[skill.localPath]?.trim()
                                     }
-                                    className="rounded-xl bg-background px-3 text-xs font-medium text-foreground transition-colors hover:bg-card disabled:opacity-50"
+                                    className="rounded-xl app-wallpaper-surface px-3 text-xs font-medium text-foreground transition-colors hover:app-wallpaper-surface disabled:opacity-50"
                                   >
                                     {t("skill.addTag", "Add tag")}
                                   </button>
@@ -592,7 +592,7 @@ export function SkillScanPreview({
 
         {/* Footer */}
         {allSkills.length > 0 && (
-          <div className="h-16 px-6 border-t border-border flex items-center justify-end gap-3 shrink-0 bg-background/50">
+          <div className="h-16 px-6 border-t border-border flex items-center justify-end gap-3 shrink-0 app-wallpaper-surface/50">
             <button
               onClick={handleImport}
               disabled={selectedSkills.size === 0 || isImporting}

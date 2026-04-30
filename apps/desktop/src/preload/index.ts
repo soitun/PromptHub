@@ -415,6 +415,7 @@ declare global {
       };
       selectImage?: () => Promise<string[]>;
       saveImage?: (paths: string[]) => Promise<string[]>;
+      saveBase64Image?: (base64: string) => Promise<string | null>;
       saveImageBuffer?: (buffer: ArrayBuffer) => Promise<string | null>;
       downloadImage?: (url: string) => Promise<string | null>;
       openImage?: (fileName: string) => Promise<boolean>;

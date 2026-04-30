@@ -30,7 +30,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           {
             'bg-primary text-white shadow-sm shadow-primary/25 hover:shadow-md hover:shadow-primary/30 hover:scale-[1.02] focus:ring-primary':
               variant === 'primary',
-            'bg-card border border-border text-foreground hover:bg-accent focus:ring-border':
+            'app-wallpaper-surface border border-border text-foreground hover:bg-accent focus:ring-border':
               variant === 'secondary',
             'bg-transparent text-foreground hover:bg-accent focus:ring-border':
               variant === 'ghost',

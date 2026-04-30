@@ -39,7 +39,7 @@ export function Header() {
   }, [isDark]);
 
   return (
-    <header className="h-14 bg-card/80 backdrop-blur-xl border-b border-border flex items-center gap-4 px-5 titlebar-drag sticky top-0 z-10">
+    <header className="h-14 app-wallpaper-surface backdrop-blur-xl border-b border-border flex items-center gap-4 px-5 titlebar-drag sticky top-0 z-10">
       {/* 搜索框 - iOS 风格 */}
       <div className="flex-1 max-w-lg titlebar-no-drag">
         <div className="relative group">

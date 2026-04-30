@@ -35,7 +35,7 @@ export function SkillStoreCard({
         contentVisibility: "auto",
         containIntrinsicSize: "86px",
       }}
-      className="group relative flex items-center gap-3 p-3.5 bg-card border border-border rounded-xl hover:border-primary/40 transition-all cursor-pointer animate-in fade-in slide-in-from-bottom-2 hover:shadow-md"
+      className="group relative flex items-center gap-3 p-3.5 app-wallpaper-surface border border-border rounded-xl hover:border-primary/40 transition-all cursor-pointer animate-in fade-in slide-in-from-bottom-2 hover:shadow-md"
     >
       <SkillIcon
         iconUrl={skill.icon_url}
