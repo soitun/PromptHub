@@ -1438,6 +1438,7 @@
     "downloadFailed": "下載失敗",
     "copied": "已複製到剪貼簿",
     "saved": "儲存成功",
+    "updateFailed": "更新失敗",
     "deleted": "已刪除",
     "restored": "已還原到歷史版本",
     "configApiKey": "請先填寫 API Key",

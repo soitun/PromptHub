@@ -303,9 +303,9 @@ jobs:
         shell: bash
         run: |
           if [ "$IS_PRERELEASE" = "true" ]; then
-            PREVIEW_NOTE='> 本次是带 semver prerelease 后缀的 Beta / Preview 发布，下载链接已固定到当前 tag。若该版本低于已发布 stable（例如 `0.5.5-beta.1 < 0.5.5`），请将其视为历史测试版并手动下载安装。'
+            PREVIEW_NOTE='> 本次发布带 semver prerelease 后缀，下载链接固定到当前 tag。若该版本低于已发布 stable（例如 `0.5.5-beta.2 < 0.5.5`），稳定通道不会将其作为默认自动更新目标。'
           else
-            PREVIEW_NOTE='> 想提前测试即将发布的修复时，可直接下载下面的 GitHub 预览版，或在应用内设置中显式加入预览更新通道。'
+            PREVIEW_NOTE='> 预览构建发布在 GitHub Prereleases；应用内启用预览更新通道后会检查 prerelease 构建。'
           fi
 
           # 1. Prepare Release Notes

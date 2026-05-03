@@ -1,6 +1,10 @@
 /**
  * @vitest-environment node
  */
+import fs from "fs";
+import os from "os";
+import path from "path";
+
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { IPC_CHANNELS } from "@prompthub/shared/constants/ipc-channels";
@@ -11,6 +15,10 @@ import { FolderDB } from "../../../src/main/database/folder";
 import { PromptDB } from "../../../src/main/database/prompt";
 import { SCHEMA_INDEXES, SCHEMA_TABLES } from "../../../src/main/database/schema";
 import { registerPromptIPC } from "../../../src/main/ipc/prompt.ipc";
+import {
+  configureRuntimePaths,
+  resetRuntimePaths,
+} from "../../../src/main/runtime-paths";
 
 const { handleMock } = vi.hoisted(() => ({
   handleMock: vi.fn(),
@@ -23,12 +31,15 @@ vi.mock("electron", () => ({
 }));
 
 describe("prompt IPC IDB migration", () => {
+  let tempDir: string;
   let rawDb: DatabaseAdapter.Database;
   let promptDb: PromptDB;
   let folderDb: FolderDB;
 
   beforeEach(() => {
     handleMock.mockReset();
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "prompthub-idb-migration-"));
+    configureRuntimePaths({ userDataPath: tempDir });
 
     rawDb = new DatabaseAdapter(":memory:");
     rawDb.pragma("journal_mode = WAL");
@@ -43,6 +54,8 @@ describe("prompt IPC IDB migration", () => {
 
   afterEach(() => {
     rawDb.close();
+    resetRuntimePaths();
+    fs.rmSync(tempDir, { recursive: true, force: true });
   });
 
   it("imports parent-child folders even when payload order is child-first", async () => {

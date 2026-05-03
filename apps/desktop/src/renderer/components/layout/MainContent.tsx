@@ -10,17 +10,19 @@ import { resolveScenarioModel } from '../../services/ai-defaults';
 // 懒加载 SkillManager 以提升初始加载性能
 const SkillManager = lazy(() => import('../skill/SkillManager').then(m => ({ default: m.SkillManager })));
 import { StarIcon, CopyIcon, HistoryIcon, HashIcon, SparklesIcon, EditIcon, TrashIcon, CheckIcon, PlayIcon, LoaderIcon, XIcon, GitCompareIcon, ClockIcon, GlobeIcon, PinIcon, MessageSquareTextIcon, ImageIcon, DownloadIcon, SaveIcon, ZoomInIcon, Share2Icon } from 'lucide-react';
-import { EditPromptModal, VersionHistoryModal, VariableInputModal, PromptListHeader, PromptListView, PromptTableView, AiTestModal, PromptDetailModal, PromptGalleryView, PromptKanbanView } from '../prompt';
+import { EditPromptModal, VersionHistoryModal, VariableInputModal, PromptListHeader, PromptTableView, AiTestModal, PromptDetailModal, PromptGalleryView, PromptKanbanView } from '../prompt';
 import type { OutputFormatConfig } from '../prompt/VariableInputModal';
 import { ContextMenu, ContextMenuItem } from '../ui/ContextMenu';
 import { ImagePreviewModal } from '../ui/ImagePreviewModal';
 import { LocalImage } from '../ui/LocalImage';
+import { Input } from '../ui/Input';
+import { Textarea } from '../ui/Textarea';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { CollapsibleThinking } from '../ui/CollapsibleThinking';
 import { useToast } from '../ui/Toast';
 import { chatCompletion, generateImage, buildMessagesFromPrompt, multiModelCompare, AITestResult, StreamCallbacks } from '../../services/ai';
 import { useTranslation } from 'react-i18next';
-import type { Prompt, PromptVersion } from '@prompthub/shared/types';
+import type { Prompt, PromptVersion, UpdatePromptDTO } from '@prompthub/shared/types';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeSanitize from 'rehype-sanitize';
@@ -167,6 +169,28 @@ const PromptCard = memo(function PromptCard({
     </div>
   );
 });
+
+type DetailInlineEditDraft = {
+  title: string;
+  userPrompt: string;
+};
+
+function createDetailInlineEditDraft(
+  prompt: Prompt,
+  showEnglish: boolean,
+): DetailInlineEditDraft {
+  return {
+    title: prompt.title,
+    userPrompt: showEnglish ? (prompt.userPromptEn || prompt.userPrompt) : prompt.userPrompt,
+  };
+}
+
+function getDetailInlineUserPromptField(
+  prompt: Prompt,
+  showEnglish: boolean,
+): 'userPrompt' | 'userPromptEn' {
+  return showEnglish && !!prompt.userPromptEn ? 'userPromptEn' : 'userPrompt';
+}
 
 export function MainContent() {
   const { t, i18n } = useTranslation();
@@ -989,6 +1013,13 @@ export function MainContent() {
   // Editing prompt for table view
   // 用于表格视图的编辑 prompt
   const [editingPrompt, setEditingPrompt] = useState<Prompt | null>(null);
+  const [isDetailInlineEditing, setIsDetailInlineEditing] = useState(false);
+  const [isDetailInlineSaving, setIsDetailInlineSaving] = useState(false);
+  const [detailInlineDraft, setDetailInlineDraft] = useState<DetailInlineEditDraft>({
+    title: '',
+    userPrompt: '',
+  });
+  const detailTitleInputRef = useRef<HTMLInputElement>(null);
   // AI test modal state
   // AI 测试弹窗状态
   const [isAiTestModalOpen, setIsAiTestModalOpen] = useState(false);
@@ -997,6 +1028,146 @@ export function MainContent() {
   // AI 响应缓存（用于列表视图预览）
   const [aiResponseCache, setAiResponseCache] = useState<Record<string, string>>({});
   const setViewMode = usePromptStore((state) => state.setViewMode);
+
+  const detailInlineCurrentValues = useMemo(() => {
+    if (!selectedPrompt) {
+      return null;
+    }
+    return createDetailInlineEditDraft(selectedPrompt, showEnglish);
+  }, [selectedPrompt, showEnglish]);
+
+  const detailInlineUserPromptField = useMemo<'userPrompt' | 'userPromptEn'>(() => {
+    if (!selectedPrompt) {
+      return 'userPrompt';
+    }
+    return getDetailInlineUserPromptField(selectedPrompt, showEnglish);
+  }, [selectedPrompt, showEnglish]);
+
+  useEffect(() => {
+    setIsDetailInlineEditing(false);
+    setIsDetailInlineSaving(false);
+  }, [selectedPrompt?.id]);
+
+  useEffect(() => {
+    if (!selectedPrompt) {
+      setDetailInlineDraft({ title: '', userPrompt: '' });
+      return;
+    }
+    if (isDetailInlineEditing) {
+      return;
+    }
+    setDetailInlineDraft(createDetailInlineEditDraft(selectedPrompt, showEnglish));
+  }, [
+    isDetailInlineEditing,
+    selectedPrompt,
+    selectedPrompt?.title,
+    selectedPrompt?.userPrompt,
+    selectedPrompt?.userPromptEn,
+    showEnglish,
+  ]);
+
+  useEffect(() => {
+    if (!isDetailInlineEditing) {
+      return;
+    }
+    detailTitleInputRef.current?.focus();
+    detailTitleInputRef.current?.select();
+  }, [isDetailInlineEditing]);
+
+  const openDetailInlineEdit = useCallback(() => {
+    if (!selectedPrompt) {
+      return;
+    }
+    setDetailInlineDraft(createDetailInlineEditDraft(selectedPrompt, showEnglish));
+    setIsDetailInlineEditing(true);
+  }, [selectedPrompt, showEnglish]);
+
+  const cancelDetailInlineEdit = useCallback(() => {
+    if (selectedPrompt) {
+      setDetailInlineDraft(createDetailInlineEditDraft(selectedPrompt, showEnglish));
+    } else {
+      setDetailInlineDraft({ title: '', userPrompt: '' });
+    }
+    setIsDetailInlineEditing(false);
+    setIsDetailInlineSaving(false);
+  }, [selectedPrompt, showEnglish]);
+
+  const hasDetailInlineChanges = useMemo(() => {
+    if (!detailInlineCurrentValues) {
+      return false;
+    }
+
+    return (
+      detailInlineDraft.title.trim() !== detailInlineCurrentValues.title.trim() ||
+      detailInlineDraft.userPrompt !== detailInlineCurrentValues.userPrompt
+    );
+  }, [detailInlineCurrentValues, detailInlineDraft.title, detailInlineDraft.userPrompt]);
+
+  const canSaveDetailInlineEdit = useMemo(() => {
+    return (
+      !!selectedPrompt &&
+      !isDetailInlineSaving &&
+      detailInlineDraft.title.trim().length > 0 &&
+      detailInlineDraft.userPrompt.trim().length > 0 &&
+      hasDetailInlineChanges
+    );
+  }, [
+    detailInlineDraft.title,
+    detailInlineDraft.userPrompt,
+    hasDetailInlineChanges,
+    isDetailInlineSaving,
+    selectedPrompt,
+  ]);
+
+  const saveDetailInlineEdit = useCallback(async () => {
+    if (!selectedPrompt || !canSaveDetailInlineEdit) {
+      return;
+    }
+
+    const nextTitle = detailInlineDraft.title.trim();
+    const nextUserPrompt = detailInlineDraft.userPrompt;
+    const updateData: UpdatePromptDTO = {
+      title: nextTitle,
+    };
+    updateData[detailInlineUserPromptField] = nextUserPrompt;
+
+    setIsDetailInlineSaving(true);
+    try {
+      await updatePrompt(selectedPrompt.id, updateData);
+      showToast(t('toast.saved'), 'success');
+      setIsDetailInlineEditing(false);
+    } catch (error) {
+      console.error('Failed to save inline prompt edits:', error);
+      showToast(t('toast.updateFailed'), 'error');
+    } finally {
+      setIsDetailInlineSaving(false);
+    }
+  }, [
+    canSaveDetailInlineEdit,
+    detailInlineDraft.title,
+    detailInlineDraft.userPrompt,
+    detailInlineUserPromptField,
+    selectedPrompt,
+    showToast,
+    t,
+    updatePrompt,
+  ]);
+
+  const handleDetailInlineEditKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        cancelDetailInlineEdit();
+        return;
+      }
+
+      if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+        event.preventDefault();
+        void saveDetailInlineEdit();
+      }
+    },
+    [cancelDetailInlineEdit, saveDetailInlineEdit],
+  );
 
   // Handle copying prompt - check for variables first
   // 处理复制 Prompt - 先检查是否有变量
@@ -1382,7 +1553,25 @@ export function MainContent() {
                   {/* 标题区域 */}
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
-                      <h2 className="text-xl font-bold text-foreground mb-1">{selectedPrompt.title}</h2>
+                      {isDetailInlineEditing ? (
+                        <Input
+                          ref={detailTitleInputRef}
+                          aria-label={t('prompt.titleLabel')}
+                          value={detailInlineDraft.title}
+                          onChange={(event) => {
+                            const nextTitle = event.target.value;
+                            setDetailInlineDraft((prev) => ({
+                              ...prev,
+                              title: nextTitle,
+                            }));
+                          }}
+                          onKeyDown={handleDetailInlineEditKeyDown}
+                          placeholder={t('prompt.titlePlaceholder')}
+                          className="h-12 text-xl font-bold"
+                        />
+                      ) : (
+                        <h2 className="text-xl font-bold text-foreground mb-1">{selectedPrompt.title}</h2>
+                      )}
                       {selectedPrompt.description && (
                         <p className="text-sm text-muted-foreground">{selectedPrompt.description}</p>
                       )}
@@ -1408,12 +1597,52 @@ export function MainContent() {
                       >
                          {shared ? <CheckIcon className="w-5 h-5" /> : <Share2Icon className="w-5 h-5" />}
                       </button>
-                      <button
-                        onClick={() => setEditingPrompt(selectedPrompt)}
-                        className="p-2.5 rounded-xl text-muted-foreground hover:bg-accent hover:text-foreground transition-all duration-200 active:scale-95"
-                      >
-                        <EditIcon className="w-5 h-5" />
-                      </button>
+                      {isDetailInlineEditing ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={cancelDetailInlineEdit}
+                            disabled={isDetailInlineSaving}
+                            className="flex items-center gap-2 h-10 px-3 rounded-xl app-wallpaper-surface-strong border border-border text-sm font-medium hover:bg-accent/60 disabled:opacity-50 transition-colors"
+                          >
+                            <XIcon className="w-4 h-4" />
+                            <span>{t('common.cancel')}</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void saveDetailInlineEdit()}
+                            disabled={!canSaveDetailInlineEdit}
+                            className="flex items-center gap-2 h-10 px-3 rounded-xl bg-primary text-white text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                          >
+                            {isDetailInlineSaving ? (
+                              <LoaderIcon className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <SaveIcon className="w-4 h-4" />
+                            )}
+                            <span>{t('common.save')}</span>
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            onClick={openDetailInlineEdit}
+                            className="flex items-center gap-2 h-10 px-3 rounded-xl app-wallpaper-surface-strong border border-border text-sm font-medium hover:bg-accent/60 transition-colors"
+                          >
+                            <EditIcon className="w-4 h-4" />
+                            <span>{t('common.edit')}</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditingPrompt(selectedPrompt)}
+                            aria-label={t('prompt.editPrompt')}
+                            title={t('prompt.editPrompt')}
+                            className="p-2.5 rounded-xl text-muted-foreground hover:bg-accent hover:text-foreground transition-all duration-200 active:scale-95"
+                          >
+                            <EditIcon className="w-5 h-5" />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
 
@@ -1516,8 +1745,9 @@ export function MainContent() {
                     <div className="flex justify-end mb-4">
                       <button
                         onClick={() => setShowEnglish(!showEnglish)}
+                        disabled={isDetailInlineEditing}
                         className={
-                          `flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 active:scale-95 ` +
+                          `flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ` +
                           (showEnglish
                             ? 'bg-primary text-white'
                             : 'bg-accent text-muted-foreground hover:text-foreground')
@@ -1551,20 +1781,40 @@ export function MainContent() {
                         {t('prompt.userPromptLabel', 'User Prompt')}
                         {showEnglish && <span className="px-1 py-0.5 rounded bg-primary/10 text-primary text-[10px]">EN</span>}
                       </span>
-                      <button
-                        type="button"
-                        onClick={toggleRenderMarkdown}
-                        className="text-[12px] px-3 py-1 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                      >
-                        {renderMarkdownEnabled ? t('prompt.viewRaw', 'Show Plain Text') : t('prompt.viewMarkdown', 'Markdown')}
-                      </button>
+                      {!isDetailInlineEditing ? (
+                        <button
+                          type="button"
+                          onClick={toggleRenderMarkdown}
+                          className="text-[12px] px-3 py-1 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                        >
+                          {renderMarkdownEnabled ? t('prompt.viewRaw', 'Show Plain Text') : t('prompt.viewMarkdown', 'Markdown')}
+                        </button>
+                      ) : null}
                     </div>
-                    {renderPromptContent(showEnglish ? (selectedPrompt.userPromptEn || selectedPrompt.userPrompt) : selectedPrompt.userPrompt)}
+                    {isDetailInlineEditing ? (
+                      <Textarea
+                        aria-label={t('prompt.userPromptLabel', 'User Prompt')}
+                        value={detailInlineDraft.userPrompt}
+                        onChange={(event) => {
+                          const nextUserPrompt = event.target.value;
+                          setDetailInlineDraft((prev) => ({
+                            ...prev,
+                            userPrompt: nextUserPrompt,
+                          }));
+                        }}
+                        onKeyDown={handleDetailInlineEditKeyDown}
+                        className="min-h-[280px] text-[14px] leading-relaxed font-mono"
+                        rows={12}
+                        enableMarkdownList
+                      />
+                    ) : (
+                      renderPromptContent(showEnglish ? (selectedPrompt.userPromptEn || selectedPrompt.userPrompt) : selectedPrompt.userPrompt)
+                    )}
                   </div>
 
                   {/* Multi-model comparison */}
                   {/* 多模型对比区域 */}
-                  {selectedPrompt.promptType !== 'image' && compareModels.length > 0 && (
+                  {selectedPrompt.promptType !== 'image' && compareModels.length > 0 && !isDetailInlineEditing && (
                     <div className="mb-4 p-4 rounded-xl app-wallpaper-panel border border-border">
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2">
@@ -1826,7 +2076,8 @@ export function MainContent() {
                         setTimeout(() => setCopied(false), 2000);
                       }
                     }}
-                    className="flex items-center gap-2 h-9 px-4 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors"
+                    disabled={isDetailInlineEditing}
+                    className="flex items-center gap-2 h-9 px-4 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
                   >
                     {copied ? <CheckIcon className="w-4 h-4" /> : <CopyIcon className="w-4 h-4" />}
                     <span>{copied ? t('prompt.copied') : t('prompt.copy')}</span>
@@ -1854,7 +2105,7 @@ export function MainContent() {
                         runAiTest(currentSystemPrompt, currentUserPrompt);
                       }
                     }}
-                    disabled={isTestingAI}
+                    disabled={isTestingAI || isDetailInlineEditing}
                     className="flex items-center gap-2 h-9 px-4 rounded-lg bg-primary/90 text-white text-sm font-medium hover:bg-primary disabled:opacity-50 transition-colors"
                   >
                     {isTestingAI ? <LoaderIcon className="w-4 h-4 animate-spin" /> : <PlayIcon className="w-4 h-4" />}
@@ -1862,14 +2113,16 @@ export function MainContent() {
                   </button>
                   <button
                     onClick={() => handleVersionHistory(selectedPrompt)}
-                    className="flex items-center gap-2 h-9 px-4 rounded-lg app-wallpaper-surface-strong border border-border text-sm font-medium hover:bg-accent/60 transition-colors"
+                    disabled={isDetailInlineEditing}
+                    className="flex items-center gap-2 h-9 px-4 rounded-lg app-wallpaper-surface-strong border border-border text-sm font-medium hover:bg-accent/60 disabled:opacity-50 transition-colors"
                   >
                     <HistoryIcon className="w-4 h-4" />
                     <span>{t('prompt.history')}</span>
                   </button>
                   <button
                     onClick={() => handleDeletePrompt(selectedPrompt)}
-                    className="flex items-center gap-2 h-9 px-4 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-sm font-medium hover:bg-destructive/20 transition-colors"
+                    disabled={isDetailInlineEditing}
+                    className="flex items-center gap-2 h-9 px-4 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-sm font-medium hover:bg-destructive/20 disabled:opacity-50 transition-colors"
                   >
                     <TrashIcon className="w-4 h-4" />
                     <span>{t('prompt.delete')}</span>

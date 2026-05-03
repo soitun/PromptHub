@@ -1,6 +1,11 @@
 ## [Unreleased]
 
-## [0.5.5-beta.1] - 2026-04-28
+## [0.5.5-beta.2] - 2026-05-03
+
+### 新功能 / Added
+
+- ✏️ **卡片详情快速编辑**：桌面端 card view 的右侧详情区新增轻量内联编辑，可直接修改选中 Prompt 的标题和当前可见用户提示词，同时保留完整编辑弹窗入口
+  - **Card Detail Inline Editing**: The desktop card-view detail panel now supports lightweight inline edits for the selected prompt title and visible user prompt while keeping the full edit modal available
 
 ### 修复 / Fixed
 
@@ -8,11 +13,15 @@
   - **Desktop Update Flow Hardened**: The preview lane no longer depends on a missing `preview.yml`. It now resolves the latest prerelease release and reads the real `latest*.yml` manifest, with explicit downgrade filtering so older stable builds are never shown as available updates
 - ✨ **预览默认通道推断与状态稳定性**：当应用版本本身带 prerelease 后缀时，客户端会在用户未显式改动前默认使用 preview 通道；后台检查更新也不会再把已显示的 `available` / `downloaded` 状态拉回 `checking`
   - **Preview Default Inference and UI Stability**: When the installed app version contains a prerelease suffix, PromptHub defaults to the preview lane until the user explicitly changes it; background update checks also no longer force visible `available` / `downloaded` states back into `checking`
+- 🧪 **IDB 迁移回归隔离**：IDB 迁移 IPC 回归测试改用临时 user-data 路径，避免全量测试写入真实桌面配置目录
+  - **IDB Migration Regression Isolation**: The IDB migration IPC regression test now uses a temporary user-data path, preventing full-suite runs from writing into the real desktop profile directory
 
 ### 维护 / Maintenance
 
-- 🔖 **历史 Beta 重新发布规则**：为修正 `0.5.5` 线曾经缺失的机器可判定 preview 标识，本次补发 `0.5.5-beta.1` 作为历史 prerelease。该版本在 semver 排序上低于 `0.5.5` stable，应视为手动下载 / 测试入口，而不是稳定版用户的常规自动升级目标
-  - **Historical Beta Reissue Rule**: To restore a machine-readable preview marker for the `0.5.5` line, this release republishes the preview build as `0.5.5-beta.1`. Because it sorts lower than `0.5.5` stable in semver, it should be treated as a manual-download testing entry point rather than a normal auto-upgrade target for stable users
+- 🔖 **预览通道发布标识**：发布 `0.5.5-beta.2` 作为带 prerelease 标识的预览构建，用于验证预览更新链路的清单解析与通道识别。该版本在 semver 排序上低于 `0.5.5` stable，稳定通道不会将其作为默认自动更新目标
+  - **Preview Channel Release Marker**: This release publishes `0.5.5-beta.2` with an explicit prerelease marker to validate manifest resolution and channel identification for the preview update path. Because it sorts lower than `0.5.5` stable in semver, stable-channel installs do not use it as the default automatic update target
+- 🧹 **发布文档语气整理**：README、多语言 README 与 release workflow 的预览通道说明改为正式发布文档口径，去除口语化和非正式描述
+  - **Release Copy Polish**: README, localized READMEs, and release workflow preview-channel notes now use formal release wording without conversational or historical-test phrasing
 
 ## [0.5.5] - 2026-04-24
 

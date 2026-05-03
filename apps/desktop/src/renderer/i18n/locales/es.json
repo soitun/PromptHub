@@ -1438,6 +1438,7 @@
     "downloadFailed": "Error al descargar",
     "copied": "Copiado al portapapeles",
     "saved": "Guardado exitosamente",
+    "updateFailed": "Error al actualizar",
     "deleted": "Eliminado",
     "restored": "Restaurado a versión histórica",
     "configApiKey": "Primero completa la API Key",

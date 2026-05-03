@@ -1438,6 +1438,7 @@
     "downloadFailed": "Échec du téléchargement",
     "copied": "Copié dans le presse-papiers",
     "saved": "Enregistré avec succès",
+    "updateFailed": "Échec de la mise à jour",
     "deleted": "Supprimé",
     "restored": "Restauré à la version historique",
     "configApiKey": "Veuillez d'abord remplir la clé API",

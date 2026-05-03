@@ -1438,6 +1438,7 @@
     "downloadFailed": "ダウンロードに失敗しました",
     "copied": "クリップボードにコピーしました",
     "saved": "保存しました",
+    "updateFailed": "更新に失敗しました",
     "deleted": "削除しました",
     "restored": "履歴バージョンに復元しました",
     "configApiKey": "まず API Key を入力してください",

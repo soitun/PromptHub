@@ -1440,6 +1440,7 @@
     "downloadFailed": "Download failed",
     "copied": "Copied to clipboard",
     "saved": "Saved successfully",
+    "updateFailed": "Update failed",
     "deleted": "Deleted",
     "restored": "Restored to previous version",
     "configApiKey": "Please enter API Key first",

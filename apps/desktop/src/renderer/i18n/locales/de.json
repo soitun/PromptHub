@@ -1438,6 +1438,7 @@
     "downloadFailed": "Download fehlgeschlagen",
     "copied": "In Zwischenablage kopiert",
     "saved": "Erfolgreich gespeichert",
+    "updateFailed": "Aktualisierung fehlgeschlagen",
     "deleted": "Gelöscht",
     "restored": "Auf historische Version wiederhergestellt",
     "configApiKey": "Bitte zuerst API Key ausfüllen",

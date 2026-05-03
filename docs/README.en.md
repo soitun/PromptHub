@@ -128,11 +128,11 @@ Download the latest version v0.5.5 from [Releases](https://github.com/legeling/P
 | Windows  | [![Windows x64](https://img.shields.io/badge/Windows_x64-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-Setup-0.5.5-x64.exe) [![Windows arm64](https://img.shields.io/badge/Windows_arm64-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-Setup-0.5.5-arm64.exe) |
 |  macOS   |   [![macOS Apple Silicon](https://img.shields.io/badge/macOS_Apple_Silicon-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.5.5-arm64.dmg) [![macOS Intel](https://img.shields.io/badge/macOS_Intel-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.5.5-x64.dmg)   |
 |  Linux   |       [![Linux AppImage](https://img.shields.io/badge/Linux_AppImage-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.5.5-x64.AppImage) [![Linux deb](https://img.shields.io/badge/Linux_deb-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/legeling/PromptHub/releases/latest/download/prompthub_0.5.5_amd64.deb)        |
-| Preview  | [![Preview Prereleases](https://img.shields.io/badge/Preview_Prereleases-8B5CF6?style=for-the-badge&logo=github&logoColor=white)](https://github.com/legeling/PromptHub/releases?q=prerelease%3Atrue) [![Historical Beta v0.5.5-beta.1](https://img.shields.io/badge/Historical_Beta-v0.5.5--beta.1-8B5CF6?style=for-the-badge&logo=github&logoColor=white)](https://github.com/legeling/PromptHub/releases/tag/v0.5.5-beta.1) |
+| Preview  | [![Preview Prereleases](https://img.shields.io/badge/Preview_Prereleases-8B5CF6?style=for-the-badge&logo=github&logoColor=white)](https://github.com/legeling/PromptHub/releases?q=prerelease%3Atrue) [![v0.5.5-beta.2](https://img.shields.io/badge/Preview-v0.5.5--beta.2-8B5CF6?style=for-the-badge&logo=github&logoColor=white)](https://github.com/legeling/PromptHub/releases/tag/v0.5.5-beta.2) |
 
-> If you want to test upcoming fixes early, download a build from GitHub `Prereleases` or explicitly join the preview update channel in Settings.
+> Preview builds are published as GitHub `Prereleases`. Enabling the preview update channel in Settings makes PromptHub check prerelease builds.
 >
-> `0.5.5-beta.1` is a historical beta reissue created to restore a machine-readable prerelease marker for the old `0.5.5` preview build. It sorts lower than `0.5.5` stable, so treat it as a manual-download test build rather than the default upgrade target for stable users.
+> `0.5.5-beta.2` validates prerelease identification and manifest resolution for the preview update path. Because it sorts below `0.5.5` stable in semver, stable-channel installs do not use it as the default automatic update target.
 
 ### macOS Install via Homebrew
 
@@ -370,10 +370,12 @@ See full changelog: **[CHANGELOG.md](../CHANGELOG.md)**
 
 > 📋 [View full changelog](../CHANGELOG.md)
 
-### Historical Beta v0.5.5-beta.1 (2026-04-28)
+### Preview Channel Fix v0.5.5-beta.2 (2026-05-03)
 
-- Reissued the old `0.5.5` preview build as `0.5.5-beta.1` so the build once again has an explicit beta / prerelease marker.
-- Because `0.5.5-beta.1 < 0.5.5` in semver, this build is intended for manual historical testing instead of normal stable-user auto-upgrades.
+- Added lightweight inline editing in the desktop card-view detail panel for the selected prompt title and visible user prompt while keeping the full edit modal available.
+- Reissued the preview build as `0.5.5-beta.2` with an explicit prerelease marker so the client and GitHub Releases can reliably identify the preview channel.
+- Because `0.5.5-beta.2 < 0.5.5` in semver, stable-channel installs do not use it as the default automatic update target.
+- Polished README, localized READMEs, and release workflow preview-channel notes into formal release wording.
 
 ## 🤝 Contribution
 

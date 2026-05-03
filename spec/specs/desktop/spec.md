@@ -22,6 +22,11 @@
 - 数据布局与迁移事实见 `spec/architecture/data-layout-v0.5.5-zh.md`。
 - 历史 desktop 相关演进记录保存在 `spec/changes/legacy/docs-08-todo/`。
 
+### 4. Card Detail Editing
+
+- 桌面端 card view 的右侧 Prompt 详情区应支持不离开当前上下文的轻量快速编辑，用于修改选中 Prompt 的标题和当前可见的用户提示词。
+- 完整字段编辑仍由专门的 Prompt 编辑弹窗承担；轻量快速编辑不应替代完整编辑流程。
+
 ## Stable Scenarios
 
 ### Scenario: Contributor changes desktop runtime behavior
