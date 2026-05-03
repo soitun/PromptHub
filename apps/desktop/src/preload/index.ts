@@ -32,6 +32,43 @@ const listenerMap = new Map<
   (...args: any[]) => void
 >();
 
+type DataPathChangeAction = "migrate" | "switch" | "overwrite";
+
+interface DataPathSummary {
+  promptCount: number;
+  folderCount: number;
+  skillCount: number;
+  available: boolean;
+  error?: string;
+}
+
+interface DataPathChangePreview {
+  success: boolean;
+  error?: string;
+  targetPath?: string;
+  currentPath?: string;
+  exists?: boolean;
+  hasPromptHubData?: boolean;
+  isCurrentPath?: boolean;
+  markers?: Array<{
+    name: string;
+    path: string;
+    type: "file" | "directory" | "other";
+  }>;
+  currentSummary?: DataPathSummary;
+  targetSummary?: DataPathSummary;
+  recommendedAction?: "migrate" | "switch";
+}
+
+interface DataPathChangeResult {
+  success: boolean;
+  message?: string;
+  newPath?: string;
+  needsRestart?: boolean;
+  backupPath?: string;
+  error?: string;
+}
+
 const api = {
   // Window controls
   // 窗口控制 (Windows)
@@ -150,6 +187,10 @@ contextBridge.exposeInMainWorld("electron", {
   // 数据目录
   getDataPath: () => ipcRenderer.invoke("data:getPath"),
   getDataPathStatus: () => ipcRenderer.invoke("data:getStatus"),
+  previewDataPathChange: (newPath: string) =>
+    ipcRenderer.invoke("data:previewDataPathChange", newPath),
+  applyDataPathChange: (newPath: string, action: DataPathChangeAction) =>
+    ipcRenderer.invoke("data:applyDataPathChange", { newPath, action }),
   migrateData: (newPath: string) => ipcRenderer.invoke("data:migrate", newPath),
   // Data recovery
   // 数据恢复
@@ -357,13 +398,14 @@ declare global {
         configuredPath?: string | null;
         needsRestart: boolean;
       }>;
-      migrateData?: (newPath: string) => Promise<{
-        success: boolean;
-        message?: string;
-        newPath?: string;
-        needsRestart?: boolean;
-        error?: string;
-      }>;
+      previewDataPathChange?: (
+        newPath: string,
+      ) => Promise<DataPathChangePreview>;
+      applyDataPathChange?: (
+        newPath: string,
+        action: DataPathChangeAction,
+      ) => Promise<DataPathChangeResult>;
+      migrateData?: (newPath: string) => Promise<DataPathChangeResult>;
       // Data recovery
       checkRecovery?: (options?: RecoveryScanOptions) => Promise<
         RecoveryCandidate[]

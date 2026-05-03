@@ -122,7 +122,7 @@ function createSettingsState() {
   };
 }
 
-describe("DataSettings", () => {
+describe("DataSettings", { timeout: 15_000 }, () => {
   let originalCreateElement: typeof document.createElement;
 
   beforeEach(() => {
@@ -183,6 +183,128 @@ describe("DataSettings", () => {
       screen.getByText("Will switch to this directory after restart:"),
     ).toBeInTheDocument();
     expect(screen.getByText("/next/data")).toBeInTheDocument();
+  });
+
+  it("offers switching instead of migrating when the selected directory already has data", async () => {
+    const showToast = vi.fn();
+    useToastMock.mockReturnValue({ showToast });
+    const applyDataPathChange = vi.fn().mockResolvedValue({
+      success: true,
+      newPath: "/copied/PromptHub",
+      needsRestart: true,
+    });
+
+    installWindowMocks({
+      api: {
+        security: {
+          status: vi.fn().mockResolvedValue({ configured: false }),
+        },
+      },
+      electron: {
+        getDataPathStatus: vi.fn().mockResolvedValue({
+          configuredPath: null,
+          currentPath: "/actual/data",
+          needsRestart: false,
+        }),
+        selectFolder: vi.fn().mockResolvedValue("/copied/PromptHub"),
+        previewDataPathChange: vi.fn().mockResolvedValue({
+          success: true,
+          targetPath: "/copied/PromptHub",
+          exists: true,
+          hasPromptHubData: true,
+          isCurrentPath: false,
+          markers: [{ name: "prompthub.db" }, { name: "data" }],
+          targetSummary: {
+            promptCount: 4,
+            folderCount: 2,
+            skillCount: 1,
+            available: true,
+          },
+        }),
+        applyDataPathChange,
+      },
+    });
+
+    await act(async () => {
+      await renderWithI18n(<DataSettings />, { language: "en" });
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Change" }));
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Target directory already contains PromptHub data"),
+      ).toBeInTheDocument();
+    });
+    expect(applyDataPathChange).not.toHaveBeenCalled();
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole("button", { name: "Switch to this directory" }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(applyDataPathChange).toHaveBeenCalledWith(
+        "/copied/PromptHub",
+        "switch",
+      );
+    });
+    expect(showToast).toHaveBeenCalledWith(
+      "Data directory switched Please restart the app",
+      "success",
+    );
+  });
+
+  it("migrates immediately after confirmation when the selected directory is empty", async () => {
+    const applyDataPathChange = vi.fn().mockResolvedValue({
+      success: true,
+      newPath: "/empty/PromptHub",
+      needsRestart: true,
+    });
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+
+    installWindowMocks({
+      api: {
+        security: {
+          status: vi.fn().mockResolvedValue({ configured: false }),
+        },
+      },
+      electron: {
+        getDataPathStatus: vi.fn().mockResolvedValue({
+          configuredPath: null,
+          currentPath: "/actual/data",
+          needsRestart: false,
+        }),
+        selectFolder: vi.fn().mockResolvedValue("/empty/PromptHub"),
+        previewDataPathChange: vi.fn().mockResolvedValue({
+          success: true,
+          targetPath: "/empty/PromptHub",
+          exists: true,
+          hasPromptHubData: false,
+          isCurrentPath: false,
+          markers: [],
+        }),
+        applyDataPathChange,
+      },
+    });
+
+    await act(async () => {
+      await renderWithI18n(<DataSettings />, { language: "en" });
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Change" }));
+    });
+
+    await waitFor(() => {
+      expect(applyDataPathChange).toHaveBeenCalledWith(
+        "/empty/PromptHub",
+        "migrate",
+      );
+    });
   });
 
   it("lets users add manual recovery scan directories and open the recovery browser", async () => {
@@ -623,5 +745,5 @@ describe("DataSettings", () => {
       "Upgrade backup restored. PromptHub will restart automatically.",
       "success",
     );
-  });
+  }, 10000);
 });

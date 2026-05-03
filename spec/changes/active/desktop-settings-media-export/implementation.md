@@ -26,6 +26,14 @@
 - Skill ZIP 导出修正为按原始字节读取本地仓库文件，避免图片或其他二进制资源在导出时被文本占位符破坏。
 - 补齐背景图与升级快照摘要相关 locale 文案到 `en`、`zh`、`zh-TW`、`ja`、`de`、`es`、`fr`。
 - 新增/更新回归测试，覆盖背景图 store、升级快照默认折叠、ZIP 下载工具和 Skill 导出 UI。
+- 收口后续回归修复：修正 `skill-installer.ts` 中 `scanLocal` / `scanLocalPreview` 的花括号结构，恢复语法可解析状态，避免桌面端 lint 被扫描逻辑的 parse error 阻塞。
+- 收口 `TopBar` 新建方式下拉：移除组件内中文 fallback，完全依赖现有 i18n key，并补充 portal 菜单 outside-click 关闭与切换 `creationMode` 的回归测试。
+- 收口主题/背景图片链路白盒扫描结果：
+  1. `LocalImage` 在 `src` 变化时会重置失败状态，避免用户从坏图切换到新图后仍一直停留在占位态。
+  2. `settings.store` 对背景图引用增加本地文件名归一化和来源限制，拒绝 `http(s):` / `data:` / `blob:` / 路径穿越类输入，并为透明度/模糊同值更新增加短路，减少无意义持久化写入。
+  3. `image.ipc.ts` 收紧桌面端图片保存与下载边界：`image:save` 仅接受主进程图片选择器刚返回的路径；远程下载改为手动跟随重定向并逐跳重新校验 SSRF 约束，同时校验图片类型与体积上限。
+  4. `App.tsx` 在 `themeMode=system` 时补上运行时系统深浅色变化监听，避免只在启动时读取一次系统主题。
+  5. 图片模式下额外修复侧边栏底部标签区材质过白的问题，只对 `.app-background-mode-image .sidebar-tag-section` 做局部覆写，不影响其他玻璃层合同。
 
 ## Verification
 
@@ -35,6 +43,13 @@
 - `pnpm build`
 - 本轮增量验证：`pnpm lint`
 - 本轮增量验证：`pnpm --filter @prompthub/desktop test -- --run tests/unit/stores/settings-background-image.test.ts`
+- 本轮增量验证：`pnpm exec eslint src/main/services/skill-installer.ts`
+- 本轮增量验证：`pnpm exec eslint src/renderer/components/layout/TopBar.tsx tests/unit/components/top-bar.test.tsx`
+- 本轮增量验证：`pnpm test -- tests/unit/components/top-bar.test.tsx --run`
+- 本轮增量验证：`pnpm test -- --run tests/unit/stores/settings-background-image.test.ts tests/unit/components/local-image.test.tsx tests/unit/components/appearance-settings.test.tsx tests/unit/main/image-ipc.test.ts`
+- 本轮增量验证：`pnpm typecheck`
+- 本轮增量验证：`pnpm test -- --run`
+- 本轮增量验证：`pnpm build`
 
 ## Synced Docs
 

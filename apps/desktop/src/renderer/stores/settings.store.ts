@@ -52,6 +52,7 @@ const DEFAULT_TAGS_SECTION_HEIGHT = 140;
 const DEFAULT_BACKGROUND_IMAGE_OPACITY = 1;
 const DEFAULT_BACKGROUND_IMAGE_BLUR = 0;
 const LEGACY_BACKGROUND_IMAGE_BLUR_DEFAULT = 14;
+const LOCAL_IMAGE_PROTOCOL_PREFIX = "local-image://";
 
 type Hs = { hue: number; saturation: number };
 
@@ -70,6 +71,32 @@ function clampBackgroundImageBlur(value: number): number {
     return DEFAULT_BACKGROUND_IMAGE_BLUR;
   }
   return Number(clamp(Number(value), 0, 50).toFixed(1));
+}
+
+function normalizeBackgroundImageFileName(value: unknown): string | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+
+  const fileName = trimmed.startsWith(LOCAL_IMAGE_PROTOCOL_PREFIX)
+    ? trimmed.slice(LOCAL_IMAGE_PROTOCOL_PREFIX.length)
+    : trimmed;
+
+  if (
+    !fileName ||
+    /^(https?:|data:|blob:)/i.test(fileName) ||
+    fileName.includes("..") ||
+    /[\0/\\?#]/.test(fileName)
+  ) {
+    return undefined;
+  }
+
+  return fileName;
 }
 
 function normalizeBackgroundImageBlur(value: number, persistedVersion?: number): number {
@@ -101,7 +128,9 @@ function applyBackgroundImageVars(options: {
   }
 
   const root = document.documentElement;
-  const fileName = options.backgroundImageFileName?.trim();
+  const fileName = normalizeBackgroundImageFileName(
+    options.backgroundImageFileName,
+  );
   const resolvedSrc = fileName ? resolveLocalImageSrc(fileName) : "";
 
   root.style.setProperty(
@@ -649,10 +678,7 @@ export const useSettingsStore = create<SettingsState>()(
         },
 
         applyBackgroundImageSelection: (fileName) => {
-          const normalized =
-            typeof fileName === "string" && fileName.trim().length > 0
-              ? fileName.trim()
-              : undefined;
+          const normalized = normalizeBackgroundImageFileName(fileName);
           if (!normalized) {
             return;
           }
@@ -672,10 +698,10 @@ export const useSettingsStore = create<SettingsState>()(
           });
         },
         setBackgroundImageFileName: (fileName) => {
-          const normalized =
-            typeof fileName === "string" && fileName.trim().length > 0
-              ? fileName.trim()
-              : undefined;
+          const normalized = normalizeBackgroundImageFileName(fileName);
+          if (get().backgroundImageFileName === normalized) {
+            return;
+          }
           setTouched({ backgroundImageFileName: normalized });
           applyBackgroundImageVars({
             backgroundImageFileName: normalized,
@@ -685,6 +711,9 @@ export const useSettingsStore = create<SettingsState>()(
         },
         setBackgroundImageOpacity: (opacity) => {
           const normalized = clampBackgroundImageOpacity(opacity);
+          if (get().backgroundImageOpacity === normalized) {
+            return;
+          }
           setTouched({ backgroundImageOpacity: normalized });
           applyBackgroundImageVars({
             backgroundImageFileName: get().backgroundImageFileName,
@@ -694,6 +723,9 @@ export const useSettingsStore = create<SettingsState>()(
         },
         setBackgroundImageBlur: (blur) => {
           const normalized = clampBackgroundImageBlur(blur);
+          if (get().backgroundImageBlur === normalized) {
+            return;
+          }
           setTouched({ backgroundImageBlur: normalized });
           applyBackgroundImageVars({
             backgroundImageFileName: get().backgroundImageFileName,
@@ -1100,14 +1132,9 @@ export const useSettingsStore = create<SettingsState>()(
         if (typeof next.updateChannelExplicitlySet !== "boolean") {
           next.updateChannelExplicitlySet = false;
         }
-        if (
-          typeof next.backgroundImageFileName !== "string" ||
-          next.backgroundImageFileName.trim().length === 0
-        ) {
-          next.backgroundImageFileName = undefined;
-        } else {
-          next.backgroundImageFileName = next.backgroundImageFileName.trim();
-        }
+        next.backgroundImageFileName = normalizeBackgroundImageFileName(
+          next.backgroundImageFileName,
+        );
         next.backgroundImageOpacity = clampBackgroundImageOpacity(
           typeof next.backgroundImageOpacity === "number"
             ? next.backgroundImageOpacity

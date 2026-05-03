@@ -5,7 +5,7 @@ const CONFIG_DIR_NAME = "PromptHub";
 const CONFIG_FILE_NAME = "data-path.json";
 export const LEGACY_PRODUCT_NAME = "PromptHub";
 
-const DATA_MARKERS = [
+export const DATA_MARKERS = [
   "prompthub.db",
   "data",
   "config",
@@ -21,6 +21,19 @@ const DATA_MARKERS = [
   "shortcuts.json",
   "shortcut-mode.json",
 ];
+
+export interface ExistingDataMarker {
+  name: string;
+  path: string;
+  type: "file" | "directory" | "other";
+}
+
+export interface DataPathInspection {
+  targetPath: string;
+  exists: boolean;
+  hasPromptHubData: boolean;
+  markers: ExistingDataMarker[];
+}
 
 function resolvePlatformPath(
   targetPath: string,
@@ -125,13 +138,56 @@ export function writeConfiguredDataPath(
 }
 
 export function hasExistingAppData(targetPath: string): boolean {
-  if (!targetPath || !fs.existsSync(targetPath)) {
-    return false;
+  return inspectDataPath(targetPath).hasPromptHubData;
+}
+
+export function inspectDataPath(targetPath: string): DataPathInspection {
+  const resolvedTargetPath = path.resolve(targetPath);
+  if (!targetPath || !fs.existsSync(resolvedTargetPath)) {
+    return {
+      targetPath: resolvedTargetPath,
+      exists: false,
+      hasPromptHubData: false,
+      markers: [],
+    };
   }
 
-  return DATA_MARKERS.some((marker) =>
-    fs.existsSync(path.join(targetPath, marker)),
-  );
+  const markers = DATA_MARKERS.flatMap((marker): ExistingDataMarker[] => {
+    const markerPath = path.join(resolvedTargetPath, marker);
+    if (!fs.existsSync(markerPath)) {
+      return [];
+    }
+
+    try {
+      const stat = fs.statSync(markerPath);
+      return [
+        {
+          name: marker,
+          path: markerPath,
+          type: stat.isDirectory()
+            ? "directory"
+            : stat.isFile()
+              ? "file"
+              : "other",
+        },
+      ];
+    } catch {
+      return [
+        {
+          name: marker,
+          path: markerPath,
+          type: "other",
+        },
+      ];
+    }
+  });
+
+  return {
+    targetPath: resolvedTargetPath,
+    exists: true,
+    hasPromptHubData: markers.length > 0,
+    markers,
+  };
 }
 
 export function isProtectedInstallDir(

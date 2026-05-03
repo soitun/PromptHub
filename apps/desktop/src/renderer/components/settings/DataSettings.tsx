@@ -64,6 +64,24 @@ const MANUAL_RECOVERY_PATHS_STORAGE_KEY = "prompthub-manual-recovery-paths";
 const DEFAULT_VISIBLE_UPGRADE_BACKUPS = 3;
 const EXPANDED_UPGRADE_BACKUP_MAX_HEIGHT = 420;
 
+type DataPathChangeAction = "migrate" | "switch" | "overwrite";
+
+interface DataPathChangePreview {
+  success: boolean;
+  error?: string;
+  targetPath?: string;
+  exists?: boolean;
+  hasPromptHubData?: boolean;
+  isCurrentPath?: boolean;
+  markers?: Array<{ name: string }>;
+  targetSummary?: {
+    promptCount: number;
+    folderCount: number;
+    skillCount: number;
+    available: boolean;
+  };
+}
+
 function loadManualRecoveryPaths(): string[] {
   try {
     const raw = localStorage.getItem(MANUAL_RECOVERY_PATHS_STORAGE_KEY);
@@ -140,6 +158,9 @@ export function DataSettings() {
     RecoveryCandidate[]
   >([]);
   const [showRecoveryBrowser, setShowRecoveryBrowser] = useState(false);
+  const [pendingDataPathChange, setPendingDataPathChange] =
+    useState<DataPathChangePreview | null>(null);
+  const [dataPathActionLoading, setDataPathActionLoading] = useState(false);
 
   // WebDAV operation state
   // WebDAV 操作状态
@@ -565,6 +586,135 @@ export function DataSettings() {
     }
   };
 
+  const finishDataPathChange = async (
+    result: {
+      success: boolean;
+      newPath?: string;
+      backupPath?: string;
+      error?: string;
+    } | undefined,
+    action: DataPathChangeAction,
+    fallbackPath: string,
+  ) => {
+    if (!result?.success) {
+      showToast(
+        t("toast.dataPathChangeFailed", "Data migration failed") +
+          ": " +
+          (result?.error || ""),
+        "error",
+      );
+      return;
+    }
+
+    const resolvedPath = result.newPath || fallbackPath;
+    setDataPath(resolvedPath);
+    setPendingDataPathChange(null);
+    await refreshDataPathStatus();
+
+    const messageKey =
+      action === "switch"
+        ? "settings.dataPathSwitchSuccess"
+        : action === "overwrite"
+          ? "settings.dataPathOverwriteSuccess"
+          : "toast.dataPathChanged";
+    const fallbackMessage =
+      action === "switch"
+        ? "Data directory switched"
+        : action === "overwrite"
+          ? "Data migrated and target backup created"
+          : "Data path changed";
+    showToast(
+      t(messageKey, fallbackMessage) +
+        " " +
+        t("settings.restartRequired", "Please restart app"),
+      "success",
+    );
+
+    setTimeout(() => {
+      if (
+        window.confirm(
+          t(
+            "settings.restartNow",
+            "Data migration completed. Restart app now?",
+          ),
+        )
+      ) {
+        window.location.reload();
+      }
+    }, 1000);
+  };
+
+  const applyDataPathChange = async (
+    targetPath: string,
+    action: DataPathChangeAction,
+  ) => {
+    setDataPathActionLoading(true);
+    try {
+      const result = window.electron?.applyDataPathChange
+        ? await window.electron.applyDataPathChange(targetPath, action)
+        : await window.electron?.migrateData?.(targetPath);
+      await finishDataPathChange(result, action, targetPath);
+    } finally {
+      setDataPathActionLoading(false);
+    }
+  };
+
+  const handleChangeDataPath = async () => {
+    const newPath = await window.electron?.selectFolder?.();
+    if (!newPath) {
+      return;
+    }
+
+    if (!window.electron?.previewDataPathChange) {
+      const confirmed = window.confirm(
+        t(
+          "settings.confirmDataMigration",
+          "Are you sure you want to migrate data to the new directory?\n\nRestart is required after migration.",
+        ),
+      );
+      if (confirmed) {
+        await applyDataPathChange(newPath, "migrate");
+      }
+      return;
+    }
+
+    const preview = await window.electron.previewDataPathChange(newPath);
+    if (!preview?.success) {
+      showToast(
+        `${t("toast.dataPathChangeFailed", "Data migration failed")}: ${preview?.error || ""}`,
+        "error",
+      );
+      return;
+    }
+
+    if (preview.isCurrentPath) {
+      await finishDataPathChange(
+        {
+          success: true,
+          newPath: preview.targetPath || newPath,
+        },
+        "switch",
+        newPath,
+      );
+      return;
+    }
+
+    if (preview.hasPromptHubData) {
+      setPendingDataPathChange(preview);
+      return;
+    }
+
+    const confirmed = window.confirm(
+      t(
+        "settings.confirmDataMigration",
+        "Are you sure you want to migrate data to the new directory?\n\nRestart is required after migration.",
+      ),
+    );
+    if (confirmed) {
+      await applyDataPathChange(preview.targetPath || newPath, "migrate");
+    }
+  };
+
   return (
     <>
       <div className="space-y-6">
@@ -596,57 +746,13 @@ export function DataSettings() {
                   ) : null}
                 </div>
                 <button
-                  onClick={async () => {
-                    const newPath = await window.electron?.selectFolder?.();
-                    if (newPath) {
-                      const confirmed = window.confirm(
-                        t(
-                          "settings.confirmDataMigration",
-                          "Are you sure you want to migrate data to the new directory?\n\nRestart is required after migration.",
-                        ),
-                      );
-                      if (!confirmed) return;
-
-                      const result =
-                        await window.electron?.migrateData?.(newPath);
-                      if (result?.success) {
-                        const resolvedPath = result.newPath || newPath;
-                        setDataPath(resolvedPath);
-                        await refreshDataPathStatus();
-                        showToast(
-                          t("toast.dataPathChanged") +
-                            " " +
-                            t("settings.restartRequired", "Please restart app"),
-                          "success",
-                        );
-                        setTimeout(() => {
-                          if (
-                            window.confirm(
-                              t(
-                                "settings.restartNow",
-                                "Data migration completed. Restart app now?",
-                              ),
-                            )
-                          ) {
-                            window.location.reload();
-                          }
-                        }, 1000);
-                      } else {
-                        showToast(
-                          t(
-                            "toast.dataPathChangeFailed",
-                            "Data migration failed",
-                          ) +
-                            ": " +
-                            (result?.error || ""),
-                          "error",
-                        );
-                      }
-                    }
-                  }}
+                  onClick={() => void handleChangeDataPath()}
+                  disabled={dataPathActionLoading}
                   className="h-8 px-3 rounded-lg bg-muted text-sm hover:bg-muted/80 transition-colors"
                 >
-                  {t("settings.change")}
+                  {dataPathActionLoading
+                    ? t("common.loading", "Loading...")
+                    : t("settings.change")}
                 </button>
               </div>
             </div>
@@ -1746,6 +1852,101 @@ export function DataSettings() {
           </div>
         </SettingSection>
       </div>
+
+      {pendingDataPathChange ? (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-background rounded-2xl w-full max-w-lg p-6 shadow-2xl border border-border">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-yellow-500/10 flex items-center justify-center shrink-0">
+                <FolderIcon className="w-5 h-5 text-yellow-500" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-lg font-semibold">
+                  {t(
+                    "settings.existingDataPathTitle",
+                    "Target directory already contains PromptHub data",
+                  )}
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {t(
+                    "settings.existingDataPathDesc",
+                    "If this directory was copied from another computer, switch to it. Overwrite will replace the data in this directory with data from the current computer.",
+                  )}
+                </p>
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2 mb-4">
+              <p className="text-xs font-mono break-all">
+                {pendingDataPathChange.targetPath}
+              </p>
+              {pendingDataPathChange.markers?.length ? (
+                <p className="text-xs text-muted-foreground">
+                  {t("settings.detectedDataMarkers", "Detected data")}:{" "}
+                  {pendingDataPathChange.markers
+                    .map((marker) => marker.name)
+                    .join(", ")}
+                </p>
+              ) : null}
+              {pendingDataPathChange.targetSummary?.available ? (
+                <p className="text-xs text-muted-foreground">
+                  {t(
+                    "settings.targetDataSummary",
+                    "{{prompts}} prompts, {{folders}} folders, {{skills}} skills",
+                    {
+                      prompts: pendingDataPathChange.targetSummary.promptCount,
+                      folders: pendingDataPathChange.targetSummary.folderCount,
+                      skills: pendingDataPathChange.targetSummary.skillCount,
+                    },
+                  )}
+                </p>
+              ) : null}
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-2">
+              <button
+                onClick={() => setPendingDataPathChange(null)}
+                disabled={dataPathActionLoading}
+                className="h-10 px-4 rounded-lg bg-muted hover:bg-muted/80 transition-colors text-sm font-medium disabled:opacity-50"
+              >
+                {t("common.cancel", "Cancel")}
+              </button>
+              <button
+                onClick={() =>
+                  void applyDataPathChange(
+                    pendingDataPathChange.targetPath || "",
+                    "switch",
+                  )
+                }
+                disabled={dataPathActionLoading}
+                className="h-10 px-4 rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors text-sm font-medium disabled:opacity-50"
+              >
+                {t("settings.switchToExistingDataPath", "Switch to this directory")}
+              </button>
+              <button
+                onClick={() => {
+                  const confirmed = window.confirm(
+                    t(
+                      "settings.confirmOverwriteDataPath",
+                      "Overwrite the data in this directory with the current computer's data? A backup of the target directory will be created first.",
+                    ),
+                  );
+                  if (confirmed) {
+                    void applyDataPathChange(
+                      pendingDataPathChange.targetPath || "",
+                      "overwrite",
+                    );
+                  }
+                }}
+                disabled={dataPathActionLoading}
+                className="h-10 px-4 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors text-sm font-medium disabled:opacity-50"
+              >
+                {t("settings.overwriteAndMigrateDataPath", "Overwrite and migrate")}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {/* Clear data confirm modal / 清除数据确认弹窗 */}
       {showClearConfirm && (

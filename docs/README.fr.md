@@ -83,7 +83,7 @@
 - Toutes les données stockées localement, vie privée protégée
 - Sauvegarde/restauration complète (`.phub.gz`)
 - Synchronisation cloud WebDAV
-- Sombre/Clair/Système, 7 langues, multiplateforme
+- Sombre/Clair/Système, plusieurs couleurs de thème, images d'arrière-plan locales, 7 langues et multiplateforme
 
 ## 📸 Captures d'écran
 
@@ -100,8 +100,8 @@
   <p><strong>Sauvegarde des données</strong></p>
   <img src="./imgs/4-backup.png" width="80%" alt="Sauvegarde des données"/>
   <br/><br/>
-  <p><strong>Paramètres du thème</strong></p>
-  <img src="./imgs/5-theme.png" width="80%" alt="Paramètres du thème"/>
+  <p><strong>Paramètres du thème et de l'arrière-plan</strong></p>
+  <img src="./imgs/5-theme.png" width="80%" alt="Paramètres du thème et de l'arrière-plan"/>
   <br/><br/>
   <p><strong>Mode bilingue</strong></p>
   <img src="./imgs/6-double-language.png" width="80%" alt="Mode bilingue"/>

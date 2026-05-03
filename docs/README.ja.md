@@ -83,7 +83,7 @@
 - すべてのデータはローカルに保存、プライバシー保護
 - フルバックアップ/復元（`.phub.gz`）
 - WebDAV クラウド同期
-- ダーク/ライト/システム、７言語、クロスプラットフォーム
+- ダーク/ライト/システム、複数のテーマカラー、ローカル背景画像、7言語、クロスプラットフォーム
 
 ## 📸 スクリーンショット
 
@@ -100,8 +100,8 @@
   <p><strong>データバックアップ</strong></p>
   <img src="./imgs/4-backup.png" width="80%" alt="データバックアップ"/>
   <br/><br/>
-  <p><strong>テーマ設定</strong></p>
-  <img src="./imgs/5-theme.png" width="80%" alt="テーマ設定"/>
+  <p><strong>テーマと背景設定</strong></p>
+  <img src="./imgs/5-theme.png" width="80%" alt="テーマと背景設定"/>
   <br/><br/>
   <p><strong>二ヶ国語対照</strong></p>
   <img src="./imgs/6-double-language.png" width="80%" alt="二ヶ国語対照"/>

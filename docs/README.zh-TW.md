@@ -83,7 +83,7 @@
 - 所有數據存儲在本地，隱私安全有保障
 - 全量備份與恢復（`.phub.gz`）
 - WebDAV 雲同步
-- 深色/淺色/跟隨系統，7 種語言，跨平台
+- 深色/淺色/跟隨系統、多種主題色、自訂背景圖片，7 種語言，跨平台
 
 ## 📸 截圖展示
 
@@ -100,8 +100,8 @@
   <p><strong>數據備份</strong></p>
   <img src="./imgs/4-backup.png" width="80%" alt="數據備份"/>
   <br/><br/>
-  <p><strong>主題設置</strong></p>
-  <img src="./imgs/5-theme.png" width="80%" alt="主題設置"/>
+  <p><strong>主題與背景設置</strong></p>
+  <img src="./imgs/5-theme.png" width="80%" alt="主題與背景設置"/>
   <br/><br/>
   <p><strong>雙語對照</strong></p>
   <img src="./imgs/6-double-language.png" width="80%" alt="雙語對照"/>

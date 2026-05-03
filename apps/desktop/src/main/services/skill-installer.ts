@@ -567,81 +567,75 @@ export class SkillInstaller {
         const skillDirs = await this.collectSkillDirs(scanPath);
 
         for (const skillFolderPath of skillDirs) {
-              const skillMdPath = path.join(skillFolderPath, "SKILL.md");
-              let skillDisplayName = path.basename(skillFolderPath);
-              try {
-                const instructions = await fs.readFile(skillMdPath, "utf-8");
-                const manifest = await this.readManifest(skillFolderPath);
+          const skillMdPath = path.join(skillFolderPath, "SKILL.md");
+          let skillDisplayName = path.basename(skillFolderPath);
 
-                // Use the skill-validator to parse SKILL.md frontmatter
-                const parsedSkill = parseSkillMd(instructions);
+          try {
+            const instructions = await fs.readFile(skillMdPath, "utf-8");
+            const manifest = await this.readManifest(skillFolderPath);
 
-                const sanitized = sanitizeImportedSkillDraft(
-                  {
-                    name: parsedSkill?.frontmatter.name,
-                    fallbackName: manifest.name || path.basename(skillFolderPath),
-                    description: parsedSkill?.frontmatter.description,
-                    fallbackDescription:
-                      manifest.description || undefined,
-                    version: parsedSkill?.frontmatter.version,
-                    fallbackVersion: manifest.version,
-                    author: parsedSkill?.frontmatter.author,
-                    fallbackAuthor: manifest.author || undefined,
-                    tags: parsedSkill?.frontmatter.tags,
-                    fallbackTags: [],
-                    instructions,
-                    local_repo_path: skillFolderPath,
-                    protocol_type: "skill",
-                  },
-                  { defaultTags: [] },
-                );
+            // Use the skill-validator to parse SKILL.md frontmatter
+            const parsedSkill = parseSkillMd(instructions);
 
-                const name = sanitized.name;
-                skillDisplayName = name || path.basename(skillFolderPath);
+            const sanitized = sanitizeImportedSkillDraft(
+              {
+                name: parsedSkill?.frontmatter.name,
+                fallbackName: manifest.name || path.basename(skillFolderPath),
+                description: parsedSkill?.frontmatter.description,
+                fallbackDescription: manifest.description || undefined,
+                version: parsedSkill?.frontmatter.version,
+                fallbackVersion: manifest.version,
+                author: parsedSkill?.frontmatter.author,
+                fallbackAuthor: manifest.author || undefined,
+                tags: parsedSkill?.frontmatter.tags,
+                fallbackTags: [],
+                instructions,
+                local_repo_path: skillFolderPath,
+                protocol_type: "skill",
+              },
+              { defaultTags: [] },
+            );
 
-                if (!name || name.trim().length === 0) {
-                  console.warn(
-                    `Skipping skill with empty name in: ${skillFolderPath}`,
-                  );
-                  continue;
-                }
+            const name = sanitized.name;
+            skillDisplayName = name || path.basename(skillFolderPath);
 
-                db.create({
-                  name,
-                  description: sanitized.description,
-                  version: sanitized.version,
-                  author: sanitized.author,
-                  instructions: sanitized.instructions,
-                  content: sanitized.instructions,
-                  protocol_type: sanitized.protocol_type,
-                  is_favorite: false,
-                  tags: [],
-                  original_tags: sanitized.tags,
-                  local_repo_path: sanitized.local_repo_path,
-                });
-                count++;
-                console.log(
-                  `Discovered local skill via SKILL.md: ${name} in ${path.basename(skillFolderPath)}`,
-                );
-              } catch (error: unknown) {
-                const msg = getErrorMessage(error);
-                // Distinguish name collisions from other errors so callers
-                // can report skipped skills to the user.
-                if (msg.includes("Skill already exists")) {
-                  skipped.push(skillDisplayName);
-                  console.log(
-                    `Skipped already-installed skill: ${skillDisplayName}`,
-                  );
-                } else {
-                  console.warn(
-                    `Failed to import skill "${skillDisplayName}":`,
-                    msg,
-                  );
-                }
-              }
+            if (!name || name.trim().length === 0) {
+              console.warn(
+                `Skipping skill with empty name in: ${skillFolderPath}`,
+              );
+              continue;
+            }
+
+            db.create({
+              name,
+              description: sanitized.description,
+              version: sanitized.version,
+              author: sanitized.author,
+              instructions: sanitized.instructions,
+              content: sanitized.instructions,
+              protocol_type: sanitized.protocol_type,
+              is_favorite: false,
+              tags: [],
+              original_tags: sanitized.tags,
+              local_repo_path: sanitized.local_repo_path,
+            });
+            count++;
+            console.log(
+              `Discovered local skill via SKILL.md: ${name} in ${path.basename(skillFolderPath)}`,
+            );
+          } catch (error: unknown) {
+            const msg = getErrorMessage(error);
+            // Distinguish name collisions from other errors so callers
+            // can report skipped skills to the user.
+            if (msg.includes("Skill already exists")) {
+              skipped.push(skillDisplayName);
+              console.log(`Skipped already-installed skill: ${skillDisplayName}`);
+            } else {
+              console.warn(`Failed to import skill "${skillDisplayName}":`, msg);
             }
           }
-        } catch (e) {
+        }
+      } catch (e) {
         console.error(`Failed to scan path: ${scanPath}`, e);
       }
     }
@@ -697,77 +691,76 @@ export class SkillInstaller {
           const skillDirs = await SkillInstaller.collectSkillDirs(scanPath);
 
           for (const skillFolderPath of skillDirs) {
-              const skillMdPath = path.join(skillFolderPath, "SKILL.md");
-              try {
-                  const instructions = await fs.readFile(skillMdPath, "utf-8");
-                  const manifest = await this.readManifest(skillFolderPath);
-                  const parsedSkill = parseSkillMd(instructions);
+            const skillMdPath = path.join(skillFolderPath, "SKILL.md");
 
-                  const name =
-                    parsedSkill?.frontmatter.name ||
-                    manifest.name ||
-                    path.basename(skillFolderPath);
+            try {
+              const instructions = await fs.readFile(skillMdPath, "utf-8");
+              const manifest = await this.readManifest(skillFolderPath);
+              const parsedSkill = parseSkillMd(instructions);
 
-                  if (!name || name.trim().length === 0) {
-                    console.warn(
-                      `Skipping skill with empty name in: ${skillFolderPath}`,
-                    );
-                    continue;
-                  }
+              const name =
+                parsedSkill?.frontmatter.name ||
+                manifest.name ||
+                path.basename(skillFolderPath);
 
-                  // Deduplicate by skill folder path (not name) so same skill
-                  // in multiple platforms only appears once, but different
-                  // paths with the same name can both show up.
-                  const existing = skillMap.get(skillFolderPath);
-                  if (existing) {
-                    if (!existing.platforms.includes(platformName)) {
-                      existing.platforms.push(platformName);
-                    }
-                  } else {
-                    const sanitized = sanitizeImportedSkillDraft(
-                      {
-                        name: parsedSkill?.frontmatter.name,
-                        fallbackName: manifest.name || path.basename(skillFolderPath),
-                        description: parsedSkill?.frontmatter.description,
-                        fallbackDescription:
-                          manifest.description || undefined,
-                        version: parsedSkill?.frontmatter.version,
-                        fallbackVersion: manifest.version,
-                        author: parsedSkill?.frontmatter.author,
-                        fallbackAuthor: manifest.author || undefined,
-                        tags: parsedSkill?.frontmatter.tags,
-                        fallbackTags: [],
-                        instructions,
-                        local_repo_path: skillFolderPath,
-                        protocol_type: "skill",
-                      },
-                      { defaultTags: [] },
-                    );
-                    skillMap.set(skillFolderPath, {
-                      name: sanitized.name!,
-                      description:
-                        sanitized.description ||
-                        manifest.description,
-                      version: sanitized.version,
-                      author: sanitized.author || manifest.author,
-                      tags: sanitized.tags,
-                      instructions: sanitized.instructions || instructions,
-                      filePath: skillMdPath,
-                      localPath: skillFolderPath,
-                      platforms: [platformName],
-                      safetyReport: await scanSkillSafety({
-                        name: sanitized.name,
-                        content: sanitized.instructions || instructions,
-                        localRepoPath: skillFolderPath,
-                      }),
-                    });
-                  }
-                } catch (err) {
-                  console.warn(`Failed to parse skill at ${skillMdPath}:`, err);
-                }
+              if (!name || name.trim().length === 0) {
+                console.warn(
+                  `Skipping skill with empty name in: ${skillFolderPath}`,
+                );
+                continue;
               }
+
+              // Deduplicate by skill folder path (not name) so same skill
+              // in multiple platforms only appears once, but different
+              // paths with the same name can both show up.
+              const existing = skillMap.get(skillFolderPath);
+              if (existing) {
+                if (!existing.platforms.includes(platformName)) {
+                  existing.platforms.push(platformName);
+                }
+                continue;
+              }
+
+              const sanitized = sanitizeImportedSkillDraft(
+                {
+                  name: parsedSkill?.frontmatter.name,
+                  fallbackName: manifest.name || path.basename(skillFolderPath),
+                  description: parsedSkill?.frontmatter.description,
+                  fallbackDescription: manifest.description || undefined,
+                  version: parsedSkill?.frontmatter.version,
+                  fallbackVersion: manifest.version,
+                  author: parsedSkill?.frontmatter.author,
+                  fallbackAuthor: manifest.author || undefined,
+                  tags: parsedSkill?.frontmatter.tags,
+                  fallbackTags: [],
+                  instructions,
+                  local_repo_path: skillFolderPath,
+                  protocol_type: "skill",
+                },
+                { defaultTags: [] },
+              );
+
+              skillMap.set(skillFolderPath, {
+                name: sanitized.name!,
+                description: sanitized.description || manifest.description,
+                version: sanitized.version,
+                author: sanitized.author || manifest.author,
+                tags: sanitized.tags,
+                instructions: sanitized.instructions || instructions,
+                filePath: skillMdPath,
+                localPath: skillFolderPath,
+                platforms: [platformName],
+                safetyReport: await scanSkillSafety({
+                  name: sanitized.name,
+                  content: sanitized.instructions || instructions,
+                  localRepoPath: skillFolderPath,
+                }),
+              });
+            } catch (err) {
+              console.warn(`Failed to parse skill at ${skillMdPath}:`, err);
             }
-          } catch (e) {
+          }
+        } catch (e) {
           console.error(`Failed to scan path: ${scanPath}`, e);
         }
       }),

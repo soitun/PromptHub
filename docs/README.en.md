@@ -84,7 +84,7 @@
 - All data stored locally, privacy-first
 - Full backup/restore (`.phub.gz` compressed)
 - WebDAV sync (Nutstore, Nextcloud, etc.)
-- Dark/Light/System themes, 7 languages, cross-platform (macOS/Windows/Linux)
+- Dark/Light/System themes, custom theme colors, local background images, 7 languages, cross-platform (macOS/Windows/Linux)
 
 ## 📸 Screenshots
 
@@ -101,8 +101,8 @@
   <p><strong>Data Backup</strong></p>
   <img src="./imgs/4-backup.png" width="80%" alt="Data Backup"/>
   <br/><br/>
-  <p><strong>Theme Settings</strong></p>
-  <img src="./imgs/5-theme.png" width="80%" alt="Theme Settings"/>
+  <p><strong>Theme & Background Settings</strong></p>
+  <img src="./imgs/5-theme.png" width="80%" alt="Theme & Background Settings"/>
   <br/><br/>
   <p><strong>Bilingual Mode</strong></p>
   <img src="./imgs/6-double-language.png" width="80%" alt="Bilingual Mode"/>

@@ -187,9 +187,10 @@ PromptHub provides extensive customization options to suit your workflow:
 
 ### Personalized Display
 
-![Theme Settings](/imgs/5-theme.png)
+![Theme & Background Settings](/imgs/5-theme.png)
 
 - **Theme Color**: 6 built-in Morandi color themes, plus support for custom HEX colors.
+- **Background Image**: Set a local image as the desktop background and tune opacity and blur.
 - **Font Size**: Small, Medium, and Large options to match your screen resolution.
 - **Dark Mode**: Supports follow system, always on, or always off.
 - **Markdown Rendering**: Toggle global Markdown rendering in prompt detail pages.

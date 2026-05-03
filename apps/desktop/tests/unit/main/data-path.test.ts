@@ -7,6 +7,7 @@ import {
   getHistoricalDefaultUserDataPath,
   getInstallScopedDataPath,
   hasExistingAppData,
+  inspectDataPath,
   isDefaultPerUserInstallDir,
   isPathWritable,
   isProtectedInstallDir,
@@ -213,6 +214,39 @@ describe("data path bootstrap", () => {
 
     fs.mkdirSync(path.join(userDataDir, "workspace"), { recursive: true });
     expect(hasExistingAppData(userDataDir)).toBe(true);
+  });
+
+  it("reports existing data markers for a copied target directory", () => {
+    const userDataDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), "prompthub-copied-target-"),
+    );
+    tempDirs.push(userDataDir);
+
+    fs.writeFileSync(path.join(userDataDir, "prompthub.db"), "old-db", "utf8");
+    fs.mkdirSync(path.join(userDataDir, "data", "skills"), {
+      recursive: true,
+    });
+
+    const inspection = inspectDataPath(userDataDir);
+
+    expect(inspection.exists).toBe(true);
+    expect(inspection.hasPromptHubData).toBe(true);
+    expect(inspection.markers.map((marker) => marker.name)).toEqual(
+      expect.arrayContaining(["prompthub.db", "data"]),
+    );
+  });
+
+  it("does not report data markers for a missing target directory", () => {
+    const userDataDir = path.join(
+      os.tmpdir(),
+      `prompthub-missing-target-${Date.now()}`,
+    );
+
+    const inspection = inspectDataPath(userDataDir);
+
+    expect(inspection.exists).toBe(false);
+    expect(inspection.hasPromptHubData).toBe(false);
+    expect(inspection.markers).toEqual([]);
   });
 
   describe("isPathWritable", () => {

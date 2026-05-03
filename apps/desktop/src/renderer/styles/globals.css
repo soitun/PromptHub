@@ -735,6 +735,14 @@ body {
   --app-ui-surface-strong-backdrop: var(--app-glass-blur-medium);
 }
 
+.app-background-mode-image .sidebar-tag-section {
+  background: var(--app-ui-section-bg) !important;
+  border-color: var(--app-ui-section-border) !important;
+  box-shadow: none !important;
+  backdrop-filter: var(--app-ui-section-backdrop) !important;
+  -webkit-backdrop-filter: var(--app-ui-section-backdrop) !important;
+}
+
 .app-background-mode-image .app-wallpaper-toolbar::before,
 .app-background-mode-image .app-wallpaper-search::before,
 .app-background-mode-image .app-wallpaper-search::after,

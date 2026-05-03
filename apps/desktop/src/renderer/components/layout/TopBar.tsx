@@ -29,6 +29,7 @@ import {
   lazy,
   Suspense,
 } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { useUIStore } from "../../stores/ui.store";
 import { collectPrivateFolderScopeIds } from "../../services/prompt-filter";
@@ -100,7 +101,12 @@ export function TopBar({
   const [isCreateMenuOpen, setIsCreateMenuOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const createMenuRef = useRef<HTMLDivElement>(null);
+  const createMenuDropdownRef = useRef<HTMLDivElement>(null);
   const [currentResultIndex, setCurrentResultIndex] = useState(0);
+  const [createMenuPosition, setCreateMenuPosition] = useState({
+    top: 0,
+    right: 0,
+  });
   const [webContext, setWebContext] = useState<PromptHubWebContext | undefined>(
     () => getWebContext(),
   );
@@ -223,6 +229,18 @@ export function TopBar({
     uiViewMode === "skill" ? skillSearchResults : promptSearchResults;
   const searchResultCount = searchResults.length;
 
+  const updateCreateMenuPosition = useCallback(() => {
+    if (!createMenuRef.current) {
+      return;
+    }
+
+    const rect = createMenuRef.current.getBoundingClientRect();
+    setCreateMenuPosition({
+      top: rect.bottom + 4,
+      right: Math.max(window.innerWidth - rect.right, 8),
+    });
+  }, []);
+
   // 导航到上一个/下一个结果
   const navigateResult = useCallback(
     (direction: "prev" | "next") => {
@@ -318,9 +336,14 @@ export function TopBar({
   // Click outside to close create menu
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
+      const target = event.target as Node;
+      const clickedTrigger = createMenuRef.current?.contains(target) ?? false;
+      const clickedDropdown =
+        createMenuDropdownRef.current?.contains(target) ?? false;
+
       if (
-        createMenuRef.current &&
-        !createMenuRef.current.contains(event.target as Node)
+        !clickedTrigger &&
+        !clickedDropdown
       ) {
         setIsCreateMenuOpen(false);
       }
@@ -342,6 +365,26 @@ export function TopBar({
       );
     };
   }, []);
+
+  useEffect(() => {
+    if (!isCreateMenuOpen) {
+      return;
+    }
+
+    updateCreateMenuPosition();
+
+    const handleLayoutChange = () => {
+      updateCreateMenuPosition();
+    };
+
+    window.addEventListener("resize", handleLayoutChange);
+    window.addEventListener("scroll", handleLayoutChange, true);
+
+    return () => {
+      window.removeEventListener("resize", handleLayoutChange);
+      window.removeEventListener("scroll", handleLayoutChange, true);
+    };
+  }, [isCreateMenuOpen, updateCreateMenuPosition]);
 
   useEffect(() => {
     if (!webRuntime) {
@@ -548,62 +591,80 @@ export function TopBar({
             {uiViewMode === "prompt" && (
               <>
                 <button
-                  onClick={() => setIsCreateMenuOpen(!isCreateMenuOpen)}
+                  onClick={() => {
+                    if (!isCreateMenuOpen) {
+                      updateCreateMenuPosition();
+                    }
+                    setIsCreateMenuOpen(!isCreateMenuOpen);
+                  }}
+                  aria-haspopup="menu"
+                  aria-expanded={isCreateMenuOpen}
                   className="flex items-center justify-center h-full px-1.5 hover:bg-black/10 transition-colors rounded-r-lg"
                 >
                   <ChevronDownIcon className="w-3.5 h-3.5" />
                 </button>
 
-                {isCreateMenuOpen && (
-                  <div className="absolute top-full right-0 mt-1 w-48 rounded-lg border border-border app-wallpaper-panel-strong p-1 z-50 animate-in fade-in zoom-in-95 duration-100">
-                    <button
-                      onClick={() => {
-                        useSettingsStore.getState().setCreationMode("manual");
-                        setIsCreateMenuOpen(false);
-                      }}
-                      className={clsx(
-                        "flex items-center gap-2 w-full px-3 py-2 text-sm text-foreground hover:bg-accent text-left transition-colors rounded-md",
-                        creationMode === "manual" && "bg-accent",
-                      )}
+                {isCreateMenuOpen &&
+                  typeof document !== "undefined" &&
+                  createPortal(
+                    <div
+                      ref={createMenuDropdownRef}
+                      role="menu"
+                      className="fixed mt-1 w-48 rounded-lg border border-border app-wallpaper-panel-strong p-1 z-[9999] animate-in fade-in zoom-in-95 duration-100"
+                      style={{
+                        top: createMenuPosition.top,
+                        right: createMenuPosition.right,
+                        WebkitAppRegion: "no-drag",
+                      } as React.CSSProperties}
                     >
-                      <PlusIcon className="w-4 h-4 text-muted-foreground" />
-                      <div className="flex flex-col items-start gap-0.5">
-                        <span className="font-medium">{t("header.new")}</span>
-                        <span className="text-[10px] text-muted-foreground leading-none">
-                          {t("quickAdd.manualAddDesc") ||
-                            "手动填写 Prompt 详细信息"}
-                        </span>
-                      </div>
-                      {creationMode === "manual" && (
-                        <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />
-                      )}
-                    </button>
-                    <div className="h-px bg-border my-1 mx-2 opacity-50" />
-                    <button
-                      onClick={() => {
-                        useSettingsStore.getState().setCreationMode("quick");
-                        setIsCreateMenuOpen(false);
-                      }}
-                      className={clsx(
-                        "flex items-center gap-2 w-full px-3 py-2 text-sm text-foreground hover:bg-accent text-left transition-colors rounded-md",
-                        creationMode === "quick" && "bg-accent",
-                      )}
-                    >
-                      <SparklesIcon className="w-4 h-4 text-primary" />
-                      <div className="flex flex-col items-start gap-0.5">
-                        <span className="font-medium">
-                          {t("quickAdd.title")}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground leading-none">
-                          {t("quickAdd.desc") || "粘贴内容由 AI 智能分析并分类"}
-                        </span>
-                      </div>
-                      {creationMode === "quick" && (
-                        <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />
-                      )}
-                    </button>
-                  </div>
-                )}
+                      <button
+                        onClick={() => {
+                          useSettingsStore.getState().setCreationMode("manual");
+                          setIsCreateMenuOpen(false);
+                        }}
+                        className={clsx(
+                          "flex items-center gap-2 w-full px-3 py-2 text-sm text-foreground hover:bg-accent text-left transition-colors rounded-md",
+                          creationMode === "manual" && "bg-accent",
+                        )}
+                      >
+                        <PlusIcon className="w-4 h-4 text-muted-foreground" />
+                        <div className="flex flex-col items-start gap-0.5">
+                          <span className="font-medium">{t("header.new")}</span>
+                          <span className="text-[10px] text-muted-foreground leading-none">
+                            {t("quickAdd.manualAddDesc")}
+                          </span>
+                        </div>
+                        {creationMode === "manual" && (
+                          <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />
+                        )}
+                      </button>
+                      <div className="h-px bg-border my-1 mx-2 opacity-50" />
+                      <button
+                        onClick={() => {
+                          useSettingsStore.getState().setCreationMode("quick");
+                          setIsCreateMenuOpen(false);
+                        }}
+                        className={clsx(
+                          "flex items-center gap-2 w-full px-3 py-2 text-sm text-foreground hover:bg-accent text-left transition-colors rounded-md",
+                          creationMode === "quick" && "bg-accent",
+                        )}
+                      >
+                        <SparklesIcon className="w-4 h-4 text-primary" />
+                        <div className="flex flex-col items-start gap-0.5">
+                          <span className="font-medium">
+                            {t("quickAdd.title")}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground leading-none">
+                            {t("quickAdd.desc")}
+                          </span>
+                        </div>
+                        {creationMode === "quick" && (
+                          <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />
+                        )}
+                      </button>
+                    </div>,
+                    document.body,
+                  )}
               </>
             )}
           </div>

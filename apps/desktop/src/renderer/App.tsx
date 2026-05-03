@@ -487,6 +487,28 @@ function App() {
   }, [debugMode]);
 
   useEffect(() => {
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+
+    const syncSystemTheme = () => {
+      const settings = useSettingsStore.getState();
+      if (settings.themeMode !== "system") {
+        return;
+      }
+
+      const prefersDark = mediaQuery.matches;
+      document.documentElement.classList.toggle("dark", prefersDark);
+
+      if (settings.isDarkMode !== prefersDark) {
+        useSettingsStore.setState({ isDarkMode: prefersDark });
+      }
+    };
+
+    syncSystemTheme();
+    mediaQuery.addEventListener("change", syncSystemTheme);
+    return () => mediaQuery.removeEventListener("change", syncSystemTheme);
+  }, []);
+
+  useEffect(() => {
     // Apply persisted theme settings
     // 应用保存的主题设置
     applyTheme();

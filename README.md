@@ -141,6 +141,7 @@
 
 - 多视图模式：卡片、画廊、列表
 - 深色/浅色/跟随系统，多种主题色
+- 支持自定义背景图片，把本地图片设成桌面背景
 - 7 种语言支持
 - Markdown 渲染与代码高亮
 - 跨平台：macOS / Windows / Linux
@@ -183,8 +184,8 @@
   <p><strong>数据备份</strong></p>
   <img src="./docs/imgs/4-backup.png" width="80%" alt="数据备份"/>
   <br/><br/>
-  <p><strong>主题设置</strong></p>
-  <img src="./docs/imgs/5-theme.png" width="80%" alt="主题设置"/>
+  <p><strong>主题与背景设置</strong></p>
+  <img src="./docs/imgs/5-theme.png" width="80%" alt="主题与背景设置"/>
   <br/><br/>
   <p><strong>双语对照</strong></p>
   <img src="./docs/imgs/6-double-language.png" width="80%" alt="双语对照"/>

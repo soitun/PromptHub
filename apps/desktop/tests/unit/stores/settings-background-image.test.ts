@@ -102,4 +102,48 @@ describe("settings background image actions", () => {
       document.documentElement.style.getPropertyValue("--app-background-blur")
     ).toBe("7.5px");
   });
+
+  it("rejects non-local background image sources during selection", async () => {
+    const { useSettingsStore } = await import(
+      "../../../src/renderer/stores/settings.store"
+    );
+
+    useSettingsStore.getState().setBackgroundImageFileName(
+      "https://example.com/wallpaper.png"
+    );
+
+    expect(useSettingsStore.getState().backgroundImageFileName).toBeUndefined();
+    expect(
+      document.documentElement.style.getPropertyValue("--app-background-image")
+    ).toBe("none");
+  });
+
+  it("normalizes local-image protocol values before writing CSS vars", async () => {
+    const { useSettingsStore } = await import(
+      "../../../src/renderer/stores/settings.store"
+    );
+
+    useSettingsStore
+      .getState()
+      .setBackgroundImageFileName(" local-image://hero image.png ");
+
+    expect(useSettingsStore.getState().backgroundImageFileName).toBe(
+      "hero image.png"
+    );
+    expect(
+      document.documentElement.style.getPropertyValue("--app-background-image")
+    ).toBe('url("local-image://hero%20image.png")');
+  });
+
+  it("does not bump settingsUpdatedAt when opacity is unchanged", async () => {
+    const { useSettingsStore } = await import(
+      "../../../src/renderer/stores/settings.store"
+    );
+
+    const initialUpdatedAt = useSettingsStore.getState().settingsUpdatedAt;
+
+    useSettingsStore.getState().setBackgroundImageOpacity(1);
+
+    expect(useSettingsStore.getState().settingsUpdatedAt).toBe(initialUpdatedAt);
+  });
 });

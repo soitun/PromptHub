@@ -83,7 +83,7 @@
 - Alle Daten lokal gespeichert, Privatsphäre geschützt
 - Vollständige Sicherung/Wiederherstellung (`.phub.gz`)
 - WebDAV Cloud-Synchronisierung
-- Dunkel/Hell/System, 7 Sprachen, plattformübergreifend
+- Dunkel/Hell/System, mehrere Designfarben, lokale Hintergrundbilder, 7 Sprachen, plattformübergreifend
 
 ## 📸 Screenshots
 
@@ -100,8 +100,8 @@
   <p><strong>Datensicherung</strong></p>
   <img src="./imgs/4-backup.png" width="80%" alt="Datensicherung"/>
   <br/><br/>
-  <p><strong>Design-Einstellungen</strong></p>
-  <img src="./imgs/5-theme.png" width="80%" alt="Design-Einstellungen"/>
+  <p><strong>Design- und Hintergrund-Einstellungen</strong></p>
+  <img src="./imgs/5-theme.png" width="80%" alt="Design- und Hintergrund-Einstellungen"/>
   <br/><br/>
   <p><strong>Zweisprachiger Modus</strong></p>
   <img src="./imgs/6-double-language.png" width="80%" alt="Zweisprachiger Modus"/>

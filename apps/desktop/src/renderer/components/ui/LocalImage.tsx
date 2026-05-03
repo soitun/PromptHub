@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { ImageIcon } from 'lucide-react';
-import { resolveLocalImageSrc } from '../../utils/media-url';
+import { useEffect, useState } from "react";
+import { ImageIcon } from "lucide-react";
+import { resolveLocalImageSrc } from "../../utils/media-url";
 
 interface LocalImageProps {
   src: string;
@@ -16,18 +16,22 @@ interface LocalImageProps {
  * Uses local-image:// protocol to load local images
  * 使用 local-image:// 协议加载本地图片
  */
-export function LocalImage({ 
-  src, 
-  alt = 'image', 
-  className = '', 
-  fallbackClassName = '',
-  onClick 
+export function LocalImage({
+  src,
+  alt = "image",
+  className = "",
+  fallbackClassName = "",
+  onClick,
 }: LocalImageProps) {
   const [error, setError] = useState(false);
 
+  useEffect(() => {
+    setError(false);
+  }, [src]);
+
   if (error || !src) {
     return (
-      <div 
+      <div
         className={`flex items-center justify-center bg-muted/30 text-muted-foreground/30 ${fallbackClassName || className}`}
         onClick={onClick}
       >

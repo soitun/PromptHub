@@ -140,6 +140,11 @@ export function createWindowElectronMock(overrides?: DeepPartial<MockRecord>) {
       showNotification: vi.fn(),
       getDataPath: vi.fn(),
       getDataPathStatus: vi.fn(),
+      previewDataPathChange: vi.fn().mockResolvedValue({
+        success: false,
+        error: "previewDataPathChange mock not configured",
+      }),
+      applyDataPathChange: vi.fn(),
       migrateData: vi.fn(),
       checkRecovery: vi.fn().mockResolvedValue([]),
       previewRecovery: vi.fn().mockResolvedValue({

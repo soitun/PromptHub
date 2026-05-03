@@ -14,3 +14,6 @@
 - [x] 完成验证（Lint/Typecheck/Tests）
 - [x] 更新 implementation.md
 - [x] 同步稳定 specs / architecture / docs
+- [x] 修复 `skill-installer.ts` 扫描逻辑的语法回归，恢复 lint 可解析状态
+- [x] 为 `TopBar` 新建方式下拉补齐 outside-click / 模式切换回归测试，并移除中文 fallback
+- [x] 完成主题/背景图片链路白盒扫描，并修复确认存在的背景图状态与安全边界问题

@@ -18,7 +18,7 @@ export function resolveLocalImageSrc(src: string): string {
   if (isWebRuntime()) {
     return `/api/media/images/${encodeURIComponent(fileName)}`;
   }
-  return `local-image://${fileName}`;
+  return `local-image://${encodeURIComponent(fileName)}`;
 }
 
 export function resolveLocalVideoSrc(src: string): string {
