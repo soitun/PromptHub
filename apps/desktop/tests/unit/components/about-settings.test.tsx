@@ -45,7 +45,7 @@ describe("AboutSettings", () => {
     });
 
     const previewToggle = screen
-      .getByText("Join Preview Channel")
+      .getByText("Preview Channel")
       .parentElement?.parentElement?.querySelector("button");
 
     expect(previewToggle).not.toBeNull();
@@ -88,7 +88,7 @@ describe("AboutSettings", () => {
     });
 
     const previewToggle = screen
-      .getByText("Join Preview Channel")
+      .getByText("Preview Channel")
       .parentElement?.parentElement?.querySelector("button");
 
     expect(previewToggle).not.toBeNull();

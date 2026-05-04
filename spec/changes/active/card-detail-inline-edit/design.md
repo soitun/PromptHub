@@ -13,7 +13,7 @@ This change adds a renderer-only draft state inside `MainContent` for the select
 - Filesystem / sync:
   - No direct filesystem impact.
 - UI / UX:
-  - Add inline edit controls to the right-hand card-view detail panel.
+- Add inline edit controls to the right-hand card-view detail panel, using title double-click as the entry point for the lightweight flow.
   - Keep the existing full edit modal as a separate explicit action.
   - Disable conflicting actions such as language switching, compare, copy, delete, and history while editing inline.
 

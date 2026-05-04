@@ -161,10 +161,12 @@ async function resolveFeedContext(channel: UpdateChannel): Promise<FeedContext> 
     return { channel };
   }
 
+  // Preview channel is intentionally prerelease-only. Stable releases are not
+  // fallback candidates; users return to stable updates by switching channels.
   const releaseTag = await fetchLatestPreviewReleaseTag();
   if (!releaseTag) {
     throw new Error(
-      "Update check failed: No published preview release is currently available.",
+      "Update check failed: No published prerelease preview release is currently available.",
     );
   }
 

@@ -118,6 +118,12 @@ describe('自动更新 - 真实场景测试（调用真实代码）', () => {
             expect(compareVersions('0.3.0', 'v0.2.9')).toBe(1);
             expect(compareVersions('v0.3.3', 'v0.3.3')).toBe(0);
         });
+
+        it('应该正确处理 beta 预览版和正式版的 SemVer 顺序', () => {
+            expect(compareVersions('0.5.5-beta.2', '0.5.5-beta.1')).toBe(1);
+            expect(compareVersions('0.5.5', '0.5.5-beta.2')).toBe(1);
+            expect(compareVersions('0.5.6-beta.1', '0.5.5')).toBe(1);
+        });
     });
 
     describe('更新链接验证', () => {

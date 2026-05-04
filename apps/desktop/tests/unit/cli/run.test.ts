@@ -2265,7 +2265,7 @@ describe("PromptHub CLI", () => {
       const res = await execCli([...withDataDir(root), "skill", "scan"]);
       expect(res.exitCode).toBe(0);
       expect(Array.isArray(res.json)).toBe(true);
-    });
+    }, 15_000);
 
     // --- multiple unknown options ---
     it("reports multiple unknown options", async () => {

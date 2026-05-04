@@ -1,5 +1,21 @@
 ## [Unreleased]
 
+## [0.5.5-beta.3] - 2026-05-04
+
+### 修复 / Fixed
+
+- 🖱️ **卡片详情快速编辑交互收口**：桌面端 card view 的右侧详情标题改为双击直接进入轻量编辑，移除突兀的大按钮，同时继续保留完整编辑弹窗入口
+  - **Card Detail Inline Edit Entry Polished**: The desktop card-view detail title now enters lightweight inline editing on double-click, removing the oversized standalone button while keeping the full edit modal available
+- 🔁 **预览更新通道保持 prerelease-only**：预览通道检查更新时不再把 stable release 当作回退候选；只有关闭预览通道后才会回到 stable 检查，避免把正式版错误显示成预览通道的可用更新
+  - **Preview Update Channel Remains Prerelease-Only**: Preview-channel update checks no longer treat stable releases as fallback candidates. PromptHub returns to stable checks only after the preview channel is turned off, preventing stable builds from appearing as preview-lane updates
+- 🧪 **预览版本顺序与 feed 选择回归补强**：补充 beta/stable SemVer 顺序和 prerelease feed 选择回归测试，并加固相关 CLI / updater 场景，降低后续发版回归风险
+  - **Preview SemVer and Feed Regression Coverage Expanded**: Added regression coverage for beta/stable SemVer ordering and prerelease feed selection, plus stability tweaks around the related CLI / updater scenarios
+
+### 维护 / Maintenance
+
+- 🔖 **预览文档入口同步到 `v0.5.5-beta.3`**：README 与多语言 README 的预览通道入口现统一指向 `v0.5.5-beta.3`，稳定版下载入口继续保持 `0.5.5`
+  - **Preview Docs Synced to `v0.5.5-beta.3`**: README and localized READMEs now point their preview entry to `v0.5.5-beta.3` while stable download links remain on `0.5.5`
+
 ## [0.5.5-beta.2] - 2026-05-03
 
 ### 新功能 / Added

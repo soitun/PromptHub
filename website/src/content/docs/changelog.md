@@ -1,5 +1,44 @@
 ## [Unreleased]
 
+## [0.5.5-beta.3] - 2026-05-04
+
+### 修复 / Fixed
+
+- 🖱️ **卡片详情快速编辑交互收口**：桌面端 card view 的右侧详情标题改为双击直接进入轻量编辑，移除突兀的大按钮，同时继续保留完整编辑弹窗入口
+  - **Card Detail Inline Edit Entry Polished**: The desktop card-view detail title now enters lightweight inline editing on double-click, removing the oversized standalone button while keeping the full edit modal available
+- 🔁 **预览更新通道保持 prerelease-only**：预览通道检查更新时不再把 stable release 当作回退候选；只有关闭预览通道后才会回到 stable 检查，避免把正式版错误显示成预览通道的可用更新
+  - **Preview Update Channel Remains Prerelease-Only**: Preview-channel update checks no longer treat stable releases as fallback candidates. PromptHub returns to stable checks only after the preview channel is turned off, preventing stable builds from appearing as preview-lane updates
+- 🧪 **预览版本顺序与 feed 选择回归补强**：补充 beta/stable SemVer 顺序和 prerelease feed 选择回归测试，并加固相关 CLI / updater 场景，降低后续发版回归风险
+  - **Preview SemVer and Feed Regression Coverage Expanded**: Added regression coverage for beta/stable SemVer ordering and prerelease feed selection, plus stability tweaks around the related CLI / updater scenarios
+
+### 维护 / Maintenance
+
+- 🔖 **预览文档入口同步到 `v0.5.5-beta.3`**：README 与多语言 README 的预览通道入口现统一指向 `v0.5.5-beta.3`，稳定版下载入口继续保持 `0.5.5`
+  - **Preview Docs Synced to `v0.5.5-beta.3`**: README and localized READMEs now point their preview entry to `v0.5.5-beta.3` while stable download links remain on `0.5.5`
+
+## [0.5.5-beta.2] - 2026-05-03
+
+### 新功能 / Added
+
+- ✏️ **卡片详情快速编辑**：桌面端 card view 的右侧详情区新增轻量内联编辑，可直接修改选中 Prompt 的标题和当前可见用户提示词，同时保留完整编辑弹窗入口
+  - **Card Detail Inline Editing**: The desktop card-view detail panel now supports lightweight inline edits for the selected prompt title and visible user prompt while keeping the full edit modal available
+
+### 修复 / Fixed
+
+- 🔄 **桌面更新链路加固**：预览通道不再依赖缺失的 `preview.yml`，现在会解析最新 prerelease release 并读取真实存在的 `latest*.yml`；同时新增显式降级过滤，避免把旧 stable 错误显示为可用更新
+  - **Desktop Update Flow Hardened**: The preview lane no longer depends on a missing `preview.yml`. It now resolves the latest prerelease release and reads the real `latest*.yml` manifest, with explicit downgrade filtering so older stable builds are never shown as available updates
+- ✨ **预览默认通道推断与状态稳定性**：当应用版本本身带 prerelease 后缀时，客户端会在用户未显式改动前默认使用 preview 通道；后台检查更新也不会再把已显示的 `available` / `downloaded` 状态拉回 `checking`
+  - **Preview Default Inference and UI Stability**: When the installed app version contains a prerelease suffix, PromptHub defaults to the preview lane until the user explicitly changes it; background update checks also no longer force visible `available` / `downloaded` states back into `checking`
+- 🧪 **IDB 迁移回归隔离**：IDB 迁移 IPC 回归测试改用临时 user-data 路径，避免全量测试写入真实桌面配置目录
+  - **IDB Migration Regression Isolation**: The IDB migration IPC regression test now uses a temporary user-data path, preventing full-suite runs from writing into the real desktop profile directory
+
+### 维护 / Maintenance
+
+- 🔖 **预览通道发布标识**：发布 `0.5.5-beta.2` 作为带 prerelease 标识的预览构建，用于验证预览更新链路的清单解析与通道识别。该版本在 semver 排序上低于 `0.5.5` stable，稳定通道不会将其作为默认自动更新目标
+  - **Preview Channel Release Marker**: This release publishes `0.5.5-beta.2` with an explicit prerelease marker to validate manifest resolution and channel identification for the preview update path. Because it sorts lower than `0.5.5` stable in semver, stable-channel installs do not use it as the default automatic update target
+- 🧹 **发布文档语气整理**：README、多语言 README 与 release workflow 的预览通道说明改为正式发布文档口径，去除口语化和非正式描述
+  - **Release Copy Polish**: README, localized READMEs, and release workflow preview-channel notes now use formal release wording without conversational or historical-test phrasing
+
 ## [0.5.5] - 2026-04-24
 
 ### 新增 / Added

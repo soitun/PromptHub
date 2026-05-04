@@ -863,17 +863,17 @@
     "batchScanInstalledSkillsResult": "{{total}} Skills vérifiées · bloquées {{blocked}} · risque élevé {{highRisk}} · avertissement {{warn}}",
     "stableChannel": "Canal stable",
     "previewChannel": "Canal d’aperçu",
-    "joinPreviewChannel": "Rejoindre les versions d’aperçu",
-    "joinPreviewChannelDesc": "Une fois activé, la recherche de mises à jour inclut les builds d’aperçu / prerelease de GitHub Releases.",
+    "joinPreviewChannel": "Canal d’aperçu",
+    "joinPreviewChannelDesc": "Une fois activé, PromptHub recherche uniquement les builds d’aperçu / prerelease de GitHub Releases. Les versions stables seront à nouveau vérifiées après désactivation.",
     "previewChannelWarning": "Les builds d’aperçu peuvent être instables. Sauvegardez vos données avant la mise à jour et utilisez-les surtout pour tester les correctifs.",
     "previewChannelConfirmTitle": "Activer les mises à jour d’aperçu ?",
-    "previewChannelConfirmSubtitle": "Les builds d’aperçu sont optionnelles et servent à tester les correctifs à venir avant la version stable.",
+    "previewChannelConfirmSubtitle": "Les mises à jour d’aperçu sont optionnelles. Une fois activées, PromptHub vérifie uniquement les builds prerelease et ne bascule pas automatiquement vers les versions stables.",
     "previewChannelConfirmRisk": "Les builds d’aperçu peuvent inclure des régressions, des comportements inachevés ou des cas de migration pas encore totalement validés.",
     "previewChannelConfirmBackup": "Avant l’activation, créez une sauvegarde manuelle ou un export afin de pouvoir revenir en arrière en toute sécurité en cas de problème.",
-    "previewChannelConfirmConsent": "PromptHub reste sur le canal stable tant que vous n’avez pas explicitement confirmé ce changement.",
+    "previewChannelConfirmConsent": "Désactivez le canal d’aperçu pour revenir aux mises à jour stables. Si votre version d’aperçu est plus récente que la dernière version stable, PromptHub ne rétrogradera pas automatiquement.",
     "previewChannelConfirmCancel": "Rester sur le canal stable",
     "previewChannelConfirmEnable": "Activer les mises à jour d’aperçu",
-    "previewChannelActiveDesc": "Version : {{version}} · Canal d’aperçu activé"
+    "previewChannelActiveDesc": "Version : {{version}} · Mises à jour d’aperçu uniquement"
   },
   "import": {
     "clipboardTitle": "Importer un Prompt depuis le presse-papiers",

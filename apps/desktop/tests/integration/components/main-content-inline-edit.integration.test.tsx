@@ -155,7 +155,9 @@ describe("MainContent inline edit integration", () => {
       await renderWithI18n(<MainContent />, { language: "en" });
     });
 
-    fireEvent.click(screen.getByRole("button", { name: /^Edit$/ }));
+    fireEvent.doubleClick(
+      screen.getByRole("heading", { name: "Original Title", level: 2 }),
+    );
 
     const titleInput = screen.getByRole("textbox", { name: "Title" });
     const userPromptInput = screen.getByRole("textbox", {
@@ -188,7 +190,9 @@ describe("MainContent inline edit integration", () => {
       await renderWithI18n(<MainContent />, { language: "en" });
     });
 
-    fireEvent.click(screen.getByRole("button", { name: /^Edit$/ }));
+    fireEvent.doubleClick(
+      screen.getByRole("heading", { name: "Original Title", level: 2 }),
+    );
 
     fireEvent.change(screen.getByRole("textbox", { name: "Title" }), {
       target: { value: "Transient title" },

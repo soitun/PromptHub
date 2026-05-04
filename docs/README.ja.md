@@ -127,11 +127,11 @@
 |     Windows      | [![Windows x64](https://img.shields.io/badge/Windows_x64-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-Setup-0.5.5-x64.exe) [![Windows arm64](https://img.shields.io/badge/Windows_arm64-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-Setup-0.5.5-arm64.exe) |
 |      macOS       |   [![macOS Apple Silicon](https://img.shields.io/badge/macOS_Apple_Silicon-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.5.5-arm64.dmg) [![macOS Intel](https://img.shields.io/badge/macOS_Intel-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.5.5-x64.dmg)   |
 |      Linux       |       [![Linux AppImage](https://img.shields.io/badge/Linux_AppImage-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.5.5-x64.AppImage) [![Linux deb](https://img.shields.io/badge/Linux_deb-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/legeling/PromptHub/releases/latest/download/prompthub_0.5.5_amd64.deb)        |
-|    プレビューチャンネル     | [![Preview Prereleases](https://img.shields.io/badge/Preview_Prereleases-8B5CF6?style=for-the-badge&logo=github&logoColor=white)](https://github.com/legeling/PromptHub/releases?q=prerelease%3Atrue) [![v0.5.5-beta.2](https://img.shields.io/badge/Preview-v0.5.5--beta.2-8B5CF6?style=for-the-badge&logo=github&logoColor=white)](https://github.com/legeling/PromptHub/releases/tag/v0.5.5-beta.2) |
+|    プレビューチャンネル     | [![Preview Prereleases](https://img.shields.io/badge/Preview_Prereleases-8B5CF6?style=for-the-badge&logo=github&logoColor=white)](https://github.com/legeling/PromptHub/releases?q=prerelease%3Atrue) [![v0.5.5-beta.3](https://img.shields.io/badge/Preview-v0.5.5--beta.3-8B5CF6?style=for-the-badge&logo=github&logoColor=white)](https://github.com/legeling/PromptHub/releases/tag/v0.5.5-beta.3) |
 
 > プレビュー構成は GitHub `Prereleases` として公開されます。設定でプレビュー更新チャンネルを有効にすると、PromptHub は prerelease 構成を確認します。
 >
-> `0.5.5-beta.2` は、プレビュー更新経路の prerelease 識別とマニフェスト解決を検証する構成です。semver では `0.5.5` stable より下位になるため、stable チャンネルは既定の自動更新先として使用しません。
+> `0.5.5-beta.3` は preview-only 更新経路の安定化を継続する構成です。プレビューチャンネルをオフにしたときだけ stable の更新確認へ戻り、現在のプレビュー版が最新 stable より新しい場合でも PromptHub は自動的にダウングレードしません。
 
 ### macOS で Homebrew を使ってインストール
 

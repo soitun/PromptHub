@@ -1570,7 +1570,12 @@ export function MainContent() {
                           className="h-12 text-xl font-bold"
                         />
                       ) : (
-                        <h2 className="text-xl font-bold text-foreground mb-1">{selectedPrompt.title}</h2>
+                        <h2
+                          onDoubleClick={openDetailInlineEdit}
+                          className="text-xl font-bold text-foreground mb-1 cursor-text"
+                        >
+                          {selectedPrompt.title}
+                        </h2>
                       )}
                       {selectedPrompt.description && (
                         <p className="text-sm text-muted-foreground">{selectedPrompt.description}</p>
@@ -1623,25 +1628,15 @@ export function MainContent() {
                           </button>
                         </>
                       ) : (
-                        <>
-                          <button
-                            type="button"
-                            onClick={openDetailInlineEdit}
-                            className="flex items-center gap-2 h-10 px-3 rounded-xl app-wallpaper-surface-strong border border-border text-sm font-medium hover:bg-accent/60 transition-colors"
-                          >
-                            <EditIcon className="w-4 h-4" />
-                            <span>{t('common.edit')}</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setEditingPrompt(selectedPrompt)}
-                            aria-label={t('prompt.editPrompt')}
-                            title={t('prompt.editPrompt')}
-                            className="p-2.5 rounded-xl text-muted-foreground hover:bg-accent hover:text-foreground transition-all duration-200 active:scale-95"
-                          >
-                            <EditIcon className="w-5 h-5" />
-                          </button>
-                        </>
+                        <button
+                          type="button"
+                          onClick={() => setEditingPrompt(selectedPrompt)}
+                          aria-label={t('prompt.editPrompt')}
+                          title={t('prompt.editPrompt')}
+                          className="p-2.5 rounded-xl text-muted-foreground hover:bg-accent hover:text-foreground transition-all duration-200 active:scale-95"
+                        >
+                          <EditIcon className="w-5 h-5" />
+                        </button>
                       )}
                     </div>
                   </div>

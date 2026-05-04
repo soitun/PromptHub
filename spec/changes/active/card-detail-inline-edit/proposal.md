@@ -7,7 +7,7 @@ Add a low-risk inline edit flow for the desktop card-view detail panel so users 
 ## Why
 
 - The current card-view detail panel is optimized for reading, but even small copy fixes force users into the full edit modal.
-- The user specifically asked for a smoother edit experience in the large title and user-prompt area on the right-hand detail panel.
+- The user specifically asked for a smoother edit experience in the large title and user-prompt area on the right-hand detail panel, with title double-click as the entry point instead of a separate large button.
 - A minimal inline edit path can improve iteration speed while preserving the existing full edit modal for broader changes.
 
 ## Scope

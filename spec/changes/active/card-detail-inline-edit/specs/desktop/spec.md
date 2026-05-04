@@ -19,7 +19,7 @@ The desktop card-view detail panel MUST support a lightweight inline edit flow f
 ### Scenario: User makes a quick copy fix from the card detail panel
 
 - GIVEN the user is in desktop card view with a selected prompt
-- WHEN they enter inline edit from the right-hand detail panel
+- WHEN they double-click the title in the right-hand detail panel
 - THEN they can edit the title and currently visible user prompt in place
 - AND saving reuses the existing prompt update flow without leaving the detail view
 

@@ -863,17 +863,17 @@
     "batchScanInstalledSkillsResult": "{{total}} Skills geprüft · blockiert {{blocked}} · hohes Risiko {{highRisk}} · Warnung {{warn}}",
     "stableChannel": "Stabiler Kanal",
     "previewChannel": "Vorschaukanal",
-    "joinPreviewChannel": "Vorschauversionen aktivieren",
-    "joinPreviewChannelDesc": "Nur nach Aktivierung werden Vorschau- / Prerelease-Builds aus GitHub Releases bei der Update-Suche berücksichtigt.",
+    "joinPreviewChannel": "Vorschaukanal",
+    "joinPreviewChannelDesc": "Wenn aktiviert, sucht PromptHub nur nach Prerelease-Vorschau-Builds aus GitHub Releases. Stabile Releases werden erst nach dem Deaktivieren wieder geprüft.",
     "previewChannelWarning": "Vorschau-Builds können instabil sein. Bitte sichern Sie Ihre Daten vor dem Update und nutzen Sie sie hauptsächlich zum Testen neuer Fixes.",
     "previewChannelConfirmTitle": "Vorschau-Updates aktivieren?",
-    "previewChannelConfirmSubtitle": "Vorschau-Builds sind optional und dienen dazu, kommende Fehlerbehebungen vor dem stabilen Release zu testen.",
+    "previewChannelConfirmSubtitle": "Vorschau-Updates sind optional. Nach der Aktivierung prüft PromptHub nur Prerelease-Builds und wechselt nicht automatisch zu stabilen Releases.",
     "previewChannelConfirmRisk": "Vorschau-Builds können Regressionen, unfertiges Verhalten oder noch nicht vollständig validierte Migrationsfälle enthalten.",
     "previewChannelConfirmBackup": "Erstellen Sie vor dem Aktivieren ein manuelles Backup oder einen Export, damit Sie bei Problemen sicher zurückkehren können.",
-    "previewChannelConfirmConsent": "PromptHub bleibt im stabilen Kanal, bis Sie diese Änderung ausdrücklich bestätigen.",
+    "previewChannelConfirmConsent": "Deaktivieren Sie den Vorschaukanal, um zu stabilen Updates zurückzukehren. Wenn Ihre Vorschauversion neuer als das neueste stabile Release ist, führt PromptHub kein automatisches Downgrade aus.",
     "previewChannelConfirmCancel": "Beim stabilen Kanal bleiben",
     "previewChannelConfirmEnable": "Vorschau-Updates aktivieren",
-    "previewChannelActiveDesc": "Version: {{version}} · Vorschaukanal aktiv"
+    "previewChannelActiveDesc": "Version: {{version}} · Nur Vorschau-Updates"
   },
   "import": {
     "clipboardTitle": "Prompt aus Zwischenablage importieren",

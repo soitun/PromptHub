@@ -7,6 +7,7 @@ Added a lightweight inline edit flow to the desktop card-view detail panel so us
 ## Delivered Changes
 
 - Added renderer-local draft state in `apps/desktop/src/renderer/components/layout/MainContent.tsx` for card-view detail editing.
+- Replaced the temporary large inline-edit button with title double-click so the entry matches the existing detail-panel visual language.
 - Reused the existing `updatePrompt` store action to save `title` and the currently visible user-prompt field.
 - Preserved user-prompt text exactly on inline save while still rejecting empty/whitespace-only drafts.
 - Kept the full `EditPromptModal` entry point available as a separate action for broader edits.

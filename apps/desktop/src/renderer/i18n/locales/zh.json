@@ -864,17 +864,17 @@
     "batchScanInstalledSkillsResult": "已检查 {{total}} 个 Skill · 阻止 {{blocked}} 个 · 高风险 {{highRisk}} 个 · 警告 {{warn}} 个",
     "stableChannel": "稳定版通道",
     "previewChannel": "预览版通道",
-    "joinPreviewChannel": "加入预览版本",
-    "joinPreviewChannelDesc": "只有加入后，检查更新才会包含 GitHub Releases 里的预览版 / prerelease。",
+    "joinPreviewChannel": "预览版通道",
+    "joinPreviewChannelDesc": "开启后只检查 GitHub Releases 里的预览版 / prerelease，不会自动切换到正式版。关闭后才会重新检查正式版更新。",
     "previewChannelWarning": "预览版可能不稳定，建议先备份数据，主要用于帮助测试新修复。",
     "previewChannelConfirmTitle": "要开启预览版更新吗？",
-    "previewChannelConfirmSubtitle": "预览版更新属于自愿加入，主要用于在稳定版发布前提前测试即将上线的修复。",
+    "previewChannelConfirmSubtitle": "预览版更新属于自愿加入；开启后只接收预览版更新，不会自动转入正式版。",
     "previewChannelConfirmRisk": "预览版可能包含回归问题、未完全打磨的行为，或尚未充分验证的数据迁移边界情况。",
     "previewChannelConfirmBackup": "开启前，建议先手动备份或导出当前数据，这样即使预览版出现异常，也能安全回退。",
-    "previewChannelConfirmConsent": "只有在你明确确认后，PromptHub 才会从稳定版通道切换到预览版通道。",
+    "previewChannelConfirmConsent": "关闭预览版通道后，PromptHub 才会回到稳定版更新；如果当前预览版高于最新正式版，不会自动降级。",
     "previewChannelConfirmCancel": "继续使用稳定版",
     "previewChannelConfirmEnable": "开启预览版更新",
-    "previewChannelActiveDesc": "版本：{{version}} · 当前已启用预览版通道"
+    "previewChannelActiveDesc": "版本：{{version}} · 当前只检查预览版更新"
   },
   "import": {
     "clipboardTitle": "从剪切板导入 Prompt",

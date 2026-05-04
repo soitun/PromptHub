@@ -9,6 +9,31 @@ const { httpsGetMock } = vi.hoisted(() => ({
     httpsGetMock: vi.fn(),
 }));
 
+function mockGithubReleases(
+    releases: Array<{ tag_name: string; prerelease: boolean; draft?: boolean }>,
+) {
+    httpsGetMock.mockImplementation((_options, callback) => {
+        const response = {
+            statusCode: 200,
+            setEncoding: vi.fn(),
+            on: vi.fn((event, handler) => {
+                if (event === 'data') {
+                    handler(JSON.stringify(releases));
+                }
+                if (event === 'end') {
+                    handler();
+                }
+            }),
+        };
+        callback(response);
+        return {
+            on: vi.fn(),
+            setTimeout: vi.fn(),
+            destroy: vi.fn(),
+        };
+    });
+}
+
 // Mock electron
 vi.mock('electron', () => ({
     ipcMain: {
@@ -79,28 +104,9 @@ describe('Updater Service (Main Process)', () => {
         autoUpdater.allowDowngrade = false;
 
         httpsGetMock.mockReset();
-        httpsGetMock.mockImplementation((_options, callback) => {
-            const response = {
-                statusCode: 200,
-                setEncoding: vi.fn(),
-                on: vi.fn((event, handler) => {
-                    if (event === 'data') {
-                        handler(JSON.stringify([
-                            { tag_name: 'v1.1.0-beta.2', prerelease: true, draft: false },
-                        ]));
-                    }
-                    if (event === 'end') {
-                        handler();
-                    }
-                }),
-            };
-            callback(response);
-            return {
-                on: vi.fn(),
-                setTimeout: vi.fn(),
-                destroy: vi.fn(),
-            };
-        });
+        mockGithubReleases([
+            { tag_name: 'v1.1.0-beta.2', prerelease: true, draft: false },
+        ]);
 
         mockWindow = {
             webContents: {
@@ -202,6 +208,7 @@ describe('Updater Service (Main Process)', () => {
 
         await checkHandler({}, { useMirror: false, channel: 'stable' });
 
+        expect(httpsGetMock).not.toHaveBeenCalled();
         expect(autoUpdater.allowPrerelease).toBe(false);
         expect(autoUpdater.allowDowngrade).toBe(false);
         expect(autoUpdater.setFeedURL).toHaveBeenCalledWith(
@@ -210,6 +217,27 @@ describe('Updater Service (Main Process)', () => {
     });
 
     it('uses the preview prerelease feed only after joining preview channel', async () => {
+        registerUpdaterIPC();
+        const checkHandler = (vi.mocked((await import('electron')).ipcMain.handle).mock.calls.find(
+            ([channel]) => channel === 'updater:check',
+        )?.[1]) as (_event: unknown, options?: unknown) => Promise<unknown>;
+
+        await checkHandler({}, { useMirror: false, channel: 'preview' });
+
+        expect(autoUpdater.allowPrerelease).toBe(true);
+        expect(autoUpdater.allowDowngrade).toBe(false);
+        expect(autoUpdater.setFeedURL).toHaveBeenCalledWith({
+            provider: 'generic',
+            channel: undefined,
+            url: 'https://github.com/legeling/PromptHub/releases/download/v1.1.0-beta.2',
+        });
+    });
+
+    it('keeps preview checks on prerelease feeds even when a newer stable release exists', async () => {
+        mockGithubReleases([
+            { tag_name: 'v1.1.0', prerelease: false, draft: false },
+            { tag_name: 'v1.1.0-beta.2', prerelease: true, draft: false },
+        ]);
         registerUpdaterIPC();
         const checkHandler = (vi.mocked((await import('electron')).ipcMain.handle).mock.calls.find(
             ([channel]) => channel === 'updater:check',
