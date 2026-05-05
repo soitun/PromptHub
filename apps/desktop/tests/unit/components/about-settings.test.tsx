@@ -100,4 +100,25 @@ describe("AboutSettings", () => {
       screen.queryByText("Enable preview updates?"),
     ).not.toBeInTheDocument();
   });
+
+  it("shows the current copyright year in the footer", async () => {
+    useSettingsStoreMock.mockReturnValue({
+      autoCheckUpdate: true,
+      useUpdateMirror: false,
+      updateChannel: "stable",
+      debugMode: false,
+      setAutoCheckUpdate: vi.fn(),
+      setUseUpdateMirror: vi.fn(),
+      setUpdateChannel: vi.fn(),
+      setDebugMode: vi.fn(),
+    });
+
+    await act(async () => {
+      await renderWithI18n(<AboutSettings />, { language: "en" });
+    });
+
+    expect(
+      screen.getByText("AGPL-3.0 License © 2026 PromptHub"),
+    ).toBeInTheDocument();
+  });
 });

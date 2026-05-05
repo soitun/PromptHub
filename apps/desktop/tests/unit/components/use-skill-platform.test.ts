@@ -20,14 +20,47 @@ describe("use-skill-platform helpers", () => {
     ]);
   });
 
-  it("keeps the original order when no preference is saved", () => {
+  it("uses the product default priority when no preference is saved", () => {
     const original = [
-      { id: "claude", name: "Claude Code" },
       { id: "cursor", name: "Cursor" },
+      { id: "openclaw", name: "OpenClaw" },
+      { id: "codex", name: "Codex CLI" },
+      { id: "claude", name: "Claude Code" },
+      { id: "hermes", name: "Hermes Agent" },
+      { id: "opencode", name: "OpenCode" },
     ] as any;
 
     const sorted = sortSkillPlatformsByPreference(original, []);
 
-    expect(sorted).toEqual(original);
+    expect(sorted.map((platform) => platform.id)).toEqual([
+      "claude",
+      "codex",
+      "opencode",
+      "openclaw",
+      "hermes",
+      "cursor",
+    ]);
+  });
+
+  it("keeps saved user preference ahead of the default priority", () => {
+    const original = [
+      { id: "cursor", name: "Cursor" },
+      { id: "openclaw", name: "OpenClaw" },
+      { id: "codex", name: "Codex CLI" },
+      { id: "claude", name: "Claude Code" },
+      { id: "hermes", name: "Hermes Agent" },
+      { id: "opencode", name: "OpenCode" },
+    ] as any;
+
+    const sorted = sortSkillPlatformsByPreference(original, ["cursor"]);
+
+    expect(sorted.map((platform) => platform.id)).toEqual([
+      "cursor",
+      "claude",
+      "codex",
+      "opencode",
+      "openclaw",
+      "hermes",
+    ]);
   });
 });

@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type DragEvent } from "react";
 import {
   ArrowDownIcon,
   ArrowUpIcon,
+  GripVerticalIcon,
   PlusIcon,
   RotateCcwIcon,
   TrashIcon,
@@ -15,6 +16,7 @@ import { PlatformIcon } from "../ui/PlatformIcon";
 import { SettingSection } from "./shared";
 import { useToast } from "../ui/Toast";
 import { getSafetyScanAIConfig } from "../skill/detail-utils";
+import { sortSkillPlatformsByPreference } from "../skill/use-skill-platform";
 
 function getCurrentPlatformKey(): "darwin" | "win32" | "linux" {
   const platform = navigator.userAgent.toLowerCase();
@@ -27,37 +29,46 @@ function useOrderedPlatforms() {
   const settings = useSettingsStore();
 
   return useMemo(() => {
-    const preferredIndex = new Map(
-      (settings.skillPlatformOrder ?? []).map((platformId, index) => [
-        platformId,
-        index,
-      ]),
+    return sortSkillPlatformsByPreference(
+      SKILL_PLATFORMS,
+      settings.skillPlatformOrder ?? [],
     );
-
-    return [...SKILL_PLATFORMS].sort((left, right) => {
-      const leftIndex = preferredIndex.get(left.id);
-      const rightIndex = preferredIndex.get(right.id);
-
-      if (leftIndex != null && rightIndex != null) {
-        return leftIndex - rightIndex;
-      }
-      if (leftIndex != null) {
-        return -1;
-      }
-      if (rightIndex != null) {
-        return 1;
-      }
-      return 0;
-    });
   }, [settings.skillPlatformOrder]);
 }
 
-export function SkillDesktopDataSettingsSection() {
+function reorderPlatformIds(
+  currentOrder: string[],
+  sourceId: string,
+  targetId: string,
+): string[] | null {
+  if (sourceId === targetId) {
+    return null;
+  }
+
+  const sourceIndex = currentOrder.indexOf(sourceId);
+  const targetIndex = currentOrder.indexOf(targetId);
+  if (sourceIndex === -1 || targetIndex === -1) {
+    return null;
+  }
+
+  const nextOrder = [...currentOrder];
+  const [moved] = nextOrder.splice(sourceIndex, 1);
+  nextOrder.splice(targetIndex, 0, moved);
+  return nextOrder;
+}
+
+export function SkillSettings() {
   const { t } = useTranslation();
   const settings = useSettingsStore();
   const orderedPlatforms = useOrderedPlatforms();
   const currentPlatformKey = getCurrentPlatformKey();
   const [newScanPath, setNewScanPath] = useState("");
+  const [draggingPlatformId, setDraggingPlatformId] = useState<string | null>(
+    null,
+  );
+  const [dropTargetPlatformId, setDropTargetPlatformId] = useState<string | null>(
+    null,
+  );
 
   const movePlatformOrder = (platformId: string, direction: "up" | "down") => {
     const nextOrder = orderedPlatforms.map((platform) => platform.id);
@@ -76,6 +87,53 @@ export function SkillDesktopDataSettingsSection() {
       nextOrder[currentIndex],
     ];
     settings.setSkillPlatformOrder(nextOrder);
+  };
+
+  const applyDraggedPlatformOrder = (sourceId: string, targetId: string) => {
+    const nextOrder = reorderPlatformIds(
+      orderedPlatforms.map((platform) => platform.id),
+      sourceId,
+      targetId,
+    );
+    if (!nextOrder) {
+      return;
+    }
+    settings.setSkillPlatformOrder(nextOrder);
+  };
+
+  const handleDragStart =
+    (platformId: string) => (event: DragEvent<HTMLDivElement>) => {
+      setDraggingPlatformId(platformId);
+      setDropTargetPlatformId(platformId);
+      event.dataTransfer.effectAllowed = "move";
+      event.dataTransfer.setData("text/plain", platformId);
+    };
+
+  const handleDragOver =
+    (platformId: string) => (event: DragEvent<HTMLDivElement>) => {
+      if (!draggingPlatformId || draggingPlatformId === platformId) {
+        return;
+      }
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "move";
+      setDropTargetPlatformId(platformId);
+    };
+
+  const handleDrop =
+    (platformId: string) => (event: DragEvent<HTMLDivElement>) => {
+      event.preventDefault();
+      const sourceId =
+        event.dataTransfer.getData("text/plain") || draggingPlatformId;
+      if (sourceId) {
+        applyDraggedPlatformOrder(sourceId, platformId);
+      }
+      setDraggingPlatformId(null);
+      setDropTargetPlatformId(null);
+    };
+
+  const handleDragEnd = () => {
+    setDraggingPlatformId(null);
+    setDropTargetPlatformId(null);
   };
 
   return (
@@ -150,13 +208,31 @@ export function SkillDesktopDataSettingsSection() {
               {t("settings.resetPlatformDisplayOrder", "Reset")}
             </button>
           </div>
-          <div className="space-y-2 rounded-xl border border-border/70 app-wallpaper-surface p-3">
+          <div
+            role="list"
+            aria-label={t("settings.platformDisplayOrder", "Platform Display Order")}
+            className="space-y-2 rounded-xl border border-border/70 app-wallpaper-surface p-3"
+          >
             {orderedPlatforms.map((platform, index) => (
               <div
                 key={platform.id}
-                className="flex items-center justify-between gap-3 rounded-xl border border-border/60 app-wallpaper-surface-strong px-3 py-2"
+                role="listitem"
+                data-platform-id={platform.id}
+                draggable
+                onDragStart={handleDragStart(platform.id)}
+                onDragOver={handleDragOver(platform.id)}
+                onDrop={handleDrop(platform.id)}
+                onDragEnd={handleDragEnd}
+                className={`flex items-center justify-between gap-3 rounded-xl border px-3 py-2 app-wallpaper-surface-strong transition-colors cursor-grab active:cursor-grabbing ${
+                  draggingPlatformId === platform.id
+                    ? "border-primary/40 opacity-60"
+                    : dropTargetPlatformId === platform.id
+                      ? "border-primary/60 ring-1 ring-primary/30"
+                      : "border-border/60"
+                }`}
               >
                 <div className="flex min-w-0 items-center gap-3">
+                  <GripVerticalIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
                   <PlatformIcon platformId={platform.id} size={20} />
                   <div className="min-w-0">
                     <div className="text-sm font-medium text-foreground">
@@ -203,7 +279,7 @@ export function SkillDesktopDataSettingsSection() {
             )}
           </p>
           <div className="rounded-lg border border-border overflow-hidden">
-            {SKILL_PLATFORMS.map((platform) => {
+            {orderedPlatforms.map((platform) => {
               const overridePath = settings.customSkillPlatformPaths[platform.id] || "";
 
               return (

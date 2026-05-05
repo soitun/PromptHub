@@ -20,6 +20,9 @@
 - 为 `TopBar` 搜索框、`Sidebar`、Prompt 列表 pane / card 与相关 toolbar 接入局部材质层和更明确的层级梯度
 - 复用现有图片存储链路保存背景图文件，避免把大图直接写入 localStorage
 - 将 Skill 导出收敛为 `SKILL.md` 与 `zip` 两种桌面端导出能力
+- 保持桌面端 Skill 安装/扫描配置为独立设置页签，不并入 `DataSettings`
+- Skill 平台顺序支持直接拖拽调整，并将默认展示顺序收敛为 Claude / Codex / OpenCode / OpenClaw / Hermes / Cursor 优先
+- GitHub issue 提交时自动根据表单中的版本字段补一个 `version: ...` 标签，避免手动维护版本标签
 - 补充相应 IPC、前端工具函数、测试与 i18n 文案
 
 - Out of scope:

@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { installWindowMocks } from "../../helpers/window";
 
 import en from "../../../src/renderer/i18n/locales/en.json";
 import zh from "../../../src/renderer/i18n/locales/zh.json";
@@ -100,6 +101,8 @@ const baseSkill: Skill = {
   tags: ["general"],
   is_favorite: false,
   currentVersion: 0,
+  registry_slug: "write",
+  installed_version: "1.0.0",
   created_at: Date.now(),
   updated_at: Date.now(),
 };
@@ -216,22 +219,33 @@ describe("skill i18n smoke", () => {
       uninstalledPlatforms: [],
     });
 
-    (window as any).api = {
-      skill: {
-        export: vi.fn().mockResolvedValue("---\nname: write\n---\n# Write"),
-        exportZip: vi.fn().mockResolvedValue({
-          fileName: "write.zip",
-          base64: "UEsDBA==",
-        }),
-        readLocalFiles: vi.fn().mockResolvedValue([
-          {
-            path: "SKILL.md",
-            content: "---\ndescription: Write helper\n---\n\n# Write",
-            isDirectory: false,
-          },
-        ]),
+    installWindowMocks({
+      api: {
+        skill: {
+          export: vi.fn().mockResolvedValue("---\nname: write\n---\n# Write"),
+          exportZip: vi.fn().mockResolvedValue({
+            fileName: "write.zip",
+            base64: "UEsDBA==",
+          }),
+          readLocalFiles: vi.fn().mockResolvedValue([
+            {
+              path: "SKILL.md",
+              content: "---\ndescription: Write helper\n---\n\n# Write",
+              isDirectory: false,
+            },
+          ]),
+          fetchRemoteContent: vi.fn().mockResolvedValue("{}"),
+        },
+        settings: {
+          get: vi.fn().mockResolvedValue({
+            device: {
+              storeAutoSync: false,
+              storeSyncCadence: "1d",
+            },
+          }),
+        },
       },
-    };
+    });
   });
 
   afterEach(() => {
@@ -264,6 +278,77 @@ describe("skill i18n smoke", () => {
       expect(screen.getByText("1 selected")).toBeInTheDocument();
     });
     expect(screen.getByRole("button", { name: "Batch Deploy" })).toBeInTheDocument();
+  });
+
+  it("shows an update pulse for store-installed skills when a remote store version is newer", async () => {
+    const skillStoreState = createSkillStoreState({
+      remoteStoreEntries: {
+        "claude-code": {
+          loadedAt: Date.now(),
+          error: null,
+          skills: [
+            {
+              slug: "write",
+              name: "Write",
+              description: "Write better",
+              category: "general",
+              author: "PromptHub",
+              source_url: "https://github.com/example/write",
+              tags: ["general"],
+              version: "1.1.0",
+              content: "# Write",
+            },
+          ],
+        },
+      },
+    });
+    const settingsState = createSettingsState();
+
+    useSkillStoreMock.mockImplementation((selector) => selector(skillStoreState));
+    useSettingsStoreMock.mockImplementation((selector) => selector(settingsState));
+
+    render(<SkillManager />);
+
+    expect(screen.getAllByText("Update available").length).toBeGreaterThan(0);
+  });
+
+  it("does not show an update pulse for local-only skills", async () => {
+    const skillStoreState = createSkillStoreState({
+      skills: [
+        {
+          ...baseSkill,
+          registry_slug: undefined,
+          installed_version: undefined,
+        },
+      ],
+      remoteStoreEntries: {
+        "claude-code": {
+          loadedAt: Date.now(),
+          error: null,
+          skills: [
+            {
+              slug: "write",
+              name: "Write",
+              description: "Write better",
+              category: "general",
+              author: "PromptHub",
+              source_url: "https://github.com/example/write",
+              tags: ["general"],
+              version: "1.1.0",
+              content: "# Write",
+            },
+          ],
+        },
+      },
+    });
+    const settingsState = createSettingsState();
+
+    useSkillStoreMock.mockImplementation((selector) => selector(skillStoreState));
+    useSettingsStoreMock.mockImplementation((selector) => selector(settingsState));
+
+    render(<SkillManager />);
+
+    expect(screen.queryByText("Update available")).not.toBeInTheDocument();
   });
 
   it("renders skill detail page chrome in english without chinese fallback text", async () => {

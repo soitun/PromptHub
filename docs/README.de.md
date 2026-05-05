@@ -127,11 +127,11 @@ Laden Sie das Installationsprogramm für Ihre Plattform von der [Release-Seite](
 |  Windows  | [![Windows x64](https://img.shields.io/badge/Windows_x64-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-Setup-0.5.5-x64.exe) [![Windows arm64](https://img.shields.io/badge/Windows_arm64-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-Setup-0.5.5-arm64.exe) |
 |   macOS   |   [![macOS Apple Silicon](https://img.shields.io/badge/macOS_Apple_Silicon-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.5.5-arm64.dmg) [![macOS Intel](https://img.shields.io/badge/macOS_Intel-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.5.5-x64.dmg)   |
 |   Linux   |       [![Linux AppImage](https://img.shields.io/badge/Linux_AppImage-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.5.5-x64.AppImage) [![Linux deb](https://img.shields.io/badge/Linux_deb-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/legeling/PromptHub/releases/latest/download/prompthub_0.5.5_amd64.deb)        |
-| Vorschau  | [![Preview Prereleases](https://img.shields.io/badge/Preview_Prereleases-8B5CF6?style=for-the-badge&logo=github&logoColor=white)](https://github.com/legeling/PromptHub/releases?q=prerelease%3Atrue) [![v0.5.5-beta.3](https://img.shields.io/badge/Preview-v0.5.5--beta.3-8B5CF6?style=for-the-badge&logo=github&logoColor=white)](https://github.com/legeling/PromptHub/releases/tag/v0.5.5-beta.3) |
+| Vorschau  | [![Preview Prereleases](https://img.shields.io/badge/Preview_Prereleases-8B5CF6?style=for-the-badge&logo=github&logoColor=white)](https://github.com/legeling/PromptHub/releases?q=prerelease%3Atrue) |
 
 > Vorschau-Builds werden als GitHub `Prereleases` veröffentlicht. Nach dem Aktivieren des Vorschau-Updatekanals in den Einstellungen prüft PromptHub prerelease-Builds.
 >
-> `0.5.5-beta.3` härtet den preview-only Updatepfad weiter ab. Erst nach dem Deaktivieren des Vorschaukanals prüft PromptHub wieder Stable-Releases, und bei einer neueren Vorschauversion erfolgt kein automatisches Downgrade auf ein älteres Stable-Release.
+> Um wieder zu Stable-Updates zurückzukehren, muss zuerst der Vorschaukanal deaktiviert werden. PromptHub führt niemals ein automatisches Downgrade von einer neueren Vorschauversion auf eine ältere Stable-Version durch.
 
 ### macOS Erststart
 
@@ -333,11 +333,12 @@ PromptHub/
 
 Den vollständigen Verlauf finden Sie hier: **[CHANGELOG.md](../CHANGELOG.md)**
 
-### Neueste Version v0.5.5 (2026-04-24) 🎉
+### Neueste Version v0.5.5 (2026-05-05) 🎉
 
 **Skill-Updates**
 
 - 🧩 **Store-Skill-Updates erkennen**: Store-Skills speichern Installations-Hash und Version und vergleichen das aktuelle entfernte `SKILL.md`
+- 🛎️ **Update-Hinweis in „My Skills“**: Store-installierte Skills mit neuerer Remote-Version zeigen jetzt einen `Update available`-Hinweis in der Listen- und Galerieansicht von „My Skills“
 - 🛡️ **Schutz lokaler Änderungen**: Wenn lokale und entfernte Inhalte geändert wurden, meldet PromptHub einen Konflikt und verlangt explizites Überschreiben
 
 **Web**
@@ -349,6 +350,9 @@ Den vollständigen Verlauf finden Sie hier: **[CHANGELOG.md](../CHANGELOG.md)**
 **Desktop & Docs**
 
 - 🔒 **Schutz privater Ordner**: Das Deaktivieren des Privatstatus auf Desktop erfordert zuerst das Master-Passwort
+- ✏️ **Schnellbearbeitung in der Kartendetailansicht**: Der Titel in der Desktop-Kartendetailansicht wechselt jetzt per Doppelklick in eine leichte Inline-Bearbeitung; das vollständige Bearbeitungsfenster bleibt erhalten
+- 🔄 **Preview-Updatepfad gehärtet**: Der Vorschaukanal bleibt auf prerelease-Feeds beschränkt, kehrt erst nach dem Deaktivieren des Vorschaukanals zu Stable-Prüfungen zurück und führt kein automatisches Downgrade von neueren Vorschauversionen auf ältere Stable-Releases durch
+- ⚙️ **Skill-Einstellungsseite und Plattformreihenfolge wiederhergestellt**: Skill-bezogene Einstellungen befinden sich wieder auf einer eigenen Seite, und die Plattformpriorität wird im vorgesehenen Standard angezeigt und kann per Drag-and-Drop angepasst werden
 - 🌍 **Release-Dokument-Sync**: README, lokalisierte Dokus und Website-Metadaten auf `v0.5.5` synchronisiert
 
 > 📋 [Vollständiges Änderungsprotokoll anzeigen](../CHANGELOG.md)

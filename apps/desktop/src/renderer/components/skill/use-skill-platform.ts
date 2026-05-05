@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Skill } from "@prompthub/shared/types";
-import type { SkillPlatform } from "@prompthub/shared/constants/platforms";
+import {
+  DEFAULT_SKILL_PLATFORM_ORDER,
+  type SkillPlatform,
+} from "@prompthub/shared/constants/platforms";
 import { useSkillStore } from "../../stores/skill.store";
 import { useSettingsStore } from "../../stores/settings.store";
 import { getRuntimeCapabilities } from "../../runtime";
@@ -16,12 +19,16 @@ export function sortSkillPlatformsByPreference(
   platforms: SkillPlatform[],
   preferredOrder: string[],
 ): SkillPlatform[] {
-  if (preferredOrder.length === 0) {
+  const effectiveOrder = Array.from(
+    new Set([...preferredOrder, ...DEFAULT_SKILL_PLATFORM_ORDER]),
+  );
+
+  if (effectiveOrder.length === 0) {
     return platforms;
   }
 
   const preferredIndex = new Map(
-    preferredOrder.map((platformId, index) => [platformId, index]),
+    effectiveOrder.map((platformId, index) => [platformId, index]),
   );
 
   return [...platforms].sort((left, right) => {

@@ -49,7 +49,6 @@ import { ConfirmDialog } from "../ui/ConfirmDialog";
 import { DataRecoveryDialog } from "../ui/DataRecoveryDialog";
 import { Select } from "../ui/Select";
 import { Checkbox } from "../ui";
-import { SkillDesktopDataSettingsSection } from "./SkillSettings";
 import {
   SettingSection,
   SettingItem,
@@ -1828,9 +1827,6 @@ export function DataSettings() {
             </SettingItem>
           ) : null}
         </SettingSection>
-
-        {!webRuntime ? <SkillDesktopDataSettingsSection /> : null}
-
         <SettingSection title={t("settings.dbInfo", "本地数据路径")}>
           <div className="p-4 text-sm text-muted-foreground space-y-1">
             {currentDataPath ? (

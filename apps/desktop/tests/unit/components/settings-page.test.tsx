@@ -32,6 +32,9 @@ vi.mock("../../../src/renderer/components/settings/AboutSettings", () => ({
 vi.mock("../../../src/renderer/components/settings/DataSettings", () => ({
   DataSettings: () => <div>data-content</div>,
 }));
+vi.mock("../../../src/renderer/components/settings/SkillSettings", () => ({
+  SkillSettings: () => <div>skill-content</div>,
+}));
 vi.mock("../../../src/renderer/components/settings/AISettingsPrototype", () => ({
   AISettingsPrototype: () => <div>ai-content</div>,
 }));
@@ -43,19 +46,25 @@ vi.mock("../../../src/renderer/components/settings/WebWorkspaceSettings", () => 
 }));
 
 describe("SettingsPage", () => {
-  it("does not show a standalone Skill entry in the desktop settings navigation", async () => {
+  it("shows a standalone Skill entry in the desktop settings navigation", async () => {
     await act(async () => {
       await renderWithI18n(<SettingsPage onBack={vi.fn()} />, {
-        language: "zh",
+        language: "en",
       });
     });
 
     const nav = screen.getByRole("navigation");
-    expect(nav).not.toHaveTextContent(/^Skill$/);
-    expect(nav).not.toHaveTextContent(/^技能$/);
-    expect(nav).toHaveTextContent("常规设置");
-    expect(nav).toHaveTextContent("数据设置");
-    expect(nav).toHaveTextContent("安全");
+    expect(screen.getByText("general-content")).toBeInTheDocument();
+    expect(nav).toHaveTextContent("General");
+    expect(nav).toHaveTextContent("Data");
+    expect(nav).toHaveTextContent("Skill");
+    expect(nav).toHaveTextContent("Security");
     expect(nav.parentElement).not.toHaveClass("app-left-rail-glass");
+
+    await act(async () => {
+      screen.getByRole("button", { name: "Skill" }).click();
+    });
+
+    expect(screen.getByText("skill-content")).toBeInTheDocument();
   });
 });

@@ -127,11 +127,11 @@
 |     Windows      | [![Windows x64](https://img.shields.io/badge/Windows_x64-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-Setup-0.5.5-x64.exe) [![Windows arm64](https://img.shields.io/badge/Windows_arm64-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-Setup-0.5.5-arm64.exe) |
 |      macOS       |   [![macOS Apple Silicon](https://img.shields.io/badge/macOS_Apple_Silicon-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.5.5-arm64.dmg) [![macOS Intel](https://img.shields.io/badge/macOS_Intel-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.5.5-x64.dmg)   |
 |      Linux       |       [![Linux AppImage](https://img.shields.io/badge/Linux_AppImage-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.5.5-x64.AppImage) [![Linux deb](https://img.shields.io/badge/Linux_deb-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/legeling/PromptHub/releases/latest/download/prompthub_0.5.5_amd64.deb)        |
-|    プレビューチャンネル     | [![Preview Prereleases](https://img.shields.io/badge/Preview_Prereleases-8B5CF6?style=for-the-badge&logo=github&logoColor=white)](https://github.com/legeling/PromptHub/releases?q=prerelease%3Atrue) [![v0.5.5-beta.3](https://img.shields.io/badge/Preview-v0.5.5--beta.3-8B5CF6?style=for-the-badge&logo=github&logoColor=white)](https://github.com/legeling/PromptHub/releases/tag/v0.5.5-beta.3) |
+|    プレビューチャンネル     | [![Preview Prereleases](https://img.shields.io/badge/Preview_Prereleases-8B5CF6?style=for-the-badge&logo=github&logoColor=white)](https://github.com/legeling/PromptHub/releases?q=prerelease%3Atrue) |
 
 > プレビュー構成は GitHub `Prereleases` として公開されます。設定でプレビュー更新チャンネルを有効にすると、PromptHub は prerelease 構成を確認します。
 >
-> `0.5.5-beta.3` は preview-only 更新経路の安定化を継続する構成です。プレビューチャンネルをオフにしたときだけ stable の更新確認へ戻り、現在のプレビュー版が最新 stable より新しい場合でも PromptHub は自動的にダウングレードしません。
+> stable の更新確認に戻すには、まずプレビューチャンネルをオフにしてください。PromptHub は新しいプレビュー版から古い stable 版へ自動的にダウングレードしません。
 
 ### macOS で Homebrew を使ってインストール
 
@@ -340,11 +340,12 @@ PromptHub/
 
 すべての更新履歴はこちら：**[CHANGELOG.md](../CHANGELOG.md)**
 
-### 最新バージョン v0.5.5 (2026-04-24) 🎉
+### 最新バージョン v0.5.5 (2026-05-05) 🎉
 
 **Skill 更新**
 
 - 🧩 **ストア Skill の更新検出**：インストール時の内容ハッシュとバージョンを保存し、最新のリモート `SKILL.md` と比較します
+- 🛎️ **My Skills の更新インジケーター**：ストアから導入済みでリモート版が新しい Skill は、「My Skills」の一覧とギャラリーで更新提示が表示されます
 - 🛡️ **ローカル編集の競合保護**：ローカルとリモートの両方が変更された場合は競合として表示し、明示的な上書きが必要です
 
 **Web**
@@ -356,6 +357,9 @@ PromptHub/
 **デスクトップとドキュメント**
 
 - 🔒 **私密フォルダー保護**：デスクトップで私密状態を解除する前にマスターパスワードのロック解除が必要です
+- ✏️ **カード詳細のクイック編集**：デスクトップのカード詳細タイトルはダブルクリックで軽量なインライン編集に入り、完全な編集モーダルも引き続き利用できます
+- 🔄 **プレビュー更新経路の強化**：プレビューレーンは prerelease feed のみを確認し、stable 確認へ戻るのはプレビューチャンネルをオフにした後だけで、新しいプレビュー版から古い stable 版への自動ダウングレードも行いません
+- ⚙️ **Skill 設定ページとプラットフォーム順序の復元**：Skill 関連設定は独立した設定ページに戻り、プラットフォーム優先順も既定順で表示され、ドラッグ＆ドロップで並べ替えできます
 - 🌍 **多言語リリース同期**：README、多言語ドキュメント、サイトの公開メタデータを `v0.5.5` に同期
 
 > 📋 [更新履歴の詳細はこちら](../CHANGELOG.md)

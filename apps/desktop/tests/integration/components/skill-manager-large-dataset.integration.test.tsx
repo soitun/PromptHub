@@ -84,6 +84,10 @@ function createSkillStoreState(skills: Skill[]) {
     deployedSkillNames: new Set<string>(),
     loadDeployedStatus: vi.fn().mockImplementation(() => neverSettled),
     filterTags: [],
+    customStoreSources: [],
+    remoteStoreEntries: {},
+    setRemoteStoreEntry: vi.fn(),
+    loadRegistry: vi.fn().mockResolvedValue(undefined),
     scanLocalPreview: vi.fn().mockResolvedValue([]),
     importScannedSkills: vi.fn().mockResolvedValue({ importedCount: 0 }),
   };

@@ -28,6 +28,15 @@ body:
     validations:
       required: true
 
+  - type: input
+    id: version
+    attributes:
+      label: Target version
+      description: Planned version, current version you are blocked on, or the build where this request was observed. PromptHub will turn this into a `version: ...` issue label automatically.
+      placeholder: e.g. 0.5.5, 0.5.6-beta.1, main@abc1234
+    validations:
+      required: true
+
   - type: textarea
     id: problem
     attributes:

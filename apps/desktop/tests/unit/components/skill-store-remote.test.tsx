@@ -333,6 +333,86 @@ describe("SkillStore remote loading", () => {
     expect(openAiRepoRequests).toHaveLength(0);
   });
 
+  it("does not preload all remote stores when auto sync is disabled", async () => {
+    const fetchRemoteContent = vi.fn(async (url: string) => {
+      if (url === "https://api.github.com/repos/anthropics/skills") {
+        return JSON.stringify({ default_branch: "main", owner: { login: "anthropics" } });
+      }
+
+      if (
+        url ===
+        "https://api.github.com/repos/anthropics/skills/git/trees/main?recursive=1"
+      ) {
+        return JSON.stringify({
+          tree: [{ path: "demo-skill/SKILL.md", type: "blob" }],
+        });
+      }
+
+      if (
+        url ===
+        "https://raw.githubusercontent.com/anthropics/skills/main/demo-skill/SKILL.md"
+      ) {
+        return [
+          "---",
+          "name: demo-skill",
+          "description: Demo skill",
+          "tags: [demo]",
+          "---",
+          "",
+          "# Demo",
+        ].join("\n");
+      }
+
+      throw new Error(`Unexpected URL: ${url}`);
+    });
+
+    installWindowMocks({
+      api: {
+        settings: {
+          get: vi.fn().mockResolvedValue({
+            device: {
+              storeAutoSync: false,
+              storeSyncCadence: "1d",
+            },
+          }),
+        },
+        skill: {
+          fetchRemoteContent,
+          scanLocalPreview: vi.fn().mockResolvedValue([]),
+          scanSafety: vi.fn().mockResolvedValue({
+            level: "safe",
+            summary: "safe",
+            findings: [],
+            recommendedAction: "allow",
+            scannedAt: Date.now(),
+            checkedFileCount: 1,
+            scanMethod: "static",
+          }),
+        },
+      },
+    });
+
+    await act(async () => {
+      await renderWithI18n(<SkillStore />, { language: "en" });
+    });
+
+    await waitFor(() => {
+      expect(
+        useSkillStore.getState().remoteStoreEntries["claude-code"]?.skills,
+      ).toHaveLength(1);
+    });
+
+    const communityRequests = fetchRemoteContent.mock.calls.filter(
+      ([url]) => url === "https://skills.sh",
+    );
+    expect(communityRequests).toHaveLength(0);
+
+    const openAiRepoRequests = fetchRemoteContent.mock.calls.filter(
+      ([url]) => url === "https://api.github.com/repos/openai/skills",
+    );
+    expect(openAiRepoRequests).toHaveLength(0);
+  });
+
   it("loads the built-in OpenAI Codex store from the curated subdirectory", async () => {
     const fetchRemoteContent = vi.fn(async (url: string) => {
       if (url === "https://api.github.com/repos/openai/skills") {

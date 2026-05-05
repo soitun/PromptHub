@@ -25,6 +25,7 @@ import type { Skill, ScannedSkill } from "@prompthub/shared/types";
 import { updateSkillTags, type SkillBatchTagMode } from "./batch-utils";
 import { filterVisibleSkills } from "../../services/skill-filter";
 import { getRuntimeCapabilities } from "../../runtime";
+import { useSkillStoreRemoteSync } from "./store-remote-sync";
 
 const MAX_STAGGERED_CARDS = 10;
 const CARD_STAGGER_MS = 50;
@@ -139,11 +140,45 @@ export function SkillManager() {
   const [selectedSkillIds, setSelectedSkillIds] = useState<Set<string>>(
     new Set(),
   );
+  const { remoteStoreEntries } = useSkillStoreRemoteSync({
+    eagerRemoteSources: "all",
+  });
 
   const scanLocalPreview = useSkillStore((state) => state.scanLocalPreview);
   const importScannedSkills = useSkillStore(
     (state) => state.importScannedSkills,
   );
+  const skillsWithStoreUpdates = useMemo(() => {
+    const registrySkillBySlug = new Map(
+      Object.values(remoteStoreEntries)
+        .flatMap((entry) => entry.skills)
+        .map((skill) => [skill.slug, skill]),
+    );
+
+    return new Set(
+      skills
+        .filter((skill) => {
+          if (!skill.registry_slug) {
+            return false;
+          }
+
+          const registrySkill = registrySkillBySlug.get(skill.registry_slug);
+          if (!registrySkill) {
+            return false;
+          }
+
+          if (skill.installed_content_hash) {
+            return skill.installed_version !== registrySkill.version;
+          }
+
+          const installedVersion = skill.installed_version ?? skill.version;
+          return Boolean(
+            installedVersion && installedVersion !== registrySkill.version,
+          );
+        })
+        .map((skill) => skill.id),
+    );
+  }, [remoteStoreEntries, skills]);
 
   // Delete confirmation dialog state
   // 删除确认对话框状态
@@ -772,6 +807,7 @@ export function SkillManager() {
             >
               <SkillListView
                 skills={visibleSkills}
+                skillsWithStoreUpdates={skillsWithStoreUpdates}
                 onQuickInstall={setQuickInstallSkill}
                 onRequestDelete={(id, name) =>
                   setDeleteConfirm({
@@ -816,6 +852,7 @@ export function SkillManager() {
                             : Math.min(index, MAX_STAGGERED_CARDS) *
                               CARD_STAGGER_MS
                         }
+                        hasStoreUpdate={skillsWithStoreUpdates.has(skill.id)}
                         isSelected={isSelected}
                         isSelectionMode={isSelectionMode}
                         onDelete={(selectedSkill) =>

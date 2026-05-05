@@ -130,20 +130,37 @@ describe('自动更新 - 真实场景测试（调用真实代码）', () => {
         function checkUrlAccessible(url: string): Promise<{ accessible: boolean; statusCode: number }> {
             return new Promise((resolve) => {
                 const urlObj = new URL(url);
+                let settled = false;
+                const settle = (result: { accessible: boolean; statusCode: number }) => {
+                    if (settled) {
+                        return;
+                    }
+                    settled = true;
+                    clearTimeout(hardTimeout);
+                    resolve(result);
+                };
                 const options = {
                     hostname: urlObj.hostname,
                     path: urlObj.pathname + urlObj.search,
                     method: 'HEAD',
                     timeout: 10000,
                 };
+                const hardTimeout = setTimeout(() => {
+                    req.destroy();
+                    settle({ accessible: false, statusCode: 0 });
+                }, 12000);
 
                 const req = https.request(options, (res) => {
                     const accessible = res.statusCode !== undefined && res.statusCode >= 200 && res.statusCode < 400;
-                    resolve({ accessible, statusCode: res.statusCode || 0 });
+                    res.resume();
+                    settle({ accessible, statusCode: res.statusCode || 0 });
                 });
 
-                req.on('error', () => resolve({ accessible: false, statusCode: 0 }));
-                req.on('timeout', () => { req.destroy(); resolve({ accessible: false, statusCode: 0 }); });
+                req.on('error', () => settle({ accessible: false, statusCode: 0 }));
+                req.on('timeout', () => {
+                    req.destroy();
+                    settle({ accessible: false, statusCode: 0 });
+                });
                 req.end();
             });
         }

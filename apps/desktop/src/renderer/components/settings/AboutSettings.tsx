@@ -287,7 +287,7 @@ export function AboutSettings() {
         ) : null}
 
         <div className="px-4 py-4 text-sm text-muted-foreground text-center">
-          <div>AGPL-3.0 License &copy; 2025 PromptHub</div>
+          <div>AGPL-3.0 License &copy; 2026 PromptHub</div>
         </div>
       </div>
 

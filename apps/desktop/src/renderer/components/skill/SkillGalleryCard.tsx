@@ -1,5 +1,12 @@
 import React from "react";
-import { CheckSquareIcon, DownloadIcon, SquareIcon, StarIcon, TrashIcon } from "lucide-react";
+import {
+  BellDotIcon,
+  CheckSquareIcon,
+  DownloadIcon,
+  SquareIcon,
+  StarIcon,
+  TrashIcon,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { Skill } from "@prompthub/shared/types";
 import { SkillIcon } from "./SkillIcon";
@@ -7,6 +14,7 @@ import { getRuntimeCapabilities } from "../../runtime";
 
 interface SkillGalleryCardProps {
   animationDelayMs: number;
+  hasStoreUpdate?: boolean;
   isSelected: boolean;
   isSelectionMode: boolean;
   onDelete: (skill: Skill) => void;
@@ -19,6 +27,7 @@ interface SkillGalleryCardProps {
 
 function SkillGalleryCardComponent({
   animationDelayMs,
+  hasStoreUpdate = false,
   isSelected,
   isSelectionMode,
   onDelete,
@@ -52,7 +61,16 @@ function SkillGalleryCardComponent({
             : "border-border hover:border-primary/40"
           : "border-border hover:border-primary/50 hover:shadow-xl hover:-translate-y-1"
       }`}
-    >
+      >
+      {hasStoreUpdate ? (
+        <div
+          className="absolute left-4 top-4 z-10 inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-1 text-[10px] font-medium text-amber-600 dark:text-amber-300"
+          title={t("skill.updateAvailable", "Update available")}
+        >
+          <BellDotIcon className="h-3.5 w-3.5 animate-pulse" />
+          {t("skill.updateAvailable", "Update available")}
+        </div>
+      ) : null}
       {isSelectionMode && (
         <button
           onClick={(event) => {

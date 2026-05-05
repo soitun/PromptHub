@@ -4,6 +4,7 @@ import {
   StarIcon,
   TrashIcon,
   DownloadIcon,
+  BellDotIcon,
   CheckSquareIcon,
   SquareIcon,
   ShieldCheckIcon,
@@ -68,6 +69,7 @@ function normalizePlatformStatusMap(value: unknown): Record<string, boolean> {
 
 interface SkillListViewProps {
   skills: Skill[];
+  skillsWithStoreUpdates?: Set<string>;
   onQuickInstall: (skill: Skill) => void;
   onRequestDelete?: (skillId: string, skillName: string) => void;
   selectionMode?: boolean;
@@ -83,6 +85,7 @@ const skillPlatformStatusCache = new Map<string, Record<string, boolean>>();
  */
 export function SkillListView({
   skills,
+  skillsWithStoreUpdates = new Set<string>(),
   onQuickInstall,
   onRequestDelete,
   selectionMode = false,
@@ -245,6 +248,7 @@ export function SkillListView({
             const isChecked = selectedSkillIds.has(skill.id);
             const installCount = getInstallCount(skill.id);
             const totalPlatforms = availablePlatforms.length;
+            const hasStoreUpdate = skillsWithStoreUpdates.has(skill.id);
 
             return (
               <div
@@ -318,6 +322,15 @@ export function SkillListView({
                     >
                       {skill.name}
                     </h3>
+                    {hasStoreUpdate ? (
+                      <span
+                        className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-300"
+                        title={t("skill.updateAvailable", "Update available")}
+                      >
+                        <BellDotIcon className="h-3 w-3 animate-pulse" />
+                        {t("skill.updateAvailable", "Update available")}
+                      </span>
+                    ) : null}
                     {/* Safety shield icon */}
                     {skill.safetyReport ? (
                       (() => {

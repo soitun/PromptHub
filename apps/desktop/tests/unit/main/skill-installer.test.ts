@@ -15,6 +15,8 @@ import {
   resetRuntimePaths,
 } from "../../../src/main/runtime-paths";
 import { SkillInstaller } from "../../../src/main/services/skill-installer";
+import { initDatabase } from "../../../src/main/database";
+import { invalidateCustomPathsCache } from "../../../src/main/services/skill-installer-utils";
 import { SKILL_PLATFORMS } from "@prompthub/shared/constants/platforms";
 // Direct imports for real DB tests (these are NOT mocked)
 import Database from "../../../src/main/database/sqlite";
@@ -62,9 +64,11 @@ function applySkillMigrationColumns(db: Database.Database): void {
 beforeEach(async () => {
   tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "skill-installer-test-"));
   configureRuntimePaths({ userDataPath: tmpDir });
+  invalidateCustomPathsCache();
 });
 
 afterEach(async () => {
+  invalidateCustomPathsCache();
   resetRuntimePaths();
   vi.restoreAllMocks();
   await fs.rm(tmpDir, { recursive: true, force: true }).catch(() => {});
@@ -1125,6 +1129,22 @@ describe("SkillInstaller.scanLocalPreview", () => {
 
   it("without customPaths scans default platform directories", async () => {
     await SkillInstaller.init();
+
+    const isolatedDefaultPlatformDir = path.join(tmpDir, "isolated-platform-skills");
+    const getMock = vi.fn().mockReturnValue({
+      value: JSON.stringify(
+        Object.fromEntries(
+          SKILL_PLATFORMS.map((platform) => [
+            platform.id,
+            isolatedDefaultPlatformDir,
+          ]),
+        ),
+      ),
+    });
+    vi.mocked(initDatabase).mockReturnValue({
+      prepare: vi.fn().mockReturnValue({ get: getMock }),
+    } as unknown as ReturnType<typeof initDatabase>);
+    invalidateCustomPathsCache();
 
     // Place a skill in PromptHub's own skills directory (which is inside tmpDir)
     const prompthubSkillsDir = managedSkillsDir();

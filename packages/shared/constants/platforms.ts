@@ -17,6 +17,15 @@ export interface SkillPlatform {
   };
 }
 
+export const DEFAULT_SKILL_PLATFORM_ORDER = [
+  "claude",
+  "codex",
+  "opencode",
+  "openclaw",
+  "hermes",
+  "cursor",
+] as const;
+
 /**
  * Supported skill platforms
  * 支持的技能平台列表

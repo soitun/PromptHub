@@ -127,11 +127,11 @@
 | Windows | [![Windows x64](https://img.shields.io/badge/Windows_x64-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-Setup-0.5.5-x64.exe) [![Windows arm64](https://img.shields.io/badge/Windows_arm64-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-Setup-0.5.5-arm64.exe) |
 |  macOS  |   [![macOS Apple Silicon](https://img.shields.io/badge/macOS_Apple_Silicon-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.5.5-arm64.dmg) [![macOS Intel](https://img.shields.io/badge/macOS_Intel-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.5.5-x64.dmg)   |
 |  Linux  |       [![Linux AppImage](https://img.shields.io/badge/Linux_AppImage-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.5.5-x64.AppImage) [![Linux deb](https://img.shields.io/badge/Linux_deb-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/legeling/PromptHub/releases/latest/download/prompthub_0.5.5_amd64.deb)        |
-| 預覽通道 | [![Preview Prereleases](https://img.shields.io/badge/Preview_Prereleases-8B5CF6?style=for-the-badge&logo=github&logoColor=white)](https://github.com/legeling/PromptHub/releases?q=prerelease%3Atrue) [![v0.5.5-beta.3](https://img.shields.io/badge/Preview-v0.5.5--beta.3-8B5CF6?style=for-the-badge&logo=github&logoColor=white)](https://github.com/legeling/PromptHub/releases/tag/v0.5.5-beta.3) |
+| 預覽通道 | [![Preview Prereleases](https://img.shields.io/badge/Preview_Prereleases-8B5CF6?style=for-the-badge&logo=github&logoColor=white)](https://github.com/legeling/PromptHub/releases?q=prerelease%3Atrue) |
 
 > 預覽構建發布在 GitHub `Prereleases`；在設定中啟用預覽更新通道後，PromptHub 會檢查 prerelease 構建。
 >
-> `0.5.5-beta.3` 會繼續加固 preview-only 更新鏈路；只有關閉預覽版通道後才會回到 stable 檢查，且若目前預覽版高於最新 stable，PromptHub 不會自動降級。
+> 如需回到 stable 更新檢查，請先關閉預覽版通道；PromptHub 不會自動從較新的預覽版降級到較舊的穩定版。
 
 ### macOS 首次啟動
 
@@ -333,11 +333,12 @@ PromptHub/
 
 查看完整更新日誌：**[CHANGELOG.md](../CHANGELOG.md)**
 
-### 最新版本 v0.5.5 (2026-04-24) 🎉
+### 最新版本 v0.5.5 (2026-05-05) 🎉
 
 **Skill 更新**
 
 - 🧩 **商店 Skill 更新檢測**：保存安裝時內容雜湊與版本，並比較最新遠端 `SKILL.md` 判斷是否更新
+- 🛎️ **我的 Skills 更新提示**：從商店安裝且遠端版本更高的 Skill，現在會在「我的 Skills」列表與畫廊視圖顯示更新提示
 - 🛡️ **本地修改衝突保護**：本地內容與遠端內容同時變更時會提示衝突，需明確覆蓋才會更新
 
 **Web**
@@ -349,6 +350,9 @@ PromptHub/
 **桌面與文件**
 
 - 🔒 **私密資料夾保護**：桌面端取消資料夾私密狀態前必須先通過主密碼解鎖
+- ✏️ **卡片詳情快速編輯**：桌面端卡片詳情標題支援雙擊進入輕量內聯編輯，完整編輯彈窗仍保留
+- 🔄 **預覽更新鏈路加固**：預覽通道只檢查 prerelease feed；關閉預覽通道後才會回到 stable 檢查，且不會自動從較新預覽版降級到較舊穩定版
+- ⚙️ **Skill 設定頁與平台順序修復**：Skill 相關設定恢復到獨立設定頁，平台優先順序也可依預設值顯示並透過拖曳調整
 - 🌍 **多語言與發版文件同步**：README、多語言文件與官網發布資料同步到 `v0.5.5`
 
 > 📋 [更新日誌詳情](../CHANGELOG.md)

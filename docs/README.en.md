@@ -128,11 +128,11 @@ Download the latest version v0.5.5 from [Releases](https://github.com/legeling/P
 | Windows  | [![Windows x64](https://img.shields.io/badge/Windows_x64-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-Setup-0.5.5-x64.exe) [![Windows arm64](https://img.shields.io/badge/Windows_arm64-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-Setup-0.5.5-arm64.exe) |
 |  macOS   |   [![macOS Apple Silicon](https://img.shields.io/badge/macOS_Apple_Silicon-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.5.5-arm64.dmg) [![macOS Intel](https://img.shields.io/badge/macOS_Intel-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.5.5-x64.dmg)   |
 |  Linux   |       [![Linux AppImage](https://img.shields.io/badge/Linux_AppImage-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.5.5-x64.AppImage) [![Linux deb](https://img.shields.io/badge/Linux_deb-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/legeling/PromptHub/releases/latest/download/prompthub_0.5.5_amd64.deb)        |
-| Preview  | [![Preview Prereleases](https://img.shields.io/badge/Preview_Prereleases-8B5CF6?style=for-the-badge&logo=github&logoColor=white)](https://github.com/legeling/PromptHub/releases?q=prerelease%3Atrue) [![v0.5.5-beta.3](https://img.shields.io/badge/Preview-v0.5.5--beta.3-8B5CF6?style=for-the-badge&logo=github&logoColor=white)](https://github.com/legeling/PromptHub/releases/tag/v0.5.5-beta.3) |
+| Preview  | [![Preview Prereleases](https://img.shields.io/badge/Preview_Prereleases-8B5CF6?style=for-the-badge&logo=github&logoColor=white)](https://github.com/legeling/PromptHub/releases?q=prerelease%3Atrue) |
 
 > Preview builds are published as GitHub `Prereleases`. Enabling the preview update channel in Settings makes PromptHub check prerelease builds.
 >
-> `0.5.5-beta.3` continues hardening the preview-only update lane. PromptHub returns to stable checks only after you turn the preview channel off, and it never auto-downgrades from a newer preview build to an older stable release.
+> To return to stable update checks, turn the preview channel off first. PromptHub never auto-downgrades from a newer preview build to an older stable release.
 
 ### macOS Install via Homebrew
 
@@ -350,11 +350,12 @@ PromptHub/
 
 See full changelog: **[CHANGELOG.md](../CHANGELOG.md)**
 
-### Latest Version v0.5.5 (2026-04-24) 🎉
+### Latest Version v0.5.5 (2026-05-05) 🎉
 
 **Skill Updates**
 
 - 🧩 **Store Skill update detection**: Store-installed Skills save their install-time content hash and version, then compare the latest remote `SKILL.md` for updates
+- 🛎️ **My Skills update indicator**: Store-installed Skills with a newer remote version now show an `Update available` hint in both the My Skills list and gallery views
 - 🛡️ **Local edit conflict protection**: If both local content and remote content changed, PromptHub reports a conflict and requires explicit overwrite
 
 **Web**
@@ -366,16 +367,12 @@ See full changelog: **[CHANGELOG.md](../CHANGELOG.md)**
 **Desktop & Docs**
 
 - 🔒 **Private folder protection**: Disabling folder privacy on Desktop requires unlocking with the master password first
+- ✏️ **Card-detail quick editing**: The desktop card-detail title now enters lightweight inline editing on double-click while keeping the full edit modal available
+- 🔄 **Preview update flow hardened**: The preview lane stays on prerelease feeds only, returns to stable checks only after the preview channel is turned off, and never auto-downgrades from a newer preview build to an older stable release
+- ⚙️ **Skill settings and platform order restored**: Skill settings are back on a dedicated settings page, and platform priority can be restored and reordered with drag and drop
 - 🌍 **Docs and localized release sync**: README, localized docs, and website release metadata are aligned to `v0.5.5`
 
 > 📋 [View full changelog](../CHANGELOG.md)
-
-### Preview Channel Polish v0.5.5-beta.3 (2026-05-04)
-
-- Polished desktop card-detail inline editing so the detail title enters quick edit on double-click instead of a large standalone button.
-- Kept preview-channel update checks on prerelease feeds only; stable releases become candidates again only after the preview channel is turned off.
-- Clarified that PromptHub does not auto-downgrade from a newer preview build to an older stable release.
-- Expanded regression coverage for beta/stable SemVer ordering and prerelease feed selection.
 
 ## 🤝 Contribution
 

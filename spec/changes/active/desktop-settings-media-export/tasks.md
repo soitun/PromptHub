@@ -11,6 +11,9 @@
 - [x] 为 panel / search / sidebar / card 接入局部材质层与更清晰的海拔梯度
 - [x] 统一设置页背景预览与实际界面的材质链路
 - [x] 实施 Skill `SKILL.md` / `zip` 导出收敛
+- [x] 收口设置分组回归，恢复独立 Skill 页签并将 About 年份更新到 2026
+- [x] 为 Skill 平台顺序增加直接拖拽排序，并收敛默认优先级到 Claude / Codex / OpenCode / OpenClaw / Hermes / Cursor
+- [x] 为 GitHub issue 表单增加自动版本标签同步，提交 issue 时自动挂上 `version: ...` 标签
 - [x] 完成验证（Lint/Typecheck/Tests）
 - [x] 更新 implementation.md
 - [x] 同步稳定 specs / architecture / docs

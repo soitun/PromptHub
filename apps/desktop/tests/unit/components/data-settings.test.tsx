@@ -564,6 +564,21 @@ describe("DataSettings", { timeout: 15_000 }, () => {
     expect(screen.queryByRole("button", { name: "Test Connection" })).toBeNull();
   });
 
+  it("keeps desktop data settings free of standalone skill configuration controls", async () => {
+    await act(async () => {
+      await renderWithI18n(<DataSettings />, { language: "en" });
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(screen.queryByText("Skill Install Method")).toBeNull();
+    expect(screen.queryByText("Platform Display Order")).toBeNull();
+    expect(screen.queryByText("Platform Target Directories")).toBeNull();
+    expect(screen.queryByText("Extra Scan Directories")).toBeNull();
+    expect(screen.getByText("Backup & Restore")).toBeInTheDocument();
+  });
+
   it("renders automatic upgrade backups returned by the desktop API", async () => {
     vi.mocked(listUpgradeBackups).mockResolvedValue([
       {

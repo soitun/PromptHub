@@ -3,6 +3,9 @@
 ## Shipped
 
 - `DataSettings` 的升级快照区域改成“摘要 + 默认展示最新 3 条 + 展开后固定高度滚动区”，避免历史快照把整个设置页无限撑高。
+- 收口桌面设置信息架构回归：`SettingsPage` 恢复独立 `Skill` 导航页，`SkillSettings` 重新承载 Skill 安装方式、平台顺序、目标目录和额外扫描目录，`DataSettings` 不再混入这些配置。
+- Skill 平台顺序改成可直接拖拽排序，并把默认优先级统一收敛为 `Claude Code -> Codex CLI -> OpenCode -> OpenClaw -> Hermes Agent -> Cursor`；统一排序 helper 同时覆盖 `SkillSettings` 和 Skill 详情/批量部署使用的顺序逻辑。
+- GitHub issue 提交流程增加自动版本标签：`bug-report.yml` 和 `feature-request.yml` 都把版本字段设为必填说明，`.github/workflows/issue-version-label.yml` 在 issue 打开或编辑后解析 issue form 正文，并同步单个 `version: ...` 标签。
 - `AppearanceSettings` 增加桌面背景图设置：支持选择/更换/清除本地背景图，支持透明度与虚化调节，并在 `App.tsx` 根布局渲染背景层。
 - 将全局背景控制权完全交还给用户：彻底移除了 `settings.store.ts` 中的透明度下限与模糊值强制映射逻辑，并将 UI 层面的滑块上限从 60% 放开到 100%（0-100 全区间调节），解决了背景图强制发白/发灰的 washed out 现象。
 - 取消强加的底色与硬编码：
@@ -21,6 +24,7 @@
 - 把设置页中的背景图预览改成了实际应用界面的缩略版：抽出了共享的背景层组件，复用真实的 image + blanket + wallpaper shell 结构，避免出现“预览一套、实际一套”的效果偏差。
 - 修正了图片模式玻璃材质职责：背景图透明度与模糊仍只由设置滑块控制，但侧边栏、toolbar、surface、prompt list pane 与排序菜单恢复为独立的默认 glass blur / tint token，避免 UI 壳层退化为纯透明薄片。
 - 将默认玻璃材质进一步收口到主左侧菜单栏：设置页左导航不再接入 `.app-left-rail-glass`，避免设置区也吃到默认 blur；同时把 `Sidebar` 底部 `标签` 区从 `panel-strong` 降回普通 `panel` 材质，避免该区域在有背景图时显得过白。预览缩略图仍保留左栏玻璃层级，用来对应实际主菜单栏效果。
+- `AboutSettings` 底部版权文案更新为 `AGPL-3.0 License © 2026 PromptHub`，与当前发布年份一致。
 - `settings.store` 新增背景图文件名、透明度、虚化状态，补齐 `persist` version `5` migration、rehydrate 和 CSS 变量同步。
 - Skill 导出主入口从详情视图收敛为 `SKILL.md` + `ZIP`，`ZIP` 通过新的 `skill:exportZip` 主进程 handler 直接从本地仓库打包整个目录。
 - Skill ZIP 导出修正为按原始字节读取本地仓库文件，避免图片或其他二进制资源在导出时被文本占位符破坏。
@@ -47,6 +51,9 @@
 - 本轮增量验证：`pnpm exec eslint src/renderer/components/layout/TopBar.tsx tests/unit/components/top-bar.test.tsx`
 - 本轮增量验证：`pnpm test -- tests/unit/components/top-bar.test.tsx --run`
 - 本轮增量验证：`pnpm test -- --run tests/unit/stores/settings-background-image.test.ts tests/unit/components/local-image.test.tsx tests/unit/components/appearance-settings.test.tsx tests/unit/main/image-ipc.test.ts`
+- 本轮增量验证：`pnpm --filter @prompthub/desktop test -- --run tests/unit/components/settings-page.test.tsx tests/unit/components/data-settings.test.tsx tests/unit/components/about-settings.test.tsx`
+- 本轮增量验证：`pnpm --filter @prompthub/desktop test -- --run tests/unit/components/skill-settings.test.tsx tests/unit/components/use-skill-platform.test.ts`
+- 本轮增量验证：`pnpm --filter @prompthub/desktop test -- --run tests/unit/services/issue-version-label.test.ts`
 - 本轮增量验证：`pnpm typecheck`
 - 本轮增量验证：`pnpm test -- --run`
 - 本轮增量验证：`pnpm build`
