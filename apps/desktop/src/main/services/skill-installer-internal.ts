@@ -120,7 +120,7 @@ export async function fileExists(filePath: string): Promise<boolean> {
 
 export async function resolveRepoBasePath(
   absoluteBasePath: string,
-  options?: { ensureExists?: boolean },
+  options?: { ensureExists?: boolean; allowOutsideSkillsDir?: boolean },
 ): Promise<{ resolvedBasePath: string; realBasePath: string }> {
   const skillsDir = getSkillsDirAccessor();
   const resolvedBasePath = path.resolve(absoluteBasePath);
@@ -135,6 +135,7 @@ export async function resolveRepoBasePath(
     .catch(() => resolvedBasePath);
 
   if (
+    !options?.allowOutsideSkillsDir &&
     !isPathWithin(resolvedSkillsDir, resolvedBasePath) &&
     !isPathWithin(realSkillsDir, resolvedBasePath) &&
     !isPathWithin(resolvedSkillsDir, realResolvedBasePath) &&
@@ -152,7 +153,7 @@ export async function resolveRepoBasePath(
   const realBasePath = await fs
     .realpath(resolvedBasePath)
     .catch(() => resolvedBasePath);
-  if (!isPathWithin(realSkillsDir, realBasePath)) {
+  if (!options?.allowOutsideSkillsDir && !isPathWithin(realSkillsDir, realBasePath)) {
     throw new Error("Managed repo path resolves outside skills directory");
   }
 
@@ -162,12 +163,15 @@ export async function resolveRepoBasePath(
 export async function resolveRepoTargetPath(
   absoluteBasePath: string,
   relativePath: string,
-  options?: { ensureBaseExists?: boolean },
+  options?: { ensureBaseExists?: boolean; allowOutsideSkillsDir?: boolean },
 ): Promise<{ fullPath: string; realBasePath: string }> {
   validateRelativePath(relativePath);
   const { resolvedBasePath, realBasePath } = await resolveRepoBasePath(
     absoluteBasePath,
-    { ensureExists: options?.ensureBaseExists },
+    {
+      ensureExists: options?.ensureBaseExists,
+      allowOutsideSkillsDir: options?.allowOutsideSkillsDir,
+    },
   );
   const fullPath = path.resolve(resolvedBasePath, relativePath);
   // Also check against the realpath of fullPath in case of symlinks.

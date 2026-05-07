@@ -24,6 +24,8 @@ export interface ProgressInfo {
   transferred: number;
 }
 
+type MacInstallSource = 'direct' | 'homebrew' | 'unknown';
+
 export type UpdateStatus =
   | { status: 'checking' }
   | { status: 'available'; info: UpdateInfo }
@@ -54,6 +56,7 @@ export function UpdateDialog({ isOpen, onClose, initialStatus }: UpdateDialogPro
   const [useMirror, setUseMirror] = useState<boolean>(useUpdateMirror);
   const [currentVersion, setCurrentVersion] = useState<string>('');
   const [platform, setPlatform] = useState<string>('');
+  const [installSource, setInstallSource] = useState<MacInstallSource>('unknown');
   const [lastManualBackupAt, setLastManualBackupAt] = useState<string | null>(null);
   const [lastManualBackupVersion, setLastManualBackupVersion] = useState<string | null>(null);
   const [isCreatingBackup, setIsCreatingBackup] = useState(false);
@@ -72,6 +75,9 @@ export function UpdateDialog({ isOpen, onClose, initialStatus }: UpdateDialogPro
     // 获取当前版本和平台
     window.electron?.updater?.getVersion().then(setCurrentVersion);
     window.electron?.updater?.getPlatform?.().then(setPlatform);
+    window.electron?.updater?.getInstallSource?.().then((source: MacInstallSource) => {
+      setInstallSource(source);
+    });
     getManualBackupStatus().then((status) => {
       setLastManualBackupAt(status.lastManualBackupAt);
       setLastManualBackupVersion(status.lastManualBackupVersion);
@@ -176,6 +182,13 @@ export function UpdateDialog({ isOpen, onClose, initialStatus }: UpdateDialogPro
   };
 
   const handleDownload = async () => {
+    if (platform === 'darwin' && installSource === 'homebrew') {
+      setUpdateStatus({
+        status: 'error',
+        error: t('settings.homebrewUpdateRequired'),
+      });
+      return;
+    }
     await window.electron?.updater?.download({
       useMirror,
       channel: updateChannel,
@@ -184,6 +197,13 @@ export function UpdateDialog({ isOpen, onClose, initialStatus }: UpdateDialogPro
 
   const handleInstall = async () => {
     if (!canInstallUpgrade) {
+      return;
+    }
+    if (platform === 'darwin' && installSource === 'homebrew') {
+      setUpdateStatus({
+        status: 'error',
+        error: t('settings.homebrewUpdateRequired'),
+      });
       return;
     }
     setIsInstalling(true);
@@ -312,6 +332,7 @@ export function UpdateDialog({ isOpen, onClose, initialStatus }: UpdateDialogPro
         );
 
       case 'available':
+        const isMacHomebrew = platform === 'darwin' && installSource === 'homebrew';
         return (
           <div className="py-4">
             <div className="flex items-center gap-3 mb-4">
@@ -335,15 +356,34 @@ export function UpdateDialog({ isOpen, onClose, initialStatus }: UpdateDialogPro
                 </ReactMarkdown>
               </div>
             )}
+            {isMacHomebrew && (
+              <div className="mb-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                <p className="text-sm text-amber-600 dark:text-amber-400 whitespace-pre-line">
+                  {t('settings.homebrewUpdateHint')}
+                </p>
+                <pre className="mt-3 overflow-x-auto rounded bg-background/80 px-3 py-2 text-xs text-foreground border border-border">
+                  brew update{`\n`}brew upgrade --cask prompthub
+                </pre>
+              </div>
+            )}
             {renderBackupGate()}
             <div className="flex gap-2">
               <button
-                onClick={handleDownload}
+                onClick={isMacHomebrew ? () => window.electron?.updater?.openReleases() : handleDownload}
                 disabled={isCreatingBackup}
                 className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <DownloadIcon className="w-4 h-4" />
-                {t('settings.downloadUpdate')}
+                {isMacHomebrew ? (
+                  <>
+                    <ExternalLinkIcon className="w-4 h-4" />
+                    {t('settings.openReleasesPage')}
+                  </>
+                ) : (
+                  <>
+                    <DownloadIcon className="w-4 h-4" />
+                    {t('settings.downloadUpdate')}
+                  </>
+                )}
               </button>
               <button
                 onClick={onClose}
@@ -390,6 +430,7 @@ export function UpdateDialog({ isOpen, onClose, initialStatus }: UpdateDialogPro
 
       case 'downloaded':
         const isMac = platform === 'darwin';
+        const isMacHomebrewDownloaded = isMac && installSource === 'homebrew';
         return (
           <div className="py-4">
             <div className="flex items-center gap-3 mb-4">
@@ -408,7 +449,7 @@ export function UpdateDialog({ isOpen, onClose, initialStatus }: UpdateDialogPro
                 {t('settings.installRestartHint')}
               </p>
             )}
-            {isMac && (
+            {isMac && !isMacHomebrewDownloaded && (
               <div className="mb-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
                 <p className="text-sm text-amber-600 dark:text-amber-400 whitespace-pre-line">
                   {t('settings.macManualInstall')}
@@ -458,6 +499,7 @@ export function UpdateDialog({ isOpen, onClose, initialStatus }: UpdateDialogPro
         );
 
       case 'error':
+        const isHomebrewError = updateStatus.error === t('settings.homebrewUpdateRequired');
         return (
           <div className="text-center py-6 flex flex-col h-full shrink-0">
             <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-red-500/10 flex items-center justify-center">
@@ -469,6 +511,17 @@ export function UpdateDialog({ isOpen, onClose, initialStatus }: UpdateDialogPro
                 ? t('error.sha512Desc', updateStatus.error)
                 : updateStatus.error}
             </p>
+
+            {isHomebrewError && (
+              <div className="mb-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-left">
+                <p className="text-sm text-amber-600 dark:text-amber-400 whitespace-pre-line">
+                  {t('settings.homebrewUpdateHint')}
+                </p>
+                <pre className="mt-3 overflow-x-auto rounded bg-background/80 px-3 py-2 text-xs text-foreground border border-border">
+                  brew update{`\n`}brew upgrade --cask prompthub
+                </pre>
+              </div>
+            )}
 
             {/* SHA512 error: show open folder button */}
             {updateStatus.error.includes('SHA512') && (

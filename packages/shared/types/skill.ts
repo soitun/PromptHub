@@ -271,6 +271,16 @@ export interface ScanLocalResult {
   skipped: string[];
 }
 
+export interface SkillProject {
+  id: string;
+  name: string;
+  rootPath: string;
+  scanPaths: string[];
+  createdAt: number;
+  updatedAt: number;
+  lastScannedAt?: number;
+}
+
 export type SkillSafetySeverity = "info" | "warn" | "high";
 
 export type SkillSafetyLevel = "safe" | "warn" | "high-risk" | "blocked";

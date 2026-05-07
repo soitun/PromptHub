@@ -59,8 +59,11 @@ import { autoUpdater } from "electron-updater";
 import { registerUpdaterIPC } from "../../../src/main/updater";
 
 describe("updater install backup", () => {
+  const originalPlatform = process.platform;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    Object.defineProperty(process, "platform", { value: originalPlatform });
     backupMocks.createUpgradeDataSnapshotMock.mockResolvedValue({
       backupPath: "/tmp/PromptHub/backups/v0.5.1-2026-04-16T00-00-00",
       backupId: "v0.5.1-2026-04-16T00-00-00",
@@ -130,5 +133,47 @@ describe("updater install backup", () => {
     expect(result.success).toBe(false);
     expect(result.error).toContain("Automatic upgrade backup failed");
     expect(result.error).toContain("disk full while copying data");
+  });
+
+  it("blocks in-app install for Homebrew-installed macOS builds", async () => {
+    Object.defineProperty(process, "platform", { value: "darwin" });
+
+    const electronModule = await import("electron");
+    vi.mocked(electronModule.app.getPath).mockImplementation((name: string) => {
+      if (name === "userData") {
+        return "/tmp/PromptHub";
+      }
+      if (name === "downloads") {
+        return "/tmp/downloads";
+      }
+      return "/tmp";
+    });
+
+    const originalExecPath = process.execPath;
+    Object.defineProperty(process, "execPath", {
+      value:
+        "/opt/homebrew/Caskroom/prompthub/0.5.5/PromptHub.app/Contents/MacOS/PromptHub",
+      configurable: true,
+    });
+
+    registerUpdaterIPC();
+
+    const installHandler = electronMocks.handleMock.mock.calls.find(
+      ([channel]) => channel === "updater:install",
+    )?.[1] as (() => Promise<{ success: boolean; error?: string; manual?: boolean }>);
+
+    const result = await installHandler();
+
+    expect(backupMocks.createUpgradeDataSnapshotMock).toHaveBeenCalled();
+    expect(electronMocks.openPathMock).not.toHaveBeenCalled();
+    expect(autoUpdater.quitAndInstall).not.toHaveBeenCalled();
+    expect(result.success).toBe(false);
+    expect(result.manual).toBe(true);
+    expect(result.error).toContain("brew upgrade --cask prompthub");
+
+    Object.defineProperty(process, "execPath", {
+      value: originalExecPath,
+      configurable: true,
+    });
   });
 });

@@ -222,6 +222,7 @@ contextBridge.exposeInMainWorld("electron", {
     download: (options?: boolean | { useMirror?: boolean; channel?: "stable" | "preview" }) =>
       ipcRenderer.invoke("updater:download", options),
     install: () => ipcRenderer.invoke("updater:install"),
+    getInstallSource: () => ipcRenderer.invoke("updater:installSource"),
     openDownloadedUpdate: () =>
       ipcRenderer.invoke("updater:openDownloadedUpdate"),
     getVersion: () => ipcRenderer.invoke("updater:version"),
@@ -451,6 +452,7 @@ declare global {
           success: boolean;
           path?: string;
         }>;
+        getInstallSource: () => Promise<"direct" | "homebrew" | "unknown">;
         getVersion: () => Promise<string>;
         getPlatform: () => Promise<string>;
         openReleases: () => Promise<void>;

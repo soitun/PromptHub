@@ -5,7 +5,10 @@ vi.mock("../../../src/renderer/services/ai", () => ({
 }));
 
 import { chatCompletion } from "../../../src/renderer/services/ai";
-import { useSkillStore } from "../../../src/renderer/stores/skill.store";
+import {
+  getProjectScanPaths,
+  useSkillStore,
+} from "../../../src/renderer/stores/skill.store";
 import { useSettingsStore } from "../../../src/renderer/stores/settings.store";
 import { createSkillFixture } from "../../fixtures/skills";
 import { installWindowMocks } from "../../helpers/window";
@@ -125,6 +128,83 @@ describe("skill store", () => {
     const state = useSkillStore.getState();
     expect(state.registrySkills.length).toBeGreaterThan(0);
     expect(fetchRemoteContent).not.toHaveBeenCalled();
+  });
+
+  it("stores project scan errors and rethrows them to the caller", async () => {
+    useSkillStore.setState({
+      error: null,
+      projectScanState: {},
+      scanLocalPreview: vi.fn().mockImplementation(async () => {
+        useSkillStore.setState({ error: "Project scan failed" });
+        return [];
+      }),
+    } as Partial<ReturnType<typeof useSkillStore.getState>>);
+
+    await expect(
+      useSkillStore.getState().scanProjectSkills({
+        id: "project-1",
+        name: "Workspace",
+        rootPath: "/tmp/workspace",
+        scanPaths: ["/tmp/workspace/.skills"],
+        createdAt: 1,
+        updatedAt: 1,
+      }),
+    ).rejects.toThrow("Project scan failed");
+
+    expect(useSkillStore.getState().projectScanState["project-1"]).toEqual(
+      expect.objectContaining({
+        scannedSkills: [],
+        isScanning: false,
+        error: "Project scan failed",
+      }),
+    );
+  });
+
+  it("expands default project skill directories when scanning a project", async () => {
+    const scanLocalPreview = vi.fn().mockResolvedValue([]);
+
+    useSkillStore.setState({
+      error: null,
+      projectScanState: {},
+      scanLocalPreview,
+    } as Partial<ReturnType<typeof useSkillStore.getState>>);
+
+    await useSkillStore.getState().scanProjectSkills({
+      id: "project-1",
+      name: "Workspace",
+      rootPath: "/tmp/workspace",
+      scanPaths: ["/tmp/workspace/custom-skills"],
+      createdAt: 1,
+      updatedAt: 1,
+    });
+
+    expect(scanLocalPreview).toHaveBeenCalledWith([
+      "/tmp/workspace",
+      "/tmp/workspace/.claude/skills",
+      "/tmp/workspace/.agents/skills",
+      "/tmp/workspace/skills",
+      "/tmp/workspace/.gemini",
+      "/tmp/workspace/custom-skills",
+    ]);
+  });
+
+  it("builds effective project scan paths from root plus default folders", () => {
+    expect(
+      getProjectScanPaths({
+        id: "project-1",
+        name: "Workspace",
+        rootPath: "/tmp/workspace",
+        scanPaths: [],
+        createdAt: 1,
+        updatedAt: 1,
+      }),
+    ).toEqual([
+      "/tmp/workspace",
+      "/tmp/workspace/.claude/skills",
+      "/tmp/workspace/.agents/skills",
+      "/tmp/workspace/skills",
+      "/tmp/workspace/.gemini",
+    ]);
   });
 
   it("syncs an intentionally empty SKILL.md back to the local repo on update", async () => {

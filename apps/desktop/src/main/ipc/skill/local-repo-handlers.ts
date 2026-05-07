@@ -121,6 +121,16 @@ export function registerSkillLocalRepoHandlers({ db }: SkillIPCContext): void {
   );
 
   ipcMain.handle(
+    IPC_CHANNELS.SKILL_LIST_LOCAL_FILES_BY_PATH,
+    async (_, localPath: string) => {
+      if (typeof localPath !== "string" || localPath.trim() === "") {
+        return [];
+      }
+      return SkillInstaller.listLocalRepoFilesByPath(localPath);
+    },
+  );
+
+  ipcMain.handle(
     IPC_CHANNELS.SKILL_READ_LOCAL_FILE,
     async (_, skillId: string, relativePath: string) => {
       if (typeof skillId !== "string" || skillId.trim() === "") {
@@ -136,6 +146,19 @@ export function registerSkillLocalRepoHandlers({ db }: SkillIPCContext): void {
         return SkillInstaller.readLocalRepoFileByPath(repoPath, relativePath);
       }
       return SkillInstaller.readLocalRepoFile(skill.name, relativePath);
+    },
+  );
+
+  ipcMain.handle(
+    IPC_CHANNELS.SKILL_READ_LOCAL_FILE_BY_PATH,
+    async (_, localPath: string, relativePath: string) => {
+      if (typeof localPath !== "string" || localPath.trim() === "") {
+        return null;
+      }
+      if (typeof relativePath !== "string" || relativePath.trim() === "") {
+        return null;
+      }
+      return SkillInstaller.readLocalRepoFileByPath(localPath, relativePath);
     },
   );
 
@@ -204,6 +227,43 @@ export function registerSkillLocalRepoHandlers({ db }: SkillIPCContext): void {
   );
 
   ipcMain.handle(
+    IPC_CHANNELS.SKILL_RENAME_LOCAL_PATH_BY_PATH,
+    async (
+      _,
+      localPath: string,
+      oldRelativePath: string,
+      newRelativePath: string,
+    ) => {
+      if (typeof localPath !== "string" || localPath.trim() === "") {
+        throw new Error(
+          "skill:renameLocalPathByPath requires a non-empty localPath",
+        );
+      }
+      if (
+        typeof oldRelativePath !== "string" ||
+        oldRelativePath.trim().length === 0
+      ) {
+        throw new Error(
+          "skill:renameLocalPathByPath requires a non-empty oldRelativePath",
+        );
+      }
+      if (
+        typeof newRelativePath !== "string" ||
+        newRelativePath.trim().length === 0
+      ) {
+        throw new Error(
+          "skill:renameLocalPathByPath requires a non-empty newRelativePath",
+        );
+      }
+      return SkillInstaller.renameLocalRepoPathByPath(
+        localPath,
+        oldRelativePath,
+        newRelativePath,
+      );
+    },
+  );
+
+  ipcMain.handle(
     IPC_CHANNELS.SKILL_WRITE_LOCAL_FILE,
     async (
       _,
@@ -239,6 +299,30 @@ export function registerSkillLocalRepoHandlers({ db }: SkillIPCContext): void {
   );
 
   ipcMain.handle(
+    IPC_CHANNELS.SKILL_WRITE_LOCAL_FILE_BY_PATH,
+    async (_, localPath: string, relativePath: string, content: string) => {
+      if (typeof localPath !== "string" || localPath.trim() === "") {
+        throw new Error(
+          "skill:writeLocalFileByPath requires a non-empty localPath",
+        );
+      }
+      if (typeof relativePath !== "string" || relativePath.trim() === "") {
+        throw new Error(
+          "skill:writeLocalFileByPath requires a non-empty relativePath",
+        );
+      }
+      if (typeof content !== "string") {
+        throw new Error("skill:writeLocalFileByPath requires string content");
+      }
+      return SkillInstaller.writeLocalRepoFileByPath(
+        localPath,
+        relativePath,
+        content,
+      );
+    },
+  );
+
+  ipcMain.handle(
     IPC_CHANNELS.SKILL_DELETE_LOCAL_FILE,
     async (_, skillId: string, relativePath: string) => {
       if (typeof skillId !== "string" || skillId.trim() === "") {
@@ -262,6 +346,23 @@ export function registerSkillLocalRepoHandlers({ db }: SkillIPCContext): void {
   );
 
   ipcMain.handle(
+    IPC_CHANNELS.SKILL_DELETE_LOCAL_FILE_BY_PATH,
+    async (_, localPath: string, relativePath: string) => {
+      if (typeof localPath !== "string" || localPath.trim() === "") {
+        throw new Error(
+          "skill:deleteLocalFileByPath requires a non-empty localPath",
+        );
+      }
+      if (typeof relativePath !== "string" || relativePath.trim() === "") {
+        throw new Error(
+          "skill:deleteLocalFileByPath requires a non-empty relativePath",
+        );
+      }
+      return SkillInstaller.deleteLocalRepoFileByPath(localPath, relativePath);
+    },
+  );
+
+  ipcMain.handle(
     IPC_CHANNELS.SKILL_CREATE_LOCAL_DIR,
     async (_, skillId: string, relativePath: string) => {
       if (typeof skillId !== "string" || skillId.trim() === "") {
@@ -274,6 +375,23 @@ export function registerSkillLocalRepoHandlers({ db }: SkillIPCContext): void {
         `Before creating directory ${relativePath}`,
       );
       return SkillInstaller.createLocalRepoDirByPath(repoPath, relativePath);
+    },
+  );
+
+  ipcMain.handle(
+    IPC_CHANNELS.SKILL_CREATE_LOCAL_DIR_BY_PATH,
+    async (_, localPath: string, relativePath: string) => {
+      if (typeof localPath !== "string" || localPath.trim() === "") {
+        throw new Error(
+          "skill:createLocalDirByPath requires a non-empty localPath",
+        );
+      }
+      if (typeof relativePath !== "string" || relativePath.trim() === "") {
+        throw new Error(
+          "skill:createLocalDirByPath requires a non-empty relativePath",
+        );
+      }
+      return SkillInstaller.createLocalRepoDirByPath(localPath, relativePath);
     },
   );
 

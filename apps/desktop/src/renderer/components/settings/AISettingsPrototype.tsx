@@ -6,6 +6,7 @@ import {
   LanguagesIcon,
   WandSparklesIcon,
 } from "lucide-react";
+import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -54,7 +55,7 @@ import type {
 
 function getFetchModelsFeedback(
   result: FetchModelsResult,
-  t: (key: string, options?: Record<string, unknown>) => string,
+  t: TFunction,
   apiUrl?: string,
 ): { message: string; type: "error" | "warning" | "info" } {
   if (result.success && result.models.length === 0) {
@@ -95,7 +96,7 @@ function getFetchModelsFeedback(
 
 function getConnectionErrorMessage(
   message: string,
-  t: (key: string, options?: Record<string, unknown>) => string,
+  t: TFunction,
   apiUrl?: string,
 ): string {
   const normalized = message.toLowerCase();
@@ -138,17 +139,10 @@ function getConnectionErrorMessage(
   return message;
 }
 
-function getModelDisplayName(
-  model: { name?: string; model?: string } | null | undefined,
-  fallback = "AI",
-): string {
-  return model?.name?.trim() || model?.model?.trim() || fallback;
-}
-
 function formatModelTestSuccessToast(
   modelName: string,
   latency: number,
-  t: (key: string, options?: Record<string, unknown>) => string,
+  t: TFunction,
   extra?: string,
 ): string {
   return `${modelName} ${t("settings.aiWorkbenchModelTestSuccess", "测试成功")} (${latency}ms)${extra ?? ""}`;
@@ -157,7 +151,7 @@ function formatModelTestSuccessToast(
 function formatModelTestFailureToast(
   modelName: string,
   message: string,
-  t: (key: string, options?: Record<string, unknown>) => string,
+  t: TFunction,
   apiUrl?: string,
 ): string {
   return `${modelName} ${t("settings.aiWorkbenchModelTestFailed", "测试失败")}: ${getConnectionErrorMessage(message, t, apiUrl)}`;
@@ -421,7 +415,7 @@ export function AISettingsPrototype() {
     }
 
     setTestingModelId(editingModelId || "__draft__");
-    const modelName = getModelDisplayName(modelForm);
+    const modelName = modelForm.name.trim() || modelForm.model.trim() || "AI";
     try {
       if (modelForm.type === "image") {
         const result = await testImageGeneration(
@@ -562,7 +556,7 @@ export function AISettingsPrototype() {
     }
 
     setTestingModelId(model.id);
-    const modelName = getModelDisplayName(model);
+    const modelName = getModelDisplayName(model, "AI");
     try {
       if ((model.type ?? "chat") === "image") {
         const result = await testImageGeneration(

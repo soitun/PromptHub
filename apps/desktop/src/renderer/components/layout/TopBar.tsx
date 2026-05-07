@@ -1,6 +1,7 @@
 import {
   SearchIcon,
   PlusIcon,
+  FolderPlusIcon,
   SettingsIcon,
   SunIcon,
   MoonIcon,
@@ -33,7 +34,10 @@ import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { useUIStore } from "../../stores/ui.store";
 import { collectPrivateFolderScopeIds } from "../../services/prompt-filter";
-import { filterVisibleSkills } from "../../services/skill-filter";
+import {
+  filterVisibleScannedSkills,
+  filterVisibleSkills,
+} from "../../services/skill-filter";
 import {
   getRuntimeCapabilities,
   getWebContext,
@@ -56,6 +60,8 @@ const CreateSkillModal = lazy(() =>
     default: module.CreateSkillModal,
   })),
 );
+
+const OPEN_CREATE_SKILL_PROJECT_MODAL_EVENT = "open-create-skill-project-modal";
 
 interface TopBarProps {
   onOpenSettings: () => void;
@@ -84,6 +90,8 @@ export function TopBar({
   const skillFilterTags = useSkillStore((state) => state.filterTags);
   const deployedSkillNames = useSkillStore((state) => state.deployedSkillNames);
   const skillStoreView = useSkillStore((state) => state.storeView);
+  const selectedProjectId = useSkillStore((state) => state.selectedProjectId);
+  const projectScanState = useSkillStore((state) => state.projectScanState);
   const selectSkill = useSkillStore((state) => state.selectSkill);
 
   const isDarkMode = useSettingsStore((state) => state.isDarkMode);
@@ -112,6 +120,8 @@ export function TopBar({
   );
   const webRuntime = isWebRuntime();
   const runtimeCapabilities = getRuntimeCapabilities();
+  const isProjectSkillView =
+    uiViewMode === "skill" && skillStoreView === "projects";
 
   // Unified search query based on mode
   const searchQuery =
@@ -224,10 +234,30 @@ export function TopBar({
     uiViewMode,
   ]);
 
+  const projectSearchResults = useMemo(() => {
+    if (!isProjectSkillView) return [];
+
+    const scannedSkills = selectedProjectId
+      ? projectScanState[selectedProjectId]?.scannedSkills || []
+      : [];
+
+    return filterVisibleScannedSkills(scannedSkills, deferredSkillSearchQuery);
+  }, [
+    deferredSkillSearchQuery,
+    isProjectSkillView,
+    projectScanState,
+    selectedProjectId,
+  ]);
+
   // 根据模式选择搜索结果
   const searchResults =
-    uiViewMode === "skill" ? skillSearchResults : promptSearchResults;
+    uiViewMode === "skill"
+      ? isProjectSkillView
+        ? projectSearchResults
+        : skillSearchResults
+      : promptSearchResults;
   const searchResultCount = searchResults.length;
+  const showSearchNavigation = !isProjectSkillView;
 
   const updateCreateMenuPosition = useCallback(() => {
     if (!createMenuRef.current) {
@@ -256,6 +286,9 @@ export function TopBar({
       setCurrentResultIndex(newIndex);
 
       if (uiViewMode === "skill") {
+        if (isProjectSkillView) {
+          return;
+        }
         const skillResults = skillSearchResults;
         if (skillResults[newIndex]) {
           selectSkill(skillResults[newIndex].id);
@@ -270,6 +303,7 @@ export function TopBar({
     [
       searchResultCount,
       currentResultIndex,
+      isProjectSkillView,
       selectPrompt,
       selectSkill,
       uiViewMode,
@@ -282,6 +316,9 @@ export function TopBar({
   useEffect(() => {
     setCurrentResultIndex(0);
     if (uiViewMode === "skill") {
+      if (isProjectSkillView) {
+        return;
+      }
       if (skillSearchResults.length > 0) {
         selectSkill(skillSearchResults[0].id);
       }
@@ -290,17 +327,32 @@ export function TopBar({
         selectPrompt(promptSearchResults[0].id);
       }
     }
-  }, [searchQuery, uiViewMode]);
+  }, [
+    isProjectSkillView,
+    promptSearchResults,
+    searchQuery,
+    selectPrompt,
+    selectSkill,
+    skillSearchResults,
+    uiViewMode,
+  ]);
 
   // 处理键盘事件
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Tab" && searchQuery && searchResultCount > 0) {
+      if (!showSearchNavigation) {
+        return;
+      }
       e.preventDefault();
       navigateResult(e.shiftKey ? "prev" : "next");
     } else if (e.key === "Escape") {
       setSearchQuery("");
       searchInputRef.current?.blur();
     } else if (e.key === "Enter" && searchResultCount > 0) {
+      if (isProjectSkillView) {
+        searchInputRef.current?.blur();
+        return;
+      }
       // Enter 确认选择当前结果
       if (uiViewMode === "skill") {
         if (skillSearchResults[currentResultIndex]) {
@@ -475,7 +527,9 @@ export function TopBar({
               type="text"
               placeholder={
                 uiViewMode === "skill"
-                  ? t("header.searchSkill", "Search Skill...")
+                  ? isProjectSkillView
+                    ? t("header.searchProjectSkills", "Search project skills...")
+                    : t("header.searchSkill", "Search skills...")
                   : t("header.search")
               }
               value={searchQuery}
@@ -493,11 +547,16 @@ export function TopBar({
                 {/* 结果计数 */}
                 <span className="text-xs text-muted-foreground tabular-nums px-1">
                   {searchResultCount > 0
-                    ? `${currentResultIndex + 1}/${searchResultCount}`
+                    ? showSearchNavigation
+                      ? `${currentResultIndex + 1}/${searchResultCount}`
+                      : t("header.resultsCount", {
+                          count: searchResultCount,
+                          defaultValue: `${searchResultCount} results`,
+                        })
                     : t("header.noResults", "0 结果")}
                 </span>
                 {/* 上下导航按钮 */}
-                {searchResultCount > 1 && (
+                {showSearchNavigation && searchResultCount > 1 && (
                   <>
                     <button
                       onClick={() => navigateResult("prev")}
@@ -561,8 +620,13 @@ export function TopBar({
             <button
               onClick={async () => {
                 if (uiViewMode === "skill") {
-                  // Open Skill creation modal
-                  setIsCreateSkillModalOpen(true);
+                  if (isProjectSkillView) {
+                    document.dispatchEvent(
+                      new CustomEvent(OPEN_CREATE_SKILL_PROJECT_MODAL_EVENT),
+                    );
+                  } else {
+                    setIsCreateSkillModalOpen(true);
+                  }
                 } else {
                   // Create Prompt
                   const mode = useSettingsStore.getState().creationMode;
@@ -573,7 +637,11 @@ export function TopBar({
               className="flex items-center gap-1.5 h-full pl-3 pr-2 text-sm font-medium border-r border-primary-foreground/20 active:scale-95 transition-transform"
             >
               {uiViewMode === "skill" ? (
-                <PlusIcon className="w-4 h-4" />
+                isProjectSkillView ? (
+                  <FolderPlusIcon className="w-4 h-4" />
+                ) : (
+                  <PlusIcon className="w-4 h-4" />
+                )
               ) : creationMode === "manual" ? (
                 <PlusIcon className="w-4 h-4" />
               ) : (
@@ -581,7 +649,9 @@ export function TopBar({
               )}
               <span>
                 {uiViewMode === "skill"
-                  ? t("header.new")
+                  ? isProjectSkillView
+                    ? t("skill.addProject", "Add Project")
+                    : t("header.new")
                   : creationMode === "manual"
                     ? t("header.new")
                     : t("quickAdd.title")}

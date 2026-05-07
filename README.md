@@ -327,7 +327,7 @@ brew install --cask prompthub
 
 ### Homebrew 用户升级
 
-如果你是通过 Homebrew 安装的，后续升级建议优先使用 Homebrew，不要和应用内更新混用：
+如果你是通过 Homebrew 安装的，后续升级必须优先使用 Homebrew，不要和应用内更新混用：
 
 ```bash
 brew update
@@ -343,7 +343,7 @@ brew reinstall --cask prompthub
 > 💡 **说明**
 >
 > - **通过 DMG/EXE 手动安装的用户**：优先使用应用内「检查更新」或前往 Releases 手动下载
-> - **通过 Homebrew 安装的用户**：优先使用 `brew upgrade --cask prompthub`
+> - **通过 Homebrew 安装的用户**：优先使用 `brew upgrade --cask prompthub`，不要再走应用内下载 DMG 的升级路径
 > - 混用两种升级方式可能导致 Homebrew 记录的版本与实际安装状态不一致
 
 ### macOS 首次启动

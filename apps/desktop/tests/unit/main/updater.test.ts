@@ -81,7 +81,11 @@ vi.mock('electron-updater', () => {
     };
 });
 
-import { initUpdater, registerUpdaterIPC } from '../../../src/main/updater';
+import {
+    detectMacInstallSource,
+    initUpdater,
+    registerUpdaterIPC,
+} from '../../../src/main/updater';
 
 describe('Updater Service (Main Process)', () => {
     let mockWindow: any;
@@ -269,5 +273,28 @@ describe('Updater Service (Main Process)', () => {
                 info: expect.objectContaining({ version: '0.9.9' }),
             })
         );
+    });
+
+    it('detects Homebrew-installed macOS app from Caskroom path', () => {
+        Object.defineProperty(process, 'platform', { value: 'darwin' });
+
+        expect(
+            detectMacInstallSource(
+                '/opt/homebrew/Caskroom/prompthub/0.5.5/PromptHub.app/Contents/MacOS/PromptHub',
+            ),
+        ).toBe('homebrew');
+        expect(
+            detectMacInstallSource(
+                '/usr/local/Caskroom/prompthub/0.5.5/PromptHub.app/Contents/MacOS/PromptHub',
+            ),
+        ).toBe('homebrew');
+    });
+
+    it('treats regular macOS app bundle path as direct install', () => {
+        Object.defineProperty(process, 'platform', { value: 'darwin' });
+
+        expect(
+            detectMacInstallSource('/Applications/PromptHub.app/Contents/MacOS/PromptHub'),
+        ).toBe('direct');
     });
 });

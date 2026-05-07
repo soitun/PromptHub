@@ -59,6 +59,8 @@ import {
   getSkillSafetySummary,
 } from "./safety-i18n";
 import { getRuntimeCapabilities } from "../../runtime";
+import type { Skill } from "@prompthub/shared/types";
+import type { ProjectDetailSkillContext } from "./project-detail-adapter";
 
 /**
  * Full-width Skill Detail Page
@@ -66,7 +68,17 @@ import { getRuntimeCapabilities } from "../../runtime";
  */
 export type InstallMode = "copy" | "symlink";
 
-export function SkillFullDetailPage() {
+interface SkillFullDetailPageProps {
+  overrideSkill?: Skill;
+  projectContext?: ProjectDetailSkillContext | null;
+  onBack?: () => void;
+}
+
+export function SkillFullDetailPage({
+  overrideSkill,
+  projectContext,
+  onBack,
+}: SkillFullDetailPageProps = {}) {
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
   const runtimeCapabilities = getRuntimeCapabilities();
@@ -79,10 +91,13 @@ export function SkillFullDetailPage() {
   const syncSkillFromRepo = useSkillStore((state) => state.syncSkillFromRepo);
   const saveSafetyReport = useSkillStore((state) => state.saveSafetyReport);
 
-  const selectedSkill = useMemo(
-    () => skills.find((s) => s.id === selectedSkillId),
-    [skills, selectedSkillId],
-  );
+  const selectedSkill = useMemo(() => {
+    if (overrideSkill) {
+      return overrideSkill;
+    }
+    return skills.find((s) => s.id === selectedSkillId);
+  }, [overrideSkill, skills, selectedSkillId]);
+  const isProjectDetail = Boolean(projectContext);
 
   const [copyStatus, setCopyStatus] = useState<Record<string, boolean>>({});
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -237,6 +252,30 @@ export function SkillFullDetailPage() {
         return;
       }
 
+      if (isProjectDetail) {
+        try {
+          const repoSkillMd = await window.api.skill.readLocalFileByPath(
+            selectedSkill.local_repo_path || selectedSkill.source_url || "",
+            "SKILL.md",
+          );
+          if (!cancelled) {
+            setResolvedSkillMdContent(
+              repoSkillMd?.content ||
+                selectedSkill.instructions ||
+                selectedSkill.content ||
+                "",
+            );
+          }
+        } catch {
+          if (!cancelled) {
+            setResolvedSkillMdContent(
+              selectedSkill.instructions || selectedSkill.content || "",
+            );
+          }
+        }
+        return;
+      }
+
       try {
         const syncedSkill = await syncSkillFromRepo(selectedSkill.id);
         const repoSkillMd =
@@ -267,6 +306,7 @@ export function SkillFullDetailPage() {
     selectedSkill?.instructions,
     selectedSkill?.content,
     selectedSkill?.updated_at,
+    isProjectDetail,
     syncSkillFromRepo,
   ]);
 
@@ -275,6 +315,11 @@ export function SkillFullDetailPage() {
 
     async function loadTranslationSidecar() {
       if (!selectedSkill) {
+        setTranslationSidecar(null);
+        return;
+      }
+
+      if (isProjectDetail) {
         setTranslationSidecar(null);
         return;
       }
@@ -301,7 +346,7 @@ export function SkillFullDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [selectedSkill?.id, targetLang, translationMode]);
+  }, [isProjectDetail, selectedSkill?.id, targetLang, translationMode]);
 
   useEffect(() => {
     if (!selectedSkill || !resolvedSkillMdContent.trim()) {
@@ -495,11 +540,13 @@ export function SkillFullDetailPage() {
   };
 
   const handleDelete = () => {
+    if (isProjectDetail) return;
     if (!selectedSkill) return;
     setIsDeleteConfirmOpen(true);
   };
 
   const confirmDelete = async () => {
+    if (isProjectDetail) return;
     if (!selectedSkill) return;
     await deleteSkill(selectedSkill.id);
     setIsDeleteConfirmOpen(false);
@@ -534,15 +581,17 @@ export function SkillFullDetailPage() {
         throw new Error("TRANSLATION_EMPTY");
       }
 
-      const nextSidecar = await writeSkillTranslationSidecar({
-        skillId: selectedSkill.id,
-        sourceContent: resolvedSkillMdContent,
-        translatedContent: translated,
-        targetLanguage: targetLang,
-        translationMode,
-      });
+      if (!isProjectDetail) {
+        const nextSidecar = await writeSkillTranslationSidecar({
+          skillId: selectedSkill.id,
+          sourceContent: resolvedSkillMdContent,
+          translatedContent: translated,
+          targetLanguage: targetLang,
+          translationMode,
+        });
 
-      setTranslationSidecar(nextSidecar);
+        setTranslationSidecar(nextSidecar);
+      }
       setShowTranslation(true);
       setIsRetranslatePromptOpen(false);
       showToast(
@@ -613,6 +662,10 @@ export function SkillFullDetailPage() {
           <button
             onClick={() => {
               requestLeaveFileEditing(() => {
+                if (onBack) {
+                  onBack();
+                  return;
+                }
                 selectSkill(null);
               });
             }}
@@ -637,61 +690,67 @@ export function SkillFullDetailPage() {
                 <GlobeIcon className="w-3.5 h-3.5" />
                 {selectedSkill.author || t("skill.localStorage")}
               </div>
-              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
-                {t("skill.currentVersion", "Version")} v
-                {selectedSkill.currentVersion || 0}
-              </span>
+              {!isProjectDetail ? (
+                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
+                  {t("skill.currentVersion", "Version")} v
+                  {selectedSkill.currentVersion || 0}
+                </span>
+              ) : null}
             </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={openSnapshotModal}
-            disabled={isCreatingSnapshot}
-            className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-2 text-sm font-medium text-muted-foreground transition-all hover:border-primary/30 hover:bg-primary/5 hover:text-primary disabled:opacity-50"
-            title={t("skill.createSnapshot", "Create Snapshot")}
-          >
-            <SaveIcon className="h-4 w-4" />
-            {t("skill.snapshot", "Snapshot")}
-          </button>
-          <button
-            onClick={() => toggleFavorite(selectedSkill.id)}
-            className={`p-2.5 rounded-full transition-all active:scale-95 ${
-              selectedSkill.is_favorite
-                ? "text-yellow-500 hover:text-yellow-600"
-                : "text-muted-foreground hover:text-yellow-500 hover:bg-yellow-500/10"
-            }`}
-            title={
-              selectedSkill.is_favorite
-                ? t("skill.removeFavorite", "Remove Favorite")
-                : t("skill.addFavorite", "Add to Favorites")
-            }
-          >
-            <StarIcon
-              className={`w-5 h-5 ${selectedSkill.is_favorite ? "fill-current" : ""}`}
-            />
-          </button>
-          <button
-            onClick={() => setIsVersionHistoryOpen(true)}
-            className="p-2.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-full transition-all active:scale-95"
-            title={t("skill.versionHistory", "Version History")}
-          >
-            <HistoryIcon className="w-5 h-5" />
-          </button>
-          <button
-            onClick={() => setIsEditModalOpen(true)}
-            className="p-2.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-full transition-all active:scale-95"
-            title={t("skill.edit", "Edit Skill")}
-          >
-            <PencilIcon className="w-5 h-5" />
-          </button>
-          <button
-            onClick={handleDelete}
-            className="p-2.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full transition-all active:scale-95"
-            title={t("common.delete", "Delete")}
-          >
-            <TrashIcon className="w-5 h-5" />
-          </button>
+          {!isProjectDetail ? (
+            <>
+              <button
+                onClick={openSnapshotModal}
+                disabled={isCreatingSnapshot}
+                className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-2 text-sm font-medium text-muted-foreground transition-all hover:border-primary/30 hover:bg-primary/5 hover:text-primary disabled:opacity-50"
+                title={t("skill.createSnapshot", "Create Snapshot")}
+              >
+                <SaveIcon className="h-4 w-4" />
+                {t("skill.snapshot", "Snapshot")}
+              </button>
+              <button
+                onClick={() => toggleFavorite(selectedSkill.id)}
+                className={`p-2.5 rounded-full transition-all active:scale-95 ${
+                  selectedSkill.is_favorite
+                    ? "text-yellow-500 hover:text-yellow-600"
+                    : "text-muted-foreground hover:text-yellow-500 hover:bg-yellow-500/10"
+                }`}
+                title={
+                  selectedSkill.is_favorite
+                    ? t("skill.removeFavorite", "Remove Favorite")
+                    : t("skill.addFavorite", "Add to Favorites")
+                }
+              >
+                <StarIcon
+                  className={`w-5 h-5 ${selectedSkill.is_favorite ? "fill-current" : ""}`}
+                />
+              </button>
+              <button
+                onClick={() => setIsVersionHistoryOpen(true)}
+                className="p-2.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-full transition-all active:scale-95"
+                title={t("skill.versionHistory", "Version History")}
+              >
+                <HistoryIcon className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => setIsEditModalOpen(true)}
+                className="p-2.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-full transition-all active:scale-95"
+                title={t("skill.edit", "Edit Skill")}
+              >
+                <PencilIcon className="w-5 h-5" />
+              </button>
+              <button
+                onClick={handleDelete}
+                className="p-2.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full transition-all active:scale-95"
+                title={t("common.delete", "Delete")}
+              >
+                <TrashIcon className="w-5 h-5" />
+              </button>
+            </>
+          ) : null}
         </div>
       </div>
 
@@ -798,9 +857,10 @@ export function SkillFullDetailPage() {
           <div className="flex-1 flex flex-col app-wallpaper-panel min-h-0 overflow-hidden">
             <SkillFileEditor
               skillId={selectedSkill.id}
+              localPath={isProjectDetail ? selectedSkill.local_repo_path : undefined}
               skillName={selectedSkill.name}
               isOpen={true}
-              onSave={() => loadSkills()}
+              onSave={() => (isProjectDetail ? Promise.resolve() : loadSkills())}
               onUnsavedChange={setFileEditorHasUnsavedChanges}
               mode="inline"
             />
@@ -824,24 +884,34 @@ export function SkillFullDetailPage() {
                   translationMode={translationMode}
                 />
 
-                <SkillPlatformPanel
-                  availablePlatforms={availablePlatforms}
-                  handleExport={handleExport}
-                  installMode={installMode}
-                  installProgress={installProgress}
-                  isBatchInstalling={isBatchInstalling}
-                  onBatchInstall={batchInstall}
-                  selectedPlatforms={selectedPlatforms}
-                  selectedSkill={selectedSkill}
-                  selectAllPlatforms={selectAllPlatforms}
-                  deselectAllPlatforms={deselectAllPlatforms}
-                  setInstallMode={setInstallMode}
-                  skillMdInstallStatus={skillMdInstallStatus}
-                  t={t}
-                  togglePlatformSelection={togglePlatformSelection}
-                  uninstallFromPlatform={uninstallFromPlatform}
-                  uninstalledPlatforms={uninstalledPlatforms}
-                />
+                {!isProjectDetail ? (
+                  <SkillPlatformPanel
+                    availablePlatforms={availablePlatforms}
+                    handleExport={handleExport}
+                    installMode={installMode}
+                    installProgress={installProgress}
+                    isBatchInstalling={isBatchInstalling}
+                    onBatchInstall={batchInstall}
+                    selectedPlatforms={selectedPlatforms}
+                    selectedSkill={selectedSkill}
+                    selectAllPlatforms={selectAllPlatforms}
+                    deselectAllPlatforms={deselectAllPlatforms}
+                    setInstallMode={setInstallMode}
+                    skillMdInstallStatus={skillMdInstallStatus}
+                    t={t}
+                    togglePlatformSelection={togglePlatformSelection}
+                    uninstallFromPlatform={uninstallFromPlatform}
+                    uninstalledPlatforms={uninstalledPlatforms}
+                  />
+                ) : (
+                  <SkillCodePane
+                    copyStatus={copyStatus}
+                    handleCopy={handleCopy}
+                    selectedSkill={selectedSkill}
+                    skillContent={effectiveSkillMdContent}
+                    t={t}
+                  />
+                )}
               </div>
             ) : (
               <SkillCodePane

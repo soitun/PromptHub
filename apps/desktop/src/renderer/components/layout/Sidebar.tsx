@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
-import { StarIcon, HashIcon, PlusIcon, LayoutGridIcon, LinkIcon, SettingsIcon, ChevronLeftIcon, ChevronRightIcon, XIcon, ChevronDownIcon, ChevronUpIcon, ImageIcon, MessageSquareTextIcon, CommandIcon, CuboidIcon, StoreIcon, GlobeIcon, Clock3Icon } from 'lucide-react';
+import { StarIcon, HashIcon, PlusIcon, LayoutGridIcon, LinkIcon, SettingsIcon, ChevronLeftIcon, ChevronRightIcon, XIcon, ChevronDownIcon, ChevronUpIcon, ImageIcon, MessageSquareTextIcon, CommandIcon, CuboidIcon, StoreIcon, GlobeIcon, Clock3Icon, FolderPlusIcon } from 'lucide-react';
 import { useFolderStore } from '../../stores/folder.store';
 import { usePromptStore } from '../../stores/prompt.store';
 import { useSettingsStore } from '../../stores/settings.store';
@@ -107,6 +107,7 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
   const setIsTagsCollapsed = useSettingsStore((state) => state.setIsTagsSectionCollapsed);
   const viewMode = useUIStore((state) => state.viewMode);
   const setViewMode = useUIStore((state) => state.setViewMode);
+  const skillProjects = useSettingsStore((state) => state.skillProjects);
   
   // Skill store
   const skills = useSkillStore((state) => state.skills);
@@ -751,6 +752,20 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
                 if (currentPage !== 'home') onNavigate('home');
               }}
             />
+            {runtimeCapabilities.skillLocalScan && (
+              <NavItem
+                icon={<FolderPlusIcon className="w-5 h-5" />}
+                label={t('nav.projects', 'Projects')}
+                count={skillProjects.length}
+                active={storeView === 'projects' && currentPage === 'home'}
+                collapsed={isCollapsed}
+                onClick={() => {
+                  if (!confirmLeaveDirtySkillEditor()) return;
+                  setStoreView('projects');
+                  if (currentPage !== 'home') onNavigate('home');
+                }}
+              />
+            )}
             <NavItem
               icon={<StarIcon className="w-5 h-5" />}
               label={t('nav.favorites')}
@@ -921,7 +936,7 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
           <div className="flex-1" />
 
           {/* Resize Handle */}
-          {uniqueSkillTags.length > 0 && !isCollapsed && !isSkillTagsCollapsed && (
+          {storeView !== 'projects' && uniqueSkillTags.length > 0 && !isCollapsed && !isSkillTagsCollapsed && (
             <div 
               className={`h-1 cursor-ns-resize hover:bg-primary/40 transition-colors z-30 shrink-0 mx-2 rounded-full ${isResizing ? 'bg-primary/60' : 'bg-transparent'}`}
               onMouseDown={(e) => handleResizeStart(e, 'skill')}
@@ -929,7 +944,7 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
           )}
 
           {/* Tags Content */}
-          {uniqueSkillTags.length > 0 && (
+          {storeView !== 'projects' && uniqueSkillTags.length > 0 && (
             <div
               className={`sidebar-tag-section shrink-0 flex flex-col overflow-hidden app-wallpaper-panel ${isCollapsed ? 'items-center' : ''}`}
               style={{ height: isCollapsed || isSkillTagsCollapsed ? 'auto' : `${skillTagsSectionHeight}px` }}
@@ -1023,7 +1038,7 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
         </div>
 
         {/* Skill Tags Popover (collapsed sidebar) */}
-        {isTagPopoverOpen && (
+        {storeView !== 'projects' && isTagPopoverOpen && (
           <div
             ref={tagPopoverRef}
             className={`fixed z-[9999] transition-all duration-150 ${

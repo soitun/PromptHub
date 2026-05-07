@@ -1,4 +1,4 @@
-import type { Skill } from "@prompthub/shared/types";
+import type { ScannedSkill, Skill } from "@prompthub/shared/types";
 import type {
   SkillFilterType,
   SkillStoreView,
@@ -57,6 +57,31 @@ export function filterVisibleSkills({
       skill.source_url || "",
       skill.local_repo_path || "",
       ...(skill.tags || []),
+    ];
+
+    return fields.some((value) => value.toLowerCase().includes(query));
+  });
+}
+
+export function filterVisibleScannedSkills(
+  scannedSkills: ScannedSkill[],
+  searchQuery = "",
+): ScannedSkill[] {
+  const query = searchQuery.trim().toLowerCase();
+  if (!query) {
+    return scannedSkills;
+  }
+
+  return scannedSkills.filter((skill) => {
+    const fields = [
+      skill.name,
+      skill.description,
+      skill.author,
+      skill.instructions,
+      skill.filePath,
+      skill.localPath,
+      ...skill.tags,
+      ...skill.platforms,
     ];
 
     return fields.some((value) => value.toLowerCase().includes(query));

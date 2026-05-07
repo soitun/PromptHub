@@ -25,6 +25,7 @@ import "./SkillFileEditor.css";
 
 interface SkillFileEditorProps {
   skillId: string;
+  localPath?: string;
   /** Human-readable skill name shown in the modal header. Falls back to a
    *  truncated skillId when omitted. */
   skillName?: string;
@@ -186,6 +187,7 @@ function SimpleDialog({
 
 export function SkillFileEditor({
   skillId,
+  localPath,
   skillName,
   isOpen,
   onClose,
@@ -223,12 +225,78 @@ export function SkillFileEditor({
   >(null);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const isPathMode = Boolean(localPath);
+
+  const listFiles = useCallback(async () => {
+    if (localPath) {
+      return window.api.skill.listLocalFilesByPath(localPath);
+    }
+    return window.api.skill.listLocalFiles(skillId);
+  }, [localPath, skillId]);
+
+  const readFile = useCallback(
+    async (relativePath: string) => {
+      if (localPath) {
+        return window.api.skill.readLocalFileByPath(localPath, relativePath);
+      }
+      return window.api.skill.readLocalFile(skillId, relativePath);
+    },
+    [localPath, skillId],
+  );
+
+  const writeFile = useCallback(
+    async (relativePath: string, content: string) => {
+      if (localPath) {
+        return window.api.skill.writeLocalFileByPath(localPath, relativePath, content);
+      }
+      return window.api.skill.writeLocalFile(skillId, relativePath, content);
+    },
+    [localPath, skillId],
+  );
+
+  const createDir = useCallback(
+    async (relativePath: string) => {
+      if (localPath) {
+        return window.api.skill.createLocalDirByPath(localPath, relativePath);
+      }
+      return window.api.skill.createLocalDir(skillId, relativePath);
+    },
+    [localPath, skillId],
+  );
+
+  const renamePath = useCallback(
+    async (oldRelativePath: string, newRelativePath: string) => {
+      if (localPath) {
+        return window.api.skill.renameLocalPathByPath(
+          localPath,
+          oldRelativePath,
+          newRelativePath,
+        );
+      }
+      return window.api.skill.renameLocalPath(
+        skillId,
+        oldRelativePath,
+        newRelativePath,
+      );
+    },
+    [localPath, skillId],
+  );
+
+  const deleteFile = useCallback(
+    async (relativePath: string) => {
+      if (localPath) {
+        return window.api.skill.deleteLocalFileByPath(localPath, relativePath);
+      }
+      return window.api.skill.deleteLocalFile(skillId, relativePath);
+    },
+    [localPath, skillId],
+  );
 
   // Load files
   const loadFiles = useCallback(async () => {
     setIsLoading(true);
     try {
-      const result = await window.api.skill.listLocalFiles(skillId);
+      const result = await listFiles();
       const visibleEntries = result.filter(
         (entry) => !isHiddenSkillRepoEntry(entry.path),
       );
@@ -272,7 +340,7 @@ export function SkillFileEditor({
     } finally {
       setIsLoading(false);
     }
-  }, [showToast, skillId, t]);
+  }, [listFiles, showToast, t]);
 
   const hasAnyUnsaved = useMemo(
     () => Object.keys(modifiedFiles).length > 0,
@@ -350,7 +418,7 @@ export function SkillFileEditor({
       }
       setLoadingFilePath(path);
       try {
-        const result = await window.api.skill.readLocalFile(skillId, path);
+        const result = await readFile(path);
         if (result && !result.isDirectory) {
           setLoadedFiles((prev) => ({ ...prev, [path]: result }));
         }
@@ -364,7 +432,7 @@ export function SkillFileEditor({
         setLoadingFilePath((current) => (current === path ? null : current));
       }
     },
-    [loadedFiles, modifiedFiles, showToast, skillId, t],
+    [loadedFiles, modifiedFiles, readFile, showToast, t],
   );
 
   useEffect(() => {
@@ -433,11 +501,7 @@ export function SkillFileEditor({
     setIsSaving(true);
     try {
       const nextContent = modifiedFiles[selectedFile];
-      await window.api.skill.writeLocalFile(
-        skillId,
-        selectedFile,
-        nextContent,
-      );
+      await writeFile(selectedFile, nextContent);
       setFiles((prev) =>
         prev.map((file) =>
           file.path === selectedFile
@@ -479,8 +543,8 @@ export function SkillFileEditor({
     onSave,
     selectedFile,
     showToast,
-    skillId,
     t,
+    writeFile,
   ]);
 
   // Keyboard shortcuts
@@ -539,9 +603,9 @@ export function SkillFileEditor({
       const dirParts = name.split("/");
       if (dirParts.length > 1) {
         const dirPath = dirParts.slice(0, -1).join("/");
-        await window.api.skill.createLocalDir(skillId, dirPath);
+        await createDir(dirPath);
       }
-      await window.api.skill.writeLocalFile(skillId, name, "");
+      await writeFile(name, "");
       await loadFiles();
       setSelectedFile(name);
       setNewFileDialogOpen(false);
@@ -554,7 +618,7 @@ export function SkillFileEditor({
       console.error("Failed to create file:", error);
       showToast(`Failed to create file: ${String(error)}`, "error");
     }
-  }, [createParentPath, dialogInput, skillId, loadFiles, showToast]);
+  }, [createDir, createParentPath, dialogInput, loadFiles, showToast, writeFile]);
 
   // New folder
   const handleNewFolder = useCallback(async () => {
@@ -564,7 +628,7 @@ export function SkillFileEditor({
       : rawName;
     if (!name) return;
     try {
-      await window.api.skill.createLocalDir(skillId, name);
+      await createDir(name);
       await loadFiles();
       setExpandedDirs((prev) => new Set([...prev, name]));
       setNewFolderDialogOpen(false);
@@ -573,7 +637,7 @@ export function SkillFileEditor({
       console.error("Failed to create folder:", error);
       showToast(`Failed to create folder: ${String(error)}`, "error");
     }
-  }, [createParentPath, dialogInput, skillId, loadFiles, showToast]);
+  }, [createDir, createParentPath, dialogInput, loadFiles, showToast]);
 
   const handleRenamePath = useCallback(async () => {
     if (!renameDialogPath) return;
@@ -585,7 +649,7 @@ export function SkillFileEditor({
     const nextPath = pathParts.join("/");
 
     try {
-      await window.api.skill.renameLocalPath(skillId, renameDialogPath, nextPath);
+      await renamePath(renameDialogPath, nextPath);
       setModifiedFiles((prev) => {
         if (!(renameDialogPath in prev)) {
           return prev;
@@ -622,15 +686,15 @@ export function SkillFileEditor({
     renameDialogPath,
     selectedFile,
     showToast,
-    skillId,
     t,
+    renamePath,
   ]);
 
   // Delete file
   const handleDeleteFile = useCallback(async () => {
     if (!deleteDialogFile) return;
     try {
-      await window.api.skill.deleteLocalFile(skillId, deleteDialogFile);
+      await deleteFile(deleteDialogFile);
       if (selectedFile === deleteDialogFile) {
         setSelectedFile(null);
       }
@@ -651,7 +715,7 @@ export function SkillFileEditor({
       console.error("Failed to delete file:", error);
       showToast(`Failed to delete file: ${String(error)}`, "error");
     }
-  }, [deleteDialogFile, skillId, selectedFile, loadFiles, showToast]);
+  }, [deleteFile, deleteDialogFile, selectedFile, loadFiles, showToast]);
 
   const requestSelectFile = useCallback(
     (path: string) => {
@@ -669,7 +733,7 @@ export function SkillFileEditor({
   // Open in system file manager
   const handleOpenInExplorer = useCallback(async () => {
     try {
-      const repoPath = await window.api.skill.getRepoPath(skillId);
+      const repoPath = localPath ?? (await window.api.skill.getRepoPath(skillId));
       if (!repoPath) {
         showToast(t("skill.noLocalRepo", "No local repository found"), "error");
         return;
@@ -678,7 +742,7 @@ export function SkillFileEditor({
     } catch (error) {
       console.error("Failed to open in file manager:", error);
     }
-  }, [skillId, showToast, t]);
+  }, [localPath, skillId, showToast, t]);
 
   // ─── Render ──────────────────────────────────────────
 
@@ -1262,9 +1326,11 @@ export function SkillFileEditor({
             <span className="text-xs font-normal text-muted-foreground">
               —{" "}
               {skillName ||
-                (skillId.length > 16
-                  ? `${skillId.slice(0, 8)}…${skillId.slice(-4)}`
-                  : skillId)}
+                (isPathMode
+                  ? localPath
+                  : skillId.length > 16
+                    ? `${skillId.slice(0, 8)}…${skillId.slice(-4)}`
+                    : skillId)}
             </span>
           </h2>
           <div className="flex items-center gap-2">

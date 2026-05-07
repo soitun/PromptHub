@@ -47,6 +47,9 @@ const SkillFullDetailPage = lazy(() =>
 const SkillStore = lazy(() =>
   import("./SkillStore").then((m) => ({ default: m.SkillStore })),
 );
+const SkillProjectsView = lazy(() =>
+  import("./SkillProjectsView").then((m) => ({ default: m.SkillProjectsView })),
+);
 const SkillScanPreview = lazy(() =>
   import("./SkillScanPreview").then((m) => ({ default: m.SkillScanPreview })),
 );
@@ -379,6 +382,20 @@ export function SkillManager() {
         }
       >
         <SkillStore />
+      </Suspense>
+    );
+  }
+
+  if (runtimeCapabilities.skillLocalScan && effectiveStoreView === "projects") {
+    return (
+      <Suspense
+        fallback={
+          <div className="flex h-full items-center justify-center">
+            <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          </div>
+        }
+      >
+        <SkillProjectsView />
       </Suspense>
     );
   }

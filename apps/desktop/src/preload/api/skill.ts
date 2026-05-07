@@ -142,6 +142,53 @@ export const skillApi = {
       skillId,
       relativePath,
     ),
+  listLocalFilesByPath: (
+    localPath: string,
+  ): Promise<SkillLocalFileTreeEntry[]> =>
+    ipcRenderer.invoke(IPC_CHANNELS.SKILL_LIST_LOCAL_FILES_BY_PATH, localPath),
+  readLocalFileByPath: (
+    localPath: string,
+    relativePath: string,
+  ): Promise<SkillLocalFileEntry | null> =>
+    ipcRenderer.invoke(
+      IPC_CHANNELS.SKILL_READ_LOCAL_FILE_BY_PATH,
+      localPath,
+      relativePath,
+    ),
+  renameLocalPathByPath: (
+    localPath: string,
+    oldRelativePath: string,
+    newRelativePath: string,
+  ) =>
+    ipcRenderer.invoke(
+      IPC_CHANNELS.SKILL_RENAME_LOCAL_PATH_BY_PATH,
+      localPath,
+      oldRelativePath,
+      newRelativePath,
+    ),
+  writeLocalFileByPath: (
+    localPath: string,
+    relativePath: string,
+    content: string,
+  ) =>
+    ipcRenderer.invoke(
+      IPC_CHANNELS.SKILL_WRITE_LOCAL_FILE_BY_PATH,
+      localPath,
+      relativePath,
+      content,
+    ),
+  deleteLocalFileByPath: (localPath: string, relativePath: string) =>
+    ipcRenderer.invoke(
+      IPC_CHANNELS.SKILL_DELETE_LOCAL_FILE_BY_PATH,
+      localPath,
+      relativePath,
+    ),
+  createLocalDirByPath: (localPath: string, relativePath: string) =>
+    ipcRenderer.invoke(
+      IPC_CHANNELS.SKILL_CREATE_LOCAL_DIR_BY_PATH,
+      localPath,
+      relativePath,
+    ),
   getRepoPath: (skillId: string) =>
     ipcRenderer.invoke(IPC_CHANNELS.SKILL_GET_REPO_PATH, skillId),
   syncFromRepo: (skillId: string) =>

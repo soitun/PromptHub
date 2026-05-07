@@ -62,6 +62,8 @@ describe("TopBar", () => {
       deployedSkillNames: new Set<string>(),
       storeView: "store",
       selectedSkillId: null,
+      selectedProjectId: null,
+      projectScanState: {},
     } as Partial<ReturnType<typeof useSkillStore.getState>>);
 
     useUIStore.setState({
@@ -143,5 +145,79 @@ describe("TopBar", () => {
       expect(useSettingsStore.getState().creationMode).toBe("quick");
       expect(screen.queryByRole("menu")).not.toBeInTheDocument();
     });
+  });
+
+  it("uses project search and add-project action in the projects view", async () => {
+    const projectModalListener = vi.fn();
+    document.addEventListener(
+      "open-create-skill-project-modal",
+      projectModalListener,
+    );
+
+    useUIStore.setState({
+      viewMode: "skill",
+      isSidebarCollapsed: false,
+    });
+    useSkillStore.setState({
+      storeView: "projects",
+      searchQuery: "writer",
+      selectedProjectId: "project-1",
+      projectScanState: {
+        "project-1": {
+          scannedSkills: [
+            {
+              name: "writer",
+              description: "Write better",
+              author: "PromptHub",
+              tags: ["writing"],
+              instructions: "# Writer",
+              filePath: "/tmp/project/writer/SKILL.md",
+              localPath: "/tmp/project/writer",
+              platforms: ["claude"],
+            },
+            {
+              name: "writer-helper",
+              description: "Write helper",
+              author: "PromptHub",
+              tags: ["assistant"],
+              instructions: "# Writer Helper",
+              filePath: "/tmp/project/writer-helper/SKILL.md",
+              localPath: "/tmp/project/writer-helper",
+              platforms: ["cursor"],
+            },
+          ],
+          isScanning: false,
+          error: null,
+        },
+      },
+    } as Partial<ReturnType<typeof useSkillStore.getState>>);
+
+    try {
+      await act(async () => {
+        await renderWithI18n(
+          <TopBar onOpenSettings={vi.fn()} updateAvailable={null} />,
+          { language: "en" },
+        );
+      });
+
+      expect(
+        screen.getByPlaceholderText("Search project skills..."),
+      ).toBeInTheDocument();
+
+      await waitFor(() => {
+        expect(screen.getByText("2 results")).toBeInTheDocument();
+      });
+
+      expect(screen.queryByTitle("Next (Tab)")).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole("button", { name: "Add Project" }));
+
+      expect(projectModalListener).toHaveBeenCalledTimes(1);
+    } finally {
+      document.removeEventListener(
+        "open-create-skill-project-modal",
+        projectModalListener,
+      );
+    }
   });
 });

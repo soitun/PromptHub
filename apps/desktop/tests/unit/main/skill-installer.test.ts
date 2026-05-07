@@ -527,6 +527,63 @@ describe("SkillInstaller.readLocalRepoFileBuffersByPath", () => {
   });
 });
 
+describe("SkillInstaller external repo by-path access", () => {
+  it("lists and edits files under an external project skill root", async () => {
+    const repoPath = path.join(tmpDir, "project", ".claude", "skills", "novel");
+    await fs.mkdir(repoPath, { recursive: true });
+    await fs.writeFile(
+      path.join(repoPath, "SKILL.md"),
+      "---\nname: novel\n---\n# Novel\n",
+    );
+
+    const files = await SkillInstaller.listLocalRepoFilesByPath(repoPath);
+    expect(files).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ path: "SKILL.md", isDirectory: false }),
+      ]),
+    );
+
+    const skillMd = await SkillInstaller.readLocalRepoFileByPath(
+      repoPath,
+      "SKILL.md",
+    );
+    expect(skillMd?.content).toContain("# Novel");
+
+    await SkillInstaller.writeLocalRepoFileByPath(
+      repoPath,
+      "notes.txt",
+      "hello project skill",
+    );
+    await SkillInstaller.createLocalRepoDirByPath(repoPath, "docs");
+    await SkillInstaller.renameLocalRepoPathByPath(
+      repoPath,
+      "notes.txt",
+      "docs/notes.txt",
+    );
+
+    const renamedFile = await SkillInstaller.readLocalRepoFileByPath(
+      repoPath,
+      "docs/notes.txt",
+    );
+    expect(renamedFile?.content).toBe("hello project skill");
+
+    await SkillInstaller.deleteLocalRepoFileByPath(repoPath, "docs/notes.txt");
+    await expect(
+      fs.access(path.join(repoPath, "docs", "notes.txt")),
+    ).rejects.toThrow();
+  });
+
+  it("still rejects traversal outside an external project skill root", async () => {
+    const repoPath = path.join(tmpDir, "project", "skills", "safe-skill");
+    await fs.mkdir(repoPath, { recursive: true });
+    await fs.writeFile(path.join(repoPath, "SKILL.md"), "# Safe\n");
+
+    await expect(
+      SkillInstaller.readLocalRepoFileByPath(repoPath, "../outside.txt"),
+    ).rejects.toThrow(/must not contain/);
+  });
+});
+
 // ---------- deleteLocalRepo ----------
 
 describe("SkillInstaller.deleteLocalRepo", () => {

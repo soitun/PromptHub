@@ -38,6 +38,12 @@ vi.mock("../../../src/renderer/components/settings/SkillSettings", () => ({
 vi.mock("../../../src/renderer/components/settings/AISettingsPrototype", () => ({
   AISettingsPrototype: () => <div>ai-content</div>,
 }));
+vi.mock(
+  "../../../src/renderer/components/settings/PlatformWorkbenchPrototype",
+  () => ({
+    PlatformWorkbenchPrototype: () => <div>platform-preview-content</div>,
+  }),
+);
 vi.mock("../../../src/renderer/components/settings/WebDeviceSettings", () => ({
   WebDeviceSettings: () => <div>web-device-content</div>,
 }));
@@ -58,6 +64,7 @@ describe("SettingsPage", () => {
     expect(nav).toHaveTextContent("General");
     expect(nav).toHaveTextContent("Data");
     expect(nav).toHaveTextContent("Skill");
+    expect(nav).toHaveTextContent("Platform Preview");
     expect(nav).toHaveTextContent("Security");
     expect(nav.parentElement).not.toHaveClass("app-left-rail-glass");
 
@@ -66,5 +73,11 @@ describe("SettingsPage", () => {
     });
 
     expect(screen.getByText("skill-content")).toBeInTheDocument();
+
+    await act(async () => {
+      screen.getByRole("button", { name: "Platform Preview" }).click();
+    });
+
+    expect(screen.getByText("platform-preview-content")).toBeInTheDocument();
   });
 });

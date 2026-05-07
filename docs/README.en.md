@@ -141,6 +141,25 @@ brew tap legeling/tap
 brew install --cask prompthub
 ```
 
+### Homebrew Upgrade Path
+
+If you installed PromptHub via Homebrew, use Homebrew for all future upgrades and do not mix it with the in-app DMG update flow:
+
+```bash
+brew update
+brew upgrade --cask prompthub
+```
+
+If the local Homebrew state looks inconsistent after the tap has already been updated, reinstall the current cask:
+
+```bash
+brew reinstall --cask prompthub
+```
+
+> - Users who installed via DMG should use the in-app updater or download from GitHub Releases.
+> - Users who installed via Homebrew should use `brew upgrade --cask prompthub` and should not switch to the in-app DMG install path.
+> - Mixing both upgrade paths can leave Homebrew's recorded version out of sync with the actual app bundle on disk.
+
 ### macOS First Launch
 
 Since the app is not notarized by Apple, you may see **"PromptHub is damaged and can't be opened"** or **"Cannot verify developer"** on first launch.

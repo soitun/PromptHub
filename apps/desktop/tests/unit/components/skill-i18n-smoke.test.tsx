@@ -190,6 +190,34 @@ describe("skill i18n smoke", () => {
     }
   });
 
+  it("keeps project navigation keys aligned across locales", () => {
+    const locales = {
+      zh,
+      "zh-TW": zhTw,
+      ja,
+      fr,
+      de,
+      es,
+    } as const;
+    const requiredKeys = [
+      "nav.projects",
+      "header.searchProjectSkills",
+      "header.resultsCount",
+      "settings.homebrewUpdateHint",
+      "settings.homebrewUpdateRequired",
+      "settings.openReleasesPage",
+    ];
+
+    for (const [locale, messages] of Object.entries(locales)) {
+      for (const key of requiredKeys) {
+        expect(
+          getPathValue(messages as TranslationTree, key),
+          `${locale} is missing ${key}`,
+        ).toEqual(expect.any(String));
+      }
+    }
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
 

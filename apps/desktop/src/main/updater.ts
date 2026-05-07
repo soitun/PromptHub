@@ -26,6 +26,8 @@ interface ProgressInfo {
   transferred: number;
 }
 
+export type MacInstallSource = "direct" | "homebrew" | "unknown";
+
 type UpdateChannel = "stable" | "preview";
 
 interface UpdateRequestOptions {
@@ -446,6 +448,44 @@ let lastPercent = 0; // Track last progress to prevent regression
 
 const isMac = process.platform === "darwin";
 
+function normalizeRealPath(inputPath: string): string {
+  try {
+    return fs.realpathSync(inputPath);
+  } catch {
+    return inputPath;
+  }
+}
+
+export function detectMacInstallSource(executablePath: string = process.execPath): MacInstallSource {
+  if (!isMac) {
+    return "unknown";
+  }
+
+  const resolvedPath = normalizeRealPath(executablePath);
+  const normalizedPath = resolvedPath.replace(/\\/g, "/");
+
+  if (
+    normalizedPath.includes("/Caskroom/") ||
+    normalizedPath.startsWith("/opt/homebrew/Caskroom/") ||
+    normalizedPath.startsWith("/usr/local/Caskroom/")
+  ) {
+    return "homebrew";
+  }
+
+  return "direct";
+}
+
+function getMacInstallSource(): MacInstallSource {
+  return detectMacInstallSource(process.execPath);
+}
+
+function getHomebrewUpgradeMessage(): string {
+  return (
+    "This PromptHub build appears to be installed via Homebrew. " +
+    "Please upgrade it with 'brew upgrade --cask prompthub' instead of using the in-app DMG updater."
+  );
+}
+
 // macOS: track last detected update info for DMG download
 // macOS: 记录最近一次检测到的更新信息，用于 DMG 下载
 let lastUpdateInfo: ElectronUpdateInfo | null = null;
@@ -860,6 +900,10 @@ export function registerUpdaterIPC() {
     return app.getVersion();
   });
 
+  ipcMain.handle("updater:installSource", () => {
+    return isMac ? getMacInstallSource() : "unknown";
+  });
+
   // 检查更新
   // Check for updates - respect user's mirror preference
   ipcMain.handle("updater:check", async (_event, request?: boolean | UpdateRequestOptions) => {
@@ -951,6 +995,13 @@ export function registerUpdaterIPC() {
     // macOS: bypass Squirrel, download DMG directly to ~/Downloads
     // macOS: 绕过 Squirrel，直接下载 DMG 到 ~/Downloads
     if (isMac) {
+      if (getMacInstallSource() === "homebrew") {
+        return {
+          success: false,
+          error: getHomebrewUpgradeMessage(),
+          installSource: "homebrew",
+        };
+      }
       console.log("[Updater/macDMG] Using direct DMG download for macOS");
       return await macDownloadDmg(useMirror, context);
     }
@@ -1011,6 +1062,15 @@ export function registerUpdaterIPC() {
       });
 
       if (isMac) {
+        if (getMacInstallSource() === "homebrew") {
+          return {
+            success: false,
+            manual: true,
+            installSource: "homebrew",
+            error: getHomebrewUpgradeMessage(),
+            backupPath: backup.backupPath,
+          };
+        }
         // macOS: open the downloaded DMG for manual installation
         // macOS: 打开已下载的 DMG 文件让用户手动安装
         if (macDownloadedDmgPath && fs.existsSync(macDownloadedDmgPath)) {

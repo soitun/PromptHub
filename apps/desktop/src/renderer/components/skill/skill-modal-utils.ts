@@ -1,5 +1,9 @@
 import type { Skill } from "@prompthub/shared/types";
 
+function isRemoteSourceUrl(sourceUrl?: string): boolean {
+  return /^https?:\/\//i.test(sourceUrl || "");
+}
+
 export function getExistingSkillTags(skills: Skill[]): string[] {
   return [...new Set(skills.flatMap((skill) => getUserSkillTags(skill)))].sort(
     (a, b) => a.localeCompare(b),
@@ -15,7 +19,7 @@ export function inferOriginalSkillTags(skill: Pick<
   }
 
   // Legacy imported skills stored source tags directly in tags.
-  if (skill.registry_slug || skill.source_url) {
+  if (skill.registry_slug || isRemoteSourceUrl(skill.source_url)) {
     return skill.tags || [];
   }
 

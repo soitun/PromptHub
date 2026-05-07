@@ -294,7 +294,9 @@ export async function readLocalRepoFiles(
 export async function readLocalRepoFilesByPath(
   absolutePath: string,
 ): Promise<SkillLocalFileEntry[]> {
-  const { realBasePath } = await resolveRepoBasePath(absolutePath);
+  const { realBasePath } = await resolveRepoBasePath(absolutePath, {
+    allowOutsideSkillsDir: true,
+  });
 
   if (!(await fileExists(absolutePath))) {
     return [];
@@ -318,7 +320,9 @@ export async function readLocalRepoFilesByPath(
 export async function readLocalRepoFileBuffersByPath(
   absolutePath: string,
 ): Promise<SkillLocalFileBufferEntry[]> {
-  const { realBasePath } = await resolveRepoBasePath(absolutePath);
+  const { realBasePath } = await resolveRepoBasePath(absolutePath, {
+    allowOutsideSkillsDir: true,
+  });
 
   if (!(await fileExists(absolutePath))) {
     return [];
@@ -355,7 +359,9 @@ export async function listLocalRepoFiles(
 export async function listLocalRepoFilesByPath(
   absolutePath: string,
 ): Promise<SkillLocalFileTreeEntry[]> {
-  const { realBasePath } = await resolveRepoBasePath(absolutePath);
+  const { realBasePath } = await resolveRepoBasePath(absolutePath, {
+    allowOutsideSkillsDir: true,
+  });
 
   if (!(await fileExists(absolutePath))) {
     return [];
@@ -394,6 +400,7 @@ export async function readLocalRepoFileByPath(
   const { fullPath, realBasePath } = await resolveRepoTargetPath(
     absoluteBasePath,
     relativePath,
+    { allowOutsideSkillsDir: true },
   );
   if (!(await fileExists(fullPath))) {
     return null;
@@ -454,7 +461,7 @@ export async function writeLocalRepoFileByPath(
   const { fullPath } = await resolveRepoTargetPath(
     absoluteBasePath,
     relativePath,
-    { ensureBaseExists: true },
+    { ensureBaseExists: true, allowOutsideSkillsDir: true },
   );
   await fs.mkdir(path.dirname(fullPath), { recursive: true });
   await fs.writeFile(fullPath, content, "utf-8");
@@ -486,6 +493,7 @@ export async function deleteLocalRepoFileByPath(
   const { fullPath } = await resolveRepoTargetPath(
     absoluteBasePath,
     relativePath,
+    { allowOutsideSkillsDir: true },
   );
   await fs.rm(fullPath, { recursive: true, force: true });
 }
@@ -525,7 +533,7 @@ export async function createLocalRepoDirByPath(
   const { fullPath } = await resolveRepoTargetPath(
     absoluteBasePath,
     relativePath,
-    { ensureBaseExists: true },
+    { ensureBaseExists: true, allowOutsideSkillsDir: true },
   );
   await fs.mkdir(fullPath, { recursive: true });
 }
@@ -540,11 +548,12 @@ export async function renameLocalRepoPathByPath(
   const { fullPath: oldFullPath } = await resolveRepoTargetPath(
     absoluteBasePath,
     oldRelativePath,
+    { allowOutsideSkillsDir: true },
   );
   const { fullPath: newFullPath } = await resolveRepoTargetPath(
     absoluteBasePath,
     newRelativePath,
-    { ensureBaseExists: true },
+    { ensureBaseExists: true, allowOutsideSkillsDir: true },
   );
 
   await fs.mkdir(path.dirname(newFullPath), { recursive: true });

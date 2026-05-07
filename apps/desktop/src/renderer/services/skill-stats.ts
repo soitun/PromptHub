@@ -1,5 +1,9 @@
 import type { Skill } from "@prompthub/shared/types";
 
+function isRemoteSourceUrl(sourceUrl?: string): boolean {
+  return /^https?:\/\//i.test(sourceUrl || "");
+}
+
 function inferOriginalSkillTags(
   skill: Pick<Skill, "tags" | "original_tags" | "registry_slug" | "source_url">,
 ): string[] {
@@ -7,7 +11,7 @@ function inferOriginalSkillTags(
     return skill.original_tags;
   }
 
-  if (skill.registry_slug || skill.source_url) {
+  if (skill.registry_slug || isRemoteSourceUrl(skill.source_url)) {
     return skill.tags || [];
   }
 

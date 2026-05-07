@@ -3,6 +3,8 @@
  * 设置类型定义
  */
 
+import type { SkillProject } from './skill';
+
 export interface Settings {
   theme: Theme;
   language: Language;
@@ -13,6 +15,7 @@ export interface Settings {
   backgroundImageBlur?: number;
   customSkillPlatformPaths?: Record<string, string>;
   skillPlatformOrder?: string[];
+  skillProjects?: SkillProject[];
   lastManualBackupAt?: string;
   lastManualBackupVersion?: string;
   sync?: SyncSettings;
@@ -55,6 +58,7 @@ export const DEFAULT_SETTINGS: Settings = {
   backgroundImageBlur: 14,
   customSkillPlatformPaths: {},
   skillPlatformOrder: [],
+  skillProjects: [],
   sync: {
     enabled: false,
     provider: 'manual',

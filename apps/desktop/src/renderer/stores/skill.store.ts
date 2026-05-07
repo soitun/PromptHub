@@ -11,6 +11,7 @@ import type {
   SkillMCPConfig,
   MCPServerConfig,
   ScanLocalResult,
+  SkillProject,
   SkillSafetyLevel,
   SkillSafetyReport,
   SafetyScanAIConfig,
@@ -21,7 +22,10 @@ import {
 } from "@prompthub/shared/constants/skill-registry";
 import { chatCompletion } from "../services/ai";
 import { resolveScenarioAIConfig } from "../services/ai-defaults";
-import { filterVisibleSkills } from "../services/skill-filter";
+import {
+  filterVisibleScannedSkills,
+  filterVisibleSkills,
+} from "../services/skill-filter";
 import { normalizeSkill, normalizeSkills } from "../services/skill-normalize";
 import {
   validateStoreSourceInput,
@@ -43,7 +47,7 @@ export type SkillFilterType =
   | "deployed"
   | "pending";
 export type SkillViewMode = "gallery" | "list";
-export type SkillStoreView = "my-skills" | "distribution" | "store";
+export type SkillStoreView = "my-skills" | "projects" | "distribution" | "store";
 // Translation cache constraints
 // 翻译缓存限制
 const TRANSLATION_CACHE_MAX_SIZE = 200;
@@ -73,6 +77,7 @@ interface TranslationLookup {
 
 export interface ScannedImportResult {
   importedCount: number;
+  importedSkills: Skill[];
   skipped: Array<{ name: string; reason: string }>;
   failed: Array<{ name: string; reason: string }>;
 }
@@ -84,6 +89,13 @@ export interface SkillSafetyBatchSummary {
   highRisk: number;
   blocked: number;
   bySkillId: Record<string, SkillSafetyLevel>;
+}
+
+export interface ProjectSkillScanState {
+  scannedSkills: ScannedSkill[];
+  isScanning: boolean;
+  scannedAt?: number;
+  error?: string | null;
 }
 
 export type RegistrySkillUpdateResult =
@@ -146,6 +158,39 @@ function getTranslationStateFromCache(
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+const DEFAULT_PROJECT_SCAN_SUBDIRECTORIES = [
+  ".claude/skills",
+  ".agents/skills",
+  "skills",
+  ".gemini",
+] as const;
+
+function joinProjectPath(rootPath: string, subPath: string): string {
+  const normalizedRoot = rootPath.replace(/[\\/]+$/, "");
+  return `${normalizedRoot}/${subPath}`;
+}
+
+export function getProjectScanPaths(project: SkillProject): string[] {
+  const explicitPaths = (project.scanPaths || [])
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
+
+  const normalizedRootPath = project.rootPath.trim();
+  if (!normalizedRootPath) {
+    return explicitPaths;
+  }
+
+  return Array.from(
+    new Set([
+      normalizedRootPath,
+      ...DEFAULT_PROJECT_SCAN_SUBDIRECTORIES.map((subPath) =>
+        joinProjectPath(normalizedRootPath, subPath),
+      ),
+      ...explicitPaths,
+    ]),
+  );
 }
 
 function stripSkillFrontmatter(content: string): string {
@@ -393,6 +438,8 @@ interface SkillState {
   // Skill Store (registry)
   // 技能商店（注册表）
   storeView: SkillStoreView;
+  selectedProjectId: string | null;
+  projectScanState: Record<string, ProjectSkillScanState>;
   registrySkills: RegistrySkill[];
   isLoadingRegistry: boolean;
   storeCategory: SkillCategory | "all";
@@ -457,6 +504,16 @@ interface SkillState {
   // Skill Store Actions
   // 技能商店操作
   setStoreView: (view: SkillStoreView) => void;
+  selectProject: (projectId: string | null) => void;
+  scanProjectSkills: (project: SkillProject) => Promise<ScannedSkill[]>;
+  setProjectScanState: (
+    projectId: string,
+    state: ProjectSkillScanState,
+  ) => void;
+  getVisibleProjectScannedSkills: (
+    projectId: string,
+    options?: { searchQuery?: string },
+  ) => ScannedSkill[];
   loadRegistry: () => void;
   computeRegistrySkillHash: (content: string) => Promise<string>;
   getRegistrySkillUpdateStatus: (
@@ -531,6 +588,8 @@ export const useSkillStore = create<SkillState>()(
 
       // Skill Store state
       storeView: "my-skills" as SkillStoreView,
+      selectedProjectId: null,
+      projectScanState: {},
       registrySkills: [] as RegistrySkill[],
       isLoadingRegistry: false,
       storeCategory: "all" as SkillCategory | "all",
@@ -742,6 +801,7 @@ export const useSkillStore = create<SkillState>()(
         set({ isLoading: true, error: null });
         try {
           let importCount = 0;
+          const importedSkills: Skill[] = [];
           const skipped: ScannedImportResult["skipped"] = [];
           const failed: ScannedImportResult["failed"] = [];
           for (const scanned of scannedSkills) {
@@ -766,6 +826,7 @@ export const useSkillStore = create<SkillState>()(
                 tags: userTags,
                 original_tags: scanned.tags,
                 is_favorite: false,
+                source_url: scanned.localPath,
                 local_repo_path: scanned.localPath,
               });
 
@@ -792,6 +853,9 @@ export const useSkillStore = create<SkillState>()(
               }
 
               importCount++;
+              if (newSkill) {
+                importedSkills.push(normalizeSkill(newSkill));
+              }
             } catch (error: unknown) {
               failed.push({
                 name: scanned.name,
@@ -804,14 +868,20 @@ export const useSkillStore = create<SkillState>()(
             }
           }
           // Refresh skills after import
-          const skills = await window.api.skill.getAll();
+          const skills = normalizeSkills(await window.api.skill.getAll());
           set({ skills, isLoading: false });
-          return { importedCount: importCount, skipped, failed };
+          return {
+            importedCount: importCount,
+            importedSkills,
+            skipped,
+            failed,
+          };
         } catch (error) {
           console.error("Failed to import scanned skills:", error);
           set({ error: String(error), isLoading: false });
           return {
             importedCount: 0,
+            importedSkills: [],
             skipped: [],
             failed: [
               {
@@ -990,6 +1060,81 @@ export const useSkillStore = create<SkillState>()(
 
       setStoreView: (view) => {
         set({ storeView: view, selectedRegistrySlug: null });
+      },
+
+      selectProject: (projectId) => {
+        set({ selectedProjectId: projectId });
+      },
+
+      scanProjectSkills: async (project) => {
+        const uniquePaths = getProjectScanPaths(project);
+
+        set((state) => ({
+          projectScanState: {
+            ...state.projectScanState,
+            [project.id]: {
+              ...(state.projectScanState[project.id] || {
+                scannedSkills: [],
+              }),
+              isScanning: true,
+              error: null,
+            },
+          },
+        }));
+
+        try {
+          const scannedSkills = await get().scanLocalPreview(uniquePaths);
+          const scanError = get().error;
+          if (scanError) {
+            throw new Error(scanError);
+          }
+          const nextState: ProjectSkillScanState = {
+            scannedSkills,
+            isScanning: false,
+            scannedAt: Date.now(),
+            error: null,
+          };
+          set((state) => ({
+            projectScanState: {
+              ...state.projectScanState,
+              [project.id]: nextState,
+            },
+          }));
+          return scannedSkills;
+        } catch (error) {
+          const errorMessage = getErrorMessage(error);
+          set((state) => ({
+            projectScanState: {
+              ...state.projectScanState,
+              [project.id]: {
+                scannedSkills:
+                  state.projectScanState[project.id]?.scannedSkills || [],
+                isScanning: false,
+                scannedAt: state.projectScanState[project.id]?.scannedAt,
+                error: errorMessage,
+              },
+            },
+          }));
+          throw (error instanceof Error ? error : new Error(errorMessage));
+        }
+      },
+
+      setProjectScanState: (projectId, state) => {
+        set((current) => ({
+          projectScanState: {
+            ...current.projectScanState,
+            [projectId]: state,
+          },
+        }));
+      },
+
+      getVisibleProjectScannedSkills: (projectId, options) => {
+        const scannedSkills =
+          get().projectScanState[projectId]?.scannedSkills || [];
+        return filterVisibleScannedSkills(
+          scannedSkills,
+          options?.searchQuery || "",
+        );
       },
 
       loadRegistry: () => {
@@ -1475,6 +1620,7 @@ Rules:
           viewMode: state.viewMode,
           filterType: state.filterType,
           storeView: state.storeView,
+          selectedProjectId: state.selectedProjectId,
           customStoreSources: state.customStoreSources,
           selectedStoreSourceId: state.selectedStoreSourceId,
           remoteStoreEntries: filteredEntries,

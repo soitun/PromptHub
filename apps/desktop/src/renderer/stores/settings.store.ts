@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import i18n, { changeLanguage } from "../i18n";
-import type { Settings } from "@prompthub/shared/types";
+import type { Settings, SkillProject } from "@prompthub/shared/types";
 import type { UpdateChannel } from "@prompthub/shared/types";
 import { isPrereleaseVersion } from "../../utils/version";
 import { resolveLocalImageSrc } from "../utils/media-url";
@@ -379,6 +379,7 @@ interface SettingsState {
 
   // Custom skill scan paths / 自定义 Skill 扫描路径
   customSkillScanPaths: string[];
+  skillProjects: SkillProject[];
 
   // Custom platform skill paths / 自定义平台 Skill 目录
   customSkillPlatformPaths: Record<string, string>;
@@ -464,6 +465,16 @@ interface SettingsState {
   setCustomSkillScanPaths: (paths: string[]) => void;
   addCustomSkillScanPath: (path: string) => void;
   removeCustomSkillScanPath: (path: string) => void;
+  addSkillProject: (input: {
+    name: string;
+    rootPath: string;
+    scanPaths?: string[];
+  }) => SkillProject;
+  updateSkillProject: (
+    projectId: string,
+    updates: Partial<Pick<SkillProject, "name" | "rootPath" | "scanPaths" | "lastScannedAt">>,
+  ) => void;
+  removeSkillProject: (projectId: string) => void;
   setCustomSkillPlatformPath: (platformId: string, path: string) => void;
   resetCustomSkillPlatformPath: (platformId: string) => void;
   setSkillPlatformOrder: (order: string[]) => void;
@@ -496,6 +507,23 @@ export const useSettingsStore = create<SettingsState>()(
       const touch = (): string => new Date().toISOString();
       const setTouched = (partial: Partial<SettingsState>) =>
         set({ ...partial, settingsUpdatedAt: touch() } as SettingsState);
+      const createSkillProjectId = (): string =>
+        `project_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+      const normalizeProjectPath = (value: string): string => value.trim();
+      const normalizeProjectScanPaths = (
+        scanPaths: string[] | undefined,
+        rootPath: string,
+      ): string[] => {
+        const normalized = Array.from(
+          new Set(
+            (scanPaths ?? [rootPath])
+              .map((entry) => normalizeProjectPath(entry))
+              .filter((entry) => entry.length > 0),
+          ),
+        );
+
+        return normalized.length > 0 ? normalized : [rootPath];
+      };
 
       return {
         // Default values
@@ -569,6 +597,7 @@ export const useSettingsStore = create<SettingsState>()(
         translationMode: "immersive" as TranslationMode,
         sourceHistory: [],
         customSkillScanPaths: [],
+        skillProjects: [],
         customSkillPlatformPaths: {},
         skillPlatformOrder: [],
         skillInstallMethod: "symlink" as const,
@@ -1026,6 +1055,98 @@ export const useSettingsStore = create<SettingsState>()(
               (p) => p !== path,
             ),
           }),
+        addSkillProject: (input) => {
+          const name = input.name.trim();
+          const rootPath = normalizeProjectPath(input.rootPath);
+          if (!name || !rootPath) {
+            throw new Error("Skill project name and rootPath are required");
+          }
+
+          const now = Date.now();
+          const nextProject: SkillProject = {
+            id: createSkillProjectId(),
+            name,
+            rootPath,
+            scanPaths: normalizeProjectScanPaths(input.scanPaths, rootPath),
+            createdAt: now,
+            updatedAt: now,
+          };
+
+          const existingProjects = get().skillProjects;
+          const hasConflict = existingProjects.some(
+            (project) =>
+              project.rootPath.toLowerCase() === nextProject.rootPath.toLowerCase(),
+          );
+          if (hasConflict) {
+            throw new Error("Skill project root path already exists");
+          }
+
+          setTouched({ skillProjects: [nextProject, ...existingProjects] });
+          syncSettingsToMain({ skillProjects: [nextProject, ...existingProjects] });
+          return nextProject;
+        },
+        updateSkillProject: (projectId, updates) => {
+          const currentProjects = get().skillProjects;
+          const currentProject = currentProjects.find(
+            (project) => project.id === projectId,
+          );
+          if (!currentProject) {
+            return;
+          }
+
+          const nextRootPath =
+            typeof updates.rootPath === "string"
+              ? normalizeProjectPath(updates.rootPath)
+              : currentProject.rootPath;
+          const nextName =
+            typeof updates.name === "string"
+              ? updates.name.trim()
+              : currentProject.name;
+
+          if (!nextName || !nextRootPath) {
+            throw new Error("Skill project name and rootPath are required");
+          }
+
+          const hasConflict = currentProjects.some(
+            (project) =>
+              project.id !== projectId &&
+              project.rootPath.toLowerCase() === nextRootPath.toLowerCase(),
+          );
+          if (hasConflict) {
+            throw new Error("Skill project root path already exists");
+          }
+
+          const nextProjects = currentProjects.map((project) => {
+            if (project.id !== projectId) {
+              return project;
+            }
+
+            return {
+              ...project,
+              name: nextName,
+              rootPath: nextRootPath,
+              scanPaths:
+                updates.scanPaths === undefined
+                  ? project.scanPaths
+                  : normalizeProjectScanPaths(updates.scanPaths, nextRootPath),
+              lastScannedAt:
+                updates.lastScannedAt === undefined
+                  ? project.lastScannedAt
+                  : updates.lastScannedAt,
+              updatedAt: Date.now(),
+            };
+          });
+
+          setTouched({ skillProjects: nextProjects });
+          syncSettingsToMain({ skillProjects: nextProjects });
+        },
+        removeSkillProject: (projectId) => {
+          const nextProjects = get().skillProjects.filter(
+            (project) => project.id !== projectId,
+          );
+          setTouched({ skillProjects: nextProjects });
+          syncSettingsToMain({ skillProjects: nextProjects });
+        },
         setCustomSkillPlatformPath: (platformId, pathValue) => {
           const normalizedPath = pathValue.trim();
           const nextPaths = { ...get().customSkillPlatformPaths };
@@ -1123,6 +1244,62 @@ export const useSettingsStore = create<SettingsState>()(
         ) {
           next.skillPlatformOrder = [];
         }
+        if (!Array.isArray(next.skillProjects)) {
+          next.skillProjects = [];
+        } else {
+          next.skillProjects = next.skillProjects
+            .filter((project): project is SkillProject => {
+              return Boolean(
+                project &&
+                  typeof project.id === "string" &&
+                  typeof project.name === "string" &&
+                  typeof project.rootPath === "string",
+              );
+            })
+            .map((project) => {
+              const normalizedRootPath =
+                typeof project.rootPath === "string"
+                  ? project.rootPath.trim()
+                  : "";
+              const normalizedScanPaths = Array.from(
+                new Set(
+                  (Array.isArray(project.scanPaths)
+                    ? project.scanPaths
+                    : [normalizedRootPath]
+                  )
+                    .map((entry) =>
+                      typeof entry === "string" ? entry.trim() : "",
+                    )
+                    .filter((entry) => entry.length > 0),
+                ),
+              );
+
+              return {
+                ...project,
+                name: project.name.trim(),
+                rootPath: normalizedRootPath,
+                scanPaths:
+                  normalizedScanPaths.length > 0
+                    ? normalizedScanPaths
+                    : [normalizedRootPath],
+                createdAt:
+                  typeof project.createdAt === "number"
+                    ? project.createdAt
+                    : Date.now(),
+                updatedAt:
+                  typeof project.updatedAt === "number"
+                    ? project.updatedAt
+                    : Date.now(),
+                lastScannedAt:
+                  typeof project.lastScannedAt === "number"
+                    ? project.lastScannedAt
+                    : undefined,
+              };
+            })
+            .filter(
+              (project) => project.name.length > 0 && project.rootPath.length > 0,
+            );
+        }
         if (typeof next.autoScanInstalledSkills !== "boolean") {
           next.autoScanInstalledSkills = false;
         }
@@ -1157,6 +1334,7 @@ export const useSettingsStore = create<SettingsState>()(
         syncSettingsToMain({
           customSkillPlatformPaths: state?.customSkillPlatformPaths || {},
           skillPlatformOrder: state?.skillPlatformOrder || [],
+          skillProjects: state?.skillProjects || [],
         });
       },
     },

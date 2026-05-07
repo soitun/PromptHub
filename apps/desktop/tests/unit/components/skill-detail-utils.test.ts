@@ -78,6 +78,7 @@ description: |
     const t = vi.fn((key: string, fallback: string) => {
       const map: Record<string, string> = {
         "skill.sourceGithubStore": "Imported via Store",
+        "skill.sourceLocalFolder": "Imported from Local Folder",
         "skill.sourceCursorLocalFolder": "Imported from Cursor Folder",
       };
       return map[key] || fallback;
@@ -96,9 +97,17 @@ description: |
       } as any,
       t as any,
     );
+    const localSourceUrl = getSkillSourceMeta(
+      {
+        source_url: "/Users/demo/project/skills/example",
+      } as any,
+      t as any,
+    );
 
     expect(github?.sourceLabel).toBe("Imported via Store");
     expect(local?.sourceLabel).toBe("Imported from Cursor Folder");
+    expect(localSourceUrl?.kind).toBe("local");
+    expect(localSourceUrl?.sourceLabel).toBe("Imported from Local Folder");
   });
 
   it("resolves GitHub markdown base paths for repo subdirectories", () => {
