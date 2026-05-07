@@ -301,10 +301,11 @@ PromptHub/
 
 ### v0.5.5 (Versión actual) 🚀
 
-- [x] **Detección de actualizaciones de Skills del store**: los Skills instalados desde el store guardan un hash del contenido instalado y pueden comprobar el `SKILL.md` remoto
-- [x] **Protección ante conflictos de actualización**: PromptHub detecta cambios locales y solo los sobrescribe con confirmación explícita
-- [x] **Correcciones multimedia Web**: los despliegues Docker/Web pueden subir imágenes y vídeos, y mostrar medios locales sincronizados desde el desktop
-- [x] **Correcciones de sync y contraseña**: la sync Web ya no bloquea carpetas normales, Web permite cambiar la contraseña, y Desktop exige desbloqueo antes de desactivar privacidad
+- [x] **Detección de actualizaciones de Skills del store**: los Skills instalados desde el store guardan un hash de instalación y pueden comprobar cambios en el `SKILL.md` remoto de forma segura
+- [x] **Traducción completa de documentos Skill**: la traducción con IA ahora trabaja sobre el `SKILL.md` completo, guarda sidecars locales y admite modo completo e inmersivo
+- [x] **El cambio de directorio de datos ahora sí se aplica**: PromptHub relanza la app para volver a aplicar realmente la nueva ruta `userData`
+- [x] **Errores de prueba y traducción más claros**: las pruebas de modelo muestran "modelo XX prueba exitosa / fallida", y los fallos por configuración, timeout o `504` se explican con claridad
+- [x] **Correcciones Web de medios y sync**: se arreglaron la visualización de medios, la falsa privacidad y el cambio de contraseña en Web
 
 ### v0.4.9
 
@@ -335,25 +336,23 @@ Puedes ver el registro completo aquí: **[CHANGELOG.md](../CHANGELOG.md)**
 
 ### Última versión v0.5.5 (2026-05-05) 🎉
 
-**Actualizaciones de Skills**
+**Skill / IA**
 
-- 🧩 **Detección de actualizaciones del store**: los Skills del store guardan hash y versión de instalación, y comparan el `SKILL.md` remoto más reciente
-- 🛎️ **Indicador de actualización en "My Skills"**: los Skills instalados desde el store con una versión remota más nueva ahora muestran un aviso `Update available` en la lista y la galería de "My Skills"
-- 🛡️ **Protección de cambios locales**: si cambiaron tanto el contenido local como el remoto, PromptHub marca conflicto y requiere sobrescritura explícita
+- 🧩 **Detección de actualizaciones del store y protección de conflictos**: los Skills del store guardan hash y versión de instalación, comparan el `SKILL.md` remoto y exigen confirmación explícita cuando el contenido local y remoto han cambiado a la vez
+- 🌍 **Sidecars de traducción completos para `SKILL.md`**: la traducción de Skills ahora persiste sidecars desde el documento completo y admite tanto traducción total como modo inmersivo bilingüe
+- 💬 **Feedback más claro en pruebas de IA y traducción**: las pruebas de modelo muestran "modelo XX prueba exitosa / fallida", y los errores de configuración, timeout o `504` en traducción se explican claramente
 
-**Web**
+**Desktop**
+
+- 🗂️ **El cambio de directorio de datos ahora relanza de verdad**: un IPC de relanzamiento dedicado aplica la nueva ruta `userData`, y volver a elegir el directorio ya activo ya no muestra un falso reinicio pendiente
+- 🎞️ **Límites reforzados al guardar vídeo**: los vídeos solo pueden guardarse en rutas recién devueltas por el selector nativo y con extensiones admitidas
+- 🔄 **Los sidecars internos quedan ocultos en instalaciones de plataforma**: las instalaciones symlink de Skills ya solo enlazan el `SKILL.md` canónico y no exponen `.prompthub` en carpetas externas
+
+**Web / Docs**
 
 - 🌐 **Carga y visualización multimedia corregidas**: Web/Docker sube medios seleccionados y muestra URLs `local-image://` / `local-video://` sincronizadas
-- 🔐 **Estado privado de sync corregido**: las carpetas desktop sin `visibility` ya no se importan como privadas en Web
-- 🔑 **Cambio de contraseña Web**: los ajustes Web autoalojados incluyen un formulario para cambiar contraseña
-
-**Desktop y Docs**
-
-- 🔒 **Protección de carpetas privadas**: quitar privacidad en Desktop requiere desbloquear primero con la contraseña maestra
-- ✏️ **Edición rápida en el panel de detalle**: el título del panel de detalle en Desktop ahora entra en edición inline ligera con doble clic, manteniendo disponible el modal de edición completo
-- 🔄 **Flujo preview reforzado**: el canal preview permanece en feeds prerelease, solo vuelve a comprobar versiones estables después de desactivarlo y nunca baja automáticamente de una preview más nueva a una stable más antigua
-- ⚙️ **Página de ajustes de Skills y orden de plataformas restaurados**: los ajustes de Skills vuelven a una página dedicada y la prioridad de plataformas se restaura con soporte de arrastrar y soltar
-- 🌍 **Sync de documentos de release**: README, docs localizados y metadatos del sitio alineados con `v0.5.5`
+- 🔐 **Estado privado de sync y contraseña corregidos**: las carpetas desktop sin `visibility` ya no se importan como privadas en Web, y los ajustes autoalojados ahora incluyen un formulario para cambiar contraseña
+- 🌍 **Documentación de release resincronizada**: README, docs localizados, CHANGELOG y metadatos del sitio se alinearon de nuevo para que la nota final `v0.5.5` coincida con lo realmente entregado
 
 > 📋 [Ver registro de cambios](../CHANGELOG.md)
 

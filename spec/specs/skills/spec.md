@@ -22,7 +22,15 @@
 - Skill 版本历史属于稳定产品能力。
 - 版本快照、恢复、差异对比与平台分发属于 Skill 域内关键流程。
 
-### 4. Stable Internal Sources
+### 4. Translation Contract
+
+- Skill 详情页的 AI 翻译结果属于可恢复的本地用户状态。
+- 翻译结果不得改写原始 `SKILL.md`，应作为 sidecar 文档保存在 Skill 本地 repo 的 `.prompthub/translations/` 目录下。
+- 翻译是否仍然有效必须基于当前 `SKILL.md` 内容 fingerprint 判断，而不是仅凭页面内存态。
+- 当 `SKILL.md` 变化导致旧译文失效时，UI 必须回退原文并提供明确的重翻入口。
+- `.prompthub/` 目录属于 PromptHub 内部文件空间，默认不参与普通文件树、导出和分发流程。
+
+### 5. Stable Internal Sources
 
 - Skill 体系设计见 `spec/architecture/skill-system-design.md` 与 `spec/architecture/skill-system-design-zh.md`
 - Skill 商店需求见 `spec/architecture/skill-store-requirements.md` 与 `spec/architecture/skill-store-requirements-zh.md`
@@ -36,6 +44,13 @@ When Skill behavior changes materially:
 
 - contributors create a delta spec under `spec/changes/active/<change-key>/specs/skills/spec.md`
 - they sync durable behavior back into this stable spec after implementation
+
+### Scenario: Persisting translated Skill content
+
+When a user has already translated a Skill detail page:
+
+- reopening the same Skill with unchanged `SKILL.md` content restores the saved sidecar translation by default
+- changing `SKILL.md` content invalidates the old translation and requires a fresh translation before it is shown again
 
 ### Scenario: Recovering Skill knowledge
 

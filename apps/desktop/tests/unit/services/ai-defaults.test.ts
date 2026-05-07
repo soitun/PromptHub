@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { resolveScenarioModel } from "../../../src/renderer/services/ai-defaults";
+import {
+  resolveScenarioAIConfig,
+  resolveScenarioModel,
+} from "../../../src/renderer/services/ai-defaults";
 
 describe("ai-defaults", () => {
   it("uses explicit scenario selection when available", () => {
@@ -59,5 +62,35 @@ describe("ai-defaults", () => {
     );
 
     expect(model?.id).toBe("image-a");
+  });
+
+  it("falls back to legacy root chat config when the selected scenario model is unusable", () => {
+    const config = resolveScenarioAIConfig({
+      aiModels: [
+        {
+          id: "broken-translation",
+          type: "chat",
+          provider: "openai",
+          apiKey: "",
+          apiUrl: "https://api.example.com",
+          model: "gpt-4o-mini",
+        },
+      ],
+      scenarioModelDefaults: { translation: "broken-translation" },
+      scenario: "translation",
+      type: "chat",
+      aiProvider: "openai",
+      aiApiKey: "legacy-key",
+      aiApiUrl: "https://api.legacy.example.com",
+      aiModel: "gpt-4o",
+    });
+
+    expect(config).toMatchObject({
+      provider: "openai",
+      apiKey: "legacy-key",
+      apiUrl: "https://api.legacy.example.com",
+      model: "gpt-4o",
+      type: "chat",
+    });
   });
 });

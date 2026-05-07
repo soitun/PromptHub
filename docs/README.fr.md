@@ -301,10 +301,11 @@ PromptHub/
 
 ### v0.5.5 (Version actuelle) 🚀
 
-- [x] **Détection des mises à jour des Skills du store** : les Skills installés depuis le store conservent un hash du contenu installé et peuvent vérifier le `SKILL.md` distant
-- [x] **Protection contre les conflits de mise à jour** : PromptHub détecte les modifications locales et ne les écrase qu'après confirmation explicite
-- [x] **Correctifs média Web** : les déploiements Docker/Web peuvent téléverser images et vidéos, et afficher les médias locaux synchronisés depuis le desktop
-- [x] **Correctifs sync et mot de passe** : la sync Web ne verrouille plus les dossiers normaux, le mot de passe Web peut être modifié, et le desktop exige le déverrouillage avant de retirer le mode privé
+- [x] **Détection des mises à jour des Skills du store** : les Skills installés depuis le store conservent un hash d'installation et peuvent vérifier le `SKILL.md` distant en toute sécurité
+- [x] **Traduction complète des Skills** : la traduction IA travaille désormais sur le `SKILL.md` complet, avec sidecar local, mode complet et mode immersif bilingue
+- [x] **Changement du dossier de données réellement appliqué** : PromptHub relance maintenant l'application pour réappliquer le nouveau chemin `userData`
+- [x] **Retour plus clair pour les tests IA** : les tests de modèles affichent « modèle XX test réussi / échoué », et les erreurs de traduction non configurée, timeout ou `504` sont explicites
+- [x] **Correctifs Web média et sync** : correction de l'affichage des médias, du faux état privé et de l'entrée de changement de mot de passe Web
 
 ### v0.4.9
 
@@ -335,25 +336,23 @@ Vous pouvez voir le journal complet ici : **[CHANGELOG.md](../CHANGELOG.md)**
 
 ### Dernière version v0.5.5 (2026-05-05) 🎉
 
-**Mises à jour des Skills**
+**Skill / IA**
 
-- 🧩 **Détection des mises à jour du store** : les Skills installés depuis le store enregistrent le hash et la version d'installation, puis comparent le `SKILL.md` distant
-- 🛎️ **Indicateur de mise à jour dans « My Skills »** : les Skills installés depuis le store et disposant d’une version distante plus récente affichent désormais un indicateur `Update available` dans la liste et la galerie de « My Skills »
-- 🛡️ **Protection des modifications locales** : si le contenu local et le contenu distant ont tous deux changé, PromptHub signale un conflit et demande une confirmation d'écrasement
+- 🧩 **Détection des mises à jour du store et protection des conflits** : les Skills du store enregistrent hash et version d'installation, comparent le `SKILL.md` distant et demandent une confirmation explicite si local et distant ont divergé
+- 🌍 **Sidecars de traduction complets pour `SKILL.md`** : la traduction des Skills persiste désormais un sidecar à partir du document complet, avec modes traduction intégrale et comparaison immersive
+- 💬 **Retour plus clair pour les tests IA et la traduction** : les tests de modèles affichent « modèle XX test réussi / échoué », et les erreurs de configuration, timeout ou `504` côté traduction sont explicites
 
-**Web**
+**Desktop**
+
+- 🗂️ **Le changement de dossier de données relance vraiment l'app** : un IPC de relance dédié applique désormais le nouveau chemin `userData`, et rechoisir le dossier déjà actif ne signale plus un faux redémarrage requis
+- 🎞️ **Limites renforcées sur l'enregistrement vidéo** : les sauvegardes vidéo n'acceptent plus que le chemin renvoyé par le sélecteur natif et des extensions vidéo prises en charge
+- 🔄 **Les sidecars internes sont cachés des plateformes externes** : l'installation symlink des Skills ne lie plus que le `SKILL.md` canonique, sans exposer `.prompthub` dans les dossiers de plateformes externes
+
+**Web / Docs**
 
 - 🌐 **Médias Web corrigés** : les déploiements Web/Docker téléversent les médias sélectionnés et affichent les URLs `local-image://` / `local-video://` synchronisées
-- 🔐 **État privé de sync corrigé** : les dossiers desktop sans `visibility` ne sont plus importés comme dossiers privés sur le Web
-- 🔑 **Changement du mot de passe Web** : les paramètres Web auto-hébergés incluent un formulaire de changement de mot de passe
-
-**Desktop & Docs**
-
-- 🔒 **Protection des dossiers privés** : retirer le mode privé sur Desktop nécessite d'abord le déverrouillage par mot de passe maître
-- ✏️ **Édition rapide dans le panneau de détail** : le titre du panneau de détail desktop passe maintenant en édition inline légère au double-clic, tout en conservant la fenêtre d’édition complète
-- 🔄 **Flux d’update preview renforcé** : le canal preview reste limité aux feeds prerelease, ne revient aux vérifications stables qu’après désactivation du canal d’aperçu, et n’effectue jamais de rétrogradation automatique d’une preview plus récente vers une stable plus ancienne
-- ⚙️ **Page de réglages Skill et ordre des plateformes restaurés** : les réglages liés aux Skills reviennent sur une page dédiée, et la priorité des plateformes est restaurée avec prise en charge du glisser-déposer
-- 🌍 **Sync des documents de release** : README, docs localisées et métadonnées du site synchronisés sur `v0.5.5`
+- 🔐 **État privé de sync et mot de passe corrigés** : les dossiers desktop sans `visibility` ne sont plus importés comme privés, et les paramètres Web auto-hébergés incluent désormais un formulaire de changement de mot de passe
+- 🌍 **Docs de release resynchronisées** : README, docs localisées, CHANGELOG et métadonnées du site ont été réalignés pour que la note finale `v0.5.5` corresponde exactement à ce qui est livré
 
 > 📋 [Voir le journal des modifications](../CHANGELOG.md)
 

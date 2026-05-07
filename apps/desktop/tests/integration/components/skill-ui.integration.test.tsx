@@ -87,6 +87,11 @@ function createSkillStoreState(overrides: Partial<Record<string, unknown>> = {})
     scanLocalPreview: vi.fn().mockResolvedValue([]),
     importScannedSkills: vi.fn().mockResolvedValue({ importedCount: 0 }),
     translateContent: vi.fn().mockResolvedValue(undefined),
+    getTranslationState: vi.fn().mockReturnValue({
+      value: null,
+      hasTranslation: false,
+      isStale: false,
+    }),
     getTranslation: vi.fn().mockReturnValue(null),
     clearTranslation: vi.fn(),
     ...overrides,

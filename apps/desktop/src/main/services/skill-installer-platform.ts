@@ -327,9 +327,10 @@ export async function getSkillMdInstallStatus(
 /**
  * Install SKILL.md to a platform via symlink (soft install)
  *
- * Creates a symlink from the platform skills directory to the
- * central PromptHub skills directory, so all platforms share
- * the same source file and updates propagate automatically.
+ * Creates a platform skill directory that symlinks only the canonical
+ * `SKILL.md` file from PromptHub's managed repo. This preserves shared
+ * updates without exposing PromptHub-internal sidecar directories such as
+ * `.prompthub/` to external platform skill folders.
  */
 export async function installSkillMdSymlink(
   skillName: string,
@@ -353,10 +354,12 @@ export async function installSkillMdSymlink(
     skillMdContent,
     "utf-8",
   );
+  const canonicalSkillMdPath = path.join(canonicalDir, "SKILL.md");
 
-  // 2. Create a symlink from the platform dir → canonical dir
+  // 2. Create a platform skill dir and symlink only SKILL.md into it
   const platformSkillsDir = getPlatformSkillsDir(platform);
   const platformSkillDir = path.join(platformSkillsDir, skillName);
+  const platformSkillMdPath = path.join(platformSkillDir, "SKILL.md");
   const fallbackInstall = async (reason: string): Promise<void> => {
     console.warn(
       `Symlink install unsupported for "${skillName}" on ${platform.name}; falling back to copy install. Reason: ${reason}`,
@@ -379,9 +382,10 @@ export async function installSkillMdSymlink(
     }
 
     // Create directory symlink
-    await fs.symlink(canonicalDir, platformSkillDir, "dir");
+    await fs.mkdir(platformSkillDir, { recursive: true });
+    await fs.symlink(canonicalSkillMdPath, platformSkillMdPath, "file");
     console.log(
-      `Symlinked "${skillName}" → ${platform.name}: ${canonicalDir} → ${platformSkillDir}`,
+      `Symlinked "${skillName}" → ${platform.name}: ${canonicalSkillMdPath} → ${platformSkillMdPath}`,
     );
   } catch (error) {
     const code = getErrorCode(error);

@@ -1,4 +1,4 @@
-import { act, waitFor } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { SkillStore } from "../../../src/renderer/components/skill/SkillStore";
@@ -637,6 +637,104 @@ describe("SkillStore remote loading", () => {
     expect(showToast).toHaveBeenCalledWith(
       expect.stringContaining("Static scan found potentially risky patterns"),
       "warning",
+    );
+  });
+
+  it("defaults to saved translation in store detail and toggles back to original", async () => {
+    useSkillStore.setState({
+      getTranslationState: vi.fn().mockReturnValue({
+        value: "---\ndescription: Translated store content\n---\n\nTranslated store content",
+        hasTranslation: true,
+        isStale: false,
+      }),
+    } as never);
+
+    const skill = {
+      slug: "writer",
+      name: "Writer",
+      description: "Original description",
+      category: "general",
+      tags: ["writing"],
+      version: "1.0.0",
+      content: "# Writer\n\nOriginal content",
+      compatibility: ["claude"],
+    } as never;
+
+    const { getByRole, getByText } = await renderWithI18n(
+      <SkillStoreDetail skill={skill} isInstalled={false} onClose={vi.fn()} />,
+      { language: "en" },
+    );
+
+    expect(screen.getAllByText("Translated store content")).toHaveLength(2);
+
+    await act(async () => {
+      fireEvent.click(getByRole("button", { name: "Show Original" }));
+    });
+
+    expect(getByText("Original content")).toBeInTheDocument();
+  });
+
+  it("prompts for retranslation when store translation is stale", async () => {
+    useSkillStore.setState({
+      getTranslationState: vi.fn().mockReturnValue({
+        value: null,
+        hasTranslation: true,
+        isStale: true,
+      }),
+    } as never);
+
+    const skill = {
+      slug: "writer",
+      name: "Writer",
+      description: "Original description",
+      category: "general",
+      tags: ["writing"],
+      version: "1.0.0",
+      content: "# Writer\n\nOriginal content",
+      compatibility: ["claude"],
+    } as never;
+
+    const { getByText } = await renderWithI18n(
+      <SkillStoreDetail skill={skill} isInstalled={false} onClose={vi.fn()} />,
+      { language: "en" },
+    );
+
+    await waitFor(() => {
+      expect(getByText("Saved translation is outdated")).toBeInTheDocument();
+    });
+  });
+
+  it("shows a clear timeout error when store translation request returns 504", async () => {
+    const translateContent = vi
+      .fn()
+      .mockRejectedValue(new Error("API 请求失败 (504)"));
+    useSkillStore.setState({
+      translateContent,
+    } as never);
+
+    const skill = {
+      slug: "writer",
+      name: "Writer",
+      description: "Original description",
+      category: "general",
+      tags: ["writing"],
+      version: "1.0.0",
+      content: "# Writer\n\nOriginal content",
+      compatibility: ["claude"],
+    } as never;
+
+    const { getByRole } = await renderWithI18n(
+      <SkillStoreDetail skill={skill} isInstalled={false} onClose={vi.fn()} />,
+      { language: "en" },
+    );
+
+    await act(async () => {
+      fireEvent.click(getByRole("button", { name: "AI Translate" }));
+    });
+
+    expect(showToast).toHaveBeenCalledWith(
+      "The AI service timed out while translating. Please try again in a moment, or switch to a faster / more stable model endpoint.",
+      "error",
     );
   });
 });

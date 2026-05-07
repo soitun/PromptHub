@@ -138,6 +138,31 @@ function getConnectionErrorMessage(
   return message;
 }
 
+function getModelDisplayName(
+  model: { name?: string; model?: string } | null | undefined,
+  fallback = "AI",
+): string {
+  return model?.name?.trim() || model?.model?.trim() || fallback;
+}
+
+function formatModelTestSuccessToast(
+  modelName: string,
+  latency: number,
+  t: (key: string, options?: Record<string, unknown>) => string,
+  extra?: string,
+): string {
+  return `${modelName} ${t("settings.aiWorkbenchModelTestSuccess", "测试成功")} (${latency}ms)${extra ?? ""}`;
+}
+
+function formatModelTestFailureToast(
+  modelName: string,
+  message: string,
+  t: (key: string, options?: Record<string, unknown>) => string,
+  apiUrl?: string,
+): string {
+  return `${modelName} ${t("settings.aiWorkbenchModelTestFailed", "测试失败")}: ${getConnectionErrorMessage(message, t, apiUrl)}`;
+}
+
 export function AISettingsPrototype() {
   const settings = useSettingsStore();
   const { showToast } = useToast();
@@ -396,6 +421,7 @@ export function AISettingsPrototype() {
     }
 
     setTestingModelId(editingModelId || "__draft__");
+    const modelName = getModelDisplayName(modelForm);
     try {
       if (modelForm.type === "image") {
         const result = await testImageGeneration(
@@ -411,7 +437,7 @@ export function AISettingsPrototype() {
           throw new Error(result.error || t("toast.connectionFailed"));
         }
         showToast(
-          `${t("toast.connectionSuccess")} (${result.latency}ms)`,
+          formatModelTestSuccessToast(modelName, result.latency, t),
           "success",
         );
       } else {
@@ -425,16 +451,13 @@ export function AISettingsPrototype() {
           throw new Error(result.error || t("toast.connectionFailed"));
         }
         showToast(
-          `${t("toast.connectionSuccess")} (${result.latency}ms)`,
+          formatModelTestSuccessToast(modelName, result.latency, t),
           "success",
         );
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      showToast(
-        getConnectionErrorMessage(message, t, modelForm.apiUrl),
-        "error",
-      );
+      showToast(formatModelTestFailureToast(modelName, message, t, modelForm.apiUrl), "error");
     } finally {
       setTestingModelId(null);
     }
@@ -539,6 +562,7 @@ export function AISettingsPrototype() {
     }
 
     setTestingModelId(model.id);
+    const modelName = getModelDisplayName(model);
     try {
       if ((model.type ?? "chat") === "image") {
         const result = await testImageGeneration(
@@ -554,7 +578,7 @@ export function AISettingsPrototype() {
           throw new Error(result.error || t("toast.connectionFailed"));
         }
         showToast(
-          `${t("toast.connectionSuccess")} (${result.latency}ms)`,
+          formatModelTestSuccessToast(modelName, result.latency, t),
           "success",
         );
       } else {
@@ -568,13 +592,13 @@ export function AISettingsPrototype() {
           throw new Error(result.error || t("toast.connectionFailed"));
         }
         showToast(
-          `${t("toast.connectionSuccess")} (${result.latency}ms)`,
+          formatModelTestSuccessToast(modelName, result.latency, t),
           "success",
         );
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      showToast(getConnectionErrorMessage(message, t, model.apiUrl), "error");
+      showToast(formatModelTestFailureToast(modelName, message, t, model.apiUrl), "error");
     } finally {
       setTestingModelId(null);
     }

@@ -286,6 +286,76 @@ describe("AISettingsPrototype", () => {
     15000,
   );
 
+  it("includes the model name in success toasts when testing a draft chat model", async () => {
+    const showToast = vi.fn();
+    useToastMock.mockReturnValue({ showToast });
+    useSettingsStoreMock.mockReturnValue(createSettingsState());
+    vi.mocked(testAIConnection).mockResolvedValue({
+      success: true,
+      response: "hello",
+      latency: 321,
+      provider: "openai",
+      model: "gpt-4.1",
+    });
+
+    await renderWithI18n(<AISettingsPrototype />, { language: "en" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Add Model" }));
+    fireEvent.change(screen.getByPlaceholderText("Enter API Key"), {
+      target: { value: "test-key" },
+    });
+    fireEvent.change(screen.getByLabelText("API URL"), {
+      target: { value: "https://api.example.com/v1" },
+    });
+    fireEvent.change(screen.getByLabelText("Model Name"), {
+      target: { value: "gpt-4.1" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Test Current Config" }));
+
+    await waitFor(() => {
+      expect(showToast).toHaveBeenCalledWith(
+        "gpt-4.1 test succeeded (321ms)",
+        "success",
+      );
+    });
+  });
+
+  it("includes the model name in failure toasts when testing a draft chat model", async () => {
+    const showToast = vi.fn();
+    useToastMock.mockReturnValue({ showToast });
+    useSettingsStoreMock.mockReturnValue(createSettingsState());
+    vi.mocked(testAIConnection).mockResolvedValue({
+      success: false,
+      error: "API request failed (504)",
+      latency: 654,
+      provider: "openai",
+      model: "gpt-4.1",
+    });
+
+    await renderWithI18n(<AISettingsPrototype />, { language: "en" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Add Model" }));
+    fireEvent.change(screen.getByPlaceholderText("Enter API Key"), {
+      target: { value: "test-key" },
+    });
+    fireEvent.change(screen.getByLabelText("API URL"), {
+      target: { value: "https://api.example.com/v1" },
+    });
+    fireEvent.change(screen.getByLabelText("Model Name"), {
+      target: { value: "gpt-4.1" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Test Current Config" }));
+
+    await waitFor(() => {
+      expect(showToast).toHaveBeenCalledWith(
+        "gpt-4.1 test failed: API request failed (504)",
+        "error",
+      );
+    });
+  });
+
   describe("batch model selection", () => {
     const mockModels = [
       { id: "gpt-4.1", owned_by: "openai" },

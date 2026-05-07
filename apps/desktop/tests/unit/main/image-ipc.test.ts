@@ -199,6 +199,53 @@ describe("image IPC", () => {
     );
   });
 
+  it("only saves video paths that came from the file picker", async () => {
+    const { handlers, IPC_CHANNELS } = await setupImageIpc();
+    showOpenDialogMock.mockResolvedValue({
+      canceled: false,
+      filePaths: ["/Users/demo/Movies/allowed.mp4"],
+    });
+    uuidMock.mockReturnValue("saved-video");
+
+    await expect(
+      handlers[IPC_CHANNELS.DIALOG_SELECT_VIDEO](null),
+    ).resolves.toEqual(["/Users/demo/Movies/allowed.mp4"]);
+
+    await expect(
+      handlers[IPC_CHANNELS.VIDEO_SAVE](null, ["/Users/demo/Movies/other.mp4"]),
+    ).resolves.toEqual([]);
+    expect(copyFileMock).not.toHaveBeenCalled();
+
+    await expect(
+      handlers[IPC_CHANNELS.DIALOG_SELECT_VIDEO](null),
+    ).resolves.toEqual(["/Users/demo/Movies/allowed.mp4"]);
+
+    await expect(
+      handlers[IPC_CHANNELS.VIDEO_SAVE](null, ["/Users/demo/Movies/allowed.mp4"]),
+    ).resolves.toEqual(["saved-video.mp4"]);
+    expect(copyFileMock).toHaveBeenCalledWith(
+      "/Users/demo/Movies/allowed.mp4",
+      "/tmp/prompthub-videos/saved-video.mp4",
+    );
+  });
+
+  it("rejects unsupported video extensions even when selected by the picker", async () => {
+    const { handlers, IPC_CHANNELS } = await setupImageIpc();
+    showOpenDialogMock.mockResolvedValue({
+      canceled: false,
+      filePaths: ["/Users/demo/Movies/not-actually-video.txt"],
+    });
+
+    await expect(
+      handlers[IPC_CHANNELS.DIALOG_SELECT_VIDEO](null),
+    ).resolves.toEqual(["/Users/demo/Movies/not-actually-video.txt"]);
+
+    await expect(
+      handlers[IPC_CHANNELS.VIDEO_SAVE](null, ["/Users/demo/Movies/not-actually-video.txt"]),
+    ).resolves.toEqual([]);
+    expect(copyFileMock).not.toHaveBeenCalled();
+  });
+
   it("blocks redirected downloads before writing files when the target host is not public", async () => {
     const { handlers, IPC_CHANNELS } = await setupImageIpc();
     uuidMock.mockReturnValue("downloaded-image");

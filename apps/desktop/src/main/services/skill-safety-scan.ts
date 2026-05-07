@@ -10,6 +10,7 @@ import type {
 } from "@prompthub/shared/types";
 import { chatCompletion } from "./ai-client";
 import { resolvePublicAddress } from "./skill-installer-remote";
+import { isInternalSkillRepoEntry } from "./skill-installer-repo";
 
 const MAX_SCAN_DEPTH = 5;
 const MAX_SCAN_FILES = 200;
@@ -488,6 +489,10 @@ function scanRepoFiles(
 
   for (const file of files) {
     if (file.isDirectory) {
+      continue;
+    }
+
+    if (isInternalSkillRepoEntry(file.path)) {
       continue;
     }
 

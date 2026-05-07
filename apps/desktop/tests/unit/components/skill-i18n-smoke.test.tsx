@@ -13,6 +13,7 @@ import type { Skill } from "@prompthub/shared/types";
 import { SkillFullDetailPage } from "../../../src/renderer/components/skill/SkillFullDetailPage";
 import { SkillManager } from "../../../src/renderer/components/skill/SkillManager";
 import { SkillPlatformPanel } from "../../../src/renderer/components/skill/SkillPlatformPanel";
+import { computeSkillContentFingerprint } from "../../../src/renderer/services/skill-store-update";
 
 type TranslationTree = Record<string, unknown>;
 
@@ -148,6 +149,11 @@ function createSkillStoreState(overrides: Partial<Record<string, unknown>> = {})
     setRemoteStoreEntry: vi.fn(),
     importScannedSkills: vi.fn().mockResolvedValue({ importedCount: 0 }),
     translateContent: vi.fn().mockResolvedValue(undefined),
+    getTranslationState: vi.fn().mockReturnValue({
+      value: null,
+      hasTranslation: false,
+      isStale: false,
+    }),
     getTranslation: vi.fn().mockReturnValue(null),
     clearTranslation: vi.fn(),
     ...overrides,
@@ -387,6 +393,181 @@ describe("skill i18n smoke", () => {
     expect(screen.getByText("Imported from Local Folder")).toBeInTheDocument();
     expect(screen.queryByText("源码/内容")).not.toBeInTheDocument();
     expect(screen.queryByText("批量管理")).not.toBeInTheDocument();
+  });
+
+  it("defaults to saved translation and toggles back to original content", async () => {
+    const syncedSkill = {
+      ...baseSkill,
+      description: "Write helper",
+      instructions: "---\ndescription: Write helper\n---\n\n# Write\n\nHelp the user write better.",
+      content: "---\ndescription: Write helper\n---\n\n# Write\n\nHelp the user write better.",
+    };
+    const sourceFingerprint = computeSkillContentFingerprint(
+      syncedSkill.instructions,
+    );
+    const getTranslationState = vi.fn().mockReturnValue({
+      value: null,
+      hasTranslation: false,
+      isStale: false,
+    });
+    const skillStoreState = createSkillStoreState({
+      selectedSkillId: baseSkill.id,
+      syncSkillFromRepo: vi.fn().mockResolvedValue(syncedSkill),
+      getTranslationState,
+    });
+    const settingsState = createSettingsState({ translationMode: "full" });
+
+    useSkillStoreMock.mockImplementation((selector) => selector(skillStoreState));
+    useSettingsStoreMock.mockImplementation((selector) => selector(settingsState));
+    window.api.skill.getRepoPath = vi.fn().mockResolvedValue(baseSkill.local_repo_path);
+    window.api.skill.readLocalFile = vi.fn(async (_skillId, relativePath) => {
+      if (relativePath === ".prompthub/translations/English/full/meta.json") {
+        return {
+          path: relativePath,
+          isDirectory: false,
+          content: JSON.stringify({
+            schemaVersion: 1,
+            sourceFile: "SKILL.md",
+            sourceFingerprint,
+            targetLanguage: "English",
+            translationMode: "full",
+            translatedAt: Date.now(),
+          }),
+        };
+      }
+
+      if (relativePath === ".prompthub/translations/English/full/SKILL.md") {
+        return {
+          path: relativePath,
+          isDirectory: false,
+          content:
+            "---\ndescription: Write helper\n---\n\n# Write\n\nTranslated skill content from sidecar",
+        };
+      }
+
+      return null;
+    });
+
+    await act(async () => {
+      render(<SkillFullDetailPage />);
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Translated skill content from sidecar"),
+      ).toBeInTheDocument();
+    });
+    expect(screen.getByText("Write helper")).toBeInTheDocument();
+
+    const toggleButton = screen.getByRole("button", { name: "Show Original" });
+    expect(toggleButton.className).toContain("bg-primary/10");
+
+    fireEvent.click(toggleButton);
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: "Show Translation" }),
+      ).toBeInTheDocument();
+    });
+    expect(screen.getByText("Help the user write better.")).toBeInTheDocument();
+  });
+
+  it("prompts to retranslate when the saved translation is stale", async () => {
+    const syncedSkill = {
+      ...baseSkill,
+      description: "Updated helper",
+      instructions: "---\ndescription: Updated helper\n---\n\n# Write\n\nUpdated content",
+      content: "---\ndescription: Updated helper\n---\n\n# Write\n\nUpdated content",
+    };
+    const skillStoreState = createSkillStoreState({
+      selectedSkillId: baseSkill.id,
+      syncSkillFromRepo: vi.fn().mockResolvedValue(syncedSkill),
+      getTranslationState: vi.fn().mockReturnValue({
+        value: null,
+        hasTranslation: true,
+        isStale: true,
+      }),
+    });
+    const settingsState = createSettingsState({ translationMode: "full" });
+
+    useSkillStoreMock.mockImplementation((selector) => selector(skillStoreState));
+    useSettingsStoreMock.mockImplementation((selector) => selector(settingsState));
+
+    await act(async () => {
+      render(<SkillFullDetailPage />);
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Saved translation is outdated"),
+      ).toBeInTheDocument();
+    });
+    expect(
+      screen.getByText(
+        "This skill's SKILL.md changed after the last translation. Retranslate now?",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Translated skill content")).not.toBeInTheDocument();
+  });
+
+  it("shows a clear configuration error when no usable translation model is configured", async () => {
+    const translateContent = vi.fn().mockRejectedValue(new Error("AI_NOT_CONFIGURED"));
+    const showToast = vi.fn();
+    useToastMock.mockReturnValue({ showToast });
+
+    const skillStoreState = createSkillStoreState({
+      selectedSkillId: baseSkill.id,
+      syncSkillFromRepo: vi.fn().mockResolvedValue(baseSkill),
+      translateContent,
+    });
+    const settingsState = createSettingsState();
+
+    useSkillStoreMock.mockImplementation((selector) => selector(skillStoreState));
+    useSettingsStoreMock.mockImplementation((selector) => selector(settingsState));
+
+    await act(async () => {
+      render(<SkillFullDetailPage />);
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "AI Translate" }));
+
+    await waitFor(() => {
+      expect(showToast).toHaveBeenCalledWith(
+        "No usable AI translation model is configured. Please configure a chat model in Settings, or fix the selected translation model.",
+        "error",
+      );
+    });
+  });
+
+  it("shows a clear timeout error when translation request returns 504", async () => {
+    const translateContent = vi
+      .fn()
+      .mockRejectedValue(new Error("API 请求失败 (504)"));
+    const showToast = vi.fn();
+    useToastMock.mockReturnValue({ showToast });
+
+    const skillStoreState = createSkillStoreState({
+      selectedSkillId: baseSkill.id,
+      syncSkillFromRepo: vi.fn().mockResolvedValue(baseSkill),
+      translateContent,
+    });
+    const settingsState = createSettingsState();
+
+    useSkillStoreMock.mockImplementation((selector) => selector(skillStoreState));
+    useSettingsStoreMock.mockImplementation((selector) => selector(settingsState));
+
+    await act(async () => {
+      render(<SkillFullDetailPage />);
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "AI Translate" }));
+
+    await waitFor(() => {
+      expect(showToast).toHaveBeenCalledWith(
+        "The AI service timed out while translating. Please try again in a moment, or switch to a faster / more stable model endpoint.",
+        "error",
+      );
+    });
   });
 
   it("exports a full local repo zip from the detail panel", async () => {

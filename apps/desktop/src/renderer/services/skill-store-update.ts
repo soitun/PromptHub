@@ -59,16 +59,7 @@ export function normalizeSkillContentForHash(content: string): string {
   return normalizeFrontmatter(normalized).trimEnd();
 }
 
-async function sha256Hex(content: string): Promise<string> {
-  const subtle = globalThis.crypto?.subtle;
-  if (subtle) {
-    const bytes = new TextEncoder().encode(content);
-    const digest = await subtle.digest("SHA-256", bytes);
-    return Array.from(new Uint8Array(digest))
-      .map((byte) => byte.toString(16).padStart(2, "0"))
-      .join("");
-  }
-
+function fallbackHashHex(content: string): string {
   let hash1 = 0x811c9dc5;
   let hash2 = 0x01000193;
   for (let index = 0; index < content.length; index += 1) {
@@ -84,8 +75,23 @@ async function sha256Hex(content: string): Promise<string> {
   return `${fragment}${fragment}`.slice(0, 64);
 }
 
+export function computeSkillContentFingerprint(content: string): string {
+  return fallbackHashHex(normalizeSkillContentForHash(content));
+}
+
 export async function computeSkillContentHash(content: string): Promise<string> {
-  return sha256Hex(normalizeSkillContentForHash(content));
+  const normalized = normalizeSkillContentForHash(content);
+  const subtle = globalThis.crypto?.subtle;
+
+  if (subtle) {
+    const bytes = new TextEncoder().encode(normalized);
+    const digest = await subtle.digest("SHA-256", bytes);
+    return Array.from(new Uint8Array(digest))
+      .map((byte) => byte.toString(16).padStart(2, "0"))
+      .join("");
+  }
+
+  return fallbackHashHex(normalized);
 }
 
 export function findInstalledRegistrySkill(

@@ -16,11 +16,11 @@ import { SkillMarkdown } from "./SkillMarkdown";
 import { renderImmersiveSegments, stripFrontmatter } from "./detail-utils";
 
 interface SkillPreviewPaneProps {
-  cachedDescriptionTranslation: string | null;
   cachedInstructionsTranslation: string | null;
   copyStatus: Record<string, boolean>;
   handleCopy: (text: string, key: string) => void;
   handleTranslateSkill: (forceRefresh?: boolean) => void;
+  hasStaleTranslation: boolean;
   isTranslating: boolean;
   resolvedDescription: string;
   selectedSkill: Skill;
@@ -31,11 +31,11 @@ interface SkillPreviewPaneProps {
 }
 
 export function SkillPreviewPane({
-  cachedDescriptionTranslation,
   cachedInstructionsTranslation,
   copyStatus,
   handleCopy,
   handleTranslateSkill,
+  hasStaleTranslation,
   isTranslating,
   resolvedDescription,
   selectedSkill,
@@ -54,6 +54,17 @@ export function SkillPreviewPane({
       : undefined;
   const safeAuthor =
     typeof selectedSkill.author === "string" ? selectedSkill.author : undefined;
+  const visibleSkillContent = useMemo(
+    () => stripFrontmatter(skillContent),
+    [skillContent],
+  );
+  const visibleTranslatedContent = useMemo(
+    () =>
+      cachedInstructionsTranslation
+        ? stripFrontmatter(cachedInstructionsTranslation)
+        : null,
+    [cachedInstructionsTranslation],
+  );
 
   return (
     <div className="lg:col-span-2 flex h-full min-h-0 flex-col overflow-hidden space-y-6">
@@ -62,15 +73,9 @@ export function SkillPreviewPane({
           {t("skill.skillDescription", "技能描述")}
         </h3>
         <div className="app-wallpaper-panel rounded-2xl border border-border p-5 space-y-4">
-          {showTranslation && cachedDescriptionTranslation ? (
-            <p className="text-sm text-primary/80 leading-relaxed italic">
-              {cachedDescriptionTranslation}
-            </p>
-          ) : (
-            <p className="text-sm text-foreground/90 leading-relaxed">
-              {resolvedDescription || t("skill.defaultDescriptionLong")}
-            </p>
-          )}
+          <p className="text-sm text-foreground/90 leading-relaxed">
+            {resolvedDescription || t("skill.defaultDescriptionLong")}
+          </p>
 
           <div className="flex flex-wrap gap-2">
             {safeAuthor && (
@@ -139,6 +144,14 @@ export function SkillPreviewPane({
                     {t("skill.refreshTranslation", "Refresh Translation")}
                   </button>
                 )}
+                {hasStaleTranslation && !visibleTranslatedContent && (
+                  <span className="inline-flex items-center rounded-lg bg-amber-500/10 px-3 py-1.5 text-xs font-medium text-amber-700 dark:text-amber-300">
+                    {t(
+                      "skill.translationOutdatedBadge",
+                      "Saved translation needs refresh",
+                    )}
+                  </span>
+                )}
               </div>
             )}
             <button
@@ -168,11 +181,11 @@ export function SkillPreviewPane({
               secondaryActionLabel={t("common.retry", "重试")}
             >
               {skillContent.trim() ? (
-                showTranslation && cachedInstructionsTranslation ? (
+                showTranslation && visibleTranslatedContent ? (
                   translationMode === "immersive" ? (
                     <div className="markdown-body">
                       {renderImmersiveSegments(
-                        cachedInstructionsTranslation,
+                        visibleTranslatedContent,
                       ).map((segment, index) =>
                         segment.type === "translation" ? (
                           <div
@@ -195,7 +208,7 @@ export function SkillPreviewPane({
                   ) : (
                     <div className="markdown-body">
                       <SkillMarkdown
-                        content={cachedInstructionsTranslation}
+                        content={visibleTranslatedContent}
                         enableHighlight
                       />
                     </div>
@@ -203,7 +216,7 @@ export function SkillPreviewPane({
                 ) : (
                   <div className="markdown-body">
                     <SkillMarkdown
-                      content={stripFrontmatter(skillContent)}
+                      content={visibleSkillContent}
                       sourceUrl={selectedSkill.source_url}
                       contentUrl={selectedSkill.content_url}
                       enableHighlight

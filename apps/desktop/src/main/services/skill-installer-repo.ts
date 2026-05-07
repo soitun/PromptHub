@@ -73,6 +73,14 @@ const TEXT_EXTENSIONS = new Set([
   ".rs",
 ]);
 
+const INTERNAL_REPO_DIRS = new Set([".git", ".prompthub"]);
+
+export function isInternalSkillRepoEntry(relativePath: string): boolean {
+  return relativePath
+    .split(/[\\/]+/)
+    .some((segment) => INTERNAL_REPO_DIRS.has(segment));
+}
+
 // ==================== Internal helpers ====================
 
 /**
@@ -115,6 +123,10 @@ async function walkRepoDir<T>(opts: {
       }
       const relativePath = path.relative(baseDir, fullPath);
       const isDirectory = dirent.isDirectory();
+
+      if (isInternalSkillRepoEntry(relativePath)) {
+        continue;
+      }
 
       const item = await onEntry({
         relativePath,

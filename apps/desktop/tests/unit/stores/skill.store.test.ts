@@ -4,7 +4,9 @@ vi.mock("../../../src/renderer/services/ai", () => ({
   chatCompletion: vi.fn(),
 }));
 
+import { chatCompletion } from "../../../src/renderer/services/ai";
 import { useSkillStore } from "../../../src/renderer/stores/skill.store";
+import { useSettingsStore } from "../../../src/renderer/stores/settings.store";
 import { createSkillFixture } from "../../fixtures/skills";
 import { installWindowMocks } from "../../helpers/window";
 
@@ -36,6 +38,15 @@ const resetSkillStore = () => {
 describe("skill store", () => {
   beforeEach(() => {
     resetSkillStore();
+    useSettingsStore.setState({
+      aiProvider: "openai",
+      aiApiKey: "test-key",
+      aiApiUrl: "https://example.com/v1",
+      aiModel: "gpt-4o-mini",
+      aiModels: [],
+      scenarioModelDefaults: {},
+      translationMode: "full",
+    });
     installWindowMocks({
       api: {
         skill: {
@@ -808,6 +819,98 @@ description: Use this skill for PDF tasks.
       }
 
       expect(Object.keys(filteredEntries)).toHaveLength(0);
+    });
+  });
+
+  describe("translation cache", () => {
+    it("reuses a saved translation when the source fingerprint is unchanged", async () => {
+      vi.mocked(chatCompletion).mockResolvedValue({
+        content: "已翻译内容",
+      } as never);
+
+      const first = await useSkillStore
+        .getState()
+        .translateContent("# Skill\n\nOriginal", "skill-cache", "中文");
+
+      const cached = useSkillStore
+        .getState()
+        .getTranslationState("skill-cache");
+
+      const second = await useSkillStore
+        .getState()
+        .translateContent("# Skill\n\nOriginal", "skill-cache", "中文");
+
+      expect(first).toBe("已翻译内容");
+      expect(second).toBe("已翻译内容");
+      expect(cached).toEqual({
+        value: "已翻译内容",
+        hasTranslation: true,
+        isStale: false,
+      });
+      expect(chatCompletion).toHaveBeenCalledTimes(1);
+    });
+
+    it("marks a saved translation stale when SKILL.md content changes", async () => {
+      vi.mocked(chatCompletion).mockResolvedValue({
+        content: "旧译文",
+      } as never);
+
+      await useSkillStore
+        .getState()
+        .translateContent("# Skill\n\nOriginal", "skill-cache", "中文");
+
+      const stale = useSkillStore
+        .getState()
+        .getTranslationState("skill-cache", "changed-fingerprint");
+
+      expect(stale).toEqual({
+        value: null,
+        hasTranslation: true,
+        isStale: true,
+      });
+    });
+
+    it("falls back to legacy root AI config when the translation scenario model is incomplete", async () => {
+      useSettingsStore.setState({
+        aiProvider: "openai",
+        aiApiKey: "legacy-key",
+        aiApiUrl: "https://api.legacy.example.com",
+        aiModel: "gpt-4o",
+        aiModels: [
+          {
+            id: "broken-translation",
+            name: "Broken Translation",
+            type: "chat",
+            provider: "openai",
+            apiKey: "",
+            apiUrl: "https://api.example.com",
+            model: "gpt-4o-mini",
+          },
+        ],
+        scenarioModelDefaults: {
+          translation: "broken-translation",
+        },
+        translationMode: "full",
+      });
+      vi.mocked(chatCompletion).mockResolvedValue({
+        content: "translated with legacy config",
+      } as never);
+
+      const translated = await useSkillStore
+        .getState()
+        .translateContent("# Skill\n\nOriginal", "skill-cache", "中文");
+
+      expect(translated).toBe("translated with legacy config");
+      expect(chatCompletion).toHaveBeenCalledWith(
+        expect.objectContaining({
+          provider: "openai",
+          apiKey: "legacy-key",
+          apiUrl: "https://api.legacy.example.com",
+          model: "gpt-4o",
+        }),
+        expect.any(Array),
+        expect.any(Object),
+      );
     });
   });
 });

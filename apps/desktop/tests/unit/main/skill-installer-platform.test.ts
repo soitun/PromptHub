@@ -74,9 +74,9 @@ describe("skill-installer-platform symlink install", () => {
     await installSkillMdSymlink("demo-skill", "# skill", "claude");
 
     expect(fsMocks.symlink).toHaveBeenCalledWith(
-      "/prompthub/skills/demo-skill",
-      "/platform/skills/demo-skill",
-      "dir",
+      "/prompthub/skills/demo-skill/SKILL.md",
+      "/platform/skills/demo-skill/SKILL.md",
+      "file",
     );
     expect(repoMocks.saveContentToLocalRepo).toHaveBeenCalledWith(
       "demo-skill",
@@ -86,6 +86,30 @@ describe("skill-installer-platform symlink install", () => {
       "/platform/skills/demo-skill/SKILL.md",
       "# skill",
       "utf-8",
+    );
+  });
+
+  it("symlinks only the canonical SKILL.md file into the platform directory", async () => {
+    await installSkillMdSymlink("demo-skill", "# skill", "claude");
+
+    expect(fsMocks.mkdir).toHaveBeenCalledWith("/prompthub/skills/demo-skill", {
+      recursive: true,
+    });
+    expect(fsMocks.mkdir).toHaveBeenCalledWith("/platform/skills", {
+      recursive: true,
+    });
+    expect(fsMocks.mkdir).toHaveBeenCalledWith("/platform/skills/demo-skill", {
+      recursive: true,
+    });
+    expect(fsMocks.symlink).toHaveBeenCalledWith(
+      "/prompthub/skills/demo-skill/SKILL.md",
+      "/platform/skills/demo-skill/SKILL.md",
+      "file",
+    );
+    expect(fsMocks.symlink).not.toHaveBeenCalledWith(
+      "/prompthub/skills/demo-skill",
+      "/platform/skills/demo-skill",
+      "dir",
     );
   });
 });

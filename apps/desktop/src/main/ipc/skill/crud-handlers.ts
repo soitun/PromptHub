@@ -1,6 +1,7 @@
 import { ipcMain } from "electron";
 import { IPC_CHANNELS } from "@prompthub/shared/constants";
 import { SkillInstaller } from "../../services/skill-installer";
+import { isInternalSkillRepoEntry } from "../../services/skill-installer-repo";
 import { ensureLocalRepoPath } from "./shared";
 import {
   hasMetadataChanges,
@@ -261,6 +262,9 @@ export function registerSkillCrudHandlers({ db }: SkillIPCContext): void {
     const zipFiles: Record<string, Uint8Array> = {};
 
     for (const file of fileEntries) {
+      if (isInternalSkillRepoEntry(file.path)) {
+        continue;
+      }
       zipFiles[file.path.replace(/\\/g, "/")] = file.data;
     }
 

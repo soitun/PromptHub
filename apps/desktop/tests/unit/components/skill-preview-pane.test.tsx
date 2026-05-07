@@ -17,11 +17,11 @@ describe("SkillPreviewPane", () => {
 
     await renderWithI18n(
       <SkillPreviewPane
-        cachedDescriptionTranslation={null}
         cachedInstructionsTranslation={null}
         copyStatus={{ instr: false }}
         handleCopy={vi.fn()}
         handleTranslateSkill={vi.fn()}
+        hasStaleTranslation={false}
         isTranslating={false}
         resolvedDescription="Imported skill description"
         selectedSkill={skill}
@@ -40,5 +40,31 @@ describe("SkillPreviewPane", () => {
       screen.getByText("This content should still render."),
     ).toBeInTheDocument();
     expect(screen.queryByText("[object Object]")).not.toBeInTheDocument();
+  });
+
+  it("shows a stale translation badge when saved translation needs refresh", async () => {
+    const skill = createSkillFixture();
+    const t = ((key: string, defaultValue?: string) => defaultValue ?? key) as any;
+
+    await renderWithI18n(
+      <SkillPreviewPane
+        cachedInstructionsTranslation={null}
+        copyStatus={{ instr: false }}
+        handleCopy={vi.fn()}
+        handleTranslateSkill={vi.fn()}
+        hasStaleTranslation={true}
+        isTranslating={false}
+        resolvedDescription="Original description"
+        selectedSkill={skill}
+        showTranslation={false}
+        skillContent={"# Skill\n\nOriginal body"}
+        t={t}
+        translationMode="full"
+      />,
+    );
+
+    expect(
+      screen.getByText("Saved translation needs refresh"),
+    ).toBeInTheDocument();
   });
 });

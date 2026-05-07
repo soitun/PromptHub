@@ -318,10 +318,11 @@ PromptHub/
 
 ### v0.5.5 (Current Stable) 🚀
 
-- [x] **Store Skill update detection**: Store-installed Skills persist an install-time content hash and can check whether the remote `SKILL.md` changed
-- [x] **Skill update conflict protection**: PromptHub detects local edits versus remote updates and only overwrites local changes after explicit confirmation
-- [x] **Web media fixes**: Docker/Web deployments can upload images and videos, and can render desktop-synced local media URLs
-- [x] **Sync and password fixes**: Web sync no longer locks normal folders by mistake, Web settings can change the login password, and Desktop private folders require unlock before disabling privacy
+- [x] **Store Skill update detection**: Store-installed Skills persist an install-time content hash and can safely check whether the remote `SKILL.md` changed
+- [x] **Full-document Skill translation**: AI translation now works on the complete `SKILL.md`, supports both full and immersive modes, and persists sidecar translations in the local repo
+- [x] **Real relaunch for data-path switching**: Data-directory changes now relaunch the desktop app so the new `userData` path actually takes effect
+- [x] **Clearer AI test and translation errors**: Model tests now say “<model> test succeeded/failed”, and translation failures surface explicit missing-config / timeout / 504 guidance
+- [x] **Web media and sync fixes**: Docker/Web deployments can upload media and no longer misclassify normal folders as private during sync
 
 ### v0.4.9
 
@@ -352,25 +353,23 @@ See full changelog: **[CHANGELOG.md](../CHANGELOG.md)**
 
 ### Latest Version v0.5.5 (2026-05-05) 🎉
 
-**Skill Updates**
+**Skill / AI**
 
-- 🧩 **Store Skill update detection**: Store-installed Skills save their install-time content hash and version, then compare the latest remote `SKILL.md` for updates
-- 🛎️ **My Skills update indicator**: Store-installed Skills with a newer remote version now show an `Update available` hint in both the My Skills list and gallery views
-- 🛡️ **Local edit conflict protection**: If both local content and remote content changed, PromptHub reports a conflict and requires explicit overwrite
+- 🧩 **Store Skill update detection and conflict protection**: Store-installed Skills now persist install-time hashes and versions, can compare the latest remote `SKILL.md`, and require explicit confirmation when local edits and remote updates conflict
+- 🌍 **Complete `SKILL.md` translation sidecars**: Skill translation now persists sidecar translations generated from the full document, supports both full and immersive bilingual modes, and keeps the summary and body derived from the same document version
+- 💬 **Clear AI test and translation feedback**: Model tests now explicitly say “<model> test succeeded/failed”, while missing-model, timeout, and `504` translation failures surface clear user-facing guidance
 
-**Web**
+**Desktop**
+
+- 🗂️ **Data-path switching now relaunches for real**: Switching the data directory now goes through a dedicated desktop relaunch IPC so the new `userData` path actually takes effect, and re-selecting the active directory no longer shows a false pending restart
+- 🎞️ **Video save boundary tightened**: Video saves now accept only fresh picker-returned target paths and supported video extensions, preventing arbitrary renderer-supplied paths from being written into app data
+- 🔄 **Internal sidecars hidden from platform installs**: Skill platform symlink installs now link only the canonical `SKILL.md`, so `.prompthub` translation sidecars are not exposed inside external platform skill folders
+
+**Web / Docs**
 
 - 🌐 **Media upload and display fixed**: Web/Docker deployments can upload selected media and display desktop-synced `local-image://` / `local-video://` URLs
-- 🔐 **Sync privacy state fixed**: Desktop folders without `visibility` are no longer imported as private folders on Web
-- 🔑 **Login password change entry**: Self-hosted Web settings now include a password-change form
-
-**Desktop & Docs**
-
-- 🔒 **Private folder protection**: Disabling folder privacy on Desktop requires unlocking with the master password first
-- ✏️ **Card-detail quick editing**: The desktop card-detail title now enters lightweight inline editing on double-click while keeping the full edit modal available
-- 🔄 **Preview update flow hardened**: The preview lane stays on prerelease feeds only, returns to stable checks only after the preview channel is turned off, and never auto-downgrades from a newer preview build to an older stable release
-- ⚙️ **Skill settings and platform order restored**: Skill settings are back on a dedicated settings page, and platform priority can be restored and reordered with drag and drop
-- 🌍 **Docs and localized release sync**: README, localized docs, and website release metadata are aligned to `v0.5.5`
+- 🔐 **Sync privacy and password fixes**: Desktop folders without `visibility` are no longer imported as private on Web, and the self-hosted Web settings page now includes a password-change form
+- 🌍 **Release docs resynced**: README, localized docs, the changelog, and website release metadata were resynced so the final `v0.5.5` notes match the shipped behavior
 
 > 📋 [View full changelog](../CHANGELOG.md)
 

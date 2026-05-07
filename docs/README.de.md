@@ -301,10 +301,11 @@ PromptHub/
 
 ### v0.5.5 (Aktuelle Version) 🚀
 
-- [x] **Update-Erkennung für Store-Skills**: Aus dem Store installierte Skills speichern einen Inhalts-Hash und können prüfen, ob sich das entfernte `SKILL.md` geändert hat
-- [x] **Konfliktschutz bei Skill-Updates**: Lokale Änderungen werden erkannt und nur nach ausdrücklicher Bestätigung überschrieben
-- [x] **Web-Medien korrigiert**: Docker/Web-Deployments können Bilder und Videos hochladen und Desktop-synchronisierte lokale Medien-URLs anzeigen
-- [x] **Sync- und Passwort-Fixes**: Web-Sync sperrt normale Ordner nicht mehr versehentlich, Web-Passwörter können geändert werden, und Desktop verlangt Entsperren vor dem Deaktivieren von Privatordnern
+- [x] **Update-Erkennung für Store-Skills**: Store-Skills speichern einen Installations-Hash und können Änderungen am entfernten `SKILL.md` sicher prüfen
+- [x] **Vollständige Skill-Dokumentübersetzung**: KI-Übersetzungen arbeiten jetzt auf dem kompletten `SKILL.md`, speichern lokale Sidecars und unterstützen Voll- sowie Immersive-Modus
+- [x] **Datenpfad-Wechsel greift jetzt wirklich nach Relaunch**: PromptHub startet neu, um den neuen `userData`-Pfad tatsächlich anzuwenden
+- [x] **Klarere KI-Test- und Übersetzungsfehler**: Modelltests zeigen jetzt „XX-Modell Test erfolgreich / fehlgeschlagen“, und Übersetzungsfehler durch fehlende Konfiguration, Timeout oder `504` werden klar erläutert
+- [x] **Web-Medien- und Sync-Fixes**: Medienanzeige, Fehlklassifikation normaler Ordner und Passwortänderung im Web wurden nachgezogen
 
 ### v0.4.9
 
@@ -335,25 +336,23 @@ Den vollständigen Verlauf finden Sie hier: **[CHANGELOG.md](../CHANGELOG.md)**
 
 ### Neueste Version v0.5.5 (2026-05-05) 🎉
 
-**Skill-Updates**
+**Skill / KI**
 
-- 🧩 **Store-Skill-Updates erkennen**: Store-Skills speichern Installations-Hash und Version und vergleichen das aktuelle entfernte `SKILL.md`
-- 🛎️ **Update-Hinweis in „My Skills“**: Store-installierte Skills mit neuerer Remote-Version zeigen jetzt einen `Update available`-Hinweis in der Listen- und Galerieansicht von „My Skills“
-- 🛡️ **Schutz lokaler Änderungen**: Wenn lokale und entfernte Inhalte geändert wurden, meldet PromptHub einen Konflikt und verlangt explizites Überschreiben
+- 🧩 **Store-Skill-Updateerkennung und Konfliktschutz**: Store-Skills speichern Installations-Hash und Version, vergleichen das aktuelle entfernte `SKILL.md` und verlangen eine ausdrückliche Bestätigung bei Konflikten zwischen lokal und remote
+- 🌍 **Komplette `SKILL.md`-Übersetzungs-Sidecars**: Skill-Übersetzungen persistieren jetzt Sidecars aus dem vollständigen Dokument und unterstützen Vollübersetzung sowie immersive Zweisprachigkeit
+- 💬 **Klarere KI-Test- und Übersetzungsrückmeldungen**: Modelltests zeigen jetzt „XX-Modell Test erfolgreich / fehlgeschlagen“, und Konfigurations-, Timeout- oder `504`-Fehler bei Übersetzungen werden explizit erklärt
 
-**Web**
+**Desktop**
+
+- 🗂️ **Datenpfad-Wechsel mit echtem Relaunch**: Ein dedizierter Relaunch-IPC wendet jetzt den neuen `userData`-Pfad wirklich an, und die erneute Auswahl des aktiven Verzeichnisses erzeugt keinen falschen Neustart-Hinweis mehr
+- 🎞️ **Video-Speichergrenzen verschärft**: Videos können nur noch an frische, vom nativen Picker zurückgegebene Ziele mit unterstützten Dateiendungen gespeichert werden
+- 🔄 **Interne Sidecars bleiben bei Plattform-Installationen verborgen**: Skill-Symlink-Installationen verlinken nur noch das kanonische `SKILL.md`, ohne `.prompthub` in externe Plattform-Ordner zu leaken
+
+**Web / Docs**
 
 - 🌐 **Medien-Upload und Anzeige korrigiert**: Web/Docker lädt ausgewählte Medien hoch und zeigt synchronisierte `local-image://` / `local-video://` URLs an
-- 🔐 **Privatstatus bei Sync korrigiert**: Desktop-Ordner ohne `visibility` werden im Web nicht mehr als privat importiert
-- 🔑 **Login-Passwort ändern**: Die selbst gehosteten Web-Einstellungen enthalten ein Formular zum Ändern des Passworts
-
-**Desktop & Docs**
-
-- 🔒 **Schutz privater Ordner**: Das Deaktivieren des Privatstatus auf Desktop erfordert zuerst das Master-Passwort
-- ✏️ **Schnellbearbeitung in der Kartendetailansicht**: Der Titel in der Desktop-Kartendetailansicht wechselt jetzt per Doppelklick in eine leichte Inline-Bearbeitung; das vollständige Bearbeitungsfenster bleibt erhalten
-- 🔄 **Preview-Updatepfad gehärtet**: Der Vorschaukanal bleibt auf prerelease-Feeds beschränkt, kehrt erst nach dem Deaktivieren des Vorschaukanals zu Stable-Prüfungen zurück und führt kein automatisches Downgrade von neueren Vorschauversionen auf ältere Stable-Releases durch
-- ⚙️ **Skill-Einstellungsseite und Plattformreihenfolge wiederhergestellt**: Skill-bezogene Einstellungen befinden sich wieder auf einer eigenen Seite, und die Plattformpriorität wird im vorgesehenen Standard angezeigt und kann per Drag-and-Drop angepasst werden
-- 🌍 **Release-Dokument-Sync**: README, lokalisierte Dokus und Website-Metadaten auf `v0.5.5` synchronisiert
+- 🔐 **Privatstatus bei Sync und Passwort korrigiert**: Desktop-Ordner ohne `visibility` werden im Web nicht mehr als privat importiert, und die selbst gehosteten Web-Einstellungen enthalten nun ein Formular zum Ändern des Passworts
+- 🌍 **Release-Dokumente neu synchronisiert**: README, lokalisierte Dokus, CHANGELOG und Website-Metadaten wurden erneut abgeglichen, damit die finale `v0.5.5`-Beschreibung dem ausgelieferten Verhalten entspricht
 
 > 📋 [Vollständiges Änderungsprotokoll anzeigen](../CHANGELOG.md)
 

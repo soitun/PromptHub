@@ -32,6 +32,49 @@ export function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+export function formatSkillTranslationError(
+  error: unknown,
+  t: TFunction,
+): string {
+  const rawMessage = getErrorMessage(error);
+  const normalized = rawMessage.toLowerCase();
+
+  if (rawMessage === "AI_NOT_CONFIGURED") {
+    return t(
+      "skill.aiNotConfiguredDetailed",
+      "No usable AI translation model is configured. Please configure a chat model in Settings, or fix the selected translation model.",
+    );
+  }
+
+  if (
+    normalized.includes("(504)") ||
+    normalized.includes(" 504") ||
+    normalized.includes("gateway timeout") ||
+    normalized.includes("网关超时")
+  ) {
+    return t(
+      "skill.translateGatewayTimeout",
+      "The AI service timed out while translating. Please try again in a moment, or switch to a faster / more stable model endpoint.",
+    );
+  }
+
+  if (
+    normalized.includes("failed to fetch") ||
+    normalized.includes("network request failed") ||
+    normalized.includes("network timeout") ||
+    normalized.includes("timed out") ||
+    normalized.includes("timeout") ||
+    normalized.includes("网络请求失败")
+  ) {
+    return t(
+      "skill.translateNetworkError",
+      "The translation request could not reach the AI service. Please check your network and API endpoint, then try again.",
+    );
+  }
+
+  return `${t("skill.translateFailed", "Translation failed")}: ${rawMessage}`;
+}
+
 export interface SkillSourceMeta {
   kind: "github" | "remote" | "local";
   value: string;

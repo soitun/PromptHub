@@ -161,6 +161,14 @@ export function DataSettings() {
     useState<DataPathChangePreview | null>(null);
   const [dataPathActionLoading, setDataPathActionLoading] = useState(false);
 
+  const restartApp = async () => {
+    if (window.electron?.relaunchApp) {
+      await window.electron.relaunchApp();
+      return;
+    }
+    window.location.reload();
+  };
+
   // WebDAV operation state
   // WebDAV 操作状态
   const [webdavTesting, setWebdavTesting] = useState(false);
@@ -589,6 +597,7 @@ export function DataSettings() {
     result: {
       success: boolean;
       newPath?: string;
+      needsRestart?: boolean;
       backupPath?: string;
       error?: string;
     } | undefined,
@@ -622,12 +631,19 @@ export function DataSettings() {
         : action === "overwrite"
           ? "Data migrated and target backup created"
           : "Data path changed";
+    const requiresRestart = result.needsRestart !== false;
     showToast(
-      t(messageKey, fallbackMessage) +
-        " " +
-        t("settings.restartRequired", "Please restart app"),
+      requiresRestart
+        ? t(messageKey, fallbackMessage) +
+            " " +
+            t("settings.restartRequired", "Please restart app")
+        : t(messageKey, fallbackMessage),
       "success",
     );
+
+    if (!requiresRestart) {
+      return;
+    }
 
     setTimeout(() => {
       if (
@@ -638,7 +654,7 @@ export function DataSettings() {
           ),
         )
       ) {
-        window.location.reload();
+        void restartApp();
       }
     }, 1000);
   };
@@ -691,6 +707,7 @@ export function DataSettings() {
         {
           success: true,
           newPath: preview.targetPath || newPath,
+          needsRestart: false,
         },
         "switch",
         newPath,

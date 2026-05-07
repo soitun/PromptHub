@@ -128,6 +128,7 @@ export function createWindowElectronMock(overrides?: DeepPartial<MockRecord>) {
       toggleFullscreen: vi.fn(),
       isFullscreen: vi.fn().mockResolvedValue(false),
       setAutoLaunch: vi.fn(),
+      relaunchApp: vi.fn().mockResolvedValue({ success: true }),
       setDebugMode: vi.fn(),
       toggleDevTools: vi.fn(),
       setMinimizeToTray: vi.fn(),

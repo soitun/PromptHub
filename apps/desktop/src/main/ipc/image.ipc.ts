@@ -15,8 +15,10 @@ const IMAGE_DOWNLOAD_TIMEOUT_MS = 30_000;
 const IMAGE_DOWNLOAD_MAX_BYTES = 10 * 1024 * 1024;
 const IMAGE_DOWNLOAD_MAX_REDIRECTS = 5;
 const IMAGE_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".gif", ".webp"]);
+const VIDEO_EXTENSIONS = new Set([".mp4", ".webm", ".mov", ".avi", ".mkv"]);
 
 let lastSelectedImagePaths = new Set<string>();
+let lastSelectedVideoPaths = new Set<string>();
 
 /**
  * Validate external URL to prevent SSRF attacks.
@@ -191,6 +193,10 @@ async function downloadImageBuffer(
 
 function isAllowedSelectedImagePath(filePath: string): boolean {
   return lastSelectedImagePaths.has(path.resolve(filePath));
+}
+
+function isAllowedSelectedVideoPath(filePath: string): boolean {
+  return lastSelectedVideoPaths.has(path.resolve(filePath));
 }
 
 /**
@@ -476,8 +482,12 @@ export function registerImageIPC(): void {
     });
 
     if (!result.canceled && result.filePaths.length > 0) {
+      lastSelectedVideoPaths = new Set(
+        result.filePaths.map((filePath) => path.resolve(filePath)),
+      );
       return result.filePaths;
     }
+    lastSelectedVideoPaths = new Set();
     return [];
   });
 
@@ -493,16 +503,26 @@ export function registerImageIPC(): void {
 
       for (const filePath of filePaths) {
         try {
+          const resolvedFilePath = path.resolve(filePath);
+          if (!isAllowedSelectedVideoPath(resolvedFilePath)) {
+            throw new Error("Video path was not selected through the file picker");
+          }
+
           const ext = path.extname(filePath);
+          if (!VIDEO_EXTENSIONS.has(ext.toLowerCase())) {
+            throw new Error("Unsupported video type");
+          }
           const fileName = `${uuidv4()}${ext}`;
           const destPath = path.join(videosDir, fileName);
 
-          await fs.copyFile(filePath, destPath);
+          await fs.copyFile(resolvedFilePath, destPath);
           savedVideos.push(fileName);
         } catch (error) {
           console.error(`Failed to save video ${filePath}:`, error);
         }
       }
+
+      lastSelectedVideoPaths = new Set();
 
       return savedVideos;
     },

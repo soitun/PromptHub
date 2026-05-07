@@ -350,6 +350,10 @@ const IMAGE_CATEGORY_ORDER = CATEGORY_ORDER.map((c) =>
   c === "Gemini" ? "nanobananai 🍌" : c,
 );
 
+function getModelDisplayName(model: { name?: string; model?: string }): string {
+  return model.name?.trim() || model.model?.trim() || "AI";
+}
+
 export function AISettings() {
   const { t } = useTranslation();
   const { showToast } = useToast();
@@ -705,6 +709,7 @@ export function AISettings() {
     setAiTestResult(null);
     setStreamingContent("");
     setStreamingThinking("");
+    const modelName = getModelDisplayName(model);
 
     const useStream = model.chatParams?.stream ?? false;
 
@@ -738,11 +743,14 @@ export function AISettings() {
         ? ` · ${t("settings.thinkingContent")}`
         : "";
       showToast(
-        `${t("toast.connectionSuccess")} (${result.latency}ms)${thinkingInfo}`,
+        `${modelName} ${t("settings.aiWorkbenchModelTestSuccess", "测试成功")} (${result.latency}ms)${thinkingInfo}`,
         "success",
       );
     } else {
-      showToast(result.error || t("toast.connectionFailed"), "error");
+      showToast(
+        `${modelName} ${t("settings.aiWorkbenchModelTestFailed", "测试失败")}: ${result.error || t("toast.connectionFailed")}`,
+        "error",
+      );
     }
   };
 
@@ -882,17 +890,21 @@ export function AISettings() {
       apiUrl: settings.aiApiUrl,
       model: settings.aiModel,
     });
+    const modelName = settings.aiModel?.trim() || "AI";
 
     setAiTestResult(result);
     setAiTesting(false);
 
     if (result.success) {
       showToast(
-        `${t("toast.connectionSuccess")} (${result.latency}ms)`,
+        `${modelName} ${t("settings.aiWorkbenchModelTestSuccess", "测试成功")} (${result.latency}ms)`,
         "success",
       );
     } else {
-      showToast(result.error || t("toast.connectionFailed"), "error");
+      showToast(
+        `${modelName} ${t("settings.aiWorkbenchModelTestFailed", "测试失败")}: ${result.error || t("toast.connectionFailed")}`,
+        "error",
+      );
     }
   };
 

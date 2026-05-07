@@ -37,12 +37,19 @@ import "./SkillMarkdown.css";
 import {
   downloadSkillExport,
   downloadSkillZipExport,
+  formatSkillTranslationError,
   getErrorMessage,
   getSafetyScanAIConfig,
   groupSkillSafetyFindings,
   resolveSkillDescription,
-  stripFrontmatter,
 } from "./detail-utils";
+import { computeSkillContentFingerprint } from "../../services/skill-store-update";
+import {
+  isSkillTranslationStale,
+  readSkillTranslationSidecar,
+  writeSkillTranslationSidecar,
+  type SkillTranslationSidecar,
+} from "../../services/skill-translation-sidecar";
 import { useSkillPlatform } from "./use-skill-platform";
 import { SkillVersionHistoryModal } from "./SkillVersionHistoryModal";
 import type { SkillSafetyReport } from "@prompthub/shared/types";
@@ -115,9 +122,11 @@ export function SkillFullDetailPage() {
     (() => void) | null
   >(null);
   const translateContent = useSkillStore((state) => state.translateContent);
-  const getTranslation = useSkillStore((state) => state.getTranslation);
+  const getTranslationState = useSkillStore((state) => state.getTranslationState);
   const clearTranslation = useSkillStore((state) => state.clearTranslation);
   const contentScrollRef = useRef<HTMLDivElement>(null);
+  const stalePromptFingerprintRef = useRef<string | null>(null);
+  const [isRetranslatePromptOpen, setIsRetranslatePromptOpen] = useState(false);
   const buildDefaultSnapshotNote = () =>
     t("skill.snapshotDefaultNote", {
       timestamp: new Date().toLocaleString(i18n.language || undefined),
@@ -135,13 +144,6 @@ export function SkillFullDetailPage() {
           : "English";
   }, [i18n.language]);
 
-  const resolvedDescription = useMemo(
-    () =>
-      resolveSkillDescription(resolvedSkillMdContent) ||
-      selectedSkill?.description ||
-      "",
-    [resolvedSkillMdContent, selectedSkill?.description],
-  );
   const safetyTone =
     safetyReport?.level === "blocked"
       ? "border-destructive/40 bg-destructive/5 text-destructive"
@@ -156,17 +158,41 @@ export function SkillFullDetailPage() {
   );
 
   const translationCacheKey = selectedSkill
-    ? `skill_${selectedSkill.id}_${targetLang}_${translationMode}`
+    ? `skilldoc_v2_${selectedSkill.id}_${targetLang}_${translationMode}`
     : "";
-  const descriptionTranslationCacheKey = selectedSkill
-    ? `skill_desc_${selectedSkill.id}_${targetLang}_${translationMode}`
-    : "";
-  const cachedInstructionsTranslation = translationCacheKey
-    ? getTranslation(translationCacheKey)
-    : null;
-  const cachedDescriptionTranslation = descriptionTranslationCacheKey
-    ? getTranslation(descriptionTranslationCacheKey)
-    : null;
+  const instructionsTranslationFingerprint = useMemo(
+    () => computeSkillContentFingerprint(resolvedSkillMdContent),
+    [resolvedSkillMdContent],
+  );
+  const instructionsTranslationState = translationCacheKey
+    ? getTranslationState(
+        translationCacheKey,
+        instructionsTranslationFingerprint,
+      )
+    : { value: null, hasTranslation: false, isStale: false };
+  const [translationSidecar, setTranslationSidecar] =
+    useState<SkillTranslationSidecar | null>(null);
+  const hasSidecarTranslation = Boolean(translationSidecar?.content);
+  const hasStaleTranslation = translationSidecar
+    ? isSkillTranslationStale(translationSidecar, resolvedSkillMdContent)
+    : instructionsTranslationState.isStale;
+  const hasSavedTranslation =
+    hasSidecarTranslation || instructionsTranslationState.hasTranslation;
+  const effectiveInstructionsTranslation = hasStaleTranslation
+    ? null
+    : (translationSidecar?.content ?? instructionsTranslationState.value);
+  const hasDisplayableTranslation = Boolean(effectiveInstructionsTranslation);
+  const effectiveSkillMdContent =
+    showTranslation && effectiveInstructionsTranslation
+      ? effectiveInstructionsTranslation
+      : resolvedSkillMdContent;
+  const resolvedDescription = useMemo(
+    () =>
+      resolveSkillDescription(effectiveSkillMdContent) ||
+      selectedSkill?.description ||
+      "",
+    [effectiveSkillMdContent, selectedSkill?.description],
+  );
   // Refresh when skill changes
   useEffect(() => {
     if (!runtimeCapabilities.skillFileEditing && activeTab === "files") {
@@ -176,11 +202,31 @@ export function SkillFullDetailPage() {
 
   useEffect(() => {
     if (selectedSkill) {
+      stalePromptFingerprintRef.current = null;
       setShowTranslation(false);
+      setIsRetranslatePromptOpen(false);
+      setTranslationSidecar(null);
+      setResolvedSkillMdContent(
+        selectedSkill.instructions || selectedSkill.content || "",
+      );
       // Restore persisted safety report when switching skills
       setSafetyReport(selectedSkill.safetyReport ?? null);
     }
   }, [selectedSkill?.id]);
+
+  useEffect(() => {
+    if (!selectedSkill) {
+      setShowTranslation(false);
+      return;
+    }
+
+    if (hasStaleTranslation) {
+      setShowTranslation(false);
+      return;
+    }
+
+    setShowTranslation(hasSavedTranslation);
+  }, [hasSavedTranslation, hasStaleTranslation, selectedSkill?.id]);
 
   useEffect(() => {
     let cancelled = false;
@@ -222,6 +268,63 @@ export function SkillFullDetailPage() {
     selectedSkill?.content,
     selectedSkill?.updated_at,
     syncSkillFromRepo,
+  ]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadTranslationSidecar() {
+      if (!selectedSkill) {
+        setTranslationSidecar(null);
+        return;
+      }
+
+      try {
+        const sidecar = await readSkillTranslationSidecar(
+          selectedSkill.id,
+          targetLang,
+          translationMode,
+        );
+
+        if (!cancelled) {
+          setTranslationSidecar(sidecar);
+        }
+      } catch {
+        if (!cancelled) {
+          setTranslationSidecar(null);
+        }
+      }
+    }
+
+    void loadTranslationSidecar();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedSkill?.id, targetLang, translationMode]);
+
+  useEffect(() => {
+    if (!selectedSkill || !resolvedSkillMdContent.trim()) {
+      stalePromptFingerprintRef.current = null;
+      return;
+    }
+
+    if (!hasStaleTranslation) {
+      stalePromptFingerprintRef.current = null;
+      return;
+    }
+
+    if (stalePromptFingerprintRef.current === instructionsTranslationFingerprint) {
+      return;
+    }
+
+    stalePromptFingerprintRef.current = instructionsTranslationFingerprint;
+    setIsRetranslatePromptOpen(true);
+  }, [
+    hasStaleTranslation,
+    instructionsTranslationFingerprint,
+    resolvedSkillMdContent,
+    selectedSkill?.id,
   ]);
 
   useEffect(() => {
@@ -406,7 +509,7 @@ export function SkillFullDetailPage() {
   const handleTranslateSkill = async (forceRefresh = false) => {
     if (!selectedSkill) return;
 
-    if (!forceRefresh && cachedInstructionsTranslation) {
+    if (!forceRefresh && hasDisplayableTranslation && !hasStaleTranslation) {
       setShowTranslation(!showTranslation);
       return;
     }
@@ -415,29 +518,33 @@ export function SkillFullDetailPage() {
     try {
       if (forceRefresh) {
         clearTranslation(translationCacheKey);
-        clearTranslation(descriptionTranslationCacheKey);
       }
 
-      const stripped = stripFrontmatter(resolvedSkillMdContent);
-      const promises: Promise<unknown>[] = [
-        translateContent(stripped, translationCacheKey, targetLang, {
+      const translated = await translateContent(
+        resolvedSkillMdContent,
+        translationCacheKey,
+        targetLang,
+        {
           forceRefresh,
-        }),
-      ];
+          sourceFingerprint: instructionsTranslationFingerprint,
+        },
+      );
 
-      if (resolvedDescription) {
-        promises.push(
-          translateContent(
-            resolvedDescription,
-            descriptionTranslationCacheKey,
-            targetLang,
-            { forceRefresh },
-          ),
-        );
+      if (!translated) {
+        throw new Error("TRANSLATION_EMPTY");
       }
 
-      await Promise.all(promises);
+      const nextSidecar = await writeSkillTranslationSidecar({
+        skillId: selectedSkill.id,
+        sourceContent: resolvedSkillMdContent,
+        translatedContent: translated,
+        targetLanguage: targetLang,
+        translationMode,
+      });
+
+      setTranslationSidecar(nextSidecar);
       setShowTranslation(true);
+      setIsRetranslatePromptOpen(false);
       showToast(
         forceRefresh
           ? t("skill.translateRefreshed", "Translation refreshed")
@@ -445,20 +552,7 @@ export function SkillFullDetailPage() {
         "success",
       );
     } catch (error: unknown) {
-      if (error instanceof Error && error.message === "AI_NOT_CONFIGURED") {
-        showToast(
-          t(
-            "skill.aiNotConfigured",
-            "Please configure AI model in Settings first",
-          ),
-          "error",
-        );
-      } else {
-        showToast(
-          `${t("skill.translateFailed", "Translation failed")}: ${getErrorMessage(error)}`,
-          "error",
-        );
-      }
+      showToast(formatSkillTranslationError(error, t), "error");
     } finally {
       setIsTranslating(false);
     }
@@ -716,16 +810,16 @@ export function SkillFullDetailPage() {
             {activeTab === "preview" ? (
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:items-stretch">
                 <SkillPreviewPane
-                  cachedDescriptionTranslation={cachedDescriptionTranslation}
-                  cachedInstructionsTranslation={cachedInstructionsTranslation}
+                  cachedInstructionsTranslation={effectiveInstructionsTranslation}
                   copyStatus={copyStatus}
                   handleCopy={handleCopy}
                   handleTranslateSkill={handleTranslateSkill}
+                  hasStaleTranslation={hasStaleTranslation}
                   isTranslating={isTranslating}
                   resolvedDescription={resolvedDescription}
                   selectedSkill={selectedSkill}
                   showTranslation={showTranslation}
-                  skillContent={resolvedSkillMdContent}
+                  skillContent={effectiveSkillMdContent}
                   t={t}
                   translationMode={translationMode}
                 />
@@ -754,7 +848,7 @@ export function SkillFullDetailPage() {
                 copyStatus={copyStatus}
                 handleCopy={handleCopy}
                 selectedSkill={selectedSkill}
-                skillContent={resolvedSkillMdContent}
+                skillContent={effectiveSkillMdContent}
                 t={t}
               />
             )}
@@ -765,7 +859,7 @@ export function SkillFullDetailPage() {
       {showBackToTop && activeTab !== "files" && (
         <button
           onClick={scrollToTop}
-          className="absolute bottom-6 left-1/2 z-20 -translate-x-1/2 inline-flex items-center gap-2 rounded-full border border-border app-wallpaper-surface px-4 py-2 text-sm font-medium text-foreground shadow-lg hover:bg-accent transition-colors"
+          className="absolute bottom-6 left-1/2 z-20 inline-flex -translate-x-1/2 items-center gap-2 rounded-full border border-border app-wallpaper-surface px-4 py-2 text-sm font-medium text-foreground shadow-lg transition-all duration-200 hover:-translate-x-1/2 hover:-translate-y-0.5 hover:border-primary/30 hover:bg-accent hover:text-primary hover:shadow-xl"
         >
           <ArrowUpIcon className="w-4 h-4" />
           {t("common.backToTop", "Back to Top")}
@@ -804,6 +898,20 @@ export function SkillFullDetailPage() {
           </div>
         }
         confirmText={t("common.delete", "Delete")}
+        cancelText={t("common.cancel", "Cancel")}
+      />
+      <ConfirmDialog
+        isOpen={isRetranslatePromptOpen}
+        onClose={() => setIsRetranslatePromptOpen(false)}
+        onConfirm={() => {
+          void handleTranslateSkill(true);
+        }}
+        title={t("skill.translationOutdatedTitle", "Saved translation is outdated")}
+        message={t(
+          "skill.translationOutdatedMessage",
+          "This skill's SKILL.md changed after the last translation. Retranslate now?",
+        )}
+        confirmText={t("skill.retranslateNow", "Retranslate now")}
         cancelText={t("common.cancel", "Cancel")}
       />
       <UnsavedChangesDialog

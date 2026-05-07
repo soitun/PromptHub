@@ -10,7 +10,6 @@ import type {
   SkillStoreSource,
   SkillMCPConfig,
   MCPServerConfig,
-  SkillChatParams,
   ScanLocalResult,
   SkillSafetyLevel,
   SkillSafetyReport,
@@ -21,7 +20,7 @@ import {
   SKILL_CATEGORIES,
 } from "@prompthub/shared/constants/skill-registry";
 import { chatCompletion } from "../services/ai";
-import { resolveScenarioModel } from "../services/ai-defaults";
+import { resolveScenarioAIConfig } from "../services/ai-defaults";
 import { filterVisibleSkills } from "../services/skill-filter";
 import { normalizeSkill, normalizeSkills } from "../services/skill-normalize";
 import {
@@ -29,6 +28,7 @@ import {
   type CustomStoreSourceType,
 } from "../services/skill-store-source";
 import {
+  computeSkillContentFingerprint,
   computeSkillContentHash,
   findInstalledRegistrySkill,
   getRegistrySkillUpdateStatus,
@@ -62,6 +62,13 @@ interface ParsedGitHubSkillLocation {
 interface TranslationCacheEntry {
   value: string;
   timestamp: number;
+  sourceFingerprint?: string;
+}
+
+interface TranslationLookup {
+  value: string | null;
+  hasTranslation: boolean;
+  isStale: boolean;
 }
 
 export interface ScannedImportResult {
@@ -108,6 +115,33 @@ function pruneTranslationCache(
   }
 
   return Object.fromEntries(entries);
+}
+
+function getTranslationStateFromCache(
+  cache: Record<string, TranslationCacheEntry>,
+  cacheKey: string,
+  sourceFingerprint?: string,
+): TranslationLookup {
+  const entry = cache[cacheKey];
+  if (!entry) {
+    return { value: null, hasTranslation: false, isStale: false };
+  }
+
+  if (Date.now() - entry.timestamp >= TRANSLATION_CACHE_TTL) {
+    return { value: null, hasTranslation: false, isStale: false };
+  }
+
+  const isStale = Boolean(
+    sourceFingerprint &&
+      entry.sourceFingerprint &&
+      entry.sourceFingerprint !== sourceFingerprint,
+  );
+
+  return {
+    value: isStale ? null : entry.value,
+    hasTranslation: true,
+    isStale,
+  };
 }
 
 function getErrorMessage(error: unknown): string {
@@ -470,8 +504,12 @@ interface SkillState {
     content: string,
     cacheKey: string,
     targetLang: string,
-    options?: { forceRefresh?: boolean },
+    options?: { forceRefresh?: boolean; sourceFingerprint?: string },
   ) => Promise<string | null>;
+  getTranslationState: (
+    cacheKey: string,
+    sourceFingerprint?: string,
+  ) => TranslationLookup;
   getTranslation: (cacheKey: string) => string | null;
   clearTranslation: (cacheKey: string) => void;
 }
@@ -1290,44 +1328,34 @@ export const useSkillStore = create<SkillState>()(
       translationCache: {} as Record<string, TranslationCacheEntry>,
 
       translateContent: async (content, cacheKey, targetLang, options) => {
-        // Check cache first (with TTL validation)
-        // 先检查缓存（带 TTL 校验）
-        const cached = get().translationCache[cacheKey];
-        if (
-          !options?.forceRefresh &&
-          cached &&
-          Date.now() - cached.timestamp < TRANSLATION_CACHE_TTL
-        ) {
-          return cached.value;
+        const sourceFingerprint =
+          options?.sourceFingerprint ?? computeSkillContentFingerprint(content);
+
+        if (!options?.forceRefresh) {
+          const cached = getTranslationStateFromCache(
+            get().translationCache,
+            cacheKey,
+            sourceFingerprint,
+          );
+          if (cached.value) {
+            return cached.value;
+          }
         }
 
         // Get AI config from settings store
         const settingsState = useSettingsStore.getState();
-        const defaultModel = resolveScenarioModel(
-          settingsState.aiModels,
-          settingsState.scenarioModelDefaults,
-          "translation",
-          "chat",
-        );
+        const config = resolveScenarioAIConfig({
+          aiModels: settingsState.aiModels,
+          scenarioModelDefaults: settingsState.scenarioModelDefaults,
+          scenario: "translation",
+          type: "chat",
+          aiProvider: settingsState.aiProvider,
+          aiApiKey: settingsState.aiApiKey,
+          aiApiUrl: settingsState.aiApiUrl,
+          aiModel: settingsState.aiModel,
+        });
 
-        const config = defaultModel
-          ? {
-              provider: defaultModel.provider,
-              apiKey: defaultModel.apiKey,
-              apiUrl: defaultModel.apiUrl,
-              model: defaultModel.model,
-              chatParams: defaultModel.chatParams as
-                | SkillChatParams
-                | undefined,
-            }
-          : {
-              provider: settingsState.aiProvider,
-              apiKey: settingsState.aiApiKey,
-              apiUrl: settingsState.aiApiUrl,
-              model: settingsState.aiModel,
-            };
-
-        if (!config.apiKey || !config.apiUrl || !config.model) {
+        if (!config?.apiKey || !config.apiUrl || !config.model) {
           throw new Error("AI_NOT_CONFIGURED");
         }
 
@@ -1336,26 +1364,46 @@ export const useSkillStore = create<SkillState>()(
 
           const systemPrompt =
             translationMode === "immersive"
-              ? `You are a professional immersive translator. Your task is to produce a bilingual interleaved document.
+              ? `You are a professional translator working on complete SKILL.md documents.
+
+Return a valid SKILL.md document in ${targetLang}.
 
 Rules:
-1. Process the input paragraph by paragraph (split by blank lines or headings).
-2. For EACH paragraph/heading/list-block, output the ORIGINAL text first, then on the very next line output the translated version wrapped in an HTML tag: <t>translated text</t>
-3. Preserve ALL markdown formatting, code blocks, and technical terms in both versions.
-4. Do NOT translate code blocks — just keep them as-is without a <t>...</t> line.
-5. Do NOT add any extra commentary, just the interleaved output.
-6. Target language: ${targetLang}
+1. The input may begin with YAML frontmatter between --- delimiters. Preserve the delimiters, key order, and valid YAML syntax.
+2. In frontmatter, do NOT insert <t>...</t> lines. Keep YAML keys unchanged. Translate only human-readable text values such as description when appropriate. Leave identifiers, slug-like names, versions, URLs, file paths, and code-like values unchanged.
+3. After the frontmatter, translate the markdown body in immersive mode: for each heading, paragraph, or list block, output the original block first, then output the translated block wrapped in <t>...</t>.
+4. Do NOT translate fenced code blocks, inline code, command names, file paths, URLs, or YAML keys.
+5. Preserve markdown structure. Output only the final SKILL.md document with no commentary.
 
 Example input:
+---
+name: write
+description: Help users write better.
+---
+
 ## Overview
 This skill helps you write tests.
 
 Example output:
+---
+name: write
+description: 帮助用户更好地写作。
+---
+
 ## Overview
 <t>## 概述</t>
 This skill helps you write tests.
 <t>此技能帮助你编写测试。</t>`
-              : `You are a professional translator. Translate the following technical documentation to ${targetLang}. Preserve all markdown formatting, code blocks, and technical terms. Only output the translated text, nothing else.`;
+              : `You are a professional translator working on complete SKILL.md documents.
+
+Return a valid translated SKILL.md document in ${targetLang}.
+
+Rules:
+1. Preserve YAML frontmatter delimiters, key order, and valid YAML syntax.
+2. Keep YAML keys unchanged. Translate human-readable text values such as description when appropriate, but leave identifiers, slug-like names, versions, URLs, file paths, and code-like values unchanged.
+3. Translate the markdown body fully while preserving markdown structure.
+4. Do NOT translate fenced code blocks, inline code, command names, file paths, URLs, or YAML keys.
+5. Output only the translated SKILL.md document with no commentary.`;
 
           const result = await chatCompletion(
             config,
@@ -1371,7 +1419,11 @@ This skill helps you write tests.
             set((state) => {
               const updated = {
                 ...state.translationCache,
-                [cacheKey]: { value: translated, timestamp: Date.now() },
+                [cacheKey]: {
+                  value: translated,
+                  timestamp: Date.now(),
+                  sourceFingerprint,
+                },
               };
               return { translationCache: pruneTranslationCache(updated) };
             });
@@ -1384,12 +1436,17 @@ This skill helps you write tests.
         }
       },
 
+      getTranslationState: (cacheKey, sourceFingerprint) => {
+        return getTranslationStateFromCache(
+          get().translationCache,
+          cacheKey,
+          sourceFingerprint,
+        );
+      },
+
       getTranslation: (cacheKey) => {
-        const entry = get().translationCache[cacheKey];
-        if (!entry) return null;
-        // Return null if expired / 过期则返回 null
-        if (Date.now() - entry.timestamp >= TRANSLATION_CACHE_TTL) return null;
-        return entry.value;
+        return getTranslationStateFromCache(get().translationCache, cacheKey)
+          .value;
       },
 
       clearTranslation: (cacheKey) => {
@@ -1421,6 +1478,7 @@ This skill helps you write tests.
           customStoreSources: state.customStoreSources,
           selectedStoreSourceId: state.selectedStoreSourceId,
           remoteStoreEntries: filteredEntries,
+          translationCache: pruneTranslationCache(state.translationCache),
         };
       },
     },

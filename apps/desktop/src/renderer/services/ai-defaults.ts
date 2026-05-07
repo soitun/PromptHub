@@ -53,3 +53,54 @@ export function isConfiguredModel(model: AIModelConfig | null | undefined): mode
       model.model?.trim(),
   );
 }
+
+interface ResolveScenarioAIConfigOptions {
+  aiModels: AIModelConfig[];
+  scenarioModelDefaults: ScenarioModelDefaults | undefined;
+  scenario: AIUsageScenario;
+  type: "chat" | "image";
+  aiProvider: string;
+  aiApiKey: string;
+  aiApiUrl: string;
+  aiModel: string;
+}
+
+export function resolveScenarioAIConfig({
+  aiModels,
+  scenarioModelDefaults,
+  scenario,
+  type,
+  aiProvider,
+  aiApiKey,
+  aiApiUrl,
+  aiModel,
+}: ResolveScenarioAIConfigOptions): AIConfig | null {
+  const selectedModel = resolveScenarioModel(
+    aiModels,
+    scenarioModelDefaults,
+    scenario,
+    type,
+  );
+
+  if (isConfiguredModel(selectedModel)) {
+    return toAIConfig(selectedModel);
+  }
+
+  if (
+    type === "chat" &&
+    aiProvider.trim() &&
+    aiApiKey.trim() &&
+    aiApiUrl.trim() &&
+    aiModel.trim()
+  ) {
+    return {
+      provider: aiProvider,
+      apiKey: aiApiKey,
+      apiUrl: aiApiUrl,
+      model: aiModel,
+      type,
+    };
+  }
+
+  return null;
+}

@@ -1,8 +1,6 @@
 import type { AIConfig } from "../../services/ai";
 import {
-  isConfiguredModel,
-  resolveScenarioModel,
-  toAIConfig,
+  resolveScenarioAIConfig,
 } from "../../services/ai-defaults";
 import type {
   AIModelConfig,
@@ -26,33 +24,16 @@ export function resolveQuickAddAnalysisConfig({
   aiApiUrl,
   aiModel,
 }: ResolveQuickAddAnalysisConfigOptions): AIConfig | null {
-  const selectedModel = resolveScenarioModel(
+  return resolveScenarioAIConfig({
     aiModels,
     scenarioModelDefaults,
-    "quickAdd",
-    "chat",
-  );
-
-  if (isConfiguredModel(selectedModel)) {
-    return toAIConfig(selectedModel);
-  }
-
-  if (
-    aiProvider.trim() &&
-    aiApiKey.trim() &&
-    aiApiUrl.trim() &&
-    aiModel.trim()
-  ) {
-    return {
-      provider: aiProvider,
-      apiKey: aiApiKey,
-      apiUrl: aiApiUrl,
-      model: aiModel,
-      type: "chat",
-    };
-  }
-
-  return null;
+    scenario: "quickAdd",
+    type: "chat",
+    aiProvider,
+    aiApiKey,
+    aiApiUrl,
+    aiModel,
+  });
 }
 
 export function getQuickAddFallbackTitle(

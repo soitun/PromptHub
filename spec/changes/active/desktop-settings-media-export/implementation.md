@@ -36,8 +36,9 @@
   1. `LocalImage` 在 `src` 变化时会重置失败状态，避免用户从坏图切换到新图后仍一直停留在占位态。
   2. `settings.store` 对背景图引用增加本地文件名归一化和来源限制，拒绝 `http(s):` / `data:` / `blob:` / 路径穿越类输入，并为透明度/模糊同值更新增加短路，减少无意义持久化写入。
   3. `image.ipc.ts` 收紧桌面端图片保存与下载边界：`image:save` 仅接受主进程图片选择器刚返回的路径；远程下载改为手动跟随重定向并逐跳重新校验 SSRF 约束，同时校验图片类型与体积上限。
-  4. `App.tsx` 在 `themeMode=system` 时补上运行时系统深浅色变化监听，避免只在启动时读取一次系统主题。
-  5. 图片模式下额外修复侧边栏底部标签区材质过白的问题，只对 `.app-background-mode-image .sidebar-tag-section` 做局部覆写，不影响其他玻璃层合同。
+  4. `video:save` 现在也与 `image:save` 对齐：仅接受主进程视频选择器刚返回的路径，并额外限制到受支持的视频扩展名，避免 renderer 直接提交任意本地路径混入应用数据目录。
+  5. `App.tsx` 在 `themeMode=system` 时补上运行时系统深浅色变化监听，避免只在启动时读取一次系统主题。
+  6. 图片模式下额外修复侧边栏底部标签区材质过白的问题，只对 `.app-background-mode-image .sidebar-tag-section` 做局部覆写，不影响其他玻璃层合同。
 
 ## Verification
 

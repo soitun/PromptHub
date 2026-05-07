@@ -11,6 +11,7 @@ import {
   session,
   protocol,
 } from "electron";
+import { IPC_CHANNELS } from "@prompthub/shared/constants/ipc-channels";
 import path from "path";
 import fs from "fs";
 import type { RecoveryCandidate, RecoveryScanOptions } from "@prompthub/shared/types";
@@ -432,6 +433,11 @@ ipcMain.on(
   },
 );
 
+ipcMain.handle(IPC_CHANNELS.APP_RELAUNCH, () => {
+  scheduleAppRelaunch();
+  return { success: true };
+});
+
 // Configure minimize-to-tray behavior
 // 设置最小化到托盘
 ipcMain.on("app:setMinimizeToTray", (_event, enabled: boolean) => {
@@ -680,13 +686,16 @@ ipcMain.handle("data:getPath", () => {
 ipcMain.handle("data:getStatus", () => {
   const currentPath = app.getPath("userData");
   const configuredPath = readConfiguredDataPath(app.getPath("appData"));
+  const resolvedCurrentPath = path.resolve(currentPath);
+  const resolvedConfiguredPath = configuredPath
+    ? path.resolve(configuredPath)
+    : null;
 
   return {
     configuredPath,
     currentPath,
     needsRestart:
-      !!configuredPath &&
-      path.resolve(configuredPath) !== path.resolve(currentPath),
+      !!resolvedConfiguredPath && resolvedConfiguredPath !== resolvedCurrentPath,
   };
 });
 
@@ -1012,10 +1021,7 @@ ipcMain.handle("data:performRecovery", async (_event, sourcePath: string) => {
 
     // Schedule a relaunch so the app starts fresh with the recovered database.
     // A short delay gives the renderer time to show a success message.
-    setTimeout(() => {
-      app.relaunch();
-      app.quit();
-    }, 1500);
+    scheduleAppRelaunch(1500);
 
     return {
       success: true,
@@ -1263,6 +1269,20 @@ function isPathInside(parentPath: string, childPath: string): boolean {
     resolvedChild !== resolvedParent &&
     resolvedChild.startsWith(`${resolvedParent}${path.sep}`)
   );
+}
+
+function scheduleAppRelaunch(delayMs = 0): void {
+  const relaunch = () => {
+    app.relaunch();
+    app.quit();
+  };
+
+  if (delayMs > 0) {
+    setTimeout(relaunch, delayMs);
+    return;
+  }
+
+  relaunch();
 }
 
 function copyFileForDataPath(

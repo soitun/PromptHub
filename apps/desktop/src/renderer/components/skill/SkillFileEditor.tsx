@@ -105,7 +105,9 @@ function isMarkdownFile(path: string): boolean {
 }
 
 function isHiddenSkillRepoEntry(path: string): boolean {
-  return path.split("/").some((segment) => segment === ".git");
+  return path
+    .split("/")
+    .some((segment) => segment === ".git" || segment === ".prompthub");
 }
 
 function buildTree(files: FileTreeEntry[]): TreeNode[] {

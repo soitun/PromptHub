@@ -519,6 +519,9 @@ export class SkillInstaller {
 
     for (const entry of entries) {
       if (entry.isDirectory()) {
+        if (entry.name.startsWith(".")) {
+          continue;
+        }
         dirsToCheck.push(path.join(scanPath, entry.name));
       }
     }
@@ -533,6 +536,9 @@ export class SkillInstaller {
           const subEntries = await fs.readdir(baseDir, { withFileTypes: true });
           for (const sub of subEntries) {
             if (sub.isDirectory()) {
+              if (sub.name.startsWith(".")) {
+                continue;
+              }
               const nestedDir = path.join(baseDir, sub.name);
               if (await fileExists(path.join(nestedDir, "SKILL.md"))) {
                 result.push(nestedDir);

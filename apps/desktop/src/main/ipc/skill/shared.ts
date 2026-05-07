@@ -1,6 +1,7 @@
 import fs from "fs/promises";
 import type { SkillDB } from "../../database/skill";
 import { SkillInstaller } from "../../services/skill-installer";
+import { isInternalSkillRepoEntry } from "../../services/skill-installer-repo";
 import type {
   SkillFileSnapshot,
   SkillLocalFileEntry,
@@ -85,7 +86,7 @@ export async function readCurrentFilesSnapshot(
     : await SkillInstaller.readLocalRepoFiles(skill.name);
 
   return files
-    .filter((file) => !file.isDirectory)
+    .filter((file) => !file.isDirectory && !isInternalSkillRepoEntry(file.path))
     .map((file) => ({
       relativePath: file.path,
       content: file.content,

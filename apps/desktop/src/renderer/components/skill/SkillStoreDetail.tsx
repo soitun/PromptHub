@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import {
   XIcon,
@@ -25,12 +25,21 @@ import type {
   SkillSafetyReport,
 } from "@prompthub/shared/types";
 import {
+  formatSkillTranslationError,
   getErrorMessage,
   groupSkillSafetyFindings,
   getSafetyScanAIConfig,
   renderImmersiveSegments,
+  resolveSkillDescription,
   stripFrontmatter,
 } from "./detail-utils";
+import { computeSkillContentFingerprint } from "../../services/skill-store-update";
+import {
+  isSkillTranslationStale,
+  readSkillTranslationSidecar,
+  writeSkillTranslationSidecar,
+  type SkillTranslationSidecar,
+} from "../../services/skill-translation-sidecar";
 import {
   getSkillSafetyFindingTitle,
   getSkillSafetyLevelLabel,
@@ -69,7 +78,7 @@ export function SkillStoreDetail({
   const skills = useSkillStore((state) => state.skills);
   const saveSafetyReport = useSkillStore((state) => state.saveSafetyReport);
   const translateContent = useSkillStore((state) => state.translateContent);
-  const getTranslation = useSkillStore((state) => state.getTranslation);
+  const getTranslationState = useSkillStore((state) => state.getTranslationState);
   const clearTranslation = useSkillStore((state) => state.clearTranslation);
   const translationMode = useSettingsStore((state) => state.translationMode);
   const autoScanBeforeInstall = useSettingsStore(
@@ -94,7 +103,11 @@ export function SkillStoreDetail({
     ? groupSkillSafetyFindings(safetyReport.findings ?? [])
     : [];
   const [showTranslation, setShowTranslation] = useState(false);
+  const [showRetranslatePrompt, setShowRetranslatePrompt] = useState(false);
   const [deploySkill, setDeploySkill] = useState<Skill | null>(null);
+  const stalePromptFingerprintRef = useRef<string | null>(null);
+  const [translationSidecar, setTranslationSidecar] =
+    useState<SkillTranslationSidecar | null>(null);
 
   const targetLang = useMemo(() => {
     const lang = (i18n.language || "").toLowerCase();
@@ -107,8 +120,45 @@ export function SkillStoreDetail({
           : "English";
   }, [i18n.language]);
 
-  const translationCacheKey = `store_${skill.slug}_${targetLang}_${translationMode}`;
-  const cachedTranslation = getTranslation(translationCacheKey);
+  const installedSkill = skills.find(
+    (item) => item.registry_slug === skill.slug || item.name === skill.name,
+  );
+  const installedSkillMdContent =
+    installedSkill?.instructions || installedSkill?.content || "";
+  const registrySkillMdContent = typeof skill.content === "string" ? skill.content : "";
+  const originalSkillMdContent =
+    installedSkillMdContent.trim() || registrySkillMdContent.trim() || skill.description;
+  const translationCacheKey = `storedoc_v2_${skill.slug}_${targetLang}_${translationMode}`;
+  const translationFingerprint = useMemo(
+    () => computeSkillContentFingerprint(originalSkillMdContent),
+    [originalSkillMdContent],
+  );
+  const translationState = getTranslationState(
+    translationCacheKey,
+    translationFingerprint,
+  );
+  const hasStaleTranslation = translationSidecar
+    ? isSkillTranslationStale(translationSidecar, originalSkillMdContent)
+    : translationState.isStale;
+  const cachedTranslation = hasStaleTranslation
+    ? null
+    : (translationSidecar?.content ?? translationState.value);
+  const effectiveSkillMdContent =
+    showTranslation && cachedTranslation
+      ? cachedTranslation
+      : originalSkillMdContent;
+  const effectiveRenderedContent = useMemo(
+    () => stripFrontmatter(effectiveSkillMdContent),
+    [effectiveSkillMdContent],
+  );
+  const translatedRenderedContent = useMemo(
+    () => (cachedTranslation ? stripFrontmatter(cachedTranslation) : null),
+    [cachedTranslation],
+  );
+  const resolvedDescription = useMemo(
+    () => resolveSkillDescription(effectiveSkillMdContent) || skill.description,
+    [effectiveSkillMdContent, skill.description],
+  );
 
   const scanSafety = useCallback(async () => {
     setIsScanningSafety(true);
@@ -163,26 +213,34 @@ export function SkillStoreDetail({
     }
     setIsTranslating(true);
     try {
-      const body = stripFrontmatter(skill.content);
-      const textToTranslate = body.length > 0 ? body : skill.description;
-      await translateContent(textToTranslate, translationCacheKey, targetLang);
+      const translated = await translateContent(
+        originalSkillMdContent,
+        translationCacheKey,
+        targetLang,
+        {
+          sourceFingerprint: translationFingerprint,
+        },
+      );
+
+      if (!translated) {
+        throw new Error("TRANSLATION_EMPTY");
+      }
+
+      if (installedSkill && originalSkillMdContent.trim()) {
+        const sidecar = await writeSkillTranslationSidecar({
+          skillId: installedSkill.id,
+          sourceContent: originalSkillMdContent,
+          translatedContent: translated,
+          targetLanguage: targetLang,
+          translationMode,
+        });
+        setTranslationSidecar(sidecar);
+      }
+
       setShowTranslation(true);
       showToast(t("skill.translateSuccess", "Translation complete"), "success");
     } catch (error: unknown) {
-      if (error instanceof Error && error.message === "AI_NOT_CONFIGURED") {
-        showToast(
-          t(
-            "skill.aiNotConfigured",
-            "Please configure AI model in Settings first",
-          ),
-          "error",
-        );
-      } else {
-        showToast(
-          `${t("skill.translateFailed", "Translation failed")}: ${getErrorMessage(error)}`,
-          "error",
-        );
-      }
+      showToast(formatSkillTranslationError(error, t), "error");
     } finally {
       setIsTranslating(false);
     }
@@ -192,35 +250,100 @@ export function SkillStoreDetail({
     setIsTranslating(true);
     try {
       clearTranslation(translationCacheKey);
-      const body = stripFrontmatter(skill.content);
-      const textToTranslate = body.length > 0 ? body : skill.description;
-      await translateContent(textToTranslate, translationCacheKey, targetLang, {
-        forceRefresh: true,
-      });
+      const translated = await translateContent(
+        originalSkillMdContent,
+        translationCacheKey,
+        targetLang,
+        {
+          forceRefresh: true,
+          sourceFingerprint: translationFingerprint,
+        },
+      );
+
+      if (!translated) {
+        throw new Error("TRANSLATION_EMPTY");
+      }
+
+      if (installedSkill && originalSkillMdContent.trim()) {
+        const sidecar = await writeSkillTranslationSidecar({
+          skillId: installedSkill.id,
+          sourceContent: originalSkillMdContent,
+          translatedContent: translated,
+          targetLanguage: targetLang,
+          translationMode,
+        });
+        setTranslationSidecar(sidecar);
+      }
+
       setShowTranslation(true);
+      setShowRetranslatePrompt(false);
       showToast(
         t("skill.translateRefreshed", "Translation refreshed"),
         "success",
       );
     } catch (error: unknown) {
-      if (error instanceof Error && error.message === "AI_NOT_CONFIGURED") {
-        showToast(
-          t(
-            "skill.aiNotConfigured",
-            "Please configure AI model in Settings first",
-          ),
-          "error",
-        );
-      } else {
-        showToast(
-          `${t("skill.translateFailed", "Translation failed")}: ${getErrorMessage(error)}`,
-          "error",
-        );
-      }
+      showToast(formatSkillTranslationError(error, t), "error");
     } finally {
       setIsTranslating(false);
     }
   };
+
+  useEffect(() => {
+    stalePromptFingerprintRef.current = null;
+    setShowRetranslatePrompt(false);
+    setTranslationSidecar(null);
+  }, [skill.slug]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadTranslationSidecar() {
+      if (!installedSkill) {
+        setTranslationSidecar(null);
+        return;
+      }
+
+      try {
+        const sidecar = await readSkillTranslationSidecar(
+          installedSkill.id,
+          targetLang,
+          translationMode,
+        );
+        if (!cancelled) {
+          setTranslationSidecar(sidecar);
+        }
+      } catch {
+        if (!cancelled) {
+          setTranslationSidecar(null);
+        }
+      }
+    }
+
+    void loadTranslationSidecar();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [installedSkill?.id, targetLang, translationMode]);
+
+  useEffect(() => {
+    setShowTranslation(Boolean(cachedTranslation));
+  }, [cachedTranslation]);
+
+  useEffect(() => {
+    if (!hasStaleTranslation) {
+      stalePromptFingerprintRef.current = null;
+      return;
+    }
+
+    setShowTranslation(false);
+    if (stalePromptFingerprintRef.current === translationFingerprint) {
+      return;
+    }
+
+    stalePromptFingerprintRef.current = translationFingerprint;
+    setShowRetranslatePrompt(true);
+  }, [hasStaleTranslation, translationFingerprint]);
 
   const handleInstall = async () => {
     if (isInstalling || installed) {
@@ -381,7 +504,7 @@ export function SkillStoreDetail({
               {skill.name}
             </h2>
             <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-              {skill.description}
+              {resolvedDescription}
             </p>
             <div className="flex items-center gap-3 mt-2">
               <span className="text-[11px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold">
@@ -446,13 +569,10 @@ export function SkillStoreDetail({
 
           {/* SKILL.md content rendered as markdown */}
           {(() => {
-            const body = stripFrontmatter(skill.content);
-            const originalContent = body.length > 0 ? body : skill.description;
-
-            if (showTranslation && cachedTranslation) {
+            if (showTranslation && translatedRenderedContent) {
               // Immersive mode: interleaved original + translation
               if (translationMode === "immersive") {
-                const segments = renderImmersiveSegments(cachedTranslation);
+                const segments = renderImmersiveSegments(translatedRenderedContent);
                 return (
                   <div className="prose prose-sm dark:prose-invert max-w-none prose-headings:text-foreground prose-h1:text-base prose-h1:font-bold prose-h2:text-sm prose-h2:font-semibold prose-h3:text-xs prose-h3:font-semibold prose-p:text-foreground/80 prose-p:text-[13px] prose-strong:text-foreground prose-li:text-foreground/80 prose-li:text-[13px] prose-code:text-primary prose-pre:bg-muted prose-pre:border prose-pre:border-border text-[13px]">
                     <div className="markdown-body">
@@ -462,7 +582,11 @@ export function SkillStoreDetail({
                             key={i}
                             className="border-l-2 border-primary/40 pl-3 my-1 text-primary/70 text-[12px] italic"
                           >
-                            <SkillMarkdown content={seg.text} />
+                            <SkillMarkdown
+                              content={seg.text}
+                              sourceUrl={skill.source_url}
+                              contentUrl={skill.content_url}
+                            />
                           </div>
                         ) : (
                           <SkillMarkdown
@@ -481,7 +605,11 @@ export function SkillStoreDetail({
               return (
                 <div className="prose prose-sm dark:prose-invert max-w-none prose-headings:text-foreground prose-h1:text-base prose-h1:font-bold prose-h2:text-sm prose-h2:font-semibold prose-h3:text-xs prose-h3:font-semibold prose-p:text-foreground/80 prose-p:text-[13px] prose-strong:text-foreground prose-li:text-foreground/80 prose-li:text-[13px] prose-code:text-primary prose-pre:bg-muted prose-pre:border prose-pre:border-border text-[13px]">
                   <div className="markdown-body">
-                    <SkillMarkdown content={cachedTranslation} />
+                    <SkillMarkdown
+                      content={translatedRenderedContent}
+                      sourceUrl={skill.source_url}
+                      contentUrl={skill.content_url}
+                    />
                   </div>
                 </div>
               );
@@ -491,7 +619,7 @@ export function SkillStoreDetail({
               <div className="prose prose-sm dark:prose-invert max-w-none prose-headings:text-foreground prose-h1:text-base prose-h1:font-bold prose-h2:text-sm prose-h2:font-semibold prose-h3:text-xs prose-h3:font-semibold prose-p:text-foreground/80 prose-p:text-[13px] prose-strong:text-foreground prose-li:text-foreground/80 prose-li:text-[13px] prose-code:text-primary prose-pre:bg-muted prose-pre:border prose-pre:border-border text-[13px]">
                 <div className="markdown-body">
                   <SkillMarkdown
-                    content={originalContent}
+                    content={effectiveRenderedContent}
                     sourceUrl={skill.source_url}
                     contentUrl={skill.content_url}
                   />
@@ -848,6 +976,21 @@ export function SkillStoreDetail({
         confirmText={t("skill.addAnyway", "Add Anyway")}
         cancelText={t("common.cancel", "Cancel")}
         variant="destructive"
+      />
+      <ConfirmDialog
+        isOpen={showRetranslatePrompt}
+        onClose={() => setShowRetranslatePrompt(false)}
+        onConfirm={() => {
+          setShowRetranslatePrompt(false);
+          void handleRefreshTranslation();
+        }}
+        title={t("skill.translationOutdatedTitle", "Saved translation is outdated")}
+        message={t(
+          "skill.translationOutdatedMessage",
+          "This skill's SKILL.md changed after the last translation. Retranslate now?",
+        )}
+        confirmText={t("skill.retranslateNow", "Retranslate now")}
+        cancelText={t("common.cancel", "Cancel")}
       />
     </div>
   );

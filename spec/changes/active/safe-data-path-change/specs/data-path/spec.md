@@ -12,4 +12,4 @@
 - Empty target: migrate current data and require restart.
 - Existing copied target: switch path only and require restart.
 - Existing target with overwrite: back up target, then copy current data.
-
+- Already-active target: report success without scheduling another restart.

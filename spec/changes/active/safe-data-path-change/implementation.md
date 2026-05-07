@@ -5,6 +5,8 @@
 - Added reusable target directory inspection based on PromptHub data markers.
 - Reworked data path changes into explicit `migrate`, `switch`, and `overwrite` actions.
 - Updated settings UI to warn when the selected target already has data and default users toward switching.
+- Replaced the data-path success flow's renderer-only `window.location.reload()` with a dedicated desktop relaunch IPC so `app.setPath("userData", ...)` is actually re-applied on restart.
+- Tightened `data:getStatus` so choosing the already-active directory no longer reports a false pending-restart state.
 
 ## Verification
 

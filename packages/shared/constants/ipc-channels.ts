@@ -44,6 +44,9 @@ export const IPC_CHANNELS = {
   SETTINGS_GET: "settings:get",
   SETTINGS_SET: "settings:set",
 
+  // App lifecycle
+  APP_RELAUNCH: "app:relaunch",
+
   // AI transport
   AI_HTTP_REQUEST: "ai:httpRequest",
   AI_HTTP_STREAM: "ai:httpStream",

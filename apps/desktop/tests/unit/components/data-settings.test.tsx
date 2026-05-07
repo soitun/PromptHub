@@ -188,11 +188,13 @@ describe("DataSettings", { timeout: 15_000 }, () => {
   it("offers switching instead of migrating when the selected directory already has data", async () => {
     const showToast = vi.fn();
     useToastMock.mockReturnValue({ showToast });
+    const relaunchApp = vi.fn().mockResolvedValue({ success: true });
     const applyDataPathChange = vi.fn().mockResolvedValue({
       success: true,
       newPath: "/copied/PromptHub",
       needsRestart: true,
     });
+    vi.spyOn(window, "confirm").mockReturnValue(true);
 
     installWindowMocks({
       api: {
@@ -206,6 +208,7 @@ describe("DataSettings", { timeout: 15_000 }, () => {
           currentPath: "/actual/data",
           needsRestart: false,
         }),
+        relaunchApp,
         selectFolder: vi.fn().mockResolvedValue("/copied/PromptHub"),
         previewDataPathChange: vi.fn().mockResolvedValue({
           success: true,
@@ -256,6 +259,13 @@ describe("DataSettings", { timeout: 15_000 }, () => {
       "Data directory switched Please restart the app",
       "success",
     );
+
+    await waitFor(
+      () => {
+        expect(relaunchApp).toHaveBeenCalledTimes(1);
+      },
+      { timeout: 2500 },
+    );
   });
 
   it("migrates immediately after confirmation when the selected directory is empty", async () => {
@@ -305,6 +315,64 @@ describe("DataSettings", { timeout: 15_000 }, () => {
         "migrate",
       );
     });
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+    });
+  });
+
+  it("does not prompt for restart when the chosen data directory is already active", async () => {
+    const showToast = vi.fn();
+    const relaunchApp = vi.fn().mockResolvedValue({ success: true });
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
+    useToastMock.mockReturnValue({ showToast });
+
+    installWindowMocks({
+      api: {
+        security: {
+          status: vi.fn().mockResolvedValue({ configured: false }),
+        },
+      },
+      electron: {
+        getDataPathStatus: vi.fn().mockResolvedValue({
+          configuredPath: null,
+          currentPath: "/actual/data",
+          needsRestart: false,
+        }),
+        relaunchApp,
+        selectFolder: vi.fn().mockResolvedValue("/actual/data"),
+        previewDataPathChange: vi.fn().mockResolvedValue({
+          success: true,
+          targetPath: "/actual/data",
+          exists: true,
+          hasPromptHubData: true,
+          isCurrentPath: true,
+          markers: [{ name: "prompthub.db" }],
+        }),
+      },
+    });
+
+    await act(async () => {
+      await renderWithI18n(<DataSettings />, { language: "en" });
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Change" }));
+    });
+
+    await waitFor(() => {
+      expect(showToast).toHaveBeenCalledWith(
+        "Data directory switched",
+        "success",
+      );
+    });
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+    });
+
+    expect(confirmSpy).not.toHaveBeenCalled();
+    expect(relaunchApp).not.toHaveBeenCalled();
   });
 
   it("lets users add manual recovery scan directories and open the recovery browser", async () => {
