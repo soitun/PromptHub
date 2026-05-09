@@ -84,6 +84,7 @@
     "create": "作成",
     "noPrompts": "Prompt がありません",
     "addFirst": "「新規作成」をクリックして最初の Prompt を作成",
+    "resizeListPaneAria": "Prompt リストの幅を調整",
     "selectPrompt": "Prompt を選択",
     "selectPromptDesc": "左のリストから Prompt を選択して詳細を表示、または「新規作成」をクリック",
     "variableHint": "{{変数名}} を使用して変数を定義",

@@ -84,6 +84,7 @@
     "create": "建立",
     "noPrompts": "暫無 Prompt",
     "addFirst": "點擊「新建」建立第一個 Prompt",
+    "resizeListPaneAria": "調整 Prompt 列表寬度",
     "selectPrompt": "選擇一個 Prompt",
     "selectPromptDesc": "從左側列表選擇一個 Prompt 查看詳情，或點擊「新建」建立新的 Prompt",
     "variableHint": "使用 {{變數名}} 來定義變數",
