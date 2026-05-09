@@ -809,6 +809,10 @@ export const useSettingsStore = create<SettingsState>()(
           // 更新开机自启，同时传递 minimizeOnLaunch 设置
           const minimizeOnLaunch = get().minimizeOnLaunch;
           window.electron?.setAutoLaunch?.(enabled, minimizeOnLaunch);
+          // Persist to main process DB so the main-process startup path
+          // can read the setting on next launch (#115)
+          // 同步到主进程数据库，下次启动时主进程能够正确读取该设置 (#115)
+          syncSettingsToMain({ launchAtStartup: enabled } as Partial<Settings>);
         },
         setMinimizeOnLaunch: (enabled) => {
           setTouched({ minimizeOnLaunch: enabled });
@@ -821,6 +825,13 @@ export const useSettingsStore = create<SettingsState>()(
           if (launchAtStartup) {
             window.electron?.setAutoLaunch?.(true, enabled);
           }
+          // Persist to main process DB so the main-process startup path
+          // can read the setting on next launch (#115).
+          // Without this, the main process always saw the DB default (false)
+          // even when the user had enabled "minimize on launch" in the UI.
+          // 同步到主进程数据库，否则主进程启动时始终读到默认值 (false)，
+          // 即使用户已在 UI 中启用"启动时最小化"也不会生效 (#115)
+          syncSettingsToMain({ minimizeOnLaunch: enabled } as Partial<Settings>);
         },
         setCloseAction: (action) => {
           setTouched({ closeAction: action });
@@ -1438,7 +1449,15 @@ export const useSettingsStore = create<SettingsState>()(
           customSkillPlatformPaths: state?.customSkillPlatformPaths || {},
           skillPlatformOrder: state?.skillPlatformOrder || [],
           skillProjects: state?.skillProjects || [],
-        });
+          // Re-sync startup behavior to main DB on rehydrate so the main
+          // process can honor the user's preference on next launch (#115).
+          // This also migrates existing users whose value lives only in
+          // localStorage today.
+          // 在重载时把启动相关设置同步回主进程数据库，使得下次启动时主进程可以
+          // 正确读取 (#115)。这同时修复历史版本的用户——此前该值只在 localStorage。
+          launchAtStartup: state?.launchAtStartup ?? false,
+          minimizeOnLaunch: state?.minimizeOnLaunch ?? false,
+        } as Partial<Settings>);
       },
     },
   ),

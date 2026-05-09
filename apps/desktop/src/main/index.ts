@@ -224,18 +224,44 @@ async function createWindow() {
   // Handle window ready-to-show: check if we should minimize on launch
   // 窗口准备就绪时：检查是否应该启动时最小化
   mainWindow.once("ready-to-show", () => {
-    if (!appDb) {
-      // No database available, show window normally
-      // 数据库不可用，正常显示窗口
+    // OS-level signals that the app was auto-launched hidden:
+    //   - Windows: the registered Run entry passes `--hidden`
+    //   - macOS:   `wasOpenedAsHidden` reflects the `openAsHidden` flag
+    // 这些是系统层面告知应用需要隐藏启动的信号：
+    //   - Windows：注册表启动项带 `--hidden` 参数
+    //   - macOS：`wasOpenedAsHidden` 反映 `openAsHidden`
+    const launchArgs = Array.isArray(process.argv) ? process.argv : [];
+    const hasHiddenArg = launchArgs.includes("--hidden");
+    let openedAsHiddenByOs = false;
+    try {
+      openedAsHiddenByOs =
+        app.getLoginItemSettings().wasOpenedAsHidden === true;
+    } catch {
+      openedAsHiddenByOs = false;
+    }
+    const osRequestedHidden = hasHiddenArg || openedAsHiddenByOs;
+
+    // Fall back to the persisted setting only if the OS didn't already
+    // tell us to start hidden. This also covers users who haven't yet had
+    // the renderer sync their preference to the main DB.
+    // 只有在系统层面没有告知我们隐藏启动时，才回落到持久化设置。
+    // 这也涵盖了渲染进程尚未把设置同步到主进程数据库的用户。
+    const shouldMinimize =
+      osRequestedHidden ||
+      (appDb ? getMinimizeOnLaunchSetting(appDb) : false);
+
+    if (!appDb && !osRequestedHidden) {
+      // No database available and OS didn't request hidden — show normally.
+      // 数据库不可用、系统也没要求隐藏 —— 正常显示窗口
       mainWindow?.show();
       emitWindowVisibility(true);
       return;
     }
 
-    const shouldMinimize = getMinimizeOnLaunchSetting(appDb);
     if (shouldMinimize) {
-      // Minimize to tray on launch
-      // 启动时最小化到托盘
+      // Minimize to tray on launch — ensure tray exists so the user can
+      // bring the window back.
+      // 启动时最小化到托盘 —— 同时创建托盘，确保用户能恢复窗口
       createTray();
       emitWindowVisibility(false);
       // Don't show window, just keep it hidden
@@ -425,11 +451,16 @@ ipcMain.on(
       console.error("app:setAutoLaunch requires enabled to be a boolean");
       return;
     }
+    const startHidden = enabled && minimizeOnLaunch === true;
+    // Pass `--hidden` as a launch arg so Windows (and any other platform where
+    // `openAsHidden` is not honored by the OS) can still detect that the app
+    // should start minimized (#115).
+    // 通过 `--hidden` 启动参数让 Windows（以及 macOS 以外、`openAsHidden` 不生效的
+    // 平台）在开机自启时能识别出应该最小化启动 (#115)。
     app.setLoginItemSettings({
       openAtLogin: enabled,
-      // If minimizeOnLaunch is true, start hidden (minimize to tray on launch)
-      // 如果 minimizeOnLaunch 为 true，则隐藏启动（启动时最小化到托盘）
-      openAsHidden: enabled && minimizeOnLaunch === true,
+      openAsHidden: startHidden,
+      args: startHidden ? ["--hidden"] : [],
     });
   },
 );
