@@ -1161,6 +1161,7 @@
     "confirmUninstallTitle": "Deinstallation bestatigen",
     "confirmUninstallMessage": "Mochten Sie diesen Skill wirklich von {{platform}} deinstallieren?",
     "installSuccess": "Vorgang erfolgreich",
+    "installPartialFailure": "Einige Plattformen konnten nicht installiert werden",
     "uninstallSuccess": "Deinstallation erfolgreich",
     "aiGenerate": "KI-Generierung",
     "generating": "Generierung...",

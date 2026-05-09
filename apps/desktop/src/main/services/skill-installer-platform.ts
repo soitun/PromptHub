@@ -390,7 +390,21 @@ export async function installSkillMdSymlink(
   } catch (error) {
     const code = getErrorCode(error);
     const message = error instanceof Error ? error.message : String(error);
-    if (code === "EPERM" || code === "EACCES" || code === "ENOTSUP") {
+    // Windows needs either admin or Developer Mode to call CreateSymbolicLink.
+    // macOS/Linux commonly fail with EACCES on read-only file systems. In all
+    // these cases the copy fallback is the right behavior — the user still
+    // gets the skill installed. We log a structured warning so that a
+    // partial-failure toast (see renderer #93 handling) can tell the user
+    // that a copy was used instead of a symlink.
+    // Windows 需要 admin 或 Developer Mode 才能创建符号链接；macOS/Linux 在只读
+    // 文件系统上常见 EACCES。这些场景下回落到复制安装是合理的，并记录结构化
+    // 警告以便渲染端（#93）在"部分失败"提示中说明实际采用了复制。
+    if (
+      code === "EPERM" ||
+      code === "EACCES" ||
+      code === "ENOTSUP" ||
+      code === "UNKNOWN"
+    ) {
       await fallbackInstall(`${code}: ${message}`);
       return;
     }
@@ -399,6 +413,17 @@ export async function installSkillMdSymlink(
       `Failed to create symlink for "${skillName}" to ${platform.name}:`,
       error,
     );
-    throw error;
+    // Rethrow with a more actionable message so the renderer can show a
+    // localizable error. The raw node error message is preserved in .cause.
+    // 抛出更具可操作性的错误信息，原始的 node 错误保留在 .cause 中。
+    const formatted = new Error(
+      `Symlink install failed for "${skillName}" on ${platform.name}: ${message}${
+        code ? ` (${code})` : ""
+      }`,
+    );
+    if (error instanceof Error) {
+      (formatted as Error & { cause?: unknown }).cause = error;
+    }
+    throw formatted;
   }
 }

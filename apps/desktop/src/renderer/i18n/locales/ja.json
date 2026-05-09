@@ -1161,6 +1161,7 @@
     "confirmUninstallTitle": "アンインストール確認",
     "confirmUninstallMessage": "{{platform}} からこのスキルをアンインストールしてもよろしいですか？",
     "installSuccess": "操作が完了しました",
+    "installPartialFailure": "一部のプラットフォームでインストールに失敗しました",
     "uninstallSuccess": "アンインストールしました",
     "aiGenerate": "AI 生成",
     "generating": "生成中...",

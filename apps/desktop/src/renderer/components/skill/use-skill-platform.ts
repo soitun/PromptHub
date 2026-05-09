@@ -10,9 +10,25 @@ import { getRuntimeCapabilities } from "../../runtime";
 
 export type SkillInstallMode = "copy" | "symlink";
 
+export interface BatchInstallFailure {
+  platformId: string;
+  /** Localized human-readable reason, if one can be derived. */
+  reason: string;
+}
+
 export interface BatchInstallResult {
   successCount: number;
   totalCount: number;
+  /**
+   * Per-platform failures. Previously these were console.error'd and then
+   * silently discarded, so users who hit install errors (most commonly on
+   * Windows without Developer Mode, triggering EPERM on `fs.symlink`) saw
+   * a mismatched success toast and had no way to know what went wrong.
+   * See #93.
+   * 每个平台的安装失败原因（旧实现只 console.error 后丢弃，导致用户在 Windows
+   * 未开启 Developer Mode 触发 EPERM 时只看到"部分成功"却无从诊断，见 #93）。
+   */
+  failures: BatchInstallFailure[];
 }
 
 export function sortSkillPlatformsByPreference(
@@ -151,7 +167,7 @@ export function useSkillPlatform(
       !skill ||
       selectedPlatforms.size === 0
     ) {
-      return { successCount: 0, totalCount: 0 };
+      return { successCount: 0, totalCount: 0, failures: [] };
     }
 
     setIsBatchInstalling(true);
@@ -161,6 +177,7 @@ export function useSkillPlatform(
     try {
       const skillMdContent = await window.api.skill.export(skill.id, "skillmd");
       let successCount = 0;
+      const failures: BatchInstallFailure[] = [];
 
       for (let index = 0; index < platformIds.length; index++) {
         const platformId = platformIds[index];
@@ -178,12 +195,22 @@ export function useSkillPlatform(
           }
           successCount++;
         } catch (error) {
-          console.error(`Failed to install "${skill.name}" to ${platformId}:`, error);
+          // Surface per-platform failures to the caller so the UI can show
+          // the user exactly which platforms failed and why (#93). Still
+          // log for diagnostics.
+          // 把每个平台的错误上抛，让 UI 能准确告诉用户哪个平台出问题（#93），
+          // 同时保留日志方便诊断。
+          const reason = error instanceof Error ? error.message : String(error);
+          console.error(
+            `Failed to install "${skill.name}" to ${platformId}:`,
+            error,
+          );
+          failures.push({ platformId, reason });
         }
       }
 
       await refreshInstallStatus();
-      return { successCount, totalCount: platformIds.length };
+      return { successCount, totalCount: platformIds.length, failures };
     } finally {
       setIsBatchInstalling(false);
       setInstallProgress(null);

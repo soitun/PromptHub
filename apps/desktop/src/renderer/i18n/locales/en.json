@@ -1172,6 +1172,7 @@
     "confirmUninstallTitle": "Confirm Uninstall",
     "confirmUninstallMessage": "Are you sure you want to uninstall this skill from {{platform}}?",
     "installSuccess": "Operation successful",
+    "installPartialFailure": "Some platforms could not be installed",
     "uninstallSuccess": "Uninstall successful",
     "aiGenerate": "AI Generate",
     "generating": "Generating...",
