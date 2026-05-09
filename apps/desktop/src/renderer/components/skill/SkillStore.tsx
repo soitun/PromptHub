@@ -35,6 +35,7 @@ import type {
 import { SKILL_CATEGORIES } from "@prompthub/shared/constants/skill-registry";
 import { getSafetyScanAIConfig } from "./detail-utils";
 import { findInstalledRegistrySkill } from "../../services/skill-store-update";
+import { filterRegistrySkills } from "../../services/skill-store-search";
 import { useSkillStoreRemoteSync } from "./store-remote-sync";
 
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
@@ -168,30 +169,22 @@ export function SkillStore() {
   }, [isSelectedSourceRemote, loadStoreSource, selectedStoreSourceId]);
 
   const sourceRegistrySkills = useMemo(() => {
-    let baseSkills: RegistrySkill[] = [];
-    if (selectedStoreSourceId === "official") {
-      baseSkills = registrySkills;
-    } else {
-      baseSkills = selectedRemoteEntry?.skills || [];
-    }
+    const baseSkills: RegistrySkill[] =
+      selectedStoreSourceId === "official"
+        ? registrySkills
+        : selectedRemoteEntry?.skills || [];
 
-    if (storeCategory !== "all") {
-      baseSkills = baseSkills.filter(
-        (skill) => skill.category === storeCategory,
-      );
-    }
-
-    if (storeSearchQuery.trim()) {
-      const query = storeSearchQuery.toLowerCase();
-      baseSkills = baseSkills.filter(
-        (skill) =>
-          skill.name.toLowerCase().includes(query) ||
-          skill.description.toLowerCase().includes(query) ||
-          skill.tags.some((tag) => tag.toLowerCase().includes(query)),
-      );
-    }
-
-    return baseSkills;
+    // Centralized filter — see `skill-store-search.ts`. The previous
+    // inline implementation only matched name / description / tags with
+    // a naive `.toLowerCase().includes(...)` and could not find skills
+    // by slug, install_name, or author, nor when the user typed
+    // "hello world" for a slug called "hello-world" (issue #88).
+    // 统一的过滤函数；旧实现只匹配 name/description/tags 且不做归一化，导致
+    // 用户输入 "hello world" 无法命中 "hello-world"，作者/slug 也搜不到 (#88)。
+    return filterRegistrySkills(baseSkills, {
+      category: storeCategory,
+      searchQuery: storeSearchQuery,
+    });
   }, [
     registrySkills,
     selectedRemoteEntry?.skills,
