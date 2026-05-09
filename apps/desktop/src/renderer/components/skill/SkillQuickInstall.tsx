@@ -52,6 +52,40 @@ export function SkillQuickInstall({ skill, onClose }: SkillQuickInstallProps) {
           `${t("skill.installSuccess", "Operation successful")} ${result.successCount}/${result.totalCount}`,
           "success",
         );
+      }
+      // Surface per-platform failures even if some platforms succeeded.
+      // Previously a partial failure looked like a silent success because
+      // this handler closed the modal after the success toast without ever
+      // reading `result.failures` (review feedback on #124).
+      if (result.failures.length > 0) {
+        const details = result.failures
+          .map((failure) => {
+            const platform = availablePlatforms.find(
+              (entry) => entry.id === failure.platformId,
+            );
+            const label = platform?.name ?? failure.platformId;
+            return t("skill.installFailureRow", {
+              platform: label,
+              reason: failure.reason,
+              defaultValue: "{{platform}}: {{reason}}",
+            });
+          })
+          .join("\n");
+        showToast(
+          t("skill.installPartialFailure", {
+            details,
+            defaultValue:
+              "Some platforms could not be installed\n{{details}}",
+          }),
+          "error",
+        );
+      }
+      // Only auto-close when every selected platform succeeded. Otherwise
+      // keep the modal open so the user can retry or inspect the failures.
+      if (
+        result.successCount > 0 &&
+        result.failures.length === 0
+      ) {
         setIsClosingSoon(true);
         setTimeout(() => {
           onClose();

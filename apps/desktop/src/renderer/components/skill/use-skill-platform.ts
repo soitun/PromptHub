@@ -25,8 +25,6 @@ export interface BatchInstallResult {
    * Windows without Developer Mode, triggering EPERM on `fs.symlink`) saw
    * a mismatched success toast and had no way to know what went wrong.
    * See #93.
-   * 每个平台的安装失败原因（旧实现只 console.error 后丢弃，导致用户在 Windows
-   * 未开启 Developer Mode 触发 EPERM 时只看到"部分成功"却无从诊断，见 #93）。
    */
   failures: BatchInstallFailure[];
 }
@@ -198,8 +196,6 @@ export function useSkillPlatform(
           // Surface per-platform failures to the caller so the UI can show
           // the user exactly which platforms failed and why (#93). Still
           // log for diagnostics.
-          // 把每个平台的错误上抛，让 UI 能准确告诉用户哪个平台出问题（#93），
-          // 同时保留日志方便诊断。
           const reason = error instanceof Error ? error.message : String(error);
           console.error(
             `Failed to install "${skill.name}" to ${platformId}:`,

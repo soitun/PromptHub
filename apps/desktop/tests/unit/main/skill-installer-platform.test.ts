@@ -118,8 +118,6 @@ describe("skill-installer-platform symlink install", () => {
     // (not just "EPERM"). Before #93 this escaped the fallback and threw all
     // the way up to the renderer, where the error was silently console.errored
     // and the user saw no install and no explanation.
-    // 在 Windows 未开启 Developer Mode 时，node 会把 symlink 权限失败映射为
-    // "UNKNOWN"（并非 "EPERM"）。修复前该错误绕过了回落分支。
     fsMocks.symlink.mockRejectedValueOnce(
       Object.assign(new Error("unknown symlink failure"), { code: "UNKNOWN" }),
     );
