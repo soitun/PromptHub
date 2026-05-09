@@ -212,4 +212,67 @@ describe("UpdateDialog", () => {
       screen.queryByText("Checking for updates..."),
     ).not.toBeInTheDocument();
   });
+
+  // Regression guard for the flickering loop reported in #117/#118.
+  // The parent (App.tsx) used to push every status change into
+  // `initialStatus` while the dialog was open. The dialog's effect
+  // depended on `initialStatus`, so each push re-ran `updater.check`,
+  // which produced another status, and so on — visually this appeared as
+  // a rapidly flickering dialog where the download button could not be
+  // clicked. After the fix, prop-level `initialStatus` changes must not
+  // retrigger the background check.
+  it("does not re-run updater.check when initialStatus changes while open", async () => {
+    const checkMock = vi.fn().mockResolvedValue({ success: true });
+
+    installWindowMocks({
+      electron: {
+        updater: {
+          check: checkMock,
+          getVersion: vi.fn().mockResolvedValue("0.5.1"),
+          getPlatform: vi.fn().mockResolvedValue("win32"),
+          onStatus: vi.fn(() => vi.fn()),
+        },
+      },
+    });
+
+    const { rerender } = await renderWithI18n(
+      <UpdateDialog
+        isOpen={true}
+        onClose={vi.fn()}
+        initialStatus={{ status: "checking" }}
+      />,
+      { language: "en" },
+    );
+
+    // First open triggers exactly one check.
+    await waitFor(() => {
+      expect(checkMock).toHaveBeenCalledTimes(1);
+    });
+
+    // Parent pushing new status values should NOT trigger additional checks.
+    // 父组件推送新的 status 不应再次触发检查。
+    await act(async () => {
+      rerender(
+        <UpdateDialog
+          isOpen={true}
+          onClose={vi.fn()}
+          initialStatus={availableStatus}
+        />,
+      );
+    });
+    await act(async () => {
+      rerender(
+        <UpdateDialog
+          isOpen={true}
+          onClose={vi.fn()}
+          initialStatus={downloadedStatus}
+        />,
+      );
+    });
+
+    // Give any pending promises a chance to resolve.
+    await waitFor(() => {
+      expect(checkMock).toHaveBeenCalledTimes(1);
+    });
+  });
 });

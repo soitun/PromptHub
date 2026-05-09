@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DownloadIcon, CheckCircleIcon, XIcon, Loader2Icon, RefreshCwIcon, FolderOpenIcon, ExternalLinkIcon, ZapIcon } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
@@ -53,6 +53,7 @@ export function UpdateDialog({ isOpen, onClose, initialStatus }: UpdateDialogPro
   const useUpdateMirror = useSettingsStore((state) => state.useUpdateMirror);
   const updateChannel = useSettingsStore((state) => state.updateChannel);
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(initialStatus || null);
+  const updateStatusRef = useRef<UpdateStatus | null>(initialStatus || null);
   const [useMirror, setUseMirror] = useState<boolean>(useUpdateMirror);
   const [currentVersion, setCurrentVersion] = useState<string>('');
   const [platform, setPlatform] = useState<string>('');
@@ -67,8 +68,13 @@ export function UpdateDialog({ isOpen, onClose, initialStatus }: UpdateDialogPro
   useEffect(() => {
     if (initialStatus) {
       setUpdateStatus(initialStatus);
+      updateStatusRef.current = initialStatus;
     }
   }, [initialStatus]);
+
+  useEffect(() => {
+    updateStatusRef.current = updateStatus;
+  }, [updateStatus]);
 
   useEffect(() => {
     // Get current version and platform
@@ -86,13 +92,20 @@ export function UpdateDialog({ isOpen, onClose, initialStatus }: UpdateDialogPro
     // Listen for update status
     // 监听更新状态
     const handleStatus = (status: UpdateStatus) => {
+      // Use the ref to read the latest state — this effect runs once with an
+      // empty dep array, so the closure-captured `updateStatus` would be
+      // stale on subsequent invocations and miss already-known
+      // 'available'/'downloaded' states.
+      // 通过 ref 读取最新状态：该 effect 依赖为空数组，闭包里 `updateStatus`
+      // 在后续回调中会过期，导致判断"已经处于可用/已下载"的逻辑失效。
       if (
         status.status === 'checking' &&
-        isStableUpgradeState(updateStatus)
+        isStableUpgradeState(updateStatusRef.current)
       ) {
         return;
       }
 
+      updateStatusRef.current = status;
       setUpdateStatus(status);
       if (status.status !== 'checking') {
         setIsManualRefreshPending(false);
@@ -143,6 +156,15 @@ export function UpdateDialog({ isOpen, onClose, initialStatus }: UpdateDialogPro
 
   // When dialog opens, always force a fresh update check (no cache)
   // 当对话框打开时，总是强制检查更新（不使用缓存）
+  //
+  // Note: this effect intentionally does NOT depend on `initialStatus`. The
+  // parent App pushes status into `initialStatus` while the dialog is open;
+  // depending on it here produced a feedback loop where every status update
+  // re-triggered the check, which produced the next status, and so on —
+  // this was the root cause of the flickering reported in #117/#118.
+  // 注意：此 effect 刻意不依赖 `initialStatus`。父级 App 在弹窗打开期间会把
+  // 状态同步到 `initialStatus`，若在此处依赖会形成反馈循环：每次状态更新
+  // 都会触发新的检查，进而推送下一个状态——这是 #117/#118 闪烁的根因。
   useEffect(() => {
     if (isOpen) {
       setHasAcknowledgedBackup(false);
@@ -153,10 +175,10 @@ export function UpdateDialog({ isOpen, onClose, initialStatus }: UpdateDialogPro
         setLastManualBackupVersion(status.lastManualBackupVersion);
       });
       void handleCheckUpdate(useUpdateMirror, {
-        preserveVisibleStatus: isStableUpgradeState(initialStatus),
+        preserveVisibleStatus: isStableUpgradeState(updateStatusRef.current),
       });
     }
-  }, [initialStatus, isOpen, updateChannel, useUpdateMirror]);
+  }, [isOpen, updateChannel, useUpdateMirror]);
 
   const handleCheckUpdate = async (
     mirror: boolean,

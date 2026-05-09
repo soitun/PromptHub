@@ -318,9 +318,16 @@ function App() {
         setUpdateAvailable(null);
       }
 
-      if (showUpdateDialog) {
-        setInitialUpdateStatus(status);
-      }
+      // While the dialog is open, it owns its status via its own onStatus
+      // listener. Re-pushing the status into `initialUpdateStatus` here
+      // created a feedback loop — the dialog's useEffect depends on
+      // `initialStatus`, so every push would trigger another check, which
+      // then produced the next status update, and so on. This was the
+      // root cause of the flickering reported in #117/#118.
+      // 弹窗打开期间，弹窗会通过自己的 onStatus 监听维护状态。此处再把状态
+      // 写回 `initialUpdateStatus` 会形成反馈循环：弹窗的 useEffect 依赖
+      // `initialStatus`，每次 prop 变化都会触发新的检查，从而继续推送新的
+      // 状态更新，造成界面闪烁（#117/#118）。
     };
 
     const offUpdaterStatus = window.electron?.updater?.onStatus(handleStatus);
