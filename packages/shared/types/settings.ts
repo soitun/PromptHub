@@ -23,7 +23,6 @@ export interface Settings {
   device?: DeviceManagementSettings;
   updateChannel?: UpdateChannel;
   // Startup behavior — main process reads these to honor "minimize on launch"
-  // 启动行为 —— 主进程读取这些字段以实现"启动时最小化"
   launchAtStartup?: boolean;
   minimizeOnLaunch?: boolean;
   // Security

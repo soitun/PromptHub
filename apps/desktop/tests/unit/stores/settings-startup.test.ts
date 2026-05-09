@@ -57,36 +57,37 @@ describe("settings startup behavior sync (issue #115)", () => {
     localStorage.clear();
   });
 
-  it("syncs minimizeOnLaunch=true to the main process when toggled", async () => {
-    const { useSettingsStore, setSpy } = await importStoreWithSpy();
+  it.each([
+    { value: true, label: "true" },
+    { value: false, label: "false" },
+  ])(
+    "syncs minimizeOnLaunch=$label to the main process when toggled",
+    async ({ value }) => {
+      const { useSettingsStore, setSpy } = await importStoreWithSpy();
 
-    useSettingsStore.getState().setMinimizeOnLaunch(true);
+      useSettingsStore.getState().setMinimizeOnLaunch(value);
 
-    expect(useSettingsStore.getState().minimizeOnLaunch).toBe(true);
-    const payload = lastPayloadWithKey(setSpy, "minimizeOnLaunch");
-    expect(payload).toBeDefined();
-    expect(payload?.minimizeOnLaunch).toBe(true);
-  });
+      expect(useSettingsStore.getState().minimizeOnLaunch).toBe(value);
+      expect(
+        lastPayloadWithKey(setSpy, "minimizeOnLaunch")?.minimizeOnLaunch,
+      ).toBe(value);
+    },
+  );
 
-  it("syncs minimizeOnLaunch=false to the main process when toggled off", async () => {
-    const { useSettingsStore, setSpy } = await importStoreWithSpy();
+  it.each([
+    { value: true, label: "true" },
+    { value: false, label: "false" },
+  ])(
+    "syncs launchAtStartup=$label to the main process when toggled",
+    async ({ value }) => {
+      const { useSettingsStore, setSpy } = await importStoreWithSpy();
 
-    useSettingsStore.getState().setMinimizeOnLaunch(false);
+      useSettingsStore.getState().setLaunchAtStartup(value);
 
-    expect(useSettingsStore.getState().minimizeOnLaunch).toBe(false);
-    const payload = lastPayloadWithKey(setSpy, "minimizeOnLaunch");
-    expect(payload).toBeDefined();
-    expect(payload?.minimizeOnLaunch).toBe(false);
-  });
-
-  it("syncs launchAtStartup to the main process when toggled", async () => {
-    const { useSettingsStore, setSpy } = await importStoreWithSpy();
-
-    useSettingsStore.getState().setLaunchAtStartup(true);
-
-    expect(useSettingsStore.getState().launchAtStartup).toBe(true);
-    const payload = lastPayloadWithKey(setSpy, "launchAtStartup");
-    expect(payload).toBeDefined();
-    expect(payload?.launchAtStartup).toBe(true);
-  });
+      expect(useSettingsStore.getState().launchAtStartup).toBe(value);
+      expect(
+        lastPayloadWithKey(setSpy, "launchAtStartup")?.launchAtStartup,
+      ).toBe(value);
+    },
+  );
 });
