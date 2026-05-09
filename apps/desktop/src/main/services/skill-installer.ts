@@ -20,6 +20,8 @@ import type {
   SkillManifest,
 } from "@prompthub/shared/types";
 import { SkillDB } from "../database/skill";
+import { initDatabase } from "../database";
+import { getGithubTokenSetting } from "../ipc/settings.ipc";
 import { parseSkillMd } from "./skill-validator";
 import { sanitizeImportedSkillDraft } from "./skill-import-sanitize";
 import {
@@ -813,11 +815,32 @@ export class SkillInstaller {
   }
 
   /**
-   * Fetch remote SKILL.md content from a URL
+   * Fetch remote SKILL.md content from a URL. When the target host is a
+   * GitHub endpoint, the user's configured personal access token (if any)
+   * is attached to raise the API rate limit from 60 req/h (unauthenticated)
+   * to 5000 req/h (authenticated). See #108.
+   * 获取远端 SKILL.md。如果目标主机是 GitHub 官方端点，会自动带上用户配置
+   * 的 PAT，把 API 限额从 60/小时 提升到 5000/小时（#108）。
    */
   static async fetchRemoteContent(url: string): Promise<string> {
     try {
-      return await fetchRemoteText(url);
+      let githubToken: string | null = null;
+      try {
+        const db = initDatabase();
+        if (db && typeof db.prepare === "function") {
+          githubToken = getGithubTokenSetting(db);
+        }
+      } catch (tokenError) {
+        // DB may be unavailable during very early startup or in tests —
+        // fall back to an unauthenticated request without failing the
+        // fetch.
+        // DB 不可用时（启动初期或测试场景）回落到未登录请求。
+        console.warn(
+          "Unable to load githubToken setting, continuing unauthenticated:",
+          tokenError instanceof Error ? tokenError.message : "unknown",
+        );
+      }
+      return await fetchRemoteText(url, 0, { githubToken });
     } catch (error) {
       console.error("Failed to fetch remote content from remote URL:", error);
       throw error;

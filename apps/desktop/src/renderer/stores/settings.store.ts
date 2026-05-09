@@ -423,6 +423,13 @@ interface SettingsState {
   autoScanInstalledSkills: boolean;
   autoScanStoreSkillsBeforeInstall: boolean;
 
+  // GitHub personal access token for authenticated skill-store fetches
+  // Used to raise the GitHub API rate limit from 60 req/h (unauthenticated)
+  // to 5000 req/h (authenticated). Only sent to api.github.com and
+  // raw.githubusercontent.com. See #108.
+  // GitHub PAT，提升 Skill Store 的 GitHub API 请求限额 (#108)。
+  githubToken: string;
+
   // Actions
   // 操作
   setThemeMode: (mode: ThemeMode) => void;
@@ -523,6 +530,9 @@ interface SettingsState {
   setSkillInstallMethod: (method: "symlink" | "copy") => void;
   setAutoScanInstalledSkills: (enabled: boolean) => void;
   setAutoScanStoreSkillsBeforeInstall: (enabled: boolean) => void;
+  // GitHub token action — see #108
+  // GitHub token 操作 (#108)
+  setGithubToken: (token: string) => void;
 }
 
 function syncSettingsToMain(settings: Partial<Settings>): void {
@@ -638,6 +648,7 @@ export const useSettingsStore = create<SettingsState>()(
         skillInstallMethod: "symlink" as const,
         autoScanInstalledSkills: false,
         autoScanStoreSkillsBeforeInstall: false,
+        githubToken: "",
 
         setCreationMode: (mode) => setTouched({ creationMode: mode }),
         setTranslationMode: (mode) => setTouched({ translationMode: mode }),
@@ -1252,6 +1263,23 @@ export const useSettingsStore = create<SettingsState>()(
           setTouched({ autoScanInstalledSkills: enabled }),
         setAutoScanStoreSkillsBeforeInstall: (enabled) =>
           setTouched({ autoScanStoreSkillsBeforeInstall: enabled }),
+
+        // Persist the GitHub PAT to localStorage AND to the main-process
+        // SQLite settings table so the main process can attach it as an
+        // Authorization header for GitHub API calls. See #108.
+        // 把 GitHub token 同时保存到 localStorage 和主进程 SQLite settings 表，
+        // 以便主进程在调用 GitHub API 时附带 Authorization 头 (#108)。
+        setGithubToken: (token) => {
+          // Strip control characters (CR, LF, etc.) to prevent header
+          // injection — the main process also validates, but defence in
+          // depth is cheap here.
+          // 过滤掉 CR/LF 等控制字符，防止 header 注入；主进程还会再次校验。
+          const sanitized = token
+            .replace(/[\r\n\x00-\x1f\x7f]/g, "")
+            .trim();
+          setTouched({ githubToken: sanitized });
+          syncSettingsToMain({ githubToken: sanitized } as Partial<Settings>);
+        },
       };
     },
     {
