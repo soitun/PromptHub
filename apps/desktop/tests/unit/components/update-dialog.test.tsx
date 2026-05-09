@@ -250,7 +250,6 @@ describe("UpdateDialog", () => {
     });
 
     // Parent pushing new status values should NOT trigger additional checks.
-    // 父组件推送新的 status 不应再次触发检查。
     await act(async () => {
       rerender(
         <UpdateDialog

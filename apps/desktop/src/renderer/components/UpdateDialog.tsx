@@ -66,10 +66,14 @@ export function UpdateDialog({ isOpen, onClose, initialStatus }: UpdateDialogPro
   const [isManualRefreshPending, setIsManualRefreshPending] = useState(false);
 
   useEffect(() => {
-    if (initialStatus) {
-      setUpdateStatus(initialStatus);
-      updateStatusRef.current = initialStatus;
-    }
+    // Keep the ref in sync with the `initialStatus` prop, including `null`
+    // transitions. If we only wrote the ref on truthy values (the previous
+    // behavior), a parent that cleared `initialStatus` back to null would
+    // leave the ref holding a stale `available` / `downloaded`, and the
+    // "ignore transient checking" guard plus the `preserveVisibleStatus`
+    // computation would both misbehave on the next open.
+    setUpdateStatus(initialStatus ?? null);
+    updateStatusRef.current = initialStatus ?? null;
   }, [initialStatus]);
 
   useEffect(() => {
@@ -96,8 +100,6 @@ export function UpdateDialog({ isOpen, onClose, initialStatus }: UpdateDialogPro
       // empty dep array, so the closure-captured `updateStatus` would be
       // stale on subsequent invocations and miss already-known
       // 'available'/'downloaded' states.
-      // 通过 ref 读取最新状态：该 effect 依赖为空数组，闭包里 `updateStatus`
-      // 在后续回调中会过期，导致判断"已经处于可用/已下载"的逻辑失效。
       if (
         status.status === 'checking' &&
         isStableUpgradeState(updateStatusRef.current)
@@ -155,16 +157,12 @@ export function UpdateDialog({ isOpen, onClose, initialStatus }: UpdateDialogPro
   }, []);
 
   // When dialog opens, always force a fresh update check (no cache)
-  // 当对话框打开时，总是强制检查更新（不使用缓存）
   //
   // Note: this effect intentionally does NOT depend on `initialStatus`. The
   // parent App pushes status into `initialStatus` while the dialog is open;
   // depending on it here produced a feedback loop where every status update
   // re-triggered the check, which produced the next status, and so on —
   // this was the root cause of the flickering reported in #117/#118.
-  // 注意：此 effect 刻意不依赖 `initialStatus`。父级 App 在弹窗打开期间会把
-  // 状态同步到 `initialStatus`，若在此处依赖会形成反馈循环：每次状态更新
-  // 都会触发新的检查，进而推送下一个状态——这是 #117/#118 闪烁的根因。
   useEffect(() => {
     if (isOpen) {
       setHasAcknowledgedBackup(false);
