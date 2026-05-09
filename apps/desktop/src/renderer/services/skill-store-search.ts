@@ -19,11 +19,6 @@
  * same algorithm, and so future adjustments (e.g. fuzzy matching) can
  * be made in a single place.
  *
- * 技能商店搜索工具 (#88)。用户反馈有时"昨天能找到的技能今天就找不到了"。
- * 原因之一是老实现只 includes 匹配 name/description/tags，且没有把
- * 连字符/下划线归一化，像 "hello world" 这种查询就匹配不到 "hello-world"；
- * 另外 slug / install_name / author 字段也没纳入搜索。本文件把过滤逻辑抽离
- * 成纯函数，便于测试与未来迭代（如模糊匹配）。
  */
 
 import type { RegistrySkill, SkillCategory } from "@prompthub/shared/types";
@@ -38,8 +33,6 @@ import type { RegistrySkill, SkillCategory } from "@prompthub/shared/types";
  * The normalized form is intentionally not returned to the user — it
  * is purely an internal matching key.
  *
- * 把自由输入归一化为仅包含 Unicode 字母/数字的小写文本，保留单空格分词。
- * 归一化后的结果仅用于匹配，不展示给用户。
  */
 export function normalizeSearchTerm(term: string): string {
   if (!term) return "";
@@ -56,8 +49,6 @@ export function normalizeSearchTerm(term: string): string {
  * be `undefined` in ill-formed remote entries (the old implementation
  * called `.toLowerCase()` directly and crashed).
  *
- * 汇总所有可搜索字段并做归一化，同时容忍字段 undefined（旧实现在遇到
- * undefined description 时直接 throw）。
  */
 function buildSkillHaystack(skill: RegistrySkill): string {
   const parts: string[] = [];
@@ -81,6 +72,27 @@ function buildSkillHaystack(skill: RegistrySkill): string {
   return normalizeSearchTerm(parts.join(" "));
 }
 
+/**
+ * Per-skill haystack cache. Remote-market skill objects are effectively
+ * immutable — rebuilding the haystack on every keystroke across hundreds
+ * of skills caused noticeable typing lag in the skill store (review
+ * feedback on #126). Keyed by the RegistrySkill object reference, so a
+ * freshly-fetched registry (different references) automatically bypasses
+ * the cache and the GC can reclaim stale entries when skill references
+ * are dropped.
+ */
+const HAYSTACK_CACHE: WeakMap<RegistrySkill, string> = new WeakMap();
+
+function getSkillHaystack(skill: RegistrySkill): string {
+  const cached = HAYSTACK_CACHE.get(skill);
+  if (cached !== undefined) {
+    return cached;
+  }
+  const computed = buildSkillHaystack(skill);
+  HAYSTACK_CACHE.set(skill, computed);
+  return computed;
+}
+
 export interface FilterRegistrySkillsOptions {
   /** Optional category filter. `"all"` is treated as "no filter". */
   category?: SkillCategory | "all";
@@ -102,9 +114,6 @@ export interface FilterRegistrySkillsOptions {
  *     skill haystack (AND semantics). This lets a user type three
  *     distinct tokens in any order and still find the skill.
  *
- * 根据分类与搜索词过滤技能列表：空分类/空查询不过滤；非空查询按归一化后
- * 的空格切分，AND 匹配所有 token（子串）。这样即便输入顺序与 slug 不同
- * 也能命中。
  */
 export function filterRegistrySkills(
   skills: readonly RegistrySkill[],
@@ -112,24 +121,27 @@ export function filterRegistrySkills(
 ): RegistrySkill[] {
   const { category, searchQuery } = options;
 
-  let result: RegistrySkill[] = [...skills];
-
-  if (category && category !== "all") {
-    result = result.filter((skill) => skill.category === category);
-  }
+  // Category filter first — cheap and avoids building haystacks for
+  // skills that are going to be dropped anyway.
+  const categorized =
+    category && category !== "all"
+      ? skills.filter((skill) => skill.category === category)
+      : skills;
 
   const normalizedQuery = normalizeSearchTerm(searchQuery ?? "");
   if (normalizedQuery.length === 0) {
-    return result;
+    // `filter` always returns a new array in the search path; mirror that
+    // here so callers get stable return-type semantics.
+    return categorized.slice();
   }
 
   const tokens = normalizedQuery.split(" ").filter(Boolean);
   if (tokens.length === 0) {
-    return result;
+    return categorized.slice();
   }
 
-  return result.filter((skill) => {
-    const haystack = buildSkillHaystack(skill);
+  return categorized.filter((skill) => {
+    const haystack = getSkillHaystack(skill);
     return tokens.every((token) => haystack.includes(token));
   });
 }

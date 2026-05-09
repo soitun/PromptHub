@@ -179,8 +179,6 @@ export function SkillStore() {
     // a naive `.toLowerCase().includes(...)` and could not find skills
     // by slug, install_name, or author, nor when the user typed
     // "hello world" for a slug called "hello-world" (issue #88).
-    // 统一的过滤函数；旧实现只匹配 name/description/tags 且不做归一化，导致
-    // 用户输入 "hello world" 无法命中 "hello-world"，作者/slug 也搜不到 (#88)。
     return filterRegistrySkills(baseSkills, {
       category: storeCategory,
       searchQuery: storeSearchQuery,

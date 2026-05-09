@@ -145,7 +145,6 @@ describe("filterRegistrySkills (issue #88)", () => {
   it("bridges naming style differences so 'hello world' matches 'hello-world'", () => {
     // Core regression of #88 — the user types the skill name naturally
     // but the slug uses hyphens. The old filter would return nothing.
-    // #88 的核心回归：用户自然输入 "hello world"，但 slug 是 "hello-world"。
     const result = filterRegistrySkills(skills, {
       searchQuery: "hello world",
     });
@@ -212,7 +211,6 @@ describe("filterRegistrySkills (issue #88)", () => {
   it("does not throw when a skill has an undefined description (#88 crash guard)", () => {
     // The old implementation called `.toLowerCase()` directly on description
     // and would crash on ill-formed remote entries with no description.
-    // 旧实现在 description 为 undefined 时直接 throw；这里确认修复后不再崩溃。
     const weird = makeSkill({
       slug: "no-desc",
       name: "No Description",
@@ -253,5 +251,51 @@ describe("filterRegistrySkills (issue #88)", () => {
         (s) => s.slug,
       ),
     ).toEqual(["security-audit"]);
+  });
+
+  // Regression: repeated filter calls across many keystrokes previously
+  // rebuilt the normalized haystack for every skill on every call,
+  // which caused typing lag on large remote registries (review feedback
+  // on #126). The implementation now memoizes the haystack per skill
+  // reference. This test exercises the cache path via a large dataset
+  // and verifies that filtering semantics remain unchanged when the
+  // same skill references are filtered repeatedly with different
+  // queries.
+  it("produces stable results across repeated filter calls on the same skill references", () => {
+    const bulk: RegistrySkill[] = [];
+    for (let i = 0; i < 300; i += 1) {
+      bulk.push(
+        makeSkill({
+          slug: `perf-alpha-${i}`,
+          name: `Perf Alpha ${i}`,
+          description: `cached-haystack fixture ${i}`,
+          tags: ["performance"],
+        }),
+      );
+    }
+
+    // First pass populates the WeakMap cache. Token "alpha" matches
+    // every skill via the slug.
+    const firstAll = filterRegistrySkills(bulk, { searchQuery: "alpha" });
+    expect(firstAll).toHaveLength(bulk.length);
+
+    // Second pass with a different query. If the cache ever returned a
+    // stale or mutated haystack, these results would drift.
+    const cacheFixture = filterRegistrySkills(bulk, {
+      searchQuery: "cached-haystack",
+    });
+    expect(cacheFixture).toHaveLength(bulk.length);
+
+    // Third pass that matches nothing. A broken cache could accidentally
+    // let some skill's old haystack satisfy this.
+    expect(
+      filterRegistrySkills(bulk, { searchQuery: "no-such-thing-xyzzy" }),
+    ).toHaveLength(0);
+
+    // Repeat the first query — results must still match exactly, proving
+    // cache writes don't corrupt the shared state.
+    expect(filterRegistrySkills(bulk, { searchQuery: "alpha" })).toEqual(
+      firstAll,
+    );
   });
 });
