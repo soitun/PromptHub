@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, useRef, Children, isValidElement, cloneElement, memo, lazy, Suspense } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef, Children, isValidElement, cloneElement, memo, lazy, Suspense, type CSSProperties } from 'react';
 import { flushSync } from 'react-dom';
 import { usePromptStore, ViewMode } from '../../stores/prompt.store';
 import { useFolderStore } from '../../stores/folder.store';
@@ -239,7 +239,6 @@ function PromptSkillMainContent() {
   const viewMode = usePromptStore((state) => state.viewMode);
   const incrementUsageCount = usePromptStore((state) => state.incrementUsageCount);
   // Resizable prompt-list pane width (#119)
-  // 可拖拽的 Prompt 列表栏宽度 (#119)
   const promptListPaneWidth = useUIStore((state) => state.promptListPaneWidth);
   const setPromptListPaneWidth = useUIStore(
     (state) => state.setPromptListPaneWidth,
@@ -1636,10 +1635,9 @@ function PromptSkillMainContent() {
         className={getViewClass('card', 'row')}
       >
         {/* Prompt list */}
-        {/* Prompt 列表 */}
         <div
-          className="prompt-list-pane relative border-r border-border flex flex-col bg-card/50"
-          style={{ width: promptListPaneWidth, flexShrink: 0 }}
+          className="prompt-list-pane relative w-[var(--prompt-list-pane-width)] shrink-0 border-r border-border flex flex-col bg-card/50"
+          style={{ '--prompt-list-pane-width': `${promptListPaneWidth}px` } as CSSProperties}
         >
           {/* List header: sort + view switch */}
           {/* 列表头部：排序 + 视图切换 */}

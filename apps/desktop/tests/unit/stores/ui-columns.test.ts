@@ -71,7 +71,6 @@ describe("useUIStore resizable columns (issue #119)", () => {
     // Non-finite inputs always resolve to the safe minimum, never to the
     // maximum — an accidental Infinity should not silently max out the
     // column and hide the rest of the UI.
-    // 非有限值统一回落到最小值，避免 Infinity 意外把列拉到最大遮住其他 UI。
     mod.useUIStore.getState().setSidebarPanelWidth(Number.NaN);
     expect(mod.useUIStore.getState().sidebarPanelWidth).toBe(
       mod.SIDEBAR_PANEL_WIDTH_MIN,
@@ -103,7 +102,6 @@ describe("useUIStore resizable columns (issue #119)", () => {
     // Simulate a previous session that somehow landed outside the allowed
     // bounds (e.g. after a future min/max change). The store must not
     // restore the app to a broken layout.
-    // 模拟历史会话里持久化到越界宽度：store 不能把用户带进无法恢复的布局。
     localStorage.setItem(
       "ui-storage",
       JSON.stringify({

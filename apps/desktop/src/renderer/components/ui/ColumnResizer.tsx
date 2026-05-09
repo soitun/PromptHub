@@ -19,15 +19,12 @@
  * active bar so it blends with the surrounding layout until the user
  * actually reaches for it.
  *
- * ColumnResizer —— 竖向拖拽手柄，用于调整左侧列的宽度（右侧填充剩余空间的
- * 面板布局）。对应 issue #119：大屏用户希望把文件夹/Prompt 列表拉宽。
  */
 import {
   useCallback,
   useEffect,
   useRef,
   useState,
-  type CSSProperties,
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react";
@@ -36,7 +33,6 @@ export interface ColumnResizerProps {
   /**
    * Current width of the column being resized, in px. Used as the drag
    * starting point and for keyboard / double-click fallbacks.
-   * 正在拖拽列的当前宽度（px），作为拖拽起点和键盘/双击回退的基准。
    */
   currentWidth: number;
   /** Lower bound in px. Drag will clamp to this. */
@@ -75,7 +71,6 @@ export function ColumnResizer({
 
   // While dragging, temporarily disable text selection on the whole document
   // so the user can move the pointer freely.
-  // 拖拽期间临时禁用全局文本选择，让鼠标可以自由移动。
   useEffect(() => {
     if (!isDragging) return;
     const previousUserSelect = document.body.style.userSelect;
@@ -92,7 +87,6 @@ export function ColumnResizer({
     (event: ReactPointerEvent<HTMLDivElement>) => {
       // Only primary button (left-click / primary touch). Ignore
       // middle-click, right-click, and auxiliary buttons.
-      // 只响应主按键，忽略中键、右键等。
       if (event.button !== 0) return;
       event.preventDefault();
       dragStateRef.current = {
@@ -102,13 +96,18 @@ export function ColumnResizer({
       };
       // setPointerCapture is not always implemented in test environments
       // (jsdom). Guard so missing support doesn't abort the drag.
-      // 某些测试环境（jsdom）没有 setPointerCapture，做一次守卫避免直接抛错。
       try {
         (event.currentTarget as HTMLDivElement).setPointerCapture?.(
           event.pointerId,
         );
-      } catch {
-        // noop — pointer capture is a nice-to-have for sticky drags
+      } catch (error) {
+        // Pointer capture is a nice-to-have for sticky drags; log so the
+        // failure is not completely invisible, then continue — the drag
+        // still works without it.
+        console.warn(
+          "ColumnResizer: setPointerCapture not available",
+          error instanceof Error ? error.message : error,
+        );
       }
       setIsDragging(true);
     },
@@ -134,11 +133,14 @@ export function ColumnResizer({
         (event.currentTarget as HTMLDivElement).releasePointerCapture?.(
           state.pointerId,
         );
-      } catch {
-        // releasePointerCapture can throw if capture was already lost (for
-        // example the pointer was canceled). That's fine — we just want to
-        // reset local state.
-        // releasePointerCapture 在已经失去捕获时会抛错，这里忽略即可。
+      } catch (error) {
+        // releasePointerCapture can throw if capture was already lost
+        // (for example the pointer was canceled). That is expected, but
+        // we log at debug level so support traces are not blind.
+        console.debug(
+          "ColumnResizer: releasePointerCapture no-op",
+          error instanceof Error ? error.message : error,
+        );
       }
       dragStateRef.current = null;
       setIsDragging(false);
@@ -166,21 +168,12 @@ export function ColumnResizer({
         event.key === " "
       ) {
         // Reset on Home / End / Enter / Space for keyboard-only users.
-        // 让仅键盘用户也能通过 Home/End/Enter/空格 复位。
         event.preventDefault();
         onResize(clamp(defaultWidth, min, max));
       }
     },
     [currentWidth, defaultWidth, max, min, onResize],
   );
-
-  const style: CSSProperties = {
-    // Hit-testable wider than the visible bar so the handle is easy to grab.
-    // 可点击区域比可见条宽，便于瞄准。
-    width: 8,
-    flexShrink: 0,
-    touchAction: "none",
-  };
 
   return (
     <div
@@ -197,8 +190,12 @@ export function ColumnResizer({
       onPointerCancel={endDrag}
       onDoubleClick={handleDoubleClick}
       onKeyDown={handleKeyDown}
-      style={style}
-      className={`group relative flex cursor-col-resize items-stretch outline-none focus-visible:bg-primary/20 ${className}`}
+      // Hit area (w-2 = 8px) is wider than the visible bar so the handle
+      // is easy to grab. shrink-0 prevents the flex parent from squeezing
+      // the handle when it runs low on space. touch-none disables the
+      // browser's default touch panning so a swipe on the handle becomes
+      // a pointer event we can drive.
+      className={`group relative flex w-2 shrink-0 cursor-col-resize items-stretch touch-none outline-none focus-visible:bg-primary/20 ${className}`}
       data-testid="column-resizer"
     >
       <div

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, memo, type CSSProperties } from 'react';
 import { StarIcon, HashIcon, PlusIcon, LayoutGridIcon, SettingsIcon, XIcon, ChevronDownIcon, ChevronUpIcon, ImageIcon, MessageSquareTextIcon, CommandIcon, CuboidIcon, StoreIcon, GlobeIcon, Clock3Icon, FolderPlusIcon, BookOpenIcon, LinkIcon, FolderOpenIcon, Trash2Icon } from 'lucide-react';
 import { useFolderStore } from '../../stores/folder.store';
 import { usePromptStore } from '../../stores/prompt.store';
@@ -251,11 +251,13 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
   const showRail = layout !== 'panel';
   const railWidthClass = 'w-20';
   const combinedWidthClass = 'w-[23rem]';
-  // Tailwind can't inline arbitrary dynamic values, so for the resizable
-  // panel layout we supply width via inline style.
-  // 可拖拽的 panel 布局宽度通过内联 style 设置。
-  const panelStyleWidth = layout === 'panel' && !isCollapsed
-    ? { width: sidebarPanelWidth }
+  // Dynamic pane widths are delivered via a CSS custom property so the
+  // <aside> can use a Tailwind arbitrary-value utility (see below) rather
+  // than applying an inline width property. Only one CSS variable is set
+  // via `style`, which Tailwind explicitly recommends as the way to wire
+  // up runtime-dynamic sizing to its utility classes.
+  const panelStyle = layout === 'panel' && !isCollapsed
+    ? ({ '--sidebar-panel-width': `${sidebarPanelWidth}px` } as CSSProperties)
     : undefined;
   const asideClassName =
     layout === 'rail'
@@ -264,7 +266,7 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
         ? `border-r border-sidebar-border bg-sidebar-background/85 app-wallpaper-panel-strong transition-[opacity,transform] duration-300 ease-out ${
             isCollapsed
               ? 'w-0 -translate-x-4 opacity-0 pointer-events-none border-r-0'
-              : 'translate-x-0 opacity-100'
+              : 'w-[var(--sidebar-panel-width)] translate-x-0 opacity-100'
           }`
         : `border-r border-sidebar-border app-left-rail-glass app-wallpaper-panel-strong ${
             isCollapsed ? railWidthClass : combinedWidthClass
@@ -516,7 +518,7 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
     <aside
       ref={sidebarRef}
       className={`relative z-20 flex shrink-0 overflow-hidden transition-all duration-300 ease-in-out ${asideClassName}`}
-      style={panelStyleWidth}
+      style={panelStyle}
     >
       {showRail && (
       <div className={`flex ${railWidthClass} shrink-0 flex-col bg-sidebar-accent/25 ${layout === 'combined' && !isCollapsed ? 'border-r border-sidebar-border/60' : ''}`}>
