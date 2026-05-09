@@ -185,6 +185,7 @@ const importPayloadSchema = z.object({
       language: z.enum(['en', 'zh', 'zh-TW', 'ja', 'fr', 'de', 'es']),
       autoSave: z.boolean(),
       defaultFolderId: z.string().optional(),
+      customPlatformRootPaths: z.record(z.string()).optional(),
       customSkillPlatformPaths: z.record(z.string()).optional(),
       sync: z.object({
         enabled: z.boolean(),
@@ -356,7 +357,11 @@ function normalizeSyncPayload(payload: z.infer<typeof importPayloadSchema>['payl
       note: version.note,
       createdAt: typeof version.createdAt === 'number' ? new Date(version.createdAt).toISOString() : version.createdAt,
     })),
-    settings: payload.settings ?? { theme: 'system', language: 'en', autoSave: true },
+    settings: payload.settings
+      ? {
+          ...payload.settings,
+        }
+      : { theme: 'system', language: 'en', autoSave: true },
     settingsUpdatedAt: payload.settingsUpdatedAt,
   };
 }

@@ -193,8 +193,8 @@ function buildRemotePayload() {
       theme: 'dark',
       language: 'en',
       autoSave: false,
-      customSkillPlatformPaths: {
-        claude: '/tmp/remote-skills',
+      customPlatformRootPaths: {
+        claude: '/tmp/remote-root',
       },
       sync: {
         enabled: false,
@@ -527,6 +527,7 @@ describe('web sync routes', () => {
                 theme: 'dark',
                 language: 'en',
                 autoSave: true,
+                customPlatformRootPaths: {},
                 customSkillPlatformPaths: {},
                 sync: {
                   enabled: false,
@@ -748,7 +749,7 @@ describe('web sync routes', () => {
             theme: string;
             language: string;
             autoSave: boolean;
-            customSkillPlatformPaths: Record<string, string>;
+            customPlatformRootPaths: Record<string, string>;
             sync?: { endpoint?: string; lastSyncAt?: string };
           };
         };
@@ -777,7 +778,7 @@ describe('web sync routes', () => {
       expect(dataBody.data.settings.theme).toBe('dark');
       expect(dataBody.data.settings.language).toBe('en');
       expect(dataBody.data.settings.autoSave).toBe(false);
-      expect(dataBody.data.settings.customSkillPlatformPaths).toEqual({ claude: '/tmp/remote-skills' });
+      expect(dataBody.data.settings.customPlatformRootPaths).toEqual({ claude: '/tmp/remote-root' });
       expect(dataBody.data.settings.sync?.endpoint).toBe('https://dav.example.com/remote.php/dav/files/pull');
       expect(dataBody.data.settings.sync?.lastSyncAt).toBe(pullBody.data.syncedAt);
     } finally {

@@ -1,4 +1,4 @@
-import type { PromptVersion } from "@prompthub/shared/types";
+import type { PromptVersion, RuleBackupRecord } from "@prompthub/shared/types";
 import type {
   Skill,
   SkillFileSnapshot,
@@ -39,6 +39,36 @@ import {
   restoreAiConfigSnapshot,
   restoreSettingsStateSnapshot,
 } from "./settings-snapshot";
+
+async function collectRuleData(): Promise<RuleBackupRecord[]> {
+  const rulesApi = window.api?.rules;
+  if (!rulesApi?.list || !rulesApi?.read) {
+    return [];
+  }
+
+  const files = await rulesApi.list();
+  return Promise.all(
+    files.map(async (file) => {
+      const full = await rulesApi.read(file.id);
+      return {
+        id: full.id,
+        platformId: full.platformId,
+        platformName: full.platformName,
+        platformIcon: full.platformIcon,
+        platformDescription: full.platformDescription,
+        name: full.name,
+        description: full.description,
+        path: full.path,
+        managedPath: full.managedPath,
+        targetPath: full.targetPath,
+        projectRootPath: full.projectRootPath ?? null,
+        syncStatus: full.syncStatus,
+        content: full.content,
+        versions: full.versions,
+      } satisfies RuleBackupRecord;
+    }),
+  );
+}
 const DB_VERSION = DB_BACKUP_VERSION;
 const VERSION_STORE = "versions";
 const IMAGE_BATCH_SIZE = 10;
@@ -461,12 +491,13 @@ export async function exportDatabase(options?: {
       }
     : undefined;
 
-  const [images, videos, skillData] = await Promise.all([
+  const [images, videos, skillData, ruleData] = await Promise.all([
     collectImages(prompts, imageLimits),
     options?.skipVideoContent
       ? Promise.resolve(undefined)
       : collectVideos(prompts, videoLimits),
     collectSkillData(),
+    collectRuleData(),
   ]);
 
   const settingsSnapshot = getSettingsStateSnapshot({
@@ -484,6 +515,7 @@ export async function exportDatabase(options?: {
     aiConfig: getAiConfigSnapshot({ includeRootApiKey: true }),
     settings: settingsSnapshot ? { state: settingsSnapshot.state } : undefined,
     settingsUpdatedAt: settingsSnapshot?.settingsUpdatedAt,
+    rules: ruleData.length > 0 ? ruleData : undefined,
     skills: skillData.skills.length > 0 ? skillData.skills : undefined,
     skillVersions:
       skillData.skillVersions.length > 0 ? skillData.skillVersions : undefined,
@@ -578,6 +610,15 @@ export async function importDatabase(backup: DatabaseBackup): Promise<void> {
 
   if (normalizedBackup.settings) {
     restoreSettingsStateSnapshot(normalizedBackup.settings);
+  }
+
+  if (normalizedBackup.rules && normalizedBackup.rules.length > 0) {
+    try {
+      await window.api?.rules?.importRecords?.(normalizedBackup.rules);
+    } catch (error) {
+      restoreFailures.push("rules restore");
+      console.warn("Failed to restore rules:", error);
+    }
   }
 
   try {
@@ -744,6 +785,7 @@ export async function downloadSelectiveExport(
     images: !!scope.images,
     aiConfig: !!scope.aiConfig,
     settings: !!scope.settings,
+    rules: !!scope.rules,
     skills: !!scope.skills,
   };
 
@@ -767,6 +809,9 @@ export async function downloadSelectiveExport(
       payload.settings = { state: snap.state };
       payload.settingsUpdatedAt = snap.settingsUpdatedAt;
     }
+  }
+  if (normalized.rules) {
+    payload.rules = await collectRuleData();
   }
   // Note: images and skills are included as files in the ZIP; omit bulky base64 blobs from the JSON
   // 注意：图片和 Skill 文件以文件形式包含在 ZIP 中，JSON 里不重复存储 base64
@@ -801,6 +846,7 @@ export async function downloadSelectiveExport(
         versions: normalized.versions,
         images: normalized.images,
         skills: normalized.skills,
+        rules: normalized.rules,
         config: false,
         aiConfigJson,
         settingsJson,

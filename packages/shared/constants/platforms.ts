@@ -10,11 +10,89 @@ export interface SkillPlatform {
   id: string;
   name: string;
   icon: string; // lucide icon name
-  skillsDir: {
+  rootDir: {
     darwin: string;
     win32: string;
     linux: string;
   };
+  skillsRelativePath: string;
+  globalRuleFile?: string;
+  configFiles?: string[];
+}
+
+export type SkillPlatformOsKey = "darwin" | "win32" | "linux";
+
+function joinPlatformPath(basePath: string, relativePath: string): string {
+  if (!relativePath.trim()) {
+    return basePath;
+  }
+
+  const separator = basePath.includes("\\") ? "\\" : "/";
+  const normalizedBase = basePath.replace(/[\\/]+$/, "");
+  const normalizedRelative = relativePath
+    .trim()
+    .split(/[\\/]+/)
+    .filter(Boolean)
+    .join(separator);
+
+  return normalizedRelative
+    ? `${normalizedBase}${separator}${normalizedRelative}`
+    : normalizedBase;
+}
+
+function stripTrailingRelativePath(fullPath: string, relativePath: string): string {
+  const trimmed = fullPath.trim().replace(/[\\/]+$/, "");
+  if (!trimmed || !relativePath.trim()) {
+    return trimmed;
+  }
+
+  const pattern = relativePath
+    .trim()
+    .split(/[\\/]+/)
+    .filter(Boolean)
+    .map((segment) => segment.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+    .join("[\\\\/]+");
+  const nextValue = trimmed.replace(new RegExp(`[\\\\/]+${pattern}$`, "i"), "");
+
+  return nextValue || trimmed;
+}
+
+export function getPlatformRootTemplate(
+  platform: SkillPlatform,
+  osKey: SkillPlatformOsKey,
+): string {
+  return platform.rootDir[osKey] || platform.rootDir.linux;
+}
+
+export function getPlatformSkillsTemplate(
+  platform: SkillPlatform,
+  osKey: SkillPlatformOsKey,
+): string {
+  return joinPlatformPath(
+    getPlatformRootTemplate(platform, osKey),
+    platform.skillsRelativePath,
+  );
+}
+
+export function getPlatformGlobalRuleTemplate(
+  platform: SkillPlatform,
+  osKey: SkillPlatformOsKey,
+): string | null {
+  if (!platform.globalRuleFile) {
+    return null;
+  }
+
+  return joinPlatformPath(
+    getPlatformRootTemplate(platform, osKey),
+    platform.globalRuleFile,
+  );
+}
+
+export function normalizeLegacySkillPathToRootTemplate(
+  platform: SkillPlatform,
+  skillPath: string,
+): string {
+  return stripTrailingRelativePath(skillPath, platform.skillsRelativePath);
 }
 
 export const DEFAULT_SKILL_PLATFORM_ORDER = [
@@ -35,171 +113,195 @@ export const SKILL_PLATFORMS: SkillPlatform[] = [
     id: "claude",
     name: "Claude Code",
     icon: "Sparkles",
-    skillsDir: {
-      darwin: "~/.claude/skills",
-      win32: "%USERPROFILE%\\.claude\\skills",
-      linux: "~/.claude/skills",
+    rootDir: {
+      darwin: "~/.claude",
+      win32: "%USERPROFILE%\\.claude",
+      linux: "~/.claude",
     },
+    skillsRelativePath: "skills",
+    globalRuleFile: "CLAUDE.md",
   },
   {
     id: "copilot",
     name: "GitHub Copilot",
     icon: "Github",
-    skillsDir: {
-      darwin: "~/.copilot/skills",
-      win32: "%USERPROFILE%\\.copilot\\skills",
-      linux: "~/.copilot/skills",
+    rootDir: {
+      darwin: "~/.copilot",
+      win32: "%USERPROFILE%\\.copilot",
+      linux: "~/.copilot",
     },
+    skillsRelativePath: "skills",
   },
   {
     id: "cursor",
     name: "Cursor",
     icon: "Terminal",
-    skillsDir: {
-      darwin: "~/.cursor/skills",
-      win32: "%USERPROFILE%\\.cursor\\skills",
-      linux: "~/.cursor/skills",
+    rootDir: {
+      darwin: "~/.cursor",
+      win32: "%USERPROFILE%\\.cursor",
+      linux: "~/.cursor",
     },
+    skillsRelativePath: "skills",
   },
   {
     id: "windsurf",
     name: "Windsurf",
     icon: "Wind",
-    skillsDir: {
-      darwin: "~/.codeium/windsurf/skills",
-      win32: "%USERPROFILE%\\.codeium\\windsurf\\skills",
-      linux: "~/.codeium/windsurf/skills",
+    rootDir: {
+      darwin: "~/.codeium/windsurf",
+      win32: "%USERPROFILE%\\.codeium\\windsurf",
+      linux: "~/.codeium/windsurf",
     },
+    skillsRelativePath: "skills",
+    globalRuleFile: "memories/global_rules.md",
   },
   {
     id: "kiro",
     name: "Kiro",
     icon: "Sparkle",
-    skillsDir: {
-      darwin: "~/.kiro/skills",
-      win32: "%USERPROFILE%\\.kiro\\skills",
-      linux: "~/.kiro/skills",
+    rootDir: {
+      darwin: "~/.kiro",
+      win32: "%USERPROFILE%\\.kiro",
+      linux: "~/.kiro",
     },
+    skillsRelativePath: "skills",
   },
   {
     id: "gemini",
     name: "Gemini CLI",
     icon: "Sparkles",
-    skillsDir: {
-      darwin: "~/.gemini/skills",
-      win32: "%USERPROFILE%\\.gemini\\skills",
-      linux: "~/.gemini/skills",
+    rootDir: {
+      darwin: "~/.gemini",
+      win32: "%USERPROFILE%\\.gemini",
+      linux: "~/.gemini",
     },
+    skillsRelativePath: "skills",
+    globalRuleFile: "GEMINI.md",
   },
   {
     id: "antigravity",
     name: "Antigravity",
     icon: "Sparkles",
-    skillsDir: {
-      darwin: "~/.gemini/antigravity/skills",
-      win32: "%USERPROFILE%\\.gemini\\antigravity\\skills",
-      linux: "~/.gemini/antigravity/skills",
+    rootDir: {
+      darwin: "~/.gemini/antigravity",
+      win32: "%USERPROFILE%\\.gemini\\antigravity",
+      linux: "~/.gemini/antigravity",
     },
+    skillsRelativePath: "skills",
   },
   {
     id: "trae",
     name: "Trae",
     icon: "Zap",
-    skillsDir: {
-      darwin: "~/.trae/skills",
-      win32: "%USERPROFILE%\\.trae\\skills",
-      linux: "~/.trae/skills",
+    rootDir: {
+      darwin: "~/.trae",
+      win32: "%USERPROFILE%\\.trae",
+      linux: "~/.trae",
     },
+    skillsRelativePath: "skills",
   },
   {
     id: "opencode",
     name: "OpenCode",
     icon: "Terminal",
-    skillsDir: {
-      darwin: "~/.config/opencode/skills",
-      win32: "%APPDATA%\\opencode\\skills",
-      linux: "~/.config/opencode/skills",
+    rootDir: {
+      darwin: "~/.config/opencode",
+      win32: "%APPDATA%\\opencode",
+      linux: "~/.config/opencode",
     },
+    skillsRelativePath: "skills",
+    globalRuleFile: "AGENTS.md",
+    configFiles: ["opencode.json"],
   },
   {
     id: "codex",
     name: "Codex CLI",
     icon: "Terminal",
-    skillsDir: {
-      darwin: "~/.codex/skills",
-      win32: "%USERPROFILE%\\.codex\\skills",
-      linux: "~/.codex/skills",
+    rootDir: {
+      darwin: "~/.codex",
+      win32: "%USERPROFILE%\\.codex",
+      linux: "~/.codex",
     },
+    skillsRelativePath: "skills",
+    globalRuleFile: "AGENTS.md",
+    configFiles: ["config.toml"],
   },
   {
     id: "roo",
     name: "Roo Code",
     icon: "Bot",
-    skillsDir: {
-      darwin: "~/.roo/skills",
-      win32: "%USERPROFILE%\\.roo\\skills",
-      linux: "~/.roo/skills",
+    rootDir: {
+      darwin: "~/.roo",
+      win32: "%USERPROFILE%\\.roo",
+      linux: "~/.roo",
     },
+    skillsRelativePath: "skills",
   },
   {
     id: "amp",
     name: "Amp",
     icon: "Zap",
-    skillsDir: {
-      darwin: "~/.config/agents/skills",
-      win32: "%APPDATA%\\agents\\skills",
-      linux: "~/.config/agents/skills",
+    rootDir: {
+      darwin: "~/.config/agents",
+      win32: "%APPDATA%\\agents",
+      linux: "~/.config/agents",
     },
+    skillsRelativePath: "skills",
   },
   {
     id: "openclaw",
     name: "OpenClaw",
     icon: "Bot",
-    skillsDir: {
-      darwin: "~/.openclaw/skills",
-      win32: "%USERPROFILE%\\.openclaw\\skills",
-      linux: "~/.openclaw/skills",
+    rootDir: {
+      darwin: "~/.openclaw",
+      win32: "%USERPROFILE%\\.openclaw",
+      linux: "~/.openclaw",
     },
+    skillsRelativePath: "skills",
   },
   {
     id: "qoder",
     name: "Qoder",
     icon: "Bot",
-    skillsDir: {
-      darwin: "~/.qoder/skills",
-      win32: "%USERPROFILE%\\.qoder\\skills",
-      linux: "~/.qoder/skills",
+    rootDir: {
+      darwin: "~/.qoder",
+      win32: "%USERPROFILE%\\.qoder",
+      linux: "~/.qoder",
     },
+    skillsRelativePath: "skills",
   },
   {
     id: "qoderwork",
     name: "QoderWorker",
     icon: "Code",
-    skillsDir: {
-      darwin: "~/.qoderwork/skills",
-      win32: "%USERPROFILE%\\.qoderwork\\skills",
-      linux: "~/.qoderwork/skills",
+    rootDir: {
+      darwin: "~/.qoderwork",
+      win32: "%USERPROFILE%\\.qoderwork",
+      linux: "~/.qoderwork",
     },
+    skillsRelativePath: "skills",
   },
   {
     id: "hermes",
     name: "Hermes Agent",
     icon: "Bot",
-    skillsDir: {
-      darwin: "~/.hermes/skills",
-      win32: "%USERPROFILE%\\.hermes\\skills",
-      linux: "~/.hermes/skills",
+    rootDir: {
+      darwin: "~/.hermes",
+      win32: "%USERPROFILE%\\.hermes",
+      linux: "~/.hermes",
     },
+    skillsRelativePath: "skills",
   },
   {
     id: "codebuddy",
     name: "CodeBuddy",
     icon: "Code",
-    skillsDir: {
-      darwin: "~/.codebuddy/skills",
-      win32: "%USERPROFILE%\\.codebuddy\\skills",
-      linux: "~/.codebuddy/skills",
+    rootDir: {
+      darwin: "~/.codebuddy",
+      win32: "%USERPROFILE%\\.codebuddy",
+      linux: "~/.codebuddy",
     },
+    skillsRelativePath: "skills",
   },
 ];
 

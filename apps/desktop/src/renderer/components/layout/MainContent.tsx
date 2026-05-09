@@ -5,13 +5,14 @@ import { useFolderStore } from '../../stores/folder.store';
 import { useSettingsStore } from '../../stores/settings.store';
 import { useUIStore } from '../../stores/ui.store';
 import { resolveScenarioModel } from '../../services/ai-defaults';
+import { RulesManager } from '../rules/RulesManager';
 
 // Lazy load SkillManager for better initial load performance
 // 懒加载 SkillManager 以提升初始加载性能
 const SkillManager = lazy(() => import('../skill/SkillManager').then(m => ({ default: m.SkillManager })));
-import { StarIcon, CopyIcon, HistoryIcon, HashIcon, SparklesIcon, EditIcon, TrashIcon, CheckIcon, PlayIcon, LoaderIcon, XIcon, GitCompareIcon, ClockIcon, GlobeIcon, PinIcon, MessageSquareTextIcon, ImageIcon, DownloadIcon, SaveIcon, ZoomInIcon, Share2Icon } from 'lucide-react';
+import { StarIcon, CopyIcon, HistoryIcon, HashIcon, SparklesIcon, EditIcon, TrashIcon, CheckIcon, PlayIcon, LoaderIcon, XIcon, GitCompareIcon, ClockIcon, GlobeIcon, PinIcon, MessageSquareTextIcon, ImageIcon, DownloadIcon, SaveIcon, ZoomInIcon, Share2Icon, PaperclipIcon } from 'lucide-react';
 import { EditPromptModal, VersionHistoryModal, VariableInputModal, PromptListHeader, PromptTableView, AiTestModal, PromptDetailModal, PromptGalleryView, PromptKanbanView } from '../prompt';
-import type { OutputFormatConfig } from '../prompt/VariableInputModal';
+import type { OutputFormatConfig, VariableInputImageAttachment } from '../prompt/VariableInputModal';
 import { ContextMenu, ContextMenuItem } from '../ui/ContextMenu';
 import { ImagePreviewModal } from '../ui/ImagePreviewModal';
 import { LocalImage } from '../ui/LocalImage';
@@ -43,6 +44,15 @@ const INITIAL_PROMPT_RENDER_COUNT = 160;
 const PROMPT_RENDER_CHUNK_SIZE = 160;
 const PROMPT_RENDER_CHUNK_DELAY_MS = 24;
 const PROMPT_CARD_INTRINSIC_SIZE = "76px";
+const MAX_AI_TEST_IMAGES = 8;
+const MAX_AI_TEST_IMAGE_BYTES = 10 * 1024 * 1024;
+const SUPPORTED_AI_TEST_IMAGE_MIME_TYPES = new Set([
+  'image/png',
+  'image/jpeg',
+  'image/jpg',
+  'image/webp',
+  'image/gif',
+]);
 
 function escapeRegExp(str: string) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -193,6 +203,16 @@ function getDetailInlineUserPromptField(
 }
 
 export function MainContent() {
+  const appModule = useUIStore((state) => state.appModule);
+
+  if (appModule === 'rules') {
+    return <RulesManager />;
+  }
+
+  return <PromptSkillMainContent />;
+}
+
+function PromptSkillMainContent() {
   const { t, i18n } = useTranslation();
   const prompts = usePromptStore((state) => state.prompts);
   const selectedId = usePromptStore((state) => state.selectedId);
@@ -435,6 +455,7 @@ export function MainContent() {
   // AI configuration
   // AI 配置
   const aiProvider = useSettingsStore((state) => state.aiProvider);
+  const aiApiProtocol = useSettingsStore((state) => state.aiApiProtocol);
   const aiApiKey = useSettingsStore((state) => state.aiApiKey);
   const aiApiUrl = useSettingsStore((state) => state.aiApiUrl);
   const aiModel = useSettingsStore((state) => state.aiModel);
@@ -476,14 +497,21 @@ export function MainContent() {
       return {
         id: defaultChatModel.id,
         provider: defaultChatModel.provider,
+        apiProtocol: defaultChatModel.apiProtocol,
         apiKey: defaultChatModel.apiKey,
         apiUrl: defaultChatModel.apiUrl,
         model: defaultChatModel.model,
         chatParams: defaultChatModel.chatParams,
       };
     }
-    return { provider: aiProvider, apiKey: aiApiKey, apiUrl: aiApiUrl, model: aiModel };
-  }, [defaultChatModel, aiProvider, aiApiKey, aiApiUrl, aiModel]);
+    return {
+      provider: aiProvider,
+      apiProtocol: aiApiProtocol,
+      apiKey: aiApiKey,
+      apiUrl: aiApiUrl,
+      model: aiModel,
+    };
+  }, [defaultChatModel, aiProvider, aiApiProtocol, aiApiKey, aiApiUrl, aiModel]);
 
   const canRunSingleAiTest = !!((singleChatConfig.apiKey && singleChatConfig.apiUrl && singleChatConfig.model) || 
     (defaultImageModel && defaultImageModel.apiKey && defaultImageModel.apiUrl && defaultImageModel.model));
@@ -623,7 +651,81 @@ export function MainContent() {
     }
   };
 
-  const runAiTest = async (systemPrompt: string | undefined, userPrompt: string, promptId?: string, outputFormat?: OutputFormatConfig) => {
+  const formatAiTestImageSize = (bytes: number): string => {
+    if (bytes >= 1024 * 1024) {
+      return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+    }
+    return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  };
+
+  const readInlineAiTestImage = (file: File): Promise<VariableInputImageAttachment> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result !== 'string') {
+          reject(new Error(t('prompt.aiTestImageReadFailed')));
+          return;
+        }
+
+        const commaIndex = reader.result.indexOf(',');
+        if (commaIndex === -1) {
+          reject(new Error(t('prompt.aiTestImageReadFailed')));
+          return;
+        }
+
+        resolve({
+          id: `${file.name}-${file.size}-${file.lastModified}-${Math.random().toString(36).slice(2, 8)}`,
+          name: file.name,
+          mimeType: file.type,
+          size: file.size,
+          dataUrl: reader.result,
+          base64: reader.result.slice(commaIndex + 1),
+        });
+      };
+      reader.onerror = () => reject(new Error(t('prompt.aiTestImageReadFailed')));
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleInlineAiTestImageSelection = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+
+    const remainingSlots = MAX_AI_TEST_IMAGES - inlineAiTestImages.length;
+    if (remainingSlots <= 0) {
+      showToast(t('prompt.aiTestImageLimit', { count: MAX_AI_TEST_IMAGES }), 'error');
+      return;
+    }
+
+    const acceptedFiles: File[] = [];
+    for (const file of Array.from(files).slice(0, remainingSlots)) {
+      if (!SUPPORTED_AI_TEST_IMAGE_MIME_TYPES.has(file.type)) {
+        showToast(t('prompt.aiTestImageUnsupported', { name: file.name }), 'error');
+        continue;
+      }
+      if (file.size > MAX_AI_TEST_IMAGE_BYTES) {
+        showToast(t('prompt.aiTestImageTooLarge', { name: file.name, size: formatAiTestImageSize(MAX_AI_TEST_IMAGE_BYTES) }), 'error');
+        continue;
+      }
+      acceptedFiles.push(file);
+    }
+
+    if (acceptedFiles.length === 0) return;
+
+    try {
+      const attachments = await Promise.all(acceptedFiles.map(readInlineAiTestImage));
+      setInlineAiTestImages((prev) => [...prev, ...attachments].slice(0, MAX_AI_TEST_IMAGES));
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : t('prompt.aiTestImageReadFailed'), 'error');
+    }
+  };
+
+  const runAiTest = async (
+    systemPrompt: string | undefined,
+    userPrompt: string,
+    promptId?: string,
+    outputFormat?: OutputFormatConfig,
+    imageAttachments: VariableInputImageAttachment[] = inlineAiTestImages,
+  ) => {
     // Do not use modal in card view; render results inline
     // 卡片视图不使用弹窗，直接在页面内显示结果
     setIsTestingAI(true);
@@ -660,6 +762,7 @@ export function MainContent() {
          try {
              const result = await generateImage({
                  provider: defaultImageModel.provider,
+                 apiProtocol: defaultImageModel.apiProtocol,
                  apiKey: defaultImageModel.apiKey,
                  apiUrl: defaultImageModel.apiUrl,
                  model: defaultImageModel.model,
@@ -728,7 +831,7 @@ export function MainContent() {
         throw new Error(t('toast.configAI'));
       }
 
-      const messages = buildMessagesFromPrompt(systemPrompt, userPrompt);
+      const messages = buildMessagesFromPrompt(systemPrompt, userPrompt, undefined, imageAttachments);
       const useStream = !!singleChatConfig.chatParams?.stream;
       const useThinking = !!singleChatConfig.chatParams?.enableThinking;
 
@@ -831,13 +934,18 @@ export function MainContent() {
 
   // Multi-model comparison (supports variable substitution)
   // 多模型对比函数（支持变量替换后的 prompt）
-  const runModelCompare = async (systemPrompt: string | undefined, userPrompt: string) => {
+  const runModelCompare = async (
+    systemPrompt: string | undefined,
+    userPrompt: string,
+    imageAttachments: VariableInputImageAttachment[] = inlineAiTestImages,
+  ) => {
     setIsCompareVariableModalOpen(false);
     const selectedConfigs = compareModels
       .filter((m) => selectedModelIds.includes(m.id))
       .map((m) => ({
         id: m.id,
         provider: m.provider,
+        apiProtocol: m.apiProtocol,
         apiKey: m.apiKey,
         apiUrl: m.apiUrl,
         model: m.model,
@@ -845,7 +953,7 @@ export function MainContent() {
         imageParams: m.imageParams,
       }));
 
-    const messages = buildMessagesFromPrompt(systemPrompt, userPrompt);
+    const messages = buildMessagesFromPrompt(systemPrompt, userPrompt, undefined, imageAttachments);
 
     setIsComparingModels(true);
     setCompareError(null);
@@ -1024,6 +1132,9 @@ export function MainContent() {
   // AI 测试弹窗状态
   const [isAiTestModalOpen, setIsAiTestModalOpen] = useState(false);
   const [aiTestPrompt, setAiTestPrompt] = useState<Prompt | null>(null);
+  const [aiTestInitialMode, setAiTestInitialMode] = useState<'single' | 'compare' | 'image'>('single');
+  const [inlineAiTestImages, setInlineAiTestImages] = useState<VariableInputImageAttachment[]>([]);
+  const inlineAiTestImageInputRef = useRef<HTMLInputElement | null>(null);
   // AI response cache (for list view preview)
   // AI 响应缓存（用于列表视图预览）
   const [aiResponseCache, setAiResponseCache] = useState<Record<string, string>>({});
@@ -1046,6 +1157,7 @@ export function MainContent() {
   useEffect(() => {
     setIsDetailInlineEditing(false);
     setIsDetailInlineSaving(false);
+    setInlineAiTestImages([]);
   }, [selectedPrompt?.id]);
 
   useEffect(() => {
@@ -1208,14 +1320,15 @@ export function MainContent() {
     setDeleteConfirm({ isOpen: false, prompt: null });
   }, [deleteConfirm.prompt, deletePrompt, showToast, t]);
 
-  // Handle AI test (table view - modal)
-  // 处理 AI 测试（表格视图用 - 弹窗模式）
-  const handleAiTestFromTable = (prompt: Prompt) => {
+  // Handle AI test through the unified workbench drawer
+  // 通过统一测试抽屉处理 AI 测试
+  const handleAiTestFromTable = (prompt: Prompt, initialMode: 'single' | 'compare' | 'image' = 'single') => {
     if (!canRunSingleAiTest) {
       showToast(t('toast.configAI'), 'error');
       return;
     }
     setAiTestPrompt(prompt);
+    setAiTestInitialMode(initialMode);
     setIsAiTestModalOpen(true);
   };
 
@@ -1811,127 +1924,20 @@ export function MainContent() {
                   {/* 多模型对比区域 */}
                   {selectedPrompt.promptType !== 'image' && compareModels.length > 0 && !isDetailInlineEditing && (
                     <div className="mb-4 p-4 rounded-xl app-wallpaper-panel border border-border">
-                      <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-2">
                           <GitCompareIcon className="w-4 h-4 text-primary" />
                           <span className="text-sm font-medium">{t('settings.multiModelCompare')}</span>
                           <span className="text-xs text-muted-foreground">{t('prompt.selectModelsHint')}</span>
                         </div>
-                      </div>
-
-                      {/* Model selection list */}
-                      {/* 模型选择列表 */}
-                      <div className="flex flex-wrap gap-2 mb-4">
-                        {compareModels.map((model) => {
-                          const isSelected = selectedModelIds.includes(model.id);
-                          // Get provider display name
-                          // 获取供应商简称
-                          const providerName = model.name || model.provider;
-                          const displayName = `${providerName} | ${model.model}`;
-                          return (
-                            <button
-                              key={model.id}
-                              onClick={() => {
-                                if (isSelected) {
-                                  setSelectedModelIds(selectedModelIds.filter((id) => id !== model.id));
-                                } else {
-                                  setSelectedModelIds([...selectedModelIds, model.id]);
-                                }
-                              }}
-                              className={`
-                            px-3 py-1.5 rounded-lg text-xs font-medium transition-all
-                            ${isSelected
-                                  ? 'bg-primary text-white'
-                                  : 'bg-muted hover:bg-accent text-foreground'
-                                }
-                          `}
-                              title={displayName}
-                            >
-                              {model.model}
-                              {model.isDefault && (
-                                <span className="ml-1 opacity-60">★</span>
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
-
-                      <div className="flex items-center justify-end gap-3">
-                        {selectedModelIds.length > 0 && (
-                          <button
-                            onClick={() => setSelectedModelIds([])}
-                            className="text-xs text-muted-foreground hover:text-foreground"
-                          >
-                            {t('prompt.clearSelection')}
-                          </button>
-                        )}
                         <button
-                          onClick={() => {
-                            if (selectedModelIds.length < 2) {
-                              showToast(t('prompt.selectAtLeast2'), 'error');
-                              return;
-                            }
-                            if (!selectedPrompt) return;
-
-                            // Check variables (create a new regex per string to avoid global flag state)
-                            // 检查是否有变量（为每个字符串创建新的正则实例，避免全局标志导致的状态问题）
-                            const hasVariables =
-                              /\{\{([^}]+)\}\}/.test(selectedPrompt.userPrompt) ||
-                              (selectedPrompt.systemPrompt && /\{\{([^}]+)\}\}/.test(selectedPrompt.systemPrompt));
-
-                            if (hasVariables) {
-                              setIsCompareVariableModalOpen(true);
-                            } else {
-                              runModelCompare(selectedPrompt.systemPrompt, selectedPrompt.userPrompt);
-                            }
-                          }}
-                          disabled={isComparingModels || selectedModelIds.length < 2}
+                          onClick={() => handleAiTestFromTable(selectedPrompt, 'compare')}
                           className="flex items-center gap-2 h-9 px-4 rounded-lg bg-primary text-white text-xs font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
                         >
-                          {isComparingModels ? (
-                            <LoaderIcon className="w-3 h-3 animate-spin" />
-                          ) : (
-                            <GitCompareIcon className="w-3 h-3" />
-                          )}
-                          <span>{isComparingModels ? t('prompt.comparing') : t('prompt.compareModels', { count: selectedModelIds.length })}</span>
+                          <GitCompareIcon className="w-3 h-3" />
+                          <span>{t('settings.runCompare')}</span>
                         </button>
                       </div>
-
-                      {compareError && (
-                        <p className="mt-3 text-xs text-red-500">{compareError}</p>
-                      )}
-
-                      {compareResults && compareResults.length > 0 && (
-                        <div className="mt-4 grid md:grid-cols-2 gap-3">
-                          {compareResults.map((res) => (
-                            <div
-                              key={`${res.provider}-${res.model}`}
-                              className={`p-3 rounded-lg border text-xs space-y-2 ${res.success ? 'border-emerald-400/50 bg-emerald-500/5' : 'border-red-400/50 bg-red-500/5'
-                                }`}
-                            >
-                              <div className="flex items-center justify-between">
-                                <div className="font-medium truncate">
-                                  {res.model}
-                                </div>
-                                <div className="text-[10px] text-muted-foreground">
-                                  {res.latency}ms
-                                </div>
-                              </div>
-                              {res.success && res.thinkingContent && (
-                                <CollapsibleThinking
-                                  content={res.thinkingContent}
-                                  className="text-[10px]"
-                                />
-                              )}
-                              <div className="text-[11px] leading-relaxed max-h-40 overflow-y-auto">
-                                {res.success
-                                  ? (renderAiResponseContent(res.response || '(空)') ?? '(空)')
-                                  : (res.error || '未知错误')}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
                     </div>
                   )}
 
@@ -2079,32 +2085,13 @@ export function MainContent() {
                   </button>
                   <button
                     onClick={() => {
-                      if (!canRunSingleAiTest) {
-                        showToast(t('toast.configAI'), 'error');
-                        return;
-                      }
-                      // Select content based on language mode
-                      // 根据语言模式选择内容
-                      const currentUserPrompt = showEnglish ? (selectedPrompt.userPromptEn || selectedPrompt.userPrompt) : selectedPrompt.userPrompt;
-                      const currentSystemPrompt = showEnglish ? (selectedPrompt.systemPromptEn || selectedPrompt.systemPrompt) : selectedPrompt.systemPrompt;
-
-                      // Check variables (create a new regex per string to avoid global flag state)
-                      // 检查是否有变量（为每个字符串创建新的正则实例，避免全局标志导致的状态问题）
-                      const hasVariables =
-                        /\{\{([^}]+)\}\}/.test(currentUserPrompt) ||
-                        (currentSystemPrompt && /\{\{([^}]+)\}\}/.test(currentSystemPrompt));
-
-                      if (hasVariables) {
-                        setIsAiTestVariableModalOpen(true);
-                      } else {
-                        runAiTest(currentSystemPrompt, currentUserPrompt);
-                      }
+                      handleAiTestFromTable(selectedPrompt, 'single');
                     }}
-                    disabled={isTestingAI || isDetailInlineEditing}
+                    disabled={isDetailInlineEditing}
                     className="flex items-center gap-2 h-9 px-4 rounded-lg bg-primary/90 text-white text-sm font-medium hover:bg-primary disabled:opacity-50 transition-colors"
                   >
-                    {isTestingAI ? <LoaderIcon className="w-4 h-4 animate-spin" /> : <PlayIcon className="w-4 h-4" />}
-                    <span>{isTestingAI ? t('prompt.testing') : t('prompt.aiTest')}</span>
+                    <PlayIcon className="w-4 h-4" />
+                    <span>{t('prompt.aiTest')}</span>
                   </button>
                   <button
                     onClick={() => handleVersionHistory(selectedPrompt)}
@@ -2158,6 +2145,7 @@ export function MainContent() {
           setAiTestPrompt(null);
         }}
         prompt={aiTestPrompt}
+        initialMode={aiTestInitialMode}
         onUsageIncrement={handleAiUsageIncrement}
         onSaveResponse={handleSaveAiResponse}
         onAddImage={async (fileName) => {
@@ -2218,8 +2206,8 @@ export function MainContent() {
           systemPrompt={showEnglish ? (selectedPrompt.systemPromptEn || selectedPrompt.systemPrompt) : selectedPrompt.systemPrompt}
           userPrompt={showEnglish ? (selectedPrompt.userPromptEn || selectedPrompt.userPrompt) : selectedPrompt.userPrompt}
           mode="aiTest"
-          onAiTest={(filledSystemPrompt, filledUserPrompt, outputFormat) => {
-            runAiTest(filledSystemPrompt, filledUserPrompt, undefined, outputFormat);
+          onAiTest={(filledSystemPrompt, filledUserPrompt, outputFormat, imageAttachments) => {
+            runAiTest(filledSystemPrompt, filledUserPrompt, undefined, outputFormat, imageAttachments);
           }}
           isAiTesting={isTestingAI}
         />
@@ -2235,8 +2223,8 @@ export function MainContent() {
           systemPrompt={showEnglish ? (selectedPrompt.systemPromptEn || selectedPrompt.systemPrompt) : selectedPrompt.systemPrompt}
           userPrompt={showEnglish ? (selectedPrompt.userPromptEn || selectedPrompt.userPrompt) : selectedPrompt.userPrompt}
           mode="aiTest"
-          onAiTest={(filledSystemPrompt, filledUserPrompt) => {
-            runModelCompare(filledSystemPrompt, filledUserPrompt);
+          onAiTest={(filledSystemPrompt, filledUserPrompt, _outputFormat, imageAttachments) => {
+            runModelCompare(filledSystemPrompt, filledUserPrompt, imageAttachments);
           }}
           isAiTesting={isComparingModels}
         />

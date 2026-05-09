@@ -175,7 +175,7 @@ describe("self-hosted-sync", () => {
           themeMode: "dark",
           language: "en",
           autoSave: false,
-          customSkillPlatformPaths: { claude: "/tmp/skills" },
+          customPlatformRootPaths: { claude: "/tmp/claude-root" },
         },
       },
       skills: [
@@ -224,7 +224,7 @@ describe("self-hosted-sync", () => {
               theme: string;
               language: string;
               autoSave: boolean;
-              customSkillPlatformPaths: Record<string, string>;
+              customPlatformRootPaths: Record<string, string>;
             };
           };
         };
@@ -239,7 +239,8 @@ describe("self-hosted-sync", () => {
           theme: "dark",
           language: "en",
           autoSave: false,
-          customSkillPlatformPaths: { claude: "/tmp/skills" },
+          customPlatformRootPaths: { claude: "/tmp/claude-root" },
+          customSkillPlatformPaths: {},
           sync: {
             enabled: false,
             provider: "manual",
@@ -361,7 +362,7 @@ describe("self-hosted-sync", () => {
               theme: "dark",
               language: "en",
               autoSave: false,
-              customSkillPlatformPaths: { claude: "/tmp/remote" },
+              customPlatformRootPaths: { claude: "/tmp/remote-root" },
             },
             settingsUpdatedAt: "2026-04-16T02:03:04.000Z",
           },
@@ -423,6 +424,8 @@ describe("self-hosted-sync", () => {
             themeMode: "dark",
             language: "en",
             autoSave: false,
+            customPlatformRootPaths: { claude: "/tmp/remote-root" },
+            customSkillPlatformPaths: {},
             settingsUpdatedAt: "2026-04-16T02:03:04.000Z",
           }),
         },
@@ -593,7 +596,7 @@ describe("self-hosted-sync", () => {
               theme: "dark",
               language: "en",
               autoSave: false,
-              customSkillPlatformPaths: { claude: "/tmp/remote" },
+              customPlatformRootPaths: { claude: "/tmp/remote-root" },
             },
             settingsUpdatedAt: "2026-04-16T02:00:00.000Z",
           },
@@ -788,6 +791,7 @@ describe("self-hosted-sync", () => {
               theme: "dark",
               language: "en",
               autoSave: false,
+              customPlatformRootPaths: {},
               customSkillPlatformPaths: {},
               sync: {
                 enabled: false,

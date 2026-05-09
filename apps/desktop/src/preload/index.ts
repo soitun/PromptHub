@@ -4,6 +4,7 @@ import { aiApi } from "./api/ai";
 import { folderApi } from "./api/folder";
 import { ioApi } from "./api/io";
 import { promptApi } from "./api/prompt";
+import { rulesApi } from "./api/rules";
 import { settingsApi } from "./api/settings";
 import { skillApi } from "./api/skill";
 import { upgradeBackupApi } from "./api/upgrade-backup";
@@ -99,6 +100,7 @@ const api = {
 
   skill: skillApi,
   settings: settingsApi,
+  rules: rulesApi,
   upgradeBackup: upgradeBackupApi,
   io: ioApi,
   ai: aiApi,
@@ -208,6 +210,7 @@ contextBridge.exposeInMainWorld("electron", {
       versions: boolean;
       images: boolean;
       skills: boolean;
+      rules?: boolean;
       config: boolean;
       aiConfigJson?: string;
       settingsJson?: string;
@@ -426,6 +429,7 @@ declare global {
           versions: boolean;
           images: boolean;
           skills: boolean;
+          rules?: boolean;
           config: boolean;
           aiConfigJson?: string;
           settingsJson?: string;

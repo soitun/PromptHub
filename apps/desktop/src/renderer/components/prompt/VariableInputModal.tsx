@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Modal, Button } from '../ui';
 import { useTranslation } from 'react-i18next';
-import { CopyIcon, CheckIcon, BracesIcon, HistoryIcon, CalendarIcon, ClockIcon, PlayIcon, Loader2Icon } from 'lucide-react';
+import { CopyIcon, CheckIcon, BracesIcon, HistoryIcon, CalendarIcon, ClockIcon, PlayIcon, Loader2Icon, ImageIcon, XIcon } from 'lucide-react';
+import type { ChatImageAttachment } from '../../services/ai';
 
 type ModalMode = 'copy' | 'aiTest';
 
@@ -17,6 +18,13 @@ export interface OutputFormatConfig {
   };
 }
 
+export interface VariableInputImageAttachment extends ChatImageAttachment {
+  id: string;
+  name: string;
+  size: number;
+  dataUrl: string;
+}
+
 interface VariableInputModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -25,9 +33,24 @@ interface VariableInputModalProps {
   userPrompt: string;
   mode?: ModalMode;
   onCopy?: (filledPrompt: string) => void;
-  onAiTest?: (filledSystemPrompt: string | undefined, filledUserPrompt: string, outputFormat?: OutputFormatConfig) => void;
+  onAiTest?: (
+    filledSystemPrompt: string | undefined,
+    filledUserPrompt: string,
+    outputFormat?: OutputFormatConfig,
+    imageAttachments?: VariableInputImageAttachment[],
+  ) => void;
   isAiTesting?: boolean;
 }
+
+const MAX_AI_TEST_IMAGES = 8;
+const MAX_AI_TEST_IMAGE_BYTES = 10 * 1024 * 1024;
+const SUPPORTED_AI_TEST_IMAGE_MIME_TYPES = new Set([
+  'image/png',
+  'image/jpeg',
+  'image/jpg',
+  'image/webp',
+  'image/gif',
+]);
 
 // Parse variables: supports {{name}} and {{name:defaultValue}} formats
 // 解析变量：支持 {{name}} 和 {{name:默认值}} 格式
@@ -93,6 +116,7 @@ export function VariableInputModal({
   const [outputFormat, setOutputFormat] = useState<OutputFormatType>('text');
   const [jsonSchemaName, setJsonSchemaName] = useState('response');
   const [jsonSchemaContent, setJsonSchemaContent] = useState('');
+  const [imageAttachments, setImageAttachments] = useState<VariableInputImageAttachment[]>([]);
 
   // Parse all variables (including default values)
   // 解析所有变量（包括默认值）
@@ -129,8 +153,67 @@ export function VariableInputModal({
 
       setVariables(initialVars);
       setCopied(false);
+      setImageAttachments([]);
     }
   }, [isOpen, parsedVariables, promptId]);
+
+  const formatImageSize = (bytes: number): string => {
+    if (bytes >= 1024 * 1024) {
+      return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+    }
+    return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  };
+
+  const readImageFileAsAttachment = (file: File): Promise<VariableInputImageAttachment> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result !== 'string') {
+          reject(new Error(t('prompt.aiTestImageReadFailed')));
+          return;
+        }
+
+        const commaIndex = reader.result.indexOf(',');
+        if (commaIndex === -1) {
+          reject(new Error(t('prompt.aiTestImageReadFailed')));
+          return;
+        }
+
+        resolve({
+          id: `${file.name}-${file.size}-${file.lastModified}-${Math.random().toString(36).slice(2, 8)}`,
+          name: file.name,
+          mimeType: file.type,
+          size: file.size,
+          dataUrl: reader.result,
+          base64: reader.result.slice(commaIndex + 1),
+        });
+      };
+      reader.onerror = () => reject(new Error(t('prompt.aiTestImageReadFailed')));
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleImageSelection = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+
+    const remainingSlots = MAX_AI_TEST_IMAGES - imageAttachments.length;
+    if (remainingSlots <= 0) {
+      return;
+    }
+
+    const acceptedFiles = Array.from(files)
+      .slice(0, remainingSlots)
+      .filter((file) => SUPPORTED_AI_TEST_IMAGE_MIME_TYPES.has(file.type) && file.size <= MAX_AI_TEST_IMAGE_BYTES);
+
+    if (acceptedFiles.length === 0) return;
+
+    try {
+      const nextAttachments = await Promise.all(acceptedFiles.map(readImageFileAsAttachment));
+      setImageAttachments((prev) => [...prev, ...nextAttachments].slice(0, MAX_AI_TEST_IMAGES));
+    } catch {
+      // Ignore read failures here; the user can retry selecting the image.
+    }
+  };
 
   // Replace variables to generate final text
   // 替换变量生成最终文本
@@ -225,7 +308,7 @@ export function VariableInputModal({
       }
     }
 
-    onAiTest?.(filledSystemPrompt, filledUserPrompt, formatConfig);
+    onAiTest?.(filledSystemPrompt, filledUserPrompt, formatConfig, imageAttachments);
   };
 
   // If no variables, copy original text directly
@@ -295,6 +378,58 @@ export function VariableInputModal({
               {filledPrompt}
             </div>
           </div>
+
+          {mode === 'aiTest' && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-sm font-medium text-foreground">{t('prompt.aiTestAttachments')}</div>
+                  <p className="text-xs text-muted-foreground">
+                    {t('prompt.aiTestAttachmentHint', {
+                      count: MAX_AI_TEST_IMAGES,
+                      size: formatImageSize(MAX_AI_TEST_IMAGE_BYTES),
+                    })}
+                  </p>
+                </div>
+                <label className="flex shrink-0 cursor-pointer items-center gap-2 px-3 py-2 rounded-lg border border-border bg-background text-sm font-medium hover:bg-accent transition-colors">
+                  <ImageIcon className="w-4 h-4" />
+                  {t('prompt.aiTestAddImages')}
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/gif"
+                    multiple
+                    className="hidden"
+                    onChange={(event) => {
+                      void handleImageSelection(event.currentTarget.files);
+                      event.currentTarget.value = '';
+                    }}
+                  />
+                </label>
+              </div>
+
+              {imageAttachments.length > 0 && (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {imageAttachments.map((attachment) => (
+                    <div key={attachment.id} className="relative overflow-hidden rounded-lg border border-border bg-muted/40">
+                      <img src={attachment.dataUrl} alt={attachment.name} className="h-20 w-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setImageAttachments((prev) => prev.filter((item) => item.id !== attachment.id))}
+                        className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-background/90 text-foreground shadow-sm hover:bg-background"
+                        title={t('prompt.aiTestRemoveImage')}
+                      >
+                        <XIcon className="w-3.5 h-3.5" />
+                      </button>
+                      <div className="px-2 py-1.5">
+                        <p className="truncate text-xs font-medium" title={attachment.name}>{attachment.name}</p>
+                        <p className="text-[10px] text-muted-foreground">{formatImageSize(attachment.size)}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Fixed action buttons / 固定操作按钮 */}

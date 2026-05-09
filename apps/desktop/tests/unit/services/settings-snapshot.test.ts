@@ -19,10 +19,11 @@ describe("settings-snapshot", () => {
       JSON.stringify({
         state: {
           aiModels: [
-            { id: "m1", name: "Model One", apiKey: "model-secret" },
-            { id: "m2", name: "Model Two" },
+            { id: "m1", name: "Model One", apiProtocol: "openai", apiKey: "model-secret" },
+            { id: "m2", name: "Model Two", apiProtocol: "anthropic" },
           ],
           aiProvider: "openai",
+          aiApiProtocol: "openai",
           aiApiKey: "root-secret",
           aiApiUrl: "https://api.example.com",
           aiModel: "gpt-test",
@@ -32,22 +33,24 @@ describe("settings-snapshot", () => {
 
     expect(getAiConfigSnapshot()).toEqual({
       aiModels: [
-        { id: "m1", name: "Model One" },
-        { id: "m2", name: "Model Two" },
+        { id: "m1", name: "Model One", apiProtocol: "openai" },
+        { id: "m2", name: "Model Two", apiProtocol: "anthropic" },
       ],
       scenarioModelDefaults: {},
       aiProvider: "openai",
+      aiApiProtocol: "openai",
       aiApiUrl: "https://api.example.com",
       aiModel: "gpt-test",
     });
 
     expect(getAiConfigSnapshot({ includeRootApiKey: true })).toEqual({
       aiModels: [
-        { id: "m1", name: "Model One" },
-        { id: "m2", name: "Model Two" },
+        { id: "m1", name: "Model One", apiProtocol: "openai" },
+        { id: "m2", name: "Model Two", apiProtocol: "anthropic" },
       ],
       scenarioModelDefaults: {},
       aiProvider: "openai",
+      aiApiProtocol: "openai",
       aiApiKey: "root-secret",
       aiApiUrl: "https://api.example.com",
       aiModel: "gpt-test",
@@ -105,10 +108,11 @@ describe("settings-snapshot", () => {
 
     restoreAiConfigSnapshot({
       aiProvider: "anthropic",
+      aiApiProtocol: "anthropic",
       aiApiKey: "restored-key",
       aiApiUrl: "https://restored.example.com",
       aiModel: "claude-test",
-      aiModels: [{ id: "claude-test", name: "Claude Test" }],
+      aiModels: [{ id: "claude-test", name: "Claude Test", apiProtocol: "anthropic" }],
       scenarioModelDefaults: { translation: "claude-test" },
     });
 
@@ -116,10 +120,11 @@ describe("settings-snapshot", () => {
       state: {
         language: "zh-CN",
         aiProvider: "anthropic",
+        aiApiProtocol: "anthropic",
         aiApiKey: "restored-key",
         aiApiUrl: "https://restored.example.com",
         aiModel: "claude-test",
-        aiModels: [{ id: "claude-test", name: "Claude Test" }],
+        aiModels: [{ id: "claude-test", name: "Claude Test", apiProtocol: "anthropic" }],
         scenarioModelDefaults: { translation: "claude-test" },
       },
       settingsUpdatedAt: undefined,

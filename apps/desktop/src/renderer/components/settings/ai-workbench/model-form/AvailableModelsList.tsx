@@ -22,7 +22,6 @@ const CATEGORY_ORDER = [
   "Yi",
   "ERNIE",
   "Spark",
-  "Baichuan",
   "Hunyuan",
   "Embedding",
   "Audio",

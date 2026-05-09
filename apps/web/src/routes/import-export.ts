@@ -155,6 +155,7 @@ const settingsSchema = z.object({
   language: z.enum(['en', 'zh', 'zh-TW', 'ja', 'fr', 'de', 'es']),
   autoSave: z.boolean(),
   defaultFolderId: z.string().optional(),
+  customPlatformRootPaths: z.record(z.string()).optional(),
   customSkillPlatformPaths: z.record(z.string()).optional(),
   sync: z.object({
     enabled: z.boolean(),

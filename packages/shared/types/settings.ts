@@ -13,6 +13,7 @@ export interface Settings {
   backgroundImageFileName?: string;
   backgroundImageOpacity?: number;
   backgroundImageBlur?: number;
+  customPlatformRootPaths?: Record<string, string>;
   customSkillPlatformPaths?: Record<string, string>;
   skillPlatformOrder?: string[];
   skillProjects?: SkillProject[];
@@ -56,6 +57,7 @@ export const DEFAULT_SETTINGS: Settings = {
   autoSave: true,
   backgroundImageOpacity: 0.22,
   backgroundImageBlur: 14,
+  customPlatformRootPaths: {},
   customSkillPlatformPaths: {},
   skillPlatformOrder: [],
   skillProjects: [],

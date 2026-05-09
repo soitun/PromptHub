@@ -1,6 +1,10 @@
 import { ipcMain } from 'electron';
 import Database from '../database/sqlite';
 import { IPC_CHANNELS } from '@prompthub/shared/constants';
+import {
+  getPlatformById,
+  normalizeLegacySkillPathToRootTemplate,
+} from '@prompthub/shared/constants/platforms';
 import type { Settings } from '@prompthub/shared/types';
 import { DEFAULT_SETTINGS } from '@prompthub/shared/types';
 
@@ -42,6 +46,28 @@ export function registerSettingsIPC(db: Database.Database): void {
       } catch {
         (settings as any)[row.key] = row.value;
       }
+    }
+
+    if (
+      (!settings.customPlatformRootPaths ||
+        Object.keys(settings.customPlatformRootPaths).length === 0) &&
+      settings.customSkillPlatformPaths &&
+      Object.keys(settings.customSkillPlatformPaths).length > 0
+    ) {
+      settings.customPlatformRootPaths = Object.fromEntries(
+        Object.entries(settings.customSkillPlatformPaths).map(
+          ([platformId, skillPath]) => {
+            const platform = getPlatformById(platformId);
+            if (!platform) {
+              return [platformId, skillPath];
+            }
+            return [
+              platformId,
+              normalizeLegacySkillPathToRootTemplate(platform, skillPath),
+            ];
+          },
+        ),
+      );
     }
 
     return settings;

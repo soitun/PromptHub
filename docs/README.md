@@ -4,7 +4,7 @@
 
 内部需求、规格、设计、任务、实现、架构、问题追踪已经统一迁入 `spec/`。如果你要查 SSD 工作流或内部工程文档，请直接看 `spec/README.md`。
 
-`spec/` 的内部结构参考 OpenSpec，并且比此前版本更完整：既有稳定 `spec/specs/`，也有活跃 delta specs、archive、legacy 与模板目录，内部文档不再混放在 `docs/`。
+`spec/` 的内部结构参考 OpenSpec，并且比此前版本更完整：既有稳定 `spec/domains/`，也有活跃 delta specs、稳定逻辑、固定资产、archive、legacy 与模板目录，内部文档不再混放在 `docs/`。
 
 ## `docs/` 中应放什么
 
@@ -42,7 +42,9 @@ docs/
 ## 内部文档入口
 
 - `spec/README.md`
-- `spec/specs/`
+- `spec/domains/`
+- `spec/logic/`
+- `spec/assets/`
 - `spec/architecture/`
 - `spec/changes/active/`
 - `spec/changes/archive/`

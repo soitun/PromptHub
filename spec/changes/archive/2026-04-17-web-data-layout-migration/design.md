@@ -11,4 +11,4 @@ This archived change preserves the detailed migration design for web runtime pat
 ## Stable Follow-Through
 
 - Durable layout facts should live in `spec/architecture/data-layout-v0.5.5-zh.md`
-- Stable web behavior should live in `spec/specs/web/spec.md` and `spec/specs/data-recovery/spec.md`
+- Stable web behavior should live in `spec/domains/web/spec.md` and `spec/domains/data-recovery/spec.md`

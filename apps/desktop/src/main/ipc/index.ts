@@ -4,6 +4,7 @@ import { registerPromptIPC } from './prompt.ipc';
 import { registerFolderIPC } from './folder.ipc';
 import { registerSettingsIPC } from './settings.ipc';
 import { registerImageIPC } from './image.ipc';
+import { registerRulesIPC } from './rules.ipc';
 import { registerSkillIPC } from './skill.ipc';
 import { registerAIIPC } from './ai.ipc';
 import { PromptDB } from '../database/prompt';
@@ -37,6 +38,9 @@ const REBINDABLE_DB_CHANNELS = [
   IPC_CHANNELS.FOLDER_INSERT_DIRECT,
   IPC_CHANNELS.SETTINGS_GET,
   IPC_CHANNELS.SETTINGS_SET,
+  IPC_CHANNELS.RULES_LIST,
+  IPC_CHANNELS.RULES_READ,
+  IPC_CHANNELS.RULES_SAVE,
   IPC_CHANNELS.SECURITY_SET_MASTER_PASSWORD,
   IPC_CHANNELS.SECURITY_CHANGE_MASTER_PASSWORD,
   IPC_CHANNELS.SECURITY_UNLOCK,
@@ -111,6 +115,7 @@ export function registerAllIPC(
   registerFolderIPC(folderDB, promptDB);
   registerSkillIPC(skillDB);
   registerSettingsIPC(db);
+  registerRulesIPC();
   registerSecurityIPC(db);
   registerBackupIPC(setDbRef, (nextDb) => registerAllIPC(nextDb, setDbRef));
   registerImageIPC();

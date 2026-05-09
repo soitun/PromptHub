@@ -14,6 +14,7 @@ const updateSettingsSchema = z.object({
   language: z.enum(['en', 'zh', 'zh-TW', 'ja', 'fr', 'de', 'es']).optional(),
   autoSave: z.boolean().optional(),
   defaultFolderId: z.string().trim().min(1).nullable().optional(),
+  customPlatformRootPaths: z.record(z.string()).optional(),
   customSkillPlatformPaths: z.record(z.string()).optional(),
   sync: z
     .object({

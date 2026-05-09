@@ -91,6 +91,7 @@ interface BackupData {
   aiConfig?: {
     aiModels?: any[];
     aiProvider?: string;
+    aiApiProtocol?: string;
     aiApiKey?: string;
     aiApiUrl?: string;
     aiModel?: string;

@@ -863,6 +863,7 @@ function getAiConfig(): DatabaseBackup["aiConfig"] {
       aiModels: filteredModels,
       scenarioModelDefaults: state.scenarioModelDefaults || {},
       aiProvider: state.aiProvider,
+      aiApiProtocol: state.aiApiProtocol,
       // aiApiKey is intentionally excluded for security
       // aiApiKey 出于安全考虑被故意排除
       aiApiUrl: state.aiApiUrl,
@@ -900,6 +901,7 @@ function restoreAiConfig(aiConfig: DatabaseBackup["aiConfig"]): void {
       data.state.scenarioModelDefaults = aiConfig.scenarioModelDefaults;
     }
     if (aiConfig.aiProvider) data.state.aiProvider = aiConfig.aiProvider;
+    if (aiConfig.aiApiProtocol) data.state.aiApiProtocol = aiConfig.aiApiProtocol;
     if (aiConfig.aiApiKey) data.state.aiApiKey = aiConfig.aiApiKey;
     if (aiConfig.aiApiUrl) data.state.aiApiUrl = aiConfig.aiApiUrl;
     if (aiConfig.aiModel) data.state.aiModel = aiConfig.aiModel;

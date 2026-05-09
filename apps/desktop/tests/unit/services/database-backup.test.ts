@@ -193,6 +193,75 @@ describe("database-backup restore", () => {
     expect(backup.settings).toEqual({ state: { language: "zh" } });
   });
 
+  it("exports rules and restores them through the rules preload API", async () => {
+    installWindowMocks({
+      api: {
+        rules: {
+          list: vi.fn().mockResolvedValue([
+            {
+              id: "gemini-global",
+              platformId: "gemini",
+              platformName: "Gemini CLI",
+              platformIcon: "gemini",
+              platformDescription: "Gemini rules",
+              name: "GEMINI.md",
+              description: "Gemini global rule file",
+              path: "/Users/test/.gemini/GEMINI.md",
+              exists: true,
+              group: "assistant",
+            },
+          ]),
+          read: vi.fn().mockResolvedValue({
+            id: "gemini-global",
+            platformId: "gemini",
+            platformName: "Gemini CLI",
+            platformIcon: "gemini",
+            platformDescription: "Gemini rules",
+            name: "GEMINI.md",
+            description: "Gemini global rule file",
+            path: "/Users/test/.gemini/GEMINI.md",
+            managedPath: "/tmp/data/rules/global/gemini/GEMINI.md",
+            targetPath: "/Users/test/.gemini/GEMINI.md",
+            projectRootPath: null,
+            syncStatus: "synced",
+            exists: true,
+            group: "assistant",
+            content: "# Gemini rules",
+            versions: [
+              {
+                id: "rule-version-1",
+                savedAt: "2026-05-09T00:00:00.000Z",
+                source: "create",
+                content: "# Gemini rules",
+              },
+            ],
+          }),
+          importRecords: vi.fn().mockResolvedValue({ success: true }),
+        },
+      },
+    });
+
+    const backup = await exportDatabase();
+
+    expect(backup.rules).toEqual([
+      expect.objectContaining({
+        id: "gemini-global",
+        content: "# Gemini rules",
+      }),
+    ]);
+
+    await restoreFromBackup(backup);
+
+    expect(window.api.rules.importRecords).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "gemini-global",
+          content: "# Gemini rules",
+        }),
+      ]),
+    );
+  });
+
   it("prefers main-process prompt versions when available", async () => {
     getAllPromptsMock.mockResolvedValue([
       {

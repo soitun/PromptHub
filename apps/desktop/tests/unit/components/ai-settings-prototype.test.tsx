@@ -226,6 +226,7 @@ describe("AISettingsPrototype", () => {
       expect(fetchAvailableModels).toHaveBeenCalledWith(
         "https://api.example.com/v1",
         "test-key",
+        "openai",
       );
       expect(showToast).toHaveBeenCalledWith(
         "This provider did not return a compatible model list endpoint. You can still enter the model ID manually.",
@@ -267,6 +268,7 @@ describe("AISettingsPrototype", () => {
     await waitFor(() => {
       expect(testAIConnection).toHaveBeenCalledWith({
         provider: "openai",
+        apiProtocol: "openai",
         apiKey: "test-key",
         apiUrl: "https://api.example.com/v1",
         model: "gpt-4.1",

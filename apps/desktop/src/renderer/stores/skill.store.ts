@@ -1495,6 +1495,7 @@ export const useSkillStore = create<SkillState>()(
           scenario: "translation",
           type: "chat",
           aiProvider: settingsState.aiProvider,
+          aiApiProtocol: settingsState.aiApiProtocol,
           aiApiKey: settingsState.aiApiKey,
           aiApiUrl: settingsState.aiApiUrl,
           aiModel: settingsState.aiModel,

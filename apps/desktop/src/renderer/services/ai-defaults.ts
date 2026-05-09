@@ -35,6 +35,7 @@ export function toAIConfig(model: AIModelConfig): AIConfig {
   return {
     id: model.id,
     provider: model.provider,
+    apiProtocol: model.apiProtocol,
     apiKey: model.apiKey,
     apiUrl: model.apiUrl,
     model: model.model,
@@ -60,6 +61,7 @@ interface ResolveScenarioAIConfigOptions {
   scenario: AIUsageScenario;
   type: "chat" | "image";
   aiProvider: string;
+  aiApiProtocol: AIConfig["apiProtocol"];
   aiApiKey: string;
   aiApiUrl: string;
   aiModel: string;
@@ -71,6 +73,7 @@ export function resolveScenarioAIConfig({
   scenario,
   type,
   aiProvider,
+  aiApiProtocol,
   aiApiKey,
   aiApiUrl,
   aiModel,
@@ -95,6 +98,7 @@ export function resolveScenarioAIConfig({
   ) {
     return {
       provider: aiProvider,
+      apiProtocol: aiApiProtocol,
       apiKey: aiApiKey,
       apiUrl: aiApiUrl,
       model: aiModel,

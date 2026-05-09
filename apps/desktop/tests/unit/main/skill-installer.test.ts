@@ -255,9 +255,10 @@ describe("SkillInstaller.getSupportedPlatforms", () => {
       expect(p.id.length).toBeGreaterThan(0);
       expect(typeof p.name).toBe("string");
       expect(typeof p.icon).toBe("string");
-      expect(typeof p.skillsDir.darwin).toBe("string");
-      expect(typeof p.skillsDir.win32).toBe("string");
-      expect(typeof p.skillsDir.linux).toBe("string");
+      expect(typeof p.rootDir.darwin).toBe("string");
+      expect(typeof p.rootDir.win32).toBe("string");
+      expect(typeof p.rootDir.linux).toBe("string");
+      expect(typeof p.skillsRelativePath).toBe("string");
     }
   });
 

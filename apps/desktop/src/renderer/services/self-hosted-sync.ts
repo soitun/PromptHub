@@ -230,6 +230,14 @@ function toWebSettings(backup: DatabaseBackup): Settings {
     theme,
     language,
     autoSave: state.autoSave !== false,
+    customPlatformRootPaths:
+      state.customPlatformRootPaths &&
+      typeof state.customPlatformRootPaths === "object"
+        ? state.customPlatformRootPaths
+        : state.customSkillPlatformPaths &&
+            typeof state.customSkillPlatformPaths === "object"
+          ? state.customSkillPlatformPaths
+          : {},
     customSkillPlatformPaths:
       state.customSkillPlatformPaths &&
       typeof state.customSkillPlatformPaths === "object"
@@ -322,6 +330,8 @@ function buildDesktopSettingsSnapshot(
       themeMode: webSettings.theme,
       language: webSettings.language,
       autoSave: webSettings.autoSave,
+      customPlatformRootPaths: webSettings.customPlatformRootPaths || {},
+      customSkillPlatformPaths: webSettings.customSkillPlatformPaths || {},
       settingsUpdatedAt: settingsUpdatedAt || new Date().toISOString(),
     },
   };

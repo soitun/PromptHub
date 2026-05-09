@@ -6,6 +6,8 @@ export interface AITransportRequest {
   body?: string;
 }
 
+export type AIProtocol = "openai" | "gemini" | "anthropic";
+
 export interface AITransportResponse {
   ok: boolean;
   status: number;

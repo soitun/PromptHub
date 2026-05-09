@@ -612,6 +612,7 @@ export function getSafetyScanAIConfig(
   }
   return {
     provider: model.provider,
+    apiProtocol: model.apiProtocol,
     apiKey: model.apiKey,
     apiUrl: model.apiUrl,
     model: model.model,

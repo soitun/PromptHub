@@ -50,6 +50,7 @@ import {
 import {
   configureRuntimePaths,
   getImagesDir,
+  getRulesDir,
   getVideosDir,
   getSkillsDir,
   getWorkspaceDir,
@@ -211,7 +212,7 @@ async function createWindow() {
     // Windows 使用无边框窗口，macOS 使用原生标题栏
     frame: isWin ? false : true,
     titleBarStyle: isMac ? "hiddenInset" : "default",
-    trafficLightPosition: isMac ? { x: 16, y: 16 } : undefined,
+    trafficLightPosition: isMac ? { x: 14, y: 22 } : undefined,
     // Dark background for Windows title bar
     // Windows 深色标题栏
     backgroundColor: "#1a1d23",
@@ -1063,6 +1064,7 @@ interface ExportZipScope {
   versions: boolean;
   images: boolean;
   skills: boolean;
+  rules?: boolean;
   config: boolean;
   aiConfigJson?: string;
   settingsJson?: string;
@@ -1111,6 +1113,9 @@ ipcMain.handle(
       }
       if (scope.skills) {
         collectDirFiles(getSkillsDir(), "skills/");
+      }
+      if (scope.rules) {
+        collectDirFiles(getRulesDir(), "rules/");
       }
       if (scope.images) {
         collectDirFiles(getImagesDir(), "images/");

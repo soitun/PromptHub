@@ -10,4 +10,4 @@ This archive preserves the historical server API design as structured change his
 
 ## Follow-Up
 
-- Stable externally visible API truths should continue to land in `spec/specs/web/spec.md` or a future dedicated API domain spec if that area grows.
+- Stable externally visible API truths should continue to land in `spec/domains/web/spec.md` or a future dedicated API domain spec if that area grows.

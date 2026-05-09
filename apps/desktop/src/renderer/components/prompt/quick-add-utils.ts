@@ -11,6 +11,7 @@ interface ResolveQuickAddAnalysisConfigOptions {
   aiModels: AIModelConfig[];
   scenarioModelDefaults: ScenarioModelDefaults;
   aiProvider: string;
+  aiApiProtocol: AIConfig["apiProtocol"];
   aiApiKey: string;
   aiApiUrl: string;
   aiModel: string;
@@ -20,6 +21,7 @@ export function resolveQuickAddAnalysisConfig({
   aiModels,
   scenarioModelDefaults,
   aiProvider,
+  aiApiProtocol,
   aiApiKey,
   aiApiUrl,
   aiModel,
@@ -30,6 +32,7 @@ export function resolveQuickAddAnalysisConfig({
     scenario: "quickAdd",
     type: "chat",
     aiProvider,
+    aiApiProtocol,
     aiApiKey,
     aiApiUrl,
     aiModel,

@@ -299,7 +299,7 @@ describe('web import/export routes', () => {
             language: 'fr',
             autoSave: false,
             defaultFolderId: rootFolder.payload.data!.id,
-            customSkillPlatformPaths: { claude: '/tmp/exported-skills' },
+            customPlatformRootPaths: { claude: '/tmp/exported-root' },
             sync: {
               enabled: true,
               provider: 'webdav',
@@ -402,7 +402,7 @@ describe('web import/export routes', () => {
         theme: 'dark',
         language: 'fr',
         autoSave: false,
-        customSkillPlatformPaths: { claude: '/tmp/exported-skills' },
+        customPlatformRootPaths: { claude: '/tmp/exported-root' },
         security: {
           masterPasswordConfigured: true,
           unlocked: false,

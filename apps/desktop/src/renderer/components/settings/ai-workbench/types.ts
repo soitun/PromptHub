@@ -1,4 +1,5 @@
 import type { LucideIcon } from "lucide-react";
+import type { AIProtocol } from "@prompthub/shared/types";
 
 import type {
   AIModelConfig,
@@ -9,6 +10,7 @@ export type ProviderOption = {
   id: string;
   name: string;
   defaultUrl: string;
+  recommendedProtocol: AIProtocol;
   group: string;
 };
 
@@ -18,6 +20,7 @@ export type ModelFormState = {
   type: ModelType;
   name: string;
   provider: string;
+  apiProtocol: AIProtocol;
   apiKey: string;
   apiUrl: string;
   model: string;
@@ -49,6 +52,7 @@ export type EndpointStatus = {
 export type EndpointGroup = {
   key: string;
   provider: string;
+  apiProtocol: AIProtocol;
   apiUrl: string;
   models: AIModelConfig[];
 };
@@ -56,6 +60,7 @@ export type EndpointGroup = {
 export type EndpointDraft = {
   key: string;
   provider: string;
+  apiProtocol: AIProtocol;
   apiKey: string;
   apiUrl: string;
 };

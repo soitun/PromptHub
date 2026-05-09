@@ -44,6 +44,15 @@ export const IPC_CHANNELS = {
   SETTINGS_GET: "settings:get",
   SETTINGS_SET: "settings:set",
 
+  // Rules
+  RULES_LIST: "rules:list",
+  RULES_READ: "rules:read",
+  RULES_SAVE: "rules:save",
+  RULES_REWRITE: "rules:rewrite",
+  RULES_ADD_PROJECT: "rules:addProject",
+  RULES_REMOVE_PROJECT: "rules:removeProject",
+  RULES_IMPORT_RECORDS: "rules:importRecords",
+
   // App lifecycle
   APP_RELAUNCH: "app:relaunch",
 

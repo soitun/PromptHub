@@ -3,7 +3,13 @@ import * as os from "os";
 import * as path from "path";
 import { initDatabase } from "../database";
 import type { MCPServerConfig } from "@prompthub/shared/types/skill";
-import type { SkillPlatform } from "@prompthub/shared/constants/platforms";
+import {
+  getPlatformById,
+  getPlatformGlobalRuleTemplate,
+  getPlatformSkillsTemplate,
+  normalizeLegacySkillPathToRootTemplate,
+  type SkillPlatform,
+} from "@prompthub/shared/constants/platforms";
 import type { Settings } from "@prompthub/shared/types";
 
 export function validateMCPServerConfig(
@@ -149,54 +155,86 @@ export function resolvePlatformPath(template: string): string {
     .replace(/%APPDATA%/gi, path.join(home, "AppData", "Roaming"));
 }
 
-let _customPathsCache: Record<string, string> | null = null;
-let _customPathsCacheTs = 0;
+let _customRootPathsCache: Record<string, string> | null = null;
+let _customRootPathsCacheTs = 0;
 const CUSTOM_PATHS_CACHE_TTL = 5000; // 5 seconds
 
-function readCustomSkillPlatformPaths(): Record<string, string> {
+function readPlatformRootPathsFromSettings(): Record<string, string> {
   const now = Date.now();
-  if (_customPathsCache && now - _customPathsCacheTs < CUSTOM_PATHS_CACHE_TTL) {
-    return _customPathsCache;
+  if (
+    _customRootPathsCache &&
+    now - _customRootPathsCacheTs < CUSTOM_PATHS_CACHE_TTL
+  ) {
+    return _customRootPathsCache;
   }
   try {
     const db = initDatabase();
     if (!db || typeof db.prepare !== "function") {
-      _customPathsCache = {};
-      _customPathsCacheTs = now;
-      return _customPathsCache;
+      _customRootPathsCache = {};
+      _customRootPathsCacheTs = now;
+      return _customRootPathsCache;
     }
     const stmt = db.prepare("SELECT value FROM settings WHERE key = ?");
-    const row = stmt.get("customSkillPlatformPaths") as
+    const rootRow = stmt.get("customPlatformRootPaths") as
+      | { value: string }
+      | undefined;
+    const legacyRow = stmt.get("customSkillPlatformPaths") as
       | { value: string }
       | undefined;
 
-    if (!row?.value) {
-      _customPathsCache = {};
-      _customPathsCacheTs = now;
-      return _customPathsCache;
+    const parseRecord = (
+      rawValue: string | undefined,
+    ): Record<string, string> | null => {
+      if (!rawValue) {
+        return null;
+      }
+
+      const parsed = JSON.parse(rawValue) as Record<string, unknown>;
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+        return null;
+      }
+
+      return Object.entries(parsed).reduce<Record<string, string>>(
+        (acc, [key, value]) => {
+          if (typeof value === "string") {
+            acc[key] = value;
+          }
+          return acc;
+        },
+        {},
+      );
+    };
+
+    const parsedRootPaths = parseRecord(rootRow?.value);
+    if (parsedRootPaths) {
+      _customRootPathsCache = parsedRootPaths;
+      _customRootPathsCacheTs = now;
+      return _customRootPathsCache;
     }
 
-    const parsed = JSON.parse(
-      row.value,
-    ) as Settings["customSkillPlatformPaths"];
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-      _customPathsCache = {};
-      _customPathsCacheTs = now;
-      return _customPathsCache;
+    const parsedLegacyPaths = parseRecord(legacyRow?.value);
+    if (!parsedLegacyPaths) {
+      _customRootPathsCache = {};
+      _customRootPathsCacheTs = now;
+      return _customRootPathsCache;
     }
 
-    _customPathsCache = Object.fromEntries(
-      Object.entries(parsed).filter(
-        ([key, value]) => typeof key === "string" && typeof value === "string",
-      ),
+    _customRootPathsCache = Object.fromEntries(
+      Object.entries(parsedLegacyPaths).map(([platformId, value]) => {
+        const platform = getPlatformById(platformId);
+        if (!platform) {
+          return [platformId, value];
+        }
+        return [platformId, migrateLegacySkillPathToRootPath(platform, value)];
+      }),
     );
-    _customPathsCacheTs = now;
-    return _customPathsCache;
+    _customRootPathsCacheTs = now;
+    return _customRootPathsCache;
   } catch (error) {
-    console.warn("Failed to read custom skill platform paths:", error);
-    _customPathsCache = {};
-    _customPathsCacheTs = now;
-    return _customPathsCache;
+    console.warn("Failed to read custom platform root paths:", error);
+    _customRootPathsCache = {};
+    _customRootPathsCacheTs = now;
+    return _customRootPathsCache;
   }
 }
 
@@ -204,22 +242,72 @@ function readCustomSkillPlatformPaths(): Record<string, string> {
  * Invalidate the cached custom platform paths so the next call reads from DB.
  */
 export function invalidateCustomPathsCache(): void {
-  _customPathsCache = null;
-  _customPathsCacheTs = 0;
+  _customRootPathsCache = null;
+  _customRootPathsCacheTs = 0;
 }
 
-export function getPlatformSkillsDir(
+export function getPlatformRootDir(
   platform: SkillPlatform,
   overrides?: Record<string, string>,
 ): string {
   const overridePath =
-    overrides?.[platform.id] ?? readCustomSkillPlatformPaths()[platform.id];
+    overrides?.[platform.id] ?? readPlatformRootPathsFromSettings()[platform.id];
 
   if (typeof overridePath === "string" && overridePath.trim()) {
     return resolvePlatformPath(overridePath.trim());
   }
 
   const osKey = process.platform as "darwin" | "win32" | "linux";
-  const template = platform.skillsDir[osKey] || platform.skillsDir.linux;
+  const template = platform.rootDir[osKey] || platform.rootDir.linux;
   return resolvePlatformPath(template);
+}
+
+export function getPlatformSkillsDir(
+  platform: SkillPlatform,
+  overrides?: Record<string, string>,
+): string {
+  const osKey = process.platform as "darwin" | "win32" | "linux";
+  const rootDir = getPlatformRootDir(platform, overrides);
+  const template = getPlatformSkillsTemplate(platform, osKey);
+  const defaultRootDir = resolvePlatformPath(platform.rootDir[osKey] || platform.rootDir.linux);
+  const normalizedDefaultSkillsDir = resolvePlatformPath(template);
+
+  if (rootDir === defaultRootDir) {
+    return normalizedDefaultSkillsDir;
+  }
+
+  return path.join(rootDir, ...platform.skillsRelativePath.split(/[\\/]+/).filter(Boolean));
+}
+
+export function getPlatformGlobalRulePath(
+  platform: SkillPlatform,
+  overrides?: Record<string, string>,
+): string | null {
+  if (!platform.globalRuleFile) {
+    return null;
+  }
+
+  const osKey = process.platform as "darwin" | "win32" | "linux";
+  const rootDir = getPlatformRootDir(platform, overrides);
+  const template = getPlatformGlobalRuleTemplate(platform, osKey);
+  const defaultRootDir = resolvePlatformPath(platform.rootDir[osKey] || platform.rootDir.linux);
+
+  if (!template) {
+    return null;
+  }
+
+  if (rootDir === defaultRootDir) {
+    return resolvePlatformPath(template);
+  }
+
+  return path.join(rootDir, ...platform.globalRuleFile.split(/[\\/]+/).filter(Boolean));
+}
+
+export function migrateLegacySkillPathToRootPath(
+  platform: SkillPlatform,
+  legacySkillPath: string,
+): string {
+  return resolvePlatformPath(
+    normalizeLegacySkillPathToRootTemplate(platform, legacySkillPath),
+  );
 }

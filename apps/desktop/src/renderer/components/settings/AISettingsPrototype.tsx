@@ -229,6 +229,7 @@ export function AISettingsPrototype() {
           acc[key] = {
             key,
             provider: model.provider,
+            apiProtocol: model.apiProtocol,
             apiUrl: model.apiUrl,
             models: [],
           };
@@ -342,6 +343,8 @@ export function AISettingsPrototype() {
   const openAddModel = (preset?: Partial<ModelFormState>) => {
     const provider = preset?.provider || EMPTY_FORM.provider;
     const providerInfo = getProviderInfo(provider);
+    const apiProtocol =
+      preset?.apiProtocol ?? providerInfo?.recommendedProtocol ?? EMPTY_FORM.apiProtocol;
 
     setEditingModelId(null);
     setAvailableModels([]);
@@ -349,6 +352,7 @@ export function AISettingsPrototype() {
       ...EMPTY_FORM,
       ...preset,
       provider,
+      apiProtocol,
       apiUrl: preset?.apiUrl ?? providerInfo?.defaultUrl ?? EMPTY_FORM.apiUrl,
       chatParams: preset?.chatParams
         ? { ...cloneDefaultChatParams(), ...preset.chatParams }
@@ -388,6 +392,7 @@ export function AISettingsPrototype() {
     const result = await fetchAvailableModels(
       modelForm.apiUrl,
       modelForm.apiKey,
+      modelForm.apiProtocol,
     );
     setFetchingModels(false);
 
@@ -421,6 +426,7 @@ export function AISettingsPrototype() {
         const result = await testImageGeneration(
           {
             provider: modelForm.provider,
+            apiProtocol: modelForm.apiProtocol,
             apiKey: modelForm.apiKey,
             apiUrl: modelForm.apiUrl,
             model: modelForm.model,
@@ -437,6 +443,7 @@ export function AISettingsPrototype() {
       } else {
         const result = await testAIConnection({
           provider: modelForm.provider,
+          apiProtocol: modelForm.apiProtocol,
           apiKey: modelForm.apiKey,
           apiUrl: modelForm.apiUrl,
           model: modelForm.model,
@@ -482,6 +489,7 @@ export function AISettingsPrototype() {
     const payload = {
       name: modelForm.name.trim(),
       provider: modelForm.provider.trim(),
+      apiProtocol: modelForm.apiProtocol,
       apiKey: modelForm.apiKey.trim(),
       apiUrl: normalizeApiUrlInput(modelForm.apiUrl),
       model: modelForm.model.trim(),
@@ -527,6 +535,7 @@ export function AISettingsPrototype() {
       settings.addAiModel({
         name: "",
         provider: modelForm.provider.trim(),
+        apiProtocol: modelForm.apiProtocol,
         apiKey: modelForm.apiKey.trim(),
         apiUrl: normalizeApiUrlInput(modelForm.apiUrl),
         model: modelId,
@@ -562,6 +571,7 @@ export function AISettingsPrototype() {
         const result = await testImageGeneration(
           {
             provider: model.provider,
+            apiProtocol: model.apiProtocol,
             apiKey: model.apiKey,
             apiUrl: model.apiUrl,
             model: model.model,
@@ -578,6 +588,7 @@ export function AISettingsPrototype() {
       } else {
         const result = await testAIConnection({
           provider: model.provider,
+          apiProtocol: model.apiProtocol,
           apiKey: model.apiKey,
           apiUrl: model.apiUrl,
           model: model.model,
@@ -611,6 +622,7 @@ export function AISettingsPrototype() {
         const result = await testImageGeneration(
           {
             provider: targetModel.provider,
+            apiProtocol: targetModel.apiProtocol,
             apiKey: targetModel.apiKey,
             apiUrl: targetModel.apiUrl,
             model: targetModel.model,
@@ -637,6 +649,7 @@ export function AISettingsPrototype() {
       } else {
         const result = await testAIConnection({
           provider: targetModel.provider,
+          apiProtocol: targetModel.apiProtocol,
           apiKey: targetModel.apiKey,
           apiUrl: targetModel.apiUrl,
           model: targetModel.model,
@@ -684,6 +697,7 @@ export function AISettingsPrototype() {
     setEndpointDraft({
       key: group.key,
       provider: firstModel.provider,
+      apiProtocol: firstModel.apiProtocol,
       apiKey: firstModel.apiKey,
       apiUrl: firstModel.apiUrl,
     });
@@ -710,6 +724,7 @@ export function AISettingsPrototype() {
     for (const model of targetGroup.models) {
       settings.updateAiModel(model.id, {
         provider: endpointDraft.provider.trim(),
+        apiProtocol: endpointDraft.apiProtocol,
         apiKey: endpointDraft.apiKey.trim(),
         apiUrl: normalizeApiUrlInput(endpointDraft.apiUrl),
       });
@@ -744,6 +759,7 @@ export function AISettingsPrototype() {
     settings.addAiModel({
       name: settings.aiModel,
       provider: settings.aiProvider,
+      apiProtocol: settings.aiApiProtocol,
       apiKey: settings.aiApiKey,
       apiUrl: settings.aiApiUrl,
       model: settings.aiModel,

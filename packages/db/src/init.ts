@@ -435,6 +435,58 @@ export function initDatabase(
       `);
     }
 
+    const rulesExists = db!
+      .prepare(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='rules'",
+      )
+      .get();
+
+    if (!rulesExists) {
+      console.log("Migrating: Creating rules table");
+      db!.exec(`
+        CREATE TABLE IF NOT EXISTS rules (
+          id TEXT PRIMARY KEY,
+          scope TEXT NOT NULL CHECK(scope IN ('global', 'project')),
+          platform_id TEXT NOT NULL,
+          platform_name TEXT NOT NULL,
+          platform_icon TEXT NOT NULL,
+          platform_description TEXT NOT NULL,
+          canonical_file_name TEXT NOT NULL,
+          description TEXT NOT NULL,
+          managed_path TEXT NOT NULL,
+          target_path TEXT NOT NULL,
+          project_root_path TEXT,
+          sync_status TEXT NOT NULL CHECK(sync_status IN ('synced', 'target-missing', 'out-of-sync', 'sync-error')),
+          current_version INTEGER NOT NULL DEFAULT 0,
+          content_hash TEXT NOT NULL,
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL
+        )
+      `);
+    }
+
+    const ruleVersionsExists = db!
+      .prepare(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='rule_versions'",
+      )
+      .get();
+
+    if (!ruleVersionsExists) {
+      console.log("Migrating: Creating rule_versions table");
+      db!.exec(`
+        CREATE TABLE IF NOT EXISTS rule_versions (
+          id TEXT PRIMARY KEY,
+          rule_id TEXT NOT NULL,
+          version INTEGER NOT NULL,
+          file_path TEXT NOT NULL,
+          source TEXT NOT NULL CHECK(source IN ('manual-save', 'ai-rewrite', 'create')),
+          created_at INTEGER NOT NULL,
+          FOREIGN KEY (rule_id) REFERENCES rules(id) ON DELETE CASCADE,
+          UNIQUE(rule_id, version)
+        )
+      `);
+    }
+
     // ── deduplicate skill names (defensive, before UNIQUE index) ─────────
     if (!hasMigration("dedupe_skill_names_v1")) {
       const dupeRows = db!

@@ -28,7 +28,6 @@ const MODEL_CATEGORY_CONFIG: Array<{
   { category: "Yi", idKeywords: ["yi-"], ownerKeywords: ["01-ai", "zeroone", "zero-one"] },
   { category: "ERNIE", idKeywords: ["ernie", "wenxin"], ownerKeywords: ["baidu", "wenxin"] },
   { category: "Spark", idKeywords: ["spark", "xunfei"], ownerKeywords: ["xunfei", "iflytek"] },
-  { category: "Baichuan", idKeywords: ["baichuan"], ownerKeywords: ["baichuan"] },
   { category: "Hunyuan", idKeywords: ["hunyuan"], ownerKeywords: ["tencent"] },
 ];
 
@@ -45,7 +44,6 @@ const PROVIDER_CATEGORY_MAP: Record<string, string> = {
   yi: "Yi",
   ernie: "ERNIE",
   spark: "Spark",
-  baichuan: "Baichuan",
   hunyuan: "Hunyuan",
 };
 
@@ -195,7 +193,19 @@ export function getModelDisplayName(
 }
 
 export function buildEndpointGroupKey(model: AIModelConfig): string {
-  return `${model.provider}::${model.apiUrl}`;
+  return `${model.provider}::${model.apiProtocol}::${model.apiUrl}`;
+}
+
+export function getProtocolLabel(protocol: ModelFormState["apiProtocol"]): string {
+  switch (protocol) {
+    case "gemini":
+      return "Gemini";
+    case "anthropic":
+      return "Anthropic";
+    case "openai":
+    default:
+      return "OpenAI";
+  }
 }
 
 export function buildModelOptions(models: AIModelConfig[]): ModelOption[] {
@@ -213,6 +223,7 @@ export function createFormFromModel(model: AIModelConfig): ModelFormState {
     type: model.type ?? "chat",
     name: model.name || "",
     provider: model.provider,
+    apiProtocol: model.apiProtocol,
     apiKey: model.apiKey,
     apiUrl: model.apiUrl,
     model: model.model,

@@ -417,6 +417,7 @@ export function EditPromptModal({
       const result = await chatCompletion(
         {
           provider: translationModel.provider,
+          apiProtocol: translationModel.apiProtocol,
           apiKey: translationModel.apiKey,
           apiUrl: translationModel.apiUrl,
           model: translationModel.model,
@@ -516,6 +517,7 @@ export function EditPromptModal({
       const result = await chatCompletion(
         {
           provider: translationModel.provider,
+          apiProtocol: translationModel.apiProtocol,
           apiKey: translationModel.apiKey,
           apiUrl: translationModel.apiUrl,
           model: translationModel.model,

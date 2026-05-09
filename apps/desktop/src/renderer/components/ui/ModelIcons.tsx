@@ -13,7 +13,6 @@ import zhipuPng from '../../assets/providers/zhipu.png';
 import moonshotPng from '../../assets/providers/moonshot.png';
 import mistralPng from '../../assets/providers/mistral.png';
 import zeroOnePng from '../../assets/providers/zero-one.png';
-import baichuanPng from '../../assets/providers/baichuan.png';
 import tencentCloudTiPng from '../../assets/providers/tencent-cloud-ti.png';
 
 interface IconProps {
@@ -34,7 +33,6 @@ const CATEGORY_ICON_SRC: Record<string, string> = {
   Moonshot: moonshotPng,
   Mistral: mistralPng,
   Yi: zeroOnePng,
-  Baichuan: baichuanPng,
   Spark: tencentCloudTiPng,
   Hunyuan: tencentCloudTiPng, // Map Hunyuan to Tencent icon
   ERNIE: '', // Placeholder for ERNIE

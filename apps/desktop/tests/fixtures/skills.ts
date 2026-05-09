@@ -86,11 +86,13 @@ export function createSkillPlatformFixture(
     id: "claude",
     name: "Claude Code",
     icon: "Sparkles",
-    skillsDir: {
-      darwin: "~/.claude/skills",
-      win32: "%USERPROFILE%\\.claude\\skills",
-      linux: "~/.claude/skills",
+    rootDir: {
+      darwin: "~/.claude",
+      win32: "%USERPROFILE%\\.claude",
+      linux: "~/.claude",
     },
+    skillsRelativePath: "skills",
+    globalRuleFile: "CLAUDE.md",
     ...overrides,
   };
 }

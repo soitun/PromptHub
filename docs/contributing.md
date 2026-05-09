@@ -31,7 +31,7 @@ pnpm test -- --run
 
 ## DOS / SSD 工作流
 
-PromptHub 对非 trivial 改动采用 DOS（Documentation Operating System）工作流，内部结构参考 OpenSpec：稳定 specs 进入 `spec/specs/`，活跃增量进入 `spec/changes/active/`，完成后归档到 `spec/changes/archive/`。
+PromptHub 对非 trivial 改动采用 DOS（Documentation Operating System）工作流，内部结构参考 OpenSpec：稳定领域文档进入 `spec/domains/`，活跃增量进入 `spec/changes/active/`，完成后归档到 `spec/changes/archive/`。
 
 当你要做以下工作时，请先在 `spec/changes/active/<change-key>/` 建变更目录：
 
@@ -54,7 +54,7 @@ PromptHub 对非 trivial 改动采用 DOS（Documentation Operating System）工
 - [docs/README.md](./README.md)
 - [spec/README.md](../spec/README.md)
 
-这次结构也比旧版更完整：补齐了 stable specs、delta specs、archive、legacy 和模板目录，历史内部文档已恢复到 `spec/`，不再散落在 `docs/`。
+这次结构也比旧版更完整：补齐了 stable domains、delta specs、stable logic、assets、archive、legacy 和模板目录，历史内部文档已恢复到 `spec/`，不再散落在 `docs/`。
 
 ## 贡献类型
 

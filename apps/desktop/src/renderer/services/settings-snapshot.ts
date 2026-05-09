@@ -5,6 +5,7 @@ export interface AIConfigSnapshot {
   aiModels?: any[];
   scenarioModelDefaults?: Record<string, string>;
   aiProvider?: string;
+  aiApiProtocol?: string;
   aiApiKey?: string;
   aiApiUrl?: string;
   aiModel?: string;
@@ -63,6 +64,7 @@ export function getAiConfigSnapshot(options?: {
       aiModels: filteredModels,
       scenarioModelDefaults: state.scenarioModelDefaults || {},
       aiProvider: state.aiProvider,
+      aiApiProtocol: state.aiApiProtocol,
       ...(options?.includeRootApiKey ? { aiApiKey: state.aiApiKey } : {}),
       aiApiUrl: state.aiApiUrl,
       aiModel: state.aiModel,
@@ -113,6 +115,7 @@ export function restoreAiConfigSnapshot(
       data.state.scenarioModelDefaults = aiConfig.scenarioModelDefaults;
     }
     if (aiConfig.aiProvider) data.state.aiProvider = aiConfig.aiProvider;
+    if (aiConfig.aiApiProtocol) data.state.aiApiProtocol = aiConfig.aiApiProtocol;
     if (aiConfig.aiApiKey) data.state.aiApiKey = aiConfig.aiApiKey;
     if (aiConfig.aiApiUrl) data.state.aiApiUrl = aiConfig.aiApiUrl;
     if (aiConfig.aiModel) data.state.aiModel = aiConfig.aiModel;

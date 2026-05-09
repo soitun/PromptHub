@@ -14,6 +14,9 @@ function createSettingsState() {
   return {
     skillInstallMethod: "symlink",
     setSkillInstallMethod: vi.fn(),
+    customPlatformRootPaths: {},
+    setCustomPlatformRootPath: vi.fn(),
+    resetCustomPlatformRootPath: vi.fn(),
     customSkillPlatformPaths: {},
     setCustomSkillPlatformPath: vi.fn(),
     resetCustomSkillPlatformPath: vi.fn(),

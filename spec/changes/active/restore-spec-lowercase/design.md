@@ -18,7 +18,7 @@
 
 本次补齐以下 OpenSpec 核心结构：
 
-- stable specs: `spec/specs/`
+- stable domain docs: `spec/domains/`
 - delta specs: `spec/changes/active/<change-key>/specs/<domain>/spec.md`
 - changes archive: `spec/changes/archive/`
 - iterative workflow: 通过 active change + templates 落地

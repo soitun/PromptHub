@@ -12,7 +12,7 @@ import {
 import { Select } from "../../../ui/Select";
 import { PasswordInput } from "../../shared";
 import { PROVIDER_OPTIONS } from "../constants";
-import { getProviderInfo } from "../helpers";
+import { getProtocolLabel, getProviderInfo } from "../helpers";
 import type { ModelFormState, ModelType } from "../types";
 
 export function BaseFields({
@@ -40,8 +40,8 @@ export function BaseFields({
     () =>
       modelForm.type === "image"
         ? getImageApiEndpointPreview(modelForm.apiUrl)
-        : getApiEndpointPreview(modelForm.apiUrl),
-    [modelForm.apiUrl, modelForm.type],
+        : getApiEndpointPreview(modelForm.apiUrl, modelForm.apiProtocol),
+    [modelForm.apiProtocol, modelForm.apiUrl, modelForm.type],
   );
   const fullEndpointDetected = Boolean(
     trimmedApiUrl &&
@@ -50,11 +50,15 @@ export function BaseFields({
       baseUrlPreview !== trimmedApiUrl.replace(/\/$/, ""),
   );
   const providerExamples = useMemo(() => {
-    if (modelForm.provider === "google") {
+    if (modelForm.apiProtocol === "gemini") {
       return [
         "https://generativelanguage.googleapis.com",
         "https://generativelanguage.googleapis.com/v1beta",
       ];
+    }
+
+    if (modelForm.apiProtocol === "anthropic") {
+      return ["https://api.anthropic.com", "https://api.anthropic.com/v1"];
     }
 
     const provider = getProviderInfo(modelForm.provider);
@@ -62,7 +66,7 @@ export function BaseFields({
       provider?.defaultUrl || "https://api.openai.com",
       "https://api.example.com/v1",
     ].filter(Boolean);
-  }, [modelForm.provider]);
+  }, [modelForm.apiProtocol, modelForm.provider]);
 
   return (
     <>
@@ -114,6 +118,7 @@ export function BaseFields({
               setModelForm((prev) => ({
                 ...prev,
                 provider: value,
+                apiProtocol: provider?.recommendedProtocol || prev.apiProtocol,
                 apiUrl: provider?.defaultUrl || prev.apiUrl,
               }));
             }}
@@ -122,6 +127,25 @@ export function BaseFields({
               label: item.name,
               group: item.group,
             }))}
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-xs text-muted-foreground">
+            {t("settings.protocol")}
+          </label>
+          <Select
+            value={modelForm.apiProtocol}
+            onChange={(value) =>
+              setModelForm((prev) => ({
+                ...prev,
+                apiProtocol: value as ModelFormState["apiProtocol"],
+              }))
+            }
+            options={[
+              { value: "openai", label: getProtocolLabel("openai") },
+              { value: "gemini", label: getProtocolLabel("gemini") },
+              { value: "anthropic", label: getProtocolLabel("anthropic") },
+            ]}
           />
         </div>
         <div>

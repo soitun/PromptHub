@@ -10,4 +10,4 @@ This archive preserves the multi-phase implementation roadmap for PromptHub Web 
 
 ## Follow-Up
 
-- Stable product truths should continue to land in `spec/specs/web/spec.md`.
+- Stable product truths should continue to land in `spec/domains/web/spec.md`.

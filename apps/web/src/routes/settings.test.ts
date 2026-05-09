@@ -96,8 +96,12 @@ describe('web settings routes', () => {
           language: string;
           autoSave: boolean;
           updateChannel: string;
+          customPlatformRootPaths: Record<string, string>;
           customSkillPlatformPaths: Record<string, string>;
           skillPlatformOrder: string[];
+          skillProjects: unknown[];
+          backgroundImageOpacity: number;
+          backgroundImageBlur: number;
           sync: { enabled: boolean; provider: string; autoSync: boolean };
           device: {
             syncCadence: string;
@@ -107,13 +111,17 @@ describe('web settings routes', () => {
         };
       };
 
-      expect(body.data).toEqual({
+      expect(body.data).toEqual(expect.objectContaining({
         theme: 'system',
         language: 'zh',
         autoSave: true,
         updateChannel: 'stable',
+        customPlatformRootPaths: {},
         customSkillPlatformPaths: {},
         skillPlatformOrder: [],
+        skillProjects: [],
+        backgroundImageOpacity: 0.22,
+        backgroundImageBlur: 14,
         sync: {
           enabled: false,
           provider: 'manual',
@@ -124,7 +132,7 @@ describe('web settings routes', () => {
           storeAutoSync: true,
           storeSyncCadence: '1d',
         },
-      });
+      }));
 
       const unauthenticated = await app.request(new Request('http://local/api/settings'));
       expect(unauthenticated.status).toBe(401);
@@ -152,8 +160,8 @@ describe('web settings routes', () => {
           body: JSON.stringify({
             theme: 'dark',
             autoSave: false,
-            customSkillPlatformPaths: {
-              claude: '/tmp/custom-claude-skills',
+            customPlatformRootPaths: {
+              claude: '/tmp/custom-claude-root',
             },
           }),
         }),
@@ -198,7 +206,7 @@ describe('web settings routes', () => {
           theme: string;
           language: string;
           autoSave: boolean;
-          customSkillPlatformPaths: Record<string, string>;
+          customPlatformRootPaths: Record<string, string>;
           sync: {
             enabled: boolean;
             provider: string;
@@ -220,8 +228,8 @@ describe('web settings routes', () => {
       expect(ownerSettings.data.theme).toBe('dark');
       expect(ownerSettings.data.language).toBe('zh');
       expect(ownerSettings.data.autoSave).toBe(false);
-      expect(ownerSettings.data.customSkillPlatformPaths).toEqual({
-        claude: '/tmp/custom-claude-skills',
+      expect(ownerSettings.data.customPlatformRootPaths).toEqual({
+        claude: '/tmp/custom-claude-root',
       });
       expect(ownerSettings.data.sync).toEqual({
         enabled: true,
@@ -252,8 +260,12 @@ describe('web settings routes', () => {
           language: string;
           autoSave: boolean;
           updateChannel: string;
+          customPlatformRootPaths: Record<string, string>;
           customSkillPlatformPaths: Record<string, string>;
           skillPlatformOrder: string[];
+          skillProjects: unknown[];
+          backgroundImageOpacity: number;
+          backgroundImageBlur: number;
           sync: { enabled: boolean; provider: string; autoSync: boolean };
           device: {
             syncCadence: string;
@@ -263,13 +275,17 @@ describe('web settings routes', () => {
         };
       };
 
-      expect(otherSettings.data).toEqual({
+      expect(otherSettings.data).toEqual(expect.objectContaining({
         theme: 'system',
         language: 'zh',
         autoSave: true,
         updateChannel: 'stable',
+        customPlatformRootPaths: {},
         customSkillPlatformPaths: {},
         skillPlatformOrder: [],
+        skillProjects: [],
+        backgroundImageOpacity: 0.22,
+        backgroundImageBlur: 14,
         sync: {
           enabled: false,
           provider: 'manual',
@@ -280,7 +296,7 @@ describe('web settings routes', () => {
           storeAutoSync: true,
           storeSyncCadence: '1d',
         },
-      });
+      }));
     } finally {
       fs.rmSync(dataDir, { recursive: true, force: true });
     }

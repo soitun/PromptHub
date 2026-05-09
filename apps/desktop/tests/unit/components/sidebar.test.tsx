@@ -1,9 +1,10 @@
-import { act, fireEvent, screen } from "@testing-library/react";
+import { act, fireEvent, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Sidebar } from "../../../src/renderer/components/layout/Sidebar";
 import { useFolderStore } from "../../../src/renderer/stores/folder.store";
 import { usePromptStore } from "../../../src/renderer/stores/prompt.store";
+import { useRulesStore } from "../../../src/renderer/stores/rules.store";
 import { useSettingsStore } from "../../../src/renderer/stores/settings.store";
 import { useSkillStore } from "../../../src/renderer/stores/skill.store";
 import { useUIStore } from "../../../src/renderer/stores/ui.store";
@@ -29,6 +30,7 @@ describe("Sidebar", () => {
     delete (window as Window & { __PROMPTHUB_WEB__?: boolean }).__PROMPTHUB_WEB__;
 
     useUIStore.setState({
+      appModule: "skill",
       viewMode: "skill",
       isSidebarCollapsed: false,
     });
@@ -62,6 +64,84 @@ describe("Sidebar", () => {
         },
       ],
     } as Partial<ReturnType<typeof useSettingsStore.getState>>);
+
+    useRulesStore.setState({
+      files: [
+        {
+          id: "project:rule-project-1",
+          platformId: "workspace",
+          platformName: "Docs Site",
+          platformIcon: "FolderRoot",
+          platformDescription: "Project rules",
+          name: "AGENTS.md",
+          description: "Project rule file",
+          path: "/tmp/docs-site/AGENTS.md",
+          exists: false,
+          group: "workspace",
+        },
+        {
+          id: "claude-global",
+          platformId: "claude",
+          platformName: "Claude Code",
+          platformIcon: "claude",
+          platformDescription: "Claude rules",
+          name: "CLAUDE.md",
+          description: "Claude global rule file",
+          path: "/Users/test/.claude/CLAUDE.md",
+          exists: true,
+          group: "assistant",
+        },
+        {
+          id: "codex-global",
+          platformId: "codex",
+          platformName: "Codex CLI",
+          platformIcon: "codex",
+          platformDescription: "Codex rules",
+          name: "AGENTS.md",
+          description: "Codex global rule file",
+          path: "/Users/test/.codex/AGENTS.md",
+          exists: true,
+          group: "assistant",
+        },
+        {
+          id: "gemini-global",
+          platformId: "gemini",
+          platformName: "Gemini CLI",
+          platformIcon: "gemini",
+          platformDescription: "Gemini rules",
+          name: "GEMINI.md",
+          description: "Gemini global rule file",
+          path: "/Users/test/.gemini/GEMINI.md",
+          exists: true,
+          group: "assistant",
+        },
+        {
+          id: "opencode-global",
+          platformId: "opencode",
+          platformName: "OpenCode",
+          platformIcon: "opencode",
+          platformDescription: "OpenCode rules",
+          name: "AGENTS.md",
+          description: "OpenCode global rule file",
+          path: "/Users/test/.config/opencode/AGENTS.md",
+          exists: true,
+          group: "tooling",
+        },
+        {
+          id: "windsurf-global",
+          platformId: "windsurf",
+          platformName: "Windsurf",
+          platformIcon: "windsurf",
+          platformDescription: "Windsurf rules",
+          name: "global_rules.md",
+          description: "Windsurf global rule file",
+          path: "/Users/test/.codeium/windsurf/memories/global_rules.md",
+          exists: true,
+          group: "tooling",
+        },
+      ],
+      selectedRuleId: "claude-global",
+    } as Partial<ReturnType<typeof useRulesStore.getState>>);
 
     useSkillStore.setState({
       skills: [],
@@ -105,5 +185,95 @@ describe("Sidebar", () => {
     });
 
     expect(screen.queryByText("Projects")).not.toBeInTheDocument();
+  });
+
+  it("switches to the Rules module from the new left rail", async () => {
+    await act(async () => {
+      await renderWithI18n(
+        <Sidebar currentPage="home" onNavigate={vi.fn()} />,
+        { language: "en" },
+      );
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /Rules/i }));
+    });
+
+    expect(useUIStore.getState().appModule).toBe("rules");
+    expect(screen.getByText("Global Rules")).toBeInTheDocument();
+    expect(screen.getByText("Project Rules")).toBeInTheDocument();
+    expect(screen.getByText("Docs Site")).toBeInTheDocument();
+    expect(screen.getByText("Codex CLI")).toBeInTheDocument();
+    expect(screen.getByText("Gemini CLI")).toBeInTheDocument();
+    expect(screen.getByText("Windsurf")).toBeInTheDocument();
+    expect(screen.getByText("Add Project Directory")).toBeInTheDocument();
+
+    const claudeButton = screen.getByRole("button", { name: /Claude Code/i });
+    expect(within(claudeButton).getByAltText("claude icon")).toBeInTheDocument();
+
+    const codexButton = screen.getByRole("button", { name: /Codex CLI/i });
+    expect(within(codexButton).getByAltText("codex icon")).toBeInTheDocument();
+
+    const geminiButton = screen.getByRole("button", { name: /Gemini CLI/i });
+    expect(within(geminiButton).getByAltText("gemini icon")).toBeInTheDocument();
+
+    const opencodeButton = screen.getByRole("button", { name: /OpenCode/i });
+    expect(within(opencodeButton).getByAltText("opencode icon")).toBeInTheDocument();
+
+    const windsurfButton = screen.getByRole("button", { name: /Windsurf/i });
+    expect(within(windsurfButton).getByAltText("windsurf icon")).toBeInTheDocument();
+  });
+
+  it("updates the selected rule when clicking a project rule item", async () => {
+    useUIStore.setState({
+      appModule: "rules",
+      viewMode: "prompt",
+      isSidebarCollapsed: false,
+    });
+
+    const selectRuleMock = vi.fn(async (ruleId: string) => {
+      useRulesStore.setState({ selectedRuleId: ruleId as never });
+    });
+    useRulesStore.setState({
+      selectedRuleId: "claude-global",
+      selectRule: selectRuleMock,
+    } as Partial<ReturnType<typeof useRulesStore.getState>>);
+
+    await act(async () => {
+      await renderWithI18n(
+        <Sidebar currentPage="home" onNavigate={vi.fn()} />,
+        { language: "en" },
+      );
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /Docs Site/i }));
+    });
+
+    expect(selectRuleMock).toHaveBeenCalledWith("project:rule-project-1");
+    expect(useRulesStore.getState().selectedRuleId).toBe("project:rule-project-1");
+  });
+
+  it("hides the secondary module menu when the shell is collapsed", async () => {
+    useUIStore.setState({
+      appModule: "prompt",
+      viewMode: "prompt",
+      isSidebarCollapsed: true,
+    });
+
+    const { container } = await renderWithI18n(
+      <Sidebar currentPage="home" onNavigate={vi.fn()} />,
+      { language: "en" },
+    );
+
+    expect(screen.queryByText("Favorites")).not.toBeInTheDocument();
+    expect(screen.queryByText("Folders")).not.toBeInTheDocument();
+    expect(container.querySelector("aside")).toHaveClass("w-20");
+    expect(screen.getByText("Prompts")).toBeInTheDocument();
+    expect(screen.getByText("Skills")).toBeInTheDocument();
+    expect(screen.getByText("Rules")).toBeInTheDocument();
+    expect(screen.queryByText("Resources")).not.toBeInTheDocument();
+    expect(screen.queryByText("Account")).not.toBeInTheDocument();
+    expect(screen.queryByText("PH")).not.toBeInTheDocument();
   });
 });

@@ -1,13 +1,13 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { flushSync } from 'react-dom';
+import { createPortal, flushSync } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { PlayIcon, LoaderIcon, CopyIcon, CheckIcon, GitCompareIcon, ImageIcon, PlusIcon, DownloadIcon, BracesIcon } from 'lucide-react';
-import { Modal } from '../ui/Modal';
+import { PlayIcon, LoaderIcon, CopyIcon, CheckIcon, GitCompareIcon, ImageIcon, PlusIcon, DownloadIcon, BracesIcon, PaperclipIcon, XIcon, Maximize2Icon, Minimize2Icon } from 'lucide-react';
 import { CollapsibleThinking } from '../ui/CollapsibleThinking';
-import { chatCompletion, buildMessagesFromPrompt, multiModelCompare, AITestResult, generateImage } from '../../services/ai';
+import { chatCompletion, buildMessagesFromPrompt, multiModelCompare, AITestResult, generateImage, type ChatImageAttachment } from '../../services/ai';
 import { resolveScenarioModel } from '../../services/ai-defaults';
 import { useSettingsStore } from '../../stores/settings.store';
 import { useToast } from '../ui/Toast';
+import { LocalImage } from '../ui/LocalImage';
 import type { Prompt } from '@prompthub/shared/types';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -18,6 +18,7 @@ interface AiTestModalProps {
   isOpen: boolean;
   onClose: () => void;
   prompt: Prompt | null;
+  initialMode?: 'single' | 'compare' | 'image';
   filledSystemPrompt?: string;
   filledUserPrompt?: string;
   onUsageIncrement?: (promptId: string) => void;
@@ -26,10 +27,28 @@ interface AiTestModalProps {
   // 新增：将生成的图片添加到 Prompt
 }
 
+interface AiTestImageAttachment extends ChatImageAttachment {
+  id: string;
+  name: string;
+  size: number;
+  dataUrl: string;
+}
+
+const MAX_AI_TEST_IMAGES = 8;
+const MAX_AI_TEST_IMAGE_BYTES = 10 * 1024 * 1024;
+const SUPPORTED_AI_TEST_IMAGE_MIME_TYPES = new Set([
+  'image/png',
+  'image/jpeg',
+  'image/jpg',
+  'image/webp',
+  'image/gif',
+]);
+
 export function AiTestModal({
   isOpen,
   onClose,
   prompt,
+  initialMode,
   filledSystemPrompt,
   filledUserPrompt,
   onUsageIncrement,
@@ -39,6 +58,7 @@ export function AiTestModal({
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
   const [mode, setMode] = useState<'single' | 'compare' | 'image'>('single');
+  const [isExpanded, setIsExpanded] = useState(false);
   // Separate loading states for single model and multi-model
   // 分离单模型和多模型的 loading 状态
   const [isSingleLoading, setIsSingleLoading] = useState(false);
@@ -64,11 +84,15 @@ export function AiTestModal({
   const singleThinkingRafRef = useRef<number | null>(null);
   const compareBuffersRef = useRef<Record<string, { response: string; thinkingContent: string }>>({});
   const compareFlushRafRef = useRef<number | null>(null);
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
   const rehypePlugins = useMemo(() => [rehypeSanitize, rehypeHighlight], []);
+  const [testImageAttachments, setTestImageAttachments] = useState<AiTestImageAttachment[]>([]);
+  const [selectedReferenceImages, setSelectedReferenceImages] = useState<string[]>([]);
 
   // AI settings
   // AI 设置
   const aiProvider = useSettingsStore((state) => state.aiProvider);
+  const aiApiProtocol = useSettingsStore((state) => state.aiApiProtocol);
   const aiApiKey = useSettingsStore((state) => state.aiApiKey);
   const aiApiUrl = useSettingsStore((state) => state.aiApiUrl);
   const aiModel = useSettingsStore((state) => state.aiModel);
@@ -114,8 +138,27 @@ export function AiTestModal({
 
   useEffect(() => {
     if (!isOpen || !prompt) return;
-    setMode(prompt.promptType === 'image' ? 'image' : 'single');
-  }, [isOpen, prompt]);
+    setMode(prompt.promptType === 'image' ? 'image' : initialMode ?? 'single');
+  }, [initialMode, isOpen, prompt]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isOpen, onClose]);
 
   const cancelSingleStreamRafs = useCallback(() => {
     if (singleContentRafRef.current !== null) {
@@ -221,6 +264,7 @@ export function AiTestModal({
       return {
         id: defaultChatModel.id,
         provider: defaultChatModel.provider,
+        apiProtocol: defaultChatModel.apiProtocol,
         apiKey: defaultChatModel.apiKey,
         apiUrl: defaultChatModel.apiUrl,
         model: defaultChatModel.model,
@@ -230,11 +274,12 @@ export function AiTestModal({
     // 兼容旧版单模型配置
     return {
       provider: aiProvider,
+      apiProtocol: aiApiProtocol,
       apiKey: aiApiKey,
       apiUrl: aiApiUrl,
       model: aiModel,
     };
-  }, [defaultChatModel, aiProvider, aiApiKey, aiApiUrl, aiModel]);
+  }, [defaultChatModel, aiProvider, aiApiProtocol, aiApiKey, aiApiUrl, aiModel]);
 
   const singleConfigForUi = useMemo(() => buildSingleConfig(), [buildSingleConfig]);
   const canRunSingleTest = !!(singleConfigForUi.apiKey && singleConfigForUi.apiUrl && singleConfigForUi.model);
@@ -260,6 +305,125 @@ export function AiTestModal({
   const systemPrompt = useMemo(() => filledSystemPrompt ?? replaceVariables(baseSystemPrompt), [filledSystemPrompt, replaceVariables, baseSystemPrompt]);
   const userPrompt = useMemo(() => filledUserPrompt ?? replaceVariables(baseUserPrompt), [filledUserPrompt, replaceVariables, baseUserPrompt]);
 
+  const readImageFileAsAttachment = useCallback((file: File): Promise<AiTestImageAttachment> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result !== 'string') {
+          reject(new Error(t('prompt.aiTestImageReadFailed')));
+          return;
+        }
+
+        const commaIndex = reader.result.indexOf(',');
+        if (commaIndex === -1) {
+          reject(new Error(t('prompt.aiTestImageReadFailed')));
+          return;
+        }
+
+        resolve({
+          id: `${file.name}-${file.size}-${file.lastModified}-${Math.random().toString(36).slice(2, 8)}`,
+          name: file.name,
+          mimeType: file.type,
+          size: file.size,
+          dataUrl: reader.result,
+          base64: reader.result.slice(commaIndex + 1),
+        });
+      };
+      reader.onerror = () => reject(new Error(t('prompt.aiTestImageReadFailed')));
+      reader.readAsDataURL(file);
+    });
+  }, [t]);
+
+  const formatImageSize = useCallback((bytes: number): string => {
+    if (bytes >= 1024 * 1024) {
+      return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+    }
+    return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  }, []);
+
+  const handleTestImageSelection = useCallback(async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+
+    const remainingSlots = MAX_AI_TEST_IMAGES - testImageAttachments.length;
+    if (remainingSlots <= 0) {
+      showToast(t('prompt.aiTestImageLimit', { count: MAX_AI_TEST_IMAGES }), 'error');
+      return;
+    }
+
+    const selectedFiles = Array.from(files);
+    if (selectedFiles.length > remainingSlots) {
+      showToast(t('prompt.aiTestImageLimit', { count: MAX_AI_TEST_IMAGES }), 'error');
+    }
+
+    const acceptedFiles: File[] = [];
+    for (const file of selectedFiles.slice(0, remainingSlots)) {
+      if (!SUPPORTED_AI_TEST_IMAGE_MIME_TYPES.has(file.type)) {
+        showToast(t('prompt.aiTestImageUnsupported', { name: file.name }), 'error');
+        continue;
+      }
+      if (file.size > MAX_AI_TEST_IMAGE_BYTES) {
+        showToast(t('prompt.aiTestImageTooLarge', { name: file.name, size: formatImageSize(MAX_AI_TEST_IMAGE_BYTES) }), 'error');
+        continue;
+      }
+      acceptedFiles.push(file);
+    }
+
+    if (acceptedFiles.length === 0) return;
+
+    try {
+      const attachments = await Promise.all(acceptedFiles.map(readImageFileAsAttachment));
+      setTestImageAttachments((prev) => [...prev, ...attachments].slice(0, MAX_AI_TEST_IMAGES));
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : t('prompt.aiTestImageReadFailed'), 'error');
+    }
+  }, [formatImageSize, readImageFileAsAttachment, showToast, t, testImageAttachments.length]);
+
+  const removeTestImageAttachment = useCallback((id: string) => {
+    setTestImageAttachments((prev) => prev.filter((attachment) => attachment.id !== id));
+  }, []);
+
+  const toggleReferenceImage = useCallback((fileName: string) => {
+    setSelectedReferenceImages((prev) =>
+      prev.includes(fileName)
+        ? prev.filter((item) => item !== fileName)
+        : [...prev, fileName],
+    );
+  }, []);
+
+  const buildImageReferenceAttachments = useCallback(async (): Promise<ChatImageAttachment[]> => {
+    const savedReferences = await Promise.all<ChatImageAttachment | null>(
+      selectedReferenceImages.map(async (fileName) => {
+        const base64 = await window.electron?.readImageBase64?.(fileName);
+        if (!base64) return null;
+
+        const extension = fileName.split('.').pop()?.toLowerCase();
+        const mimeType =
+          extension === 'jpg' || extension === 'jpeg'
+            ? 'image/jpeg'
+            : extension === 'webp'
+              ? 'image/webp'
+              : extension === 'gif'
+                ? 'image/gif'
+                : 'image/png';
+
+        return {
+          name: fileName,
+          mimeType,
+          base64,
+        };
+      }),
+    );
+
+    return [
+      ...savedReferences.filter((item): item is ChatImageAttachment => item !== null),
+      ...testImageAttachments.map((attachment) => ({
+        name: attachment.name,
+        mimeType: attachment.mimeType,
+        base64: attachment.base64,
+      })),
+    ];
+  }, [selectedReferenceImages, testImageAttachments]);
+
   // 重置状态
   useEffect(() => {
     if (isOpen && prompt) {
@@ -269,6 +433,8 @@ export function AiTestModal({
       setThinkingContent(null);
       setCompareResults(null);
       setGeneratedImages([]);
+      setTestImageAttachments([]);
+      setSelectedReferenceImages(prompt.promptType === 'image' ? (prompt.images || []) : []);
       setIsSingleLoading(false);
       setIsCompareLoading(false);
       setIsImageLoading(false);
@@ -397,6 +563,7 @@ export function AiTestModal({
       .map((m) => ({
         id: m.id,
         provider: m.provider,
+        apiProtocol: m.apiProtocol,
         apiKey: m.apiKey,
         apiUrl: m.apiUrl,
         model: m.model,
@@ -495,12 +662,17 @@ export function AiTestModal({
     try {
       const config = {
         provider: defaultImageModel.provider,
+        apiProtocol: defaultImageModel.apiProtocol,
         apiKey: defaultImageModel.apiKey,
         apiUrl: defaultImageModel.apiUrl,
         model: defaultImageModel.model,
       };
 
-      const result = await generateImage(config, userPrompt, { n: 1 });
+      const referenceImages = await buildImageReferenceAttachments();
+      const result = await generateImage(config, userPrompt, {
+        n: 1,
+        referenceImages,
+      });
 
       const urls: string[] = [];
       for (const item of result.data) {
@@ -583,14 +755,49 @@ export function AiTestModal({
     }
   };
 
-  return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={t('prompt.aiTest')}
-      size="2xl"
-    >
-      <div className="space-y-4">
+  if (!isOpen) return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[9999]">
+      <button
+        type="button"
+        aria-label={t('common.close')}
+        className="absolute inset-0 bg-background/45 backdrop-blur-[2px]"
+        onClick={onClose}
+      />
+      <aside
+        className={`absolute right-0 top-0 flex h-full flex-col border-l border-border app-wallpaper-panel-strong shadow-[-24px_0_80px_-40px_rgba(0,0,0,0.65)] transition-all duration-200 ${isExpanded
+          ? 'w-[min(1120px,88vw)]'
+          : 'w-[min(640px,100vw)]'
+          }`}
+      >
+        <header className="flex h-16 shrink-0 items-center justify-between gap-3 border-b border-border px-5">
+          <div className="min-w-0">
+            <div className="text-sm font-semibold text-foreground">{t('prompt.aiTest')}</div>
+            <div className="truncate text-xs text-muted-foreground">{prompt.title}</div>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setIsExpanded((prev) => !prev)}
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground"
+              title={isExpanded ? t('common.collapse', 'Collapse') : t('common.expand', 'Expand')}
+            >
+              {isExpanded ? <Minimize2Icon className="w-4 h-4" /> : <Maximize2Icon className="w-4 h-4" />}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground"
+              title={t('common.close')}
+            >
+              <XIcon className="w-4 h-4" />
+            </button>
+          </div>
+        </header>
+
+        <div className="flex-1 overflow-y-auto px-5 py-4">
+          <div className="space-y-4">
         {/* 模式切换 */}
         <div className="flex items-center gap-2 border-b border-border pb-4 flex-wrap">
           {prompt.promptType !== 'image' && (
@@ -660,6 +867,117 @@ export function AiTestModal({
             <p className="text-sm whitespace-pre-wrap">{userPrompt}</p>
           </div>
         </div>
+
+        {prompt.promptType === 'image' && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="space-y-1">
+                <h4 className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
+                  <PaperclipIcon className="w-4 h-4" />
+                  {t('prompt.referenceImages')}
+                </h4>
+                <p className="text-xs text-muted-foreground">
+                  {t('prompt.aiTestAttachmentHint', {
+                    count: MAX_AI_TEST_IMAGES,
+                    size: formatImageSize(MAX_AI_TEST_IMAGE_BYTES),
+                  })}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => imageInputRef.current?.click()}
+                disabled={testImageAttachments.length >= MAX_AI_TEST_IMAGES}
+                className="flex shrink-0 items-center gap-2 px-3 py-2 rounded-lg border border-border bg-background text-sm font-medium hover:bg-accent disabled:opacity-50 transition-colors"
+              >
+                <ImageIcon className="w-4 h-4" />
+                {t('prompt.aiTestAddImages')}
+              </button>
+              <input
+                ref={imageInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                multiple
+                className="hidden"
+                onChange={(event) => {
+                  void handleTestImageSelection(event.currentTarget.files);
+                  event.currentTarget.value = '';
+                }}
+              />
+            </div>
+
+            {prompt.images && prompt.images.length > 0 && (
+              <div className="space-y-2">
+                <div className="text-xs font-medium text-muted-foreground">
+                  {t('prompt.aiTestSelectReferenceImages', 'Select existing reference images')}
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {prompt.images.map((imageName) => {
+                    const selected = selectedReferenceImages.includes(imageName);
+                    return (
+                      <button
+                        type="button"
+                        key={imageName}
+                        onClick={() => toggleReferenceImage(imageName)}
+                        className={`relative overflow-hidden rounded-lg border text-left transition-colors ${selected
+                          ? 'border-primary ring-2 ring-primary/30'
+                          : 'border-border hover:border-primary/50'
+                          }`}
+                      >
+                        <LocalImage
+                          src={imageName}
+                          alt={imageName}
+                          className="h-24 w-full object-cover"
+                          fallbackClassName="h-24 w-full"
+                        />
+                        <div className="absolute left-1.5 top-1.5 rounded-md bg-background/90 px-1.5 py-0.5 text-[10px] font-medium">
+                          {selected ? t('common.selected', 'Selected') : t('common.select', 'Select')}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {testImageAttachments.length > 0 && (
+              <div className="space-y-2">
+                <div className="text-xs font-medium text-muted-foreground">
+                  {t('prompt.aiTestUploadedReferenceImages', 'Uploaded reference images')}
+                </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {testImageAttachments.map((attachment) => (
+                  <div
+                    key={attachment.id}
+                    className="relative overflow-hidden rounded-lg border border-border bg-muted/40"
+                  >
+                    <img
+                      src={attachment.dataUrl}
+                      alt={attachment.name}
+                      className="h-24 w-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeTestImageAttachment(attachment.id)}
+                      className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-background/90 text-foreground shadow-sm hover:bg-background"
+                      title={t('prompt.aiTestRemoveImage')}
+                    >
+                      <XIcon className="w-3.5 h-3.5" />
+                    </button>
+                    <div className="space-y-0.5 px-2 py-1.5">
+                      <p className="truncate text-xs font-medium" title={attachment.name}>
+                        {attachment.name}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {formatImageSize(attachment.size)}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* 单模型测试 */}
         {mode === 'single' && (
@@ -921,7 +1239,10 @@ export function AiTestModal({
             )}
           </div>
         )}
-      </div>
-    </Modal>
+          </div>
+        </div>
+      </aside>
+    </div>,
+    document.body,
   );
 }

@@ -1,3 +1,5 @@
+import type { AIProtocol } from './ai';
+
 export type SkillVisibility = 'private' | 'shared';
 
 export interface Skill {
@@ -316,6 +318,7 @@ export interface SkillSafetyReport {
  */
 export interface SafetyScanAIConfig {
   provider: string;
+  apiProtocol: AIProtocol;
   apiKey: string;
   apiUrl: string;
   model: string;

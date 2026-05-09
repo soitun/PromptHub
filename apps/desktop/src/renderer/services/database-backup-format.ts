@@ -1,4 +1,4 @@
-import type { Folder, Prompt, PromptVersion } from "@prompthub/shared/types";
+import type { Folder, Prompt, PromptVersion, RuleBackupRecord } from "@prompthub/shared/types";
 import type {
   Skill,
   SkillFileSnapshot,
@@ -19,12 +19,14 @@ export interface DatabaseBackup {
     aiModels?: any[];
     scenarioModelDefaults?: Record<string, string>;
     aiProvider?: string;
+    aiApiProtocol?: string;
     aiApiKey?: string;
     aiApiUrl?: string;
     aiModel?: string;
   };
   settings?: { state: any };
   settingsUpdatedAt?: string;
+  rules?: RuleBackupRecord[];
   skills?: Skill[];
   skillVersions?: SkillVersion[];
   skillFiles?: {
@@ -39,6 +41,7 @@ export type ExportScope = {
   images?: boolean;
   aiConfig?: boolean;
   settings?: boolean;
+  rules?: boolean;
   skills?: boolean;
 };
 
@@ -86,6 +89,7 @@ export function normalizeImportedBackup(
     aiConfig: backup?.aiConfig,
     settings: backup?.settings,
     settingsUpdatedAt: backup?.settingsUpdatedAt,
+    rules: Array.isArray(backup?.rules) ? backup.rules : undefined,
     skills: Array.isArray(backup?.skills) ? backup.skills : undefined,
     skillVersions: Array.isArray(backup?.skillVersions)
       ? backup.skillVersions
@@ -208,6 +212,7 @@ export function hasMeaningfulBackupContent(backup: DatabaseBackup): boolean {
     backup.prompts.length > 0 ||
     backup.folders.length > 0 ||
     backup.versions.length > 0 ||
+    (backup.rules?.length ?? 0) > 0 ||
     (backup.skills?.length ?? 0) > 0 ||
     (backup.skillVersions?.length ?? 0) > 0 ||
     Object.values(backup.skillFiles ?? {}).some((files) => files.length > 0) ||

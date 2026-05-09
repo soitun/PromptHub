@@ -4,6 +4,7 @@ import { Sidebar, TopBar, MainContent, TitleBar } from "./components/layout";
 import { usePromptStore } from "./stores/prompt.store";
 import { useFolderStore } from "./stores/folder.store";
 import { useSettingsStore } from "./stores/settings.store";
+import { useUIStore } from "./stores/ui.store";
 import {
   getRenderedBackgroundImageBlur,
   getRenderedBackgroundImageOpacity,
@@ -70,6 +71,7 @@ function App() {
   );
   const debugMode = useSettingsStore((state) => state.debugMode);
   const shortcutModes = useSettingsStore((state) => state.shortcutModes);
+  const isSidebarCollapsed = useUIStore((state) => state.isSidebarCollapsed);
   const [currentPage, setCurrentPage] = useState<PageType>("home");
   const [isLoading, setIsLoading] = useState(true);
   const { showToast } = useToast();
@@ -911,36 +913,46 @@ function App() {
           {!isWebRuntime() && <TitleBar />}
 
           <div className="flex flex-1 overflow-y-hidden overflow-x-visible">
-            {/* Sidebar */}
-            {/* 侧边栏 */}
-            <Sidebar currentPage={currentPage} onNavigate={setCurrentPage} />
+            <Sidebar
+              currentPage={currentPage}
+              onNavigate={setCurrentPage}
+              layout="rail"
+            />
 
-            {/* Main content */}
-            {/* 主内容区 */}
-            <div className="flex flex-1 flex-col overflow-hidden">
-              {/* Top bar */}
-              {/* 顶部栏 */}
+            <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
               <TopBar
                 onOpenSettings={() => setCurrentPage("settings")}
                 updateAvailable={updateAvailable}
                 onShowUpdateDialog={() => setShowUpdateDialog(true)}
               />
 
-              {/* Page content */}
-              {/* 页面内容 */}
-              {currentPage === "home" ? (
-                <MainContent />
-              ) : (
-                <Suspense
-                  fallback={
-                    <div className="flex-1 flex items-center justify-center">
-                      <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                    </div>
-                  }
-                >
-                  <SettingsPage onBack={() => setCurrentPage("home")} />
-                </Suspense>
-              )}
+              <div className="flex min-h-0 flex-1 overflow-hidden">
+                {currentPage === "home" ? (
+                  <Sidebar
+                    currentPage={currentPage}
+                    onNavigate={setCurrentPage}
+                    layout="panel"
+                  />
+                ) : null}
+
+                <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+                  {/* Page content */}
+                  {/* 页面内容 */}
+                  {currentPage === "home" ? (
+                    <MainContent />
+                  ) : (
+                    <Suspense
+                      fallback={
+                        <div className="flex-1 flex items-center justify-center">
+                          <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                        </div>
+                      }
+                    >
+                      <SettingsPage onBack={() => setCurrentPage("home")} />
+                    </Suspense>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 

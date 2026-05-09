@@ -9,7 +9,12 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { SKILL_PLATFORMS } from "@prompthub/shared/constants/platforms";
+import {
+  SKILL_PLATFORMS,
+  getPlatformGlobalRuleTemplate,
+  getPlatformRootTemplate,
+  getPlatformSkillsTemplate,
+} from "@prompthub/shared/constants/platforms";
 import { useSettingsStore } from "../../stores/settings.store";
 import { useSkillStore } from "../../stores/skill.store";
 import { PlatformIcon } from "../ui/PlatformIcon";
@@ -23,6 +28,17 @@ function getCurrentPlatformKey(): "darwin" | "win32" | "linux" {
   if (platform.includes("win")) return "win32";
   if (platform.includes("mac")) return "darwin";
   return "linux";
+}
+
+function joinResolvedPlatformPath(rootPath: string, relativePath: string): string {
+  const normalizedRoot = rootPath.trim().replace(/[\\/]+$/, "");
+  const segments = relativePath.split(/[\\/]+/).filter(Boolean);
+  if (segments.length === 0) {
+    return normalizedRoot;
+  }
+
+  const separator = normalizedRoot.includes("\\") ? "\\" : "/";
+  return `${normalizedRoot}${separator}${segments.join(separator)}`;
 }
 
 function useOrderedPlatforms() {
@@ -239,8 +255,8 @@ export function SkillSettings() {
                       {platform.name}
                     </div>
                     <div className="text-[11px] text-muted-foreground">
-                      {settings.customSkillPlatformPaths[platform.id] ||
-                        platform.skillsDir[currentPlatformKey]}
+                      {settings.customPlatformRootPaths[platform.id] ||
+                        getPlatformRootTemplate(platform, currentPlatformKey)}
                     </div>
                   </div>
                 </div>
@@ -269,18 +285,38 @@ export function SkillSettings() {
       </SettingSection>
 
       <SettingSection
-        title={t("settings.platformSkillPaths", "Platform Target Directories")}
+        title={t("settings.platformRootPaths", "Platform Root Directories")}
       >
         <div className="p-4 space-y-3">
           <p className="text-xs text-muted-foreground">
             {t(
-              "settings.platformSkillPathsDesc",
-              "Override the default Skill directory for each AI tool. This affects scanning, distribution, uninstall, and install status detection.",
+              "settings.platformRootPathsDesc",
+              "Override the root directory for each AI tool platform. PromptHub will derive internal paths like skills and global rules from this root.",
             )}
           </p>
           <div className="rounded-lg border border-border overflow-hidden">
             {orderedPlatforms.map((platform) => {
-              const overridePath = settings.customSkillPlatformPaths[platform.id] || "";
+              const overridePath = settings.customPlatformRootPaths[platform.id] || "";
+              const defaultRootPath = getPlatformRootTemplate(
+                platform,
+                currentPlatformKey,
+              );
+              const effectiveRootPath = overridePath || defaultRootPath;
+              const derivedSkillsPath = joinResolvedPlatformPath(
+                effectiveRootPath,
+                platform.skillsRelativePath,
+              );
+              const defaultRulePath = getPlatformGlobalRuleTemplate(
+                platform,
+                currentPlatformKey,
+              );
+              const derivedRulePath =
+                platform.globalRuleFile && defaultRulePath
+                  ? joinResolvedPlatformPath(
+                      effectiveRootPath,
+                      platform.globalRuleFile,
+                    )
+                  : null;
 
               return (
                 <div
@@ -296,28 +332,61 @@ export function SkillSettings() {
                   <div className="text-[11px] text-muted-foreground">
                     {t("settings.defaultPathLabel", "Default path")}:
                     <span className="ml-1 font-mono">
-                      {platform.skillsDir[currentPlatformKey]}
+                      {defaultRootPath}
                     </span>
+                  </div>
+                  <div className="grid gap-2 rounded-lg bg-muted/30 p-3 text-[11px] text-muted-foreground">
+                    <div>
+                      {t("settings.platformDerivedSkillPath", "Derived skills path")}
+                      :
+                      <span className="ml-1 font-mono">{derivedSkillsPath}</span>
+                    </div>
+                    {derivedRulePath ? (
+                      <div>
+                        {t("settings.platformDerivedRulesPath", "Derived rules path")}
+                        :
+                        <span className="ml-1 font-mono">{derivedRulePath}</span>
+                      </div>
+                    ) : null}
+                    {platform.configFiles?.length ? (
+                      <div>
+                        {t("settings.platformDerivedConfigPath", "Derived config files")}
+                        :
+                        <span className="ml-1 font-mono">
+                          {platform.configFiles
+                            .map((configFile) =>
+                              joinResolvedPlatformPath(effectiveRootPath, configFile),
+                            )
+                            .join(", ")}
+                        </span>
+                      </div>
+                    ) : null}
+                    <div className="text-[10px] text-muted-foreground/80">
+                      {t(
+                        "settings.platformDerivedPathHint",
+                        "Skills, Rules, and related config files are derived from the platform root directory.",
+                      )}
+                    </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <input
                       type="text"
                       value={overridePath}
                       onChange={(e) =>
-                        settings.setCustomSkillPlatformPath(platform.id, e.target.value)
+                        settings.setCustomPlatformRootPath(platform.id, e.target.value)
                       }
                       placeholder={t(
-                        "settings.platformSkillPathPlaceholder",
-                        "Leave empty to use default, e.g. ~/.trae-cn/skills",
+                        "settings.platformRootPathPlaceholder",
+                        "Leave empty to use the default root, e.g. ~/.trae-cn",
                       )}
                       className="flex-1 h-9 px-3 rounded-lg bg-muted border-0 text-sm placeholder:text-muted-foreground/50"
                     />
                     <button
-                      onClick={() => settings.resetCustomSkillPlatformPath(platform.id)}
+                      onClick={() => settings.resetCustomPlatformRootPath(platform.id)}
                       disabled={!overridePath}
                       className="h-9 px-3 rounded-lg border border-border text-sm text-muted-foreground hover:border-primary/30 hover:text-foreground disabled:opacity-50 disabled:hover:border-border disabled:hover:text-muted-foreground transition-colors"
                     >
-                      {t("settings.resetPlatformSkillPath", "Reset")}
+                      {t("settings.resetPlatformRootPath", "Reset")}
                     </button>
                   </div>
                 </div>

@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { Select } from "../../ui/Select";
 import { PasswordInput } from "../shared";
 import { PROVIDER_OPTIONS } from "./constants";
-import { getProviderInfo } from "./helpers";
+import { getProtocolLabel, getProviderInfo } from "./helpers";
 import { Modal } from "../../ui/Modal";
 import type { EndpointDraft } from "./types";
 
@@ -44,6 +44,7 @@ export function EndpointFormModal({
                   ? {
                       ...prev,
                       provider: value,
+                      apiProtocol: provider?.recommendedProtocol || prev.apiProtocol,
                       apiUrl: provider?.defaultUrl || prev.apiUrl,
                     }
                   : prev,
@@ -54,6 +55,26 @@ export function EndpointFormModal({
               label: item.name,
               group: item.group,
             }))}
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-xs text-muted-foreground">
+            {t("settings.protocol")}
+          </label>
+          <Select
+            value={endpointDraft.apiProtocol}
+            onChange={(value) =>
+              setEndpointDraft((prev) =>
+                prev
+                  ? { ...prev, apiProtocol: value as EndpointDraft["apiProtocol"] }
+                  : prev,
+              )
+            }
+            options={[
+              { value: "openai", label: getProtocolLabel("openai") },
+              { value: "gemini", label: getProtocolLabel("gemini") },
+              { value: "anthropic", label: getProtocolLabel("anthropic") },
+            ]}
           />
         </div>
         <div>

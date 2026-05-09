@@ -12,7 +12,6 @@ import {
   KeyboardIcon,
   ServerCogIcon,
   SparklesIcon,
-  LayoutTemplateIcon,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { GeneralSettings } from "./GeneralSettings";
@@ -24,7 +23,6 @@ import { ShortcutsSettings } from "./ShortcutsSettings";
 import { AboutSettings } from "./AboutSettings";
 import { DataSettings } from "./DataSettings";
 import { AISettingsPrototype } from "./AISettingsPrototype";
-import { PlatformWorkbenchPrototype } from "./PlatformWorkbenchPrototype";
 import { SkillSettings } from "./SkillSettings";
 import { WebDeviceSettings } from "./WebDeviceSettings";
 import { WebWorkspaceSettings } from "./WebWorkspaceSettings";
@@ -41,11 +39,6 @@ const DESKTOP_SETTINGS_MENU = [
   { id: "appearance", labelKey: "settings.appearance", icon: PaletteIcon },
   { id: "data", labelKey: "settings.data", icon: DatabaseIcon },
   { id: "skill", labelKey: "settings.skill", icon: SparklesIcon },
-  {
-    id: "platformPreview",
-    labelKey: "settings.platformPreview",
-    icon: LayoutTemplateIcon,
-  },
   { id: "ai", labelKey: "settings.ai", icon: BrainIcon },
   { id: "shortcuts", labelKey: "settings.shortcuts", icon: KeyboardIcon },
   { id: "language", labelKey: "settings.language", icon: GlobeIcon },
@@ -88,8 +81,6 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
         return <DataSettings />;
       case "skill":
         return <SkillSettings />;
-      case "platformPreview":
-        return <PlatformWorkbenchPrototype />;
       case "ai":
         return <AISettingsPrototype />;
       case "shortcuts":

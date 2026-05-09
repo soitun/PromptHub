@@ -42,6 +42,12 @@ export function createWindowApiMock(overrides?: DeepPartial<MockRecord>) {
       version: {},
       folder: {},
       settings: {},
+      rules: {
+        list: vi.fn().mockResolvedValue([]),
+        read: vi.fn(),
+        save: vi.fn(),
+        rewrite: vi.fn(),
+      },
       io: {},
       ai: {
         request: vi.fn(),
@@ -161,6 +167,7 @@ export function createWindowElectronMock(overrides?: DeepPartial<MockRecord>) {
         download: vi.fn(),
         install: vi.fn(),
         openDownloadedUpdate: vi.fn(),
+        getInstallSource: vi.fn().mockResolvedValue("direct"),
         getVersion: vi.fn().mockResolvedValue("0.4.5"),
         getPlatform: vi.fn().mockResolvedValue("darwin"),
         openReleases: vi.fn(),

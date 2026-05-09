@@ -12,6 +12,7 @@ export function ToggleFields({
   setModelForm: Dispatch<SetStateAction<ModelFormState>>;
 }) {
   const { t } = useTranslation();
+  const streamDisabled = modelForm.apiProtocol === "anthropic";
 
   return (
     <div className="mt-4 grid gap-4 md:grid-cols-2">
@@ -19,6 +20,7 @@ export function ToggleFields({
         <input
           type="checkbox"
           checked={modelForm.chatParams.stream}
+          disabled={streamDisabled}
           onChange={(event) =>
             setModelForm((prev) => ({
               ...prev,
@@ -29,7 +31,10 @@ export function ToggleFields({
             }))
           }
         />
-        {t("settings.streamOutput")}
+        <span>
+          {t("settings.streamOutput")}
+          {streamDisabled ? " (Anthropic disabled)" : ""}
+        </span>
       </label>
       <label className="flex items-center gap-3 rounded-lg border border-border bg-background px-3 py-2 text-sm">
         <input

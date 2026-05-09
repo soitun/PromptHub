@@ -1,4 +1,5 @@
 import type { AITransportResponse } from "@prompthub/shared/types";
+import type { AIProtocol } from "@prompthub/shared/types";
 
 /**
  * AI Service - Call various AI model APIs
@@ -7,9 +8,27 @@ import type { AITransportResponse } from "@prompthub/shared/types";
  * 大部分国内外服务商都兼容 OpenAI 格式
  */
 
+export interface ChatImageAttachment {
+  name?: string;
+  mimeType: string;
+  base64: string;
+}
+
+export type ChatMessageContentPart =
+  | { type: "text"; text: string }
+  | {
+      type: "image_url";
+      image_url: {
+        url: string;
+        detail?: "auto" | "low" | "high";
+      };
+    };
+
+export type ChatMessageContent = string | ChatMessageContentPart[];
+
 export interface ChatMessage {
   role: "system" | "user" | "assistant";
-  content: string;
+  content: ChatMessageContent;
 }
 
 export interface ChatCompletionRequest {
@@ -79,11 +98,18 @@ export interface ImageParams {
   n?: number;
 }
 
+export interface ImageReferenceAttachment {
+  name?: string;
+  mimeType: string;
+  base64: string;
+}
+
 export interface AIConfig {
   // 可选：用于区分同名模型（多模型对比的流式回调映射）
   // Optional: Used to distinguish models with the same name (for multi-model comparison streaming callback mapping)
   id?: string;
   provider: string;
+  apiProtocol: AIProtocol;
   apiKey: string;
   apiUrl: string;
   model: string;
@@ -156,6 +182,137 @@ interface StreamState {
   chunkCount: number;
 }
 
+type ResolvedProtocol = {
+  protocol: AIProtocol;
+  explicit: boolean;
+  baseUrl: string;
+};
+
+function resolveAIProtocol(config: Pick<AIConfig, "apiProtocol" | "provider" | "apiUrl">): AIProtocol {
+  if (config.apiProtocol === "openai" || config.apiProtocol === "gemini" || config.apiProtocol === "anthropic") {
+    return config.apiProtocol;
+  }
+
+  const provider = config.provider?.toLowerCase() || "";
+  const apiUrl = config.apiUrl?.toLowerCase() || "";
+
+  if (provider === "anthropic" || apiUrl.includes("api.anthropic.com")) {
+    return "anthropic";
+  }
+
+  if (provider === "google" || provider === "gemini" || apiUrl.includes("generativelanguage.googleapis.com")) {
+    return "gemini";
+  }
+
+  return "openai";
+}
+
+function resolveProtocolBase(apiUrl: string, protocol: AIProtocol): ResolvedProtocol {
+  const trimmed = apiUrl.trim();
+  const explicit = trimmed.endsWith("#");
+  const rawValue = explicit ? trimmed.slice(0, -1) : trimmed;
+  const baseUrl = getBaseUrl(rawValue);
+
+  return {
+    protocol,
+    explicit,
+    baseUrl,
+  };
+}
+
+function buildChatEndpointFromBase(resolved: ResolvedProtocol): string {
+  const baseUrl = resolved.baseUrl.replace(/\/$/, "");
+  if (!baseUrl) {
+    return "";
+  }
+
+  if (resolved.explicit) {
+    if (resolved.protocol === "anthropic") {
+      return baseUrl.endsWith("/messages") ? baseUrl : `${baseUrl}/messages`;
+    }
+    return baseUrl.endsWith("/chat/completions") ? baseUrl : `${baseUrl}/chat/completions`;
+  }
+
+  if (resolved.protocol === "gemini") {
+    if (baseUrl.endsWith("/openai")) {
+      return `${baseUrl}/chat/completions`;
+    }
+    if (baseUrl.match(/\/v\d+(?:beta)?$/)) {
+      return `${baseUrl}/openai/chat/completions`;
+    }
+    return `${baseUrl}/v1beta/openai/chat/completions`;
+  }
+
+  if (resolved.protocol === "anthropic") {
+    if (baseUrl.match(/\/v\d+$/)) {
+      return `${baseUrl}/messages`;
+    }
+    return `${baseUrl}/v1/messages`;
+  }
+
+  if (baseUrl.match(/\/v\d+$/)) {
+    return `${baseUrl}/chat/completions`;
+  }
+
+  return `${baseUrl}/v1/chat/completions`;
+}
+
+function buildModelsEndpointFromBase(resolved: ResolvedProtocol): string {
+  const baseUrl = resolved.baseUrl.replace(/\/$/, "");
+  if (!baseUrl) {
+    return "";
+  }
+
+  if (resolved.protocol === "gemini") {
+    const geminiBaseUrl = baseUrl.replace(/\/openai$/, "");
+    if (geminiBaseUrl.match(/\/v\d+(?:beta)?$/)) {
+      return `${geminiBaseUrl}/models`;
+    }
+    return `${geminiBaseUrl}/v1beta/models`;
+  }
+
+  if (resolved.protocol === "anthropic") {
+    if (baseUrl.match(/\/v\d+$/)) {
+      return `${baseUrl}/models`;
+    }
+    return `${baseUrl}/v1/models`;
+  }
+
+  if (baseUrl.match(/\/v\d+$/)) {
+    return `${baseUrl}/models`;
+  }
+
+  return `${baseUrl}/v1/models`;
+}
+
+function buildHeadersForProtocol(
+  protocol: AIProtocol,
+  apiKey: string,
+  options?: { accept?: string; contentType?: boolean; useNativeGeminiAuth?: boolean },
+): Record<string, string> {
+  const headers: Record<string, string> = {};
+  if (options?.contentType !== false) {
+    headers["Content-Type"] = "application/json";
+  }
+  if (options?.accept) {
+    headers.Accept = options.accept;
+  }
+
+  if (protocol === "anthropic") {
+    headers["x-api-key"] = apiKey;
+    headers["anthropic-version"] = "2023-06-01";
+    return headers;
+  }
+
+  if (protocol === "gemini" && options?.useNativeGeminiAuth) {
+    headers["x-goog-api-key"] = apiKey;
+    return headers;
+  }
+
+  headers.Authorization = `Bearer ${apiKey}`;
+  return headers;
+}
+
 function getAITransport() {
   if (typeof window === "undefined") {
     return null;
@@ -192,6 +349,14 @@ function createStreamState(): StreamState {
     buffer: "",
     chunkCount: 0,
   };
+}
+
+function isGeminiApiHost(apiUrl: string): boolean {
+  return apiUrl.includes("generativelanguage.googleapis.com");
+}
+
+function isGeminiOpenAICompatEndpoint(endpoint: string): boolean {
+  return endpoint.includes("generativelanguage.googleapis.com") && endpoint.includes("/openai/");
 }
 
 function yieldToEventLoop() {
@@ -286,6 +451,19 @@ function finalizeStreamState(
   };
 }
 
+function normalizeAssistantContent(content: ChatMessageContent): string {
+  if (typeof content === "string") {
+    return content;
+  }
+
+  return content
+    .filter((part): part is Extract<ChatMessageContentPart, { type: "text" }> =>
+      part.type === "text",
+    )
+    .map((part) => part.text)
+    .join("");
+}
+
 async function getErrorMessageFromResponse(
   response: ResponseLike,
 ): Promise<string> {
@@ -336,7 +514,9 @@ export async function chatCompletion(
 ): Promise<ChatCompletionResult> {
   const { provider, apiKey, apiUrl, model, chatParams } = config;
   const providerId = provider?.toLowerCase() || "";
-  const isGemini = apiUrl.includes("generativelanguage.googleapis.com");
+  const protocol = resolveAIProtocol(config);
+  const isGemini = protocol === "gemini";
+  const isAnthropic = protocol === "anthropic";
   const normalizedModel = isGemini ? model.replace(/^models\//, "") : model;
 
   if (!apiKey) {
@@ -351,44 +531,7 @@ export async function chatCompletion(
     throw new Error("No model selected");
   }
 
-  // 构建请求 URL / Build request URL
-  // 使用与 getApiEndpointPreview 一致的补全逻辑
-  // Use the same completion logic as getApiEndpointPreview
-  let endpoint = apiUrl.trim();
-
-  // 如果以 # 结尾，移除 # 并不做任何自动补全
-  // If ends with #, remove # and don't auto-complete
-  if (endpoint.endsWith("#")) {
-    endpoint = endpoint.slice(0, -1);
-    if (!endpoint.endsWith("/chat/completions")) {
-      endpoint = endpoint.replace(/\/$/, "") + "/chat/completions";
-    }
-  } else {
-    // 移除尾部斜杠
-    endpoint = endpoint.replace(/\/$/, "");
-    if (isGemini && endpoint.endsWith("/models")) {
-      endpoint = endpoint.replace(/\/models$/, "");
-    }
-
-    // 如果已经包含 /chat/completions，保持原样
-    if (endpoint.endsWith("/chat/completions")) {
-      // 保持原样
-    } else if (isGemini) {
-      if (endpoint.endsWith("/openai")) {
-        endpoint = endpoint + "/chat/completions";
-      } else if (endpoint.match(/\/v\d+(?:beta)?$/)) {
-        endpoint = endpoint + "/openai/chat/completions";
-      } else {
-        endpoint = endpoint + "/v1beta/openai/chat/completions";
-      }
-    } else if (endpoint.match(/\/v\d+$/)) {
-      // 如果已经有版本路径如 /v1，直接追加 /chat/completions
-      endpoint = endpoint + "/chat/completions";
-    } else {
-      // 否则自动补全 /v1/chat/completions
-      endpoint = endpoint + "/v1/chat/completions";
-    }
-  }
+  const endpoint = buildChatEndpointFromBase(resolveProtocolBase(apiUrl, protocol));
 
   // 合并参数：config.chatParams < options（options 优先级更高）
   // Merge parameters: config.chatParams < options (options takes precedence)
@@ -404,21 +547,14 @@ export async function chatCompletion(
       options?.enableThinking ?? chatParams?.enableThinking ?? false,
   };
 
-  // 构建请求头 / Build request headers
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    Accept: mergedParams.stream ? "text/event-stream" : "application/json",
-  };
-
-  // 不同供应商的认证方式 / Different provider authentication
-  if (provider === "anthropic") {
-    headers["x-api-key"] = apiKey;
-    headers["anthropic-version"] = "2023-06-01";
-  } else if (isGemini) {
-    headers["x-goog-api-key"] = apiKey;
-  } else {
-    headers["Authorization"] = `Bearer ${apiKey}`;
+  if (isAnthropic) {
+    mergedParams.stream = false;
   }
+
+  // 构建请求头 / Build request headers
+  const headers = buildHeadersForProtocol(protocol, apiKey, {
+    accept: mergedParams.stream ? "text/event-stream" : "application/json",
+  });
 
   // 检测是否为需要 max_completion_tokens 的新模型
   // Detect if it's a new model that requires max_completion_tokens
@@ -439,6 +575,66 @@ export async function chatCompletion(
     temperature: mergedParams.temperature,
     stream: mergedParams.stream,
   };
+
+  if (isAnthropic) {
+    const anthropicMessages = messages
+      .filter((message) => message.role !== "system")
+      .map((message) => ({
+        role: message.role === "assistant" ? "assistant" : "user",
+        content: normalizeAssistantContent(message.content),
+      }));
+
+    const anthropicBody: Record<string, unknown> = {
+      model,
+      max_tokens: mergedParams.maxTokens,
+      messages: anthropicMessages,
+      stream: false,
+    };
+
+    const systemMessage = messages.find((message) => message.role === "system");
+    if (systemMessage) {
+      anthropicBody.system = normalizeAssistantContent(systemMessage.content);
+    }
+
+    const requestBody = JSON.stringify(anthropicBody);
+    const transport = getAITransport();
+    const response = transport
+      ? createResponseLike(
+          await transport.request({
+            method: "POST",
+            url: endpoint,
+            headers,
+            body: requestBody,
+          }),
+        )
+      : createFetchResponseLike(
+          await fetch(endpoint, {
+            method: "POST",
+            headers,
+            body: requestBody,
+          }),
+        );
+
+    if (!response.ok) {
+      throw new Error(await getErrorMessageFromResponse(response));
+    }
+
+    const data = await response.json<{
+      content?: Array<{ type?: string; text?: string }>;
+    }>();
+    const content = (data.content || [])
+      .filter((item) => item?.type === "text" && typeof item.text === "string")
+      .map((item) => item.text)
+      .join("");
+
+    if (!content) {
+      throw new Error("AI returned an unexpected response format");
+    }
+
+    return {
+      content,
+    };
+  }
 
   // 根据模型类型选择正确的 token 限制参数
   // Choose the correct token limit parameter based on model type
@@ -684,7 +880,7 @@ export async function chatCompletion(
 
     const message = data.choices[0].message;
     return {
-      content: message.content,
+      content: normalizeAssistantContent(message.content),
       thinkingContent: message.reasoning_content,
     };
   } catch (error) {
@@ -775,7 +971,10 @@ export async function testAIConnection(
 
   // 使用配置中的参数，但限制 maxTokens 用于测试
   // Use config parameters, but limit maxTokens for testing
-  const useStream = config.chatParams?.stream ?? false;
+  const useStream =
+    resolveAIProtocol(config) === "anthropic"
+      ? false
+      : (config.chatParams?.stream ?? false);
   const useThinking = config.chatParams?.enableThinking ?? false;
 
   try {
@@ -844,6 +1043,7 @@ export async function generateImage(
     n?: number;
     response_format?: "url" | "b64_json";
     aspect_ratio?: string; // FLUX/Ideogram 使用
+    referenceImages?: ImageReferenceAttachment[];
   },
 ): Promise<ImageGenerationResponse> {
   const { apiKey, apiUrl, model, provider } = config;
@@ -949,7 +1149,7 @@ async function generateImageGemini(
   apiUrl: string,
   model: string,
   prompt: string,
-  options?: { n?: number },
+  options?: { n?: number; referenceImages?: ImageReferenceAttachment[] },
 ): Promise<ImageGenerationResponse> {
   // Build endpoint - Gemini uses generateContent
   // 构建端点 - Gemini 使用 generateContent
@@ -982,7 +1182,15 @@ async function generateImageGemini(
     body = {
       contents: [
         {
-          parts: [{ text: prompt }],
+          parts: [
+            { text: prompt },
+            ...(options?.referenceImages ?? []).map((image) => ({
+              inlineData: {
+                mimeType: image.mimeType,
+                data: image.base64,
+              },
+            })),
+          ],
         },
       ],
       generationConfig: {
@@ -994,7 +1202,23 @@ async function generateImageGemini(
     headers["Authorization"] = `Bearer ${apiKey}`;
     body = {
       model,
-      messages: [{ role: "user", content: prompt }],
+      messages: [
+        {
+          role: "user",
+          content:
+            options?.referenceImages && options.referenceImages.length > 0
+              ? [
+                  { type: "text", text: prompt },
+                  ...options.referenceImages.map((image) => ({
+                    type: "image_url",
+                    image_url: {
+                      url: `data:${image.mimeType};base64,${image.base64}`,
+                    },
+                  })),
+                ]
+              : prompt,
+        },
+      ],
       stream: false,
     };
   }
@@ -1220,8 +1444,15 @@ async function generateImageOpenAI(
     style?: "vivid" | "natural";
     n?: number;
     response_format?: "url" | "b64_json";
+    referenceImages?: ImageReferenceAttachment[];
   },
 ): Promise<ImageGenerationResponse> {
+  if (options?.referenceImages && options.referenceImages.length > 0) {
+    throw new Error(
+      "The selected image generation endpoint does not support reference images. Use a multimodal image generation model or Gemini-compatible endpoint.",
+    );
+  }
+
   let endpoint = apiUrl.replace(/\/$/, "");
 
   if (endpoint.includes("/images/generations")) {
@@ -1833,6 +2064,7 @@ export function buildMessagesFromPrompt(
   systemPrompt: string | undefined,
   userPrompt: string,
   variables?: Record<string, string>,
+  imageAttachments?: ChatImageAttachment[],
 ): ChatMessage[] {
   const messages: ChatMessage[] = [];
 
@@ -1861,7 +2093,20 @@ export function buildMessagesFromPrompt(
     messages.push({ role: "system", content: processedSystemPrompt });
   }
 
-  messages.push({ role: "user", content: processedUserPrompt });
+  if (imageAttachments && imageAttachments.length > 0) {
+    const content: ChatMessageContentPart[] = [
+      { type: "text", text: processedUserPrompt },
+      ...imageAttachments.map((attachment) => ({
+        type: "image_url" as const,
+        image_url: {
+          url: `data:${attachment.mimeType};base64,${attachment.base64}`,
+        },
+      })),
+    ];
+    messages.push({ role: "user", content });
+  } else {
+    messages.push({ role: "user", content: processedUserPrompt });
+  }
 
   return messages;
 }
@@ -1957,38 +2202,12 @@ export function normalizeApiUrlInput(apiUrl: string): string {
  * Auto-complete /v1 if user didn't input it
  * Use OpenAI-compatible endpoint for Gemini API
  */
-export function getApiEndpointPreview(apiUrl: string): string {
+export function getApiEndpointPreview(
+  apiUrl: string,
+  protocol: AIProtocol = "openai",
+): string {
   if (!apiUrl) return "";
-
-  // If ends with #, just return the part before # without any auto-fill
-  // 如果以 # 结尾，直接返回 # 之前的部分，不进行任何自动填充
-  if (apiUrl.trim().endsWith("#")) {
-    return apiUrl.trim().slice(0, -1);
-  }
-
-  const baseUrl = getBaseUrl(apiUrl);
-
-  // Gemini API uses OpenAI-compatible endpoint format
-  // Gemini（Google Generative Language API）使用 OpenAI 兼容端点
-  if (baseUrl.includes("generativelanguage.googleapis.com")) {
-    if (baseUrl.endsWith("/openai")) {
-      return baseUrl + "/chat/completions";
-    }
-    if (baseUrl.match(/\/v\d+(?:beta)?$/)) {
-      return baseUrl + "/openai/chat/completions";
-    }
-    return baseUrl + "/v1beta/openai/chat/completions";
-  }
-
-  // Check if version path is already included
-  // 检查是否已经包含版本路径
-  if (baseUrl.endsWith("/v1") || baseUrl.match(/\/v\d+$/)) {
-    return baseUrl + "/chat/completions";
-  }
-
-  // Auto-complete /v1
-  // 自动补全 /v1
-  return baseUrl + "/v1/chat/completions";
+  return buildChatEndpointFromBase(resolveProtocolBase(apiUrl, protocol));
 }
 
 /**
@@ -2045,6 +2264,7 @@ export function getImageApiEndpointPreview(apiUrl: string): string {
 export async function fetchAvailableModels(
   apiUrl: string,
   apiKey: string,
+  apiProtocol: AIProtocol = "openai",
 ): Promise<FetchModelsResult> {
   if (!apiKey || !apiUrl) {
     return {
@@ -2056,44 +2276,18 @@ export async function fetchAvailableModels(
   }
 
   try {
-    // Calculate base URL and add /models
-    // 计算 base URL 并添加 /models
-    let baseUrl = getBaseUrl(apiUrl);
-    let endpoint: string;
-
-    // Gemini: https://generativelanguage.googleapis.com/v1beta/models
-    // Users might only fill host (without /v1beta), need to complete according to Gemini specification
-    // 用户可能只填 host（不含 /v1beta），这里需要按 Gemini 规范补齐
-    if (baseUrl.includes("generativelanguage.googleapis.com")) {
-      baseUrl = baseUrl.replace(/\/openai$/, "");
-      if (baseUrl.match(/\/v\d+(?:beta)?$/)) {
-        endpoint = baseUrl + "/models";
-      } else {
-        endpoint = baseUrl + "/v1beta/models";
-      }
-    } else {
-      // For other APIs (OpenAI compatible), check if version path exists
-      // 对于其他 API（OpenAI 兼容），检查是否存在版本路径
-      if (baseUrl.match(/\/v\d+$/)) {
-        // Already has version path like /v1, /v2, etc.
-        // 已有版本路径如 /v1, /v2 等
-        endpoint = baseUrl + "/models";
-      } else {
-        // No version path, add /v1/models
-        // 无版本路径，添加 /v1/models
-        endpoint = baseUrl + "/v1/models";
-      }
-    }
-
-    const isGemini = baseUrl.includes("generativelanguage.googleapis.com");
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-    };
-    if (isGemini) {
-      headers["x-goog-api-key"] = apiKey;
-    } else {
-      headers["Authorization"] = `Bearer ${apiKey}`;
-    }
+    const endpoint = buildModelsEndpointFromBase(
+      resolveProtocolBase(apiUrl, apiProtocol),
+    );
+  const resolvedProtocol = resolveAIProtocol({
+    apiProtocol,
+    provider: "",
+    apiUrl,
+  });
+  const headers = buildHeadersForProtocol(resolvedProtocol, apiKey, {
+      accept: "application/json",
+      useNativeGeminiAuth: resolvedProtocol === "gemini",
+    });
 
     const transport = getAITransport();
     const response = transport
@@ -2131,6 +2325,22 @@ export async function fetchAvailableModels(
     }
 
     const data = await response.json();
+
+    if (data.data && Array.isArray(data.data) && apiProtocol === "anthropic") {
+      const models = data.data
+        .filter((m: { id?: string }) => typeof m.id === "string")
+        .map(
+          (m: { id: string; display_name?: string; created_at?: string }) => ({
+            id: m.id,
+            name: m.display_name || m.id,
+            owned_by: "Anthropic",
+            created: m.created_at ? Date.parse(m.created_at) : undefined,
+          }),
+        )
+        .sort((a: ModelInfo, b: ModelInfo) => a.id.localeCompare(b.id));
+
+      return { success: true, models };
+    }
 
     // OpenAI 格式的响应
     // OpenAI format response

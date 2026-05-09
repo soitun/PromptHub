@@ -38,12 +38,6 @@ vi.mock("../../../src/renderer/components/settings/SkillSettings", () => ({
 vi.mock("../../../src/renderer/components/settings/AISettingsPrototype", () => ({
   AISettingsPrototype: () => <div>ai-content</div>,
 }));
-vi.mock(
-  "../../../src/renderer/components/settings/PlatformWorkbenchPrototype",
-  () => ({
-    PlatformWorkbenchPrototype: () => <div>platform-preview-content</div>,
-  }),
-);
 vi.mock("../../../src/renderer/components/settings/WebDeviceSettings", () => ({
   WebDeviceSettings: () => <div>web-device-content</div>,
 }));
@@ -52,7 +46,7 @@ vi.mock("../../../src/renderer/components/settings/WebWorkspaceSettings", () => 
 }));
 
 describe("SettingsPage", () => {
-  it("shows a standalone Skill entry in the desktop settings navigation", async () => {
+  it("shows a standalone agent management entry in the desktop settings navigation", async () => {
     await act(async () => {
       await renderWithI18n(<SettingsPage onBack={vi.fn()} />, {
         language: "en",
@@ -63,21 +57,15 @@ describe("SettingsPage", () => {
     expect(screen.getByText("general-content")).toBeInTheDocument();
     expect(nav).toHaveTextContent("General");
     expect(nav).toHaveTextContent("Data");
-    expect(nav).toHaveTextContent("Skill");
-    expect(nav).toHaveTextContent("Platform Preview");
+    expect(nav).toHaveTextContent("Agent Management");
+    expect(nav).not.toHaveTextContent("Platform Preview");
     expect(nav).toHaveTextContent("Security");
     expect(nav.parentElement).not.toHaveClass("app-left-rail-glass");
 
     await act(async () => {
-      screen.getByRole("button", { name: "Skill" }).click();
+      screen.getByRole("button", { name: "Agent Management" }).click();
     });
 
     expect(screen.getByText("skill-content")).toBeInTheDocument();
-
-    await act(async () => {
-      screen.getByRole("button", { name: "Platform Preview" }).click();
-    });
-
-    expect(screen.getByText("platform-preview-content")).toBeInTheDocument();
   });
 });

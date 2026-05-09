@@ -103,6 +103,7 @@ test.describe("E2E: desktop self-hosted sync", () => {
               theme: "dark",
               language: "en",
               autoSave: true,
+              customPlatformRootPaths: {},
               customSkillPlatformPaths: {},
               sync: {
                 enabled: false,
@@ -333,6 +334,7 @@ test.describe("E2E: desktop self-hosted sync", () => {
               theme: "dark",
               language: "en",
               autoSave: true,
+              customPlatformRootPaths: {},
               customSkillPlatformPaths: {},
               sync: {
                 enabled: false,

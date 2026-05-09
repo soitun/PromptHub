@@ -6,6 +6,7 @@
  */
 
 import type { SafetyScanAIConfig } from "@prompthub/shared/types";
+import type { AIProtocol } from "@prompthub/shared/types";
 
 export interface AIChatMessage {
   role: "system" | "user" | "assistant";
@@ -16,64 +17,93 @@ export interface AIChatResult {
   content: string;
 }
 
-/**
- * Build the chat-completions endpoint URL from the user-supplied API URL.
- * Mirrors the logic in `renderer/services/ai.ts` but simplified for
- * non-streaming JSON requests only.
- */
-function buildEndpoint(apiUrl: string): string {
-  let endpoint = apiUrl.trim().replace(/\/$/, "");
-  const isGemini = endpoint.includes("generativelanguage.googleapis.com");
+function resolveAIProtocol(config: Pick<SafetyScanAIConfig, "apiProtocol" | "provider" | "apiUrl">): AIProtocol {
+  if (config.apiProtocol === "openai" || config.apiProtocol === "gemini" || config.apiProtocol === "anthropic") {
+    return config.apiProtocol;
+  }
 
-  if (endpoint.endsWith("#")) {
-    endpoint = endpoint.slice(0, -1);
-    if (!endpoint.endsWith("/chat/completions")) {
-      endpoint = endpoint.replace(/\/$/, "") + "/chat/completions";
+  const provider = config.provider?.toLowerCase() || "";
+  const apiUrl = config.apiUrl?.toLowerCase() || "";
+
+  if (provider === "anthropic" || apiUrl.includes("api.anthropic.com")) {
+    return "anthropic";
+  }
+
+  if (provider === "google" || provider === "gemini" || apiUrl.includes("generativelanguage.googleapis.com")) {
+    return "gemini";
+  }
+
+  return "openai";
+}
+
+function getBaseUrl(apiUrl: string): string {
+  if (!apiUrl) return "";
+  let url = apiUrl.trim();
+  if (url.endsWith("#")) {
+    return url.slice(0, -1);
+  }
+  if (url.endsWith("/")) {
+    url = url.slice(0, -1);
+  }
+  for (const suffix of ["/chat/completions", "/completions", "/models", "/embeddings", "/images/generations", "/messages"]) {
+    if (url.endsWith(suffix)) {
+      return url.slice(0, -suffix.length);
     }
-    return endpoint;
   }
+  return url;
+}
 
-  if (isGemini && endpoint.endsWith("/models")) {
-    endpoint = endpoint.replace(/\/models$/, "");
-  }
+function buildChatEndpoint(apiUrl: string, protocol: AIProtocol): string {
+  const trimmed = apiUrl.trim();
+  const explicit = trimmed.endsWith("#");
+  const baseUrl = getBaseUrl(explicit ? trimmed.slice(0, -1) : trimmed).replace(/\/$/, "");
 
-  if (endpoint.endsWith("/chat/completions")) {
-    return endpoint;
-  }
-
-  if (isGemini) {
-    if (endpoint.endsWith("/openai")) {
-      return endpoint + "/chat/completions";
+  if (explicit) {
+    if (protocol === "anthropic") {
+      return baseUrl.endsWith("/messages") ? baseUrl : `${baseUrl}/messages`;
     }
-    if (endpoint.match(/\/v\d+(?:beta)?$/)) {
-      return endpoint + "/openai/chat/completions";
+    return baseUrl.endsWith("/chat/completions") ? baseUrl : `${baseUrl}/chat/completions`;
+  }
+
+  if (protocol === "gemini") {
+    if (baseUrl.endsWith("/openai")) {
+      return `${baseUrl}/chat/completions`;
     }
-    return endpoint + "/v1beta/openai/chat/completions";
+    if (baseUrl.match(/\/v\d+(?:beta)?$/)) {
+      return `${baseUrl}/openai/chat/completions`;
+    }
+    return `${baseUrl}/v1beta/openai/chat/completions`;
   }
 
-  if (endpoint.match(/\/v\d+$/)) {
-    return endpoint + "/chat/completions";
+  if (protocol === "anthropic") {
+    if (baseUrl.match(/\/v\d+$/)) {
+      return `${baseUrl}/messages`;
+    }
+    return `${baseUrl}/v1/messages`;
   }
 
-  return endpoint + "/v1/chat/completions";
+  if (baseUrl.match(/\/v\d+$/)) {
+    return `${baseUrl}/chat/completions`;
+  }
+
+  return `${baseUrl}/v1/chat/completions`;
 }
 
 /**
  * Build request headers for the given provider.
  */
-function buildHeaders(config: SafetyScanAIConfig): Record<string, string> {
+function buildHeaders(
+  config: SafetyScanAIConfig,
+  protocol: AIProtocol,
+): Record<string, string> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     Accept: "application/json",
   };
 
-  const isGemini = config.apiUrl.includes("generativelanguage.googleapis.com");
-
-  if (config.provider === "anthropic") {
+  if (protocol === "anthropic") {
     headers["x-api-key"] = config.apiKey;
     headers["anthropic-version"] = "2023-06-01";
-  } else if (isGemini) {
-    headers["x-goog-api-key"] = config.apiKey;
   } else {
     headers["Authorization"] = `Bearer ${config.apiKey}`;
   }
@@ -106,22 +136,42 @@ export async function chatCompletion(
     throw new Error("AI model is not configured");
   }
 
-  const endpoint = buildEndpoint(config.apiUrl);
-  const headers = buildHeaders(config);
+  const protocol = resolveAIProtocol(config);
+  const endpoint = buildChatEndpoint(config.apiUrl, protocol);
+  const headers = buildHeaders(config, protocol);
 
-  const isGemini = config.apiUrl.includes("generativelanguage.googleapis.com");
+  const isGemini = protocol === "gemini";
+  const isAnthropic = protocol === "anthropic";
   const model = isGemini ? config.model.replace(/^models\//, "") : config.model;
 
-  const body: Record<string, unknown> = {
-    model,
-    messages,
-    temperature: options?.temperature ?? 0.3,
-    max_tokens: options?.maxTokens ?? 4096,
-    stream: false,
-  };
+  const body: Record<string, unknown> = isAnthropic
+    ? {
+        model,
+        max_tokens: options?.maxTokens ?? 4096,
+        messages: messages
+          .filter((message) => message.role !== "system")
+          .map((message) => ({
+            role: message.role === "assistant" ? "assistant" : "user",
+            content: message.content,
+          })),
+        stream: false,
+      }
+    : {
+        model,
+        messages,
+        temperature: options?.temperature ?? 0.3,
+        max_tokens: options?.maxTokens ?? 4096,
+        stream: false,
+      };
 
-  if (options?.responseFormat) {
+  if (!isAnthropic && options?.responseFormat) {
     body.response_format = options.responseFormat;
+  }
+  if (isAnthropic) {
+    const systemMessage = messages.find((message) => message.role === "system");
+    if (systemMessage?.content) {
+      body.system = systemMessage.content;
+    }
   }
 
   const controller = new AbortController();
@@ -153,9 +203,15 @@ export async function chatCompletion(
 
     const json = (await response.json()) as {
       choices?: { message?: { content?: string } }[];
+      content?: Array<{ type?: string; text?: string }>;
     };
 
-    const content = json.choices?.[0]?.message?.content;
+    const content = isAnthropic
+      ? (json.content || [])
+          .filter((item) => item?.type === "text" && typeof item.text === "string")
+          .map((item) => item.text)
+          .join("")
+      : json.choices?.[0]?.message?.content;
     if (typeof content !== "string") {
       throw new Error("AI API returned an unexpected response format");
     }

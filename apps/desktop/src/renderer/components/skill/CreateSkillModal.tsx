@@ -369,6 +369,7 @@ export function CreateSkillModal({ isOpen, onClose }: CreateSkillModalProps) {
     try {
       const config: AIConfig = {
         provider: defaultChatModel.provider,
+        apiProtocol: defaultChatModel.apiProtocol,
         apiKey: defaultChatModel.apiKey,
         apiUrl: defaultChatModel.apiUrl,
         model: defaultChatModel.model,
@@ -424,6 +425,7 @@ export function CreateSkillModal({ isOpen, onClose }: CreateSkillModalProps) {
     try {
       const config: AIConfig = {
         provider: defaultChatModel.provider,
+        apiProtocol: defaultChatModel.apiProtocol,
         apiKey: defaultChatModel.apiKey,
         apiUrl: defaultChatModel.apiUrl,
         model: defaultChatModel.model,

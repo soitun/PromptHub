@@ -7,7 +7,9 @@ vi.mock("../../../src/main/database", () => ({
 import { initDatabase } from "../../../src/main/database";
 import { getPlatformById } from "@prompthub/shared/constants/platforms";
 import {
+  getPlatformRootDir,
   getPlatformSkillsDir,
+  getPlatformGlobalRulePath,
   validateMCPConfig,
   resolvePlatformPath,
   gitClone,
@@ -24,8 +26,11 @@ describe("skill-installer-utils", () => {
 
   describe("getPlatformSkillsDir", () => {
     it("uses the saved platform override when one exists", () => {
-      const getMock = vi.fn().mockReturnValue({
-        value: JSON.stringify({ trae: "~/.trae-cn/skills" }),
+      const getMock = vi.fn().mockImplementation((key: string) => {
+        if (key === "customPlatformRootPaths") {
+          return { value: JSON.stringify({ trae: "~/.trae-cn" }) };
+        }
+        return undefined;
       });
       vi.mocked(initDatabase).mockReturnValue({
         prepare: vi.fn().mockReturnValue({ get: getMock }),
@@ -36,8 +41,35 @@ describe("skill-installer-utils", () => {
 
       const resolvedPath = getPlatformSkillsDir(platform!);
 
-      expect(getMock).toHaveBeenCalledWith("customSkillPlatformPaths");
+      expect(getMock).toHaveBeenCalledWith("customPlatformRootPaths");
       expect(resolvedPath).toContain(".trae-cn/skills");
+    });
+
+    it("migrates legacy saved skills path back to platform root", () => {
+      const getMock = vi.fn().mockImplementation((key: string) => {
+        if (key === "customPlatformRootPaths") {
+          return undefined;
+        }
+        if (key === "customSkillPlatformPaths") {
+          return { value: JSON.stringify({ trae: "~/.trae-cn/skills" }) };
+        }
+        return undefined;
+      });
+      vi.mocked(initDatabase).mockReturnValue({
+        prepare: vi.fn().mockReturnValue({ get: getMock }),
+      } as unknown as ReturnType<typeof initDatabase>);
+
+      const platform = getPlatformById("trae");
+      expect(platform).toBeDefined();
+
+      const resolvedRoot = getPlatformRootDir(platform!);
+      const resolvedPath = getPlatformSkillsDir(platform!);
+
+      expect(getMock).toHaveBeenCalledWith("customPlatformRootPaths");
+      expect(getMock).toHaveBeenCalledWith("customSkillPlatformPaths");
+      expect(resolvedRoot).toContain(".trae-cn");
+      expect(resolvedPath).toContain(".trae-cn/skills");
+      expect(resolvedPath.endsWith("/skills/skills")).toBe(false);
     });
 
     it("falls back to the built-in platform path when no override exists", () => {
@@ -75,7 +107,7 @@ describe("skill-installer-utils", () => {
       expect(platform).toBeDefined();
 
       const resolvedPath = getPlatformSkillsDir(platform!, {
-        claude: "/custom/claude/skills",
+        claude: "/custom/claude",
       });
 
       expect(resolvedPath).toBe("/custom/claude/skills");
@@ -122,6 +154,31 @@ describe("skill-installer-utils", () => {
       // Should not throw — falls back to built-in
       const resolvedPath = getPlatformSkillsDir(platform!);
       expect(resolvedPath).toContain(".claude/skills");
+    });
+  });
+
+  describe("getPlatformGlobalRulePath", () => {
+    it("derives the Windsurf global rules file from the platform root", () => {
+      const platform = getPlatformById("windsurf");
+      expect(platform).toBeDefined();
+
+      const resolvedPath = getPlatformGlobalRulePath(platform!);
+
+      expect(resolvedPath).toContain(".codeium");
+      expect(resolvedPath).toContain("windsurf");
+      expect(resolvedPath).toContain("memories");
+      expect(resolvedPath).toContain("global_rules.md");
+    });
+
+    it("uses explicit root overrides for the Windsurf global rules file", () => {
+      const platform = getPlatformById("windsurf");
+      expect(platform).toBeDefined();
+
+      const resolvedPath = getPlatformGlobalRulePath(platform!, {
+        windsurf: "/custom/windsurf",
+      });
+
+      expect(resolvedPath).toBe("/custom/windsurf/memories/global_rules.md");
     });
   });
 

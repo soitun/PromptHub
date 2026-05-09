@@ -67,6 +67,7 @@ describe("TopBar", () => {
     } as Partial<ReturnType<typeof useSkillStore.getState>>);
 
     useUIStore.setState({
+      appModule: "prompt",
       viewMode: "prompt",
       isSidebarCollapsed: false,
     });
@@ -155,6 +156,7 @@ describe("TopBar", () => {
     );
 
     useUIStore.setState({
+      appModule: "skill",
       viewMode: "skill",
       isSidebarCollapsed: false,
     });
@@ -219,5 +221,54 @@ describe("TopBar", () => {
         projectModalListener,
       );
     }
+  });
+
+  it("keeps rules mode search read-only and does not mutate prompt search state", async () => {
+    usePromptStore.setState({
+      searchQuery: "existing prompt search",
+    } as Partial<ReturnType<typeof usePromptStore.getState>>);
+    useUIStore.setState({
+      appModule: "rules",
+      viewMode: "prompt",
+      isSidebarCollapsed: false,
+    });
+
+    await act(async () => {
+      await renderWithI18n(
+        <TopBar onOpenSettings={vi.fn()} updateAvailable={null} />,
+        { language: "en" },
+      );
+    });
+
+    const searchInput = screen.getByPlaceholderText("Browse global rules...");
+
+    expect(searchInput).toHaveAttribute("readonly");
+    expect(
+      screen.queryByRole("button", { name: "New" }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.change(searchInput, { target: { value: "should not change" } });
+
+    expect(usePromptStore.getState().searchQuery).toBe("existing prompt search");
+  });
+
+  it("toggles the secondary menu visibility from the top bar", async () => {
+    useUIStore.setState({
+      appModule: "prompt",
+      viewMode: "prompt",
+      isSidebarCollapsed: false,
+    });
+
+    await act(async () => {
+      await renderWithI18n(
+        <TopBar onOpenSettings={vi.fn()} updateAvailable={null} />,
+        { language: "en" },
+      );
+    });
+
+    const toggleButton = screen.getByRole("button", { name: "Collapse" });
+    fireEvent.click(toggleButton);
+
+    expect(useUIStore.getState().isSidebarCollapsed).toBe(true);
   });
 });

@@ -3,6 +3,7 @@ import { persist } from "zustand/middleware";
 import i18n, { changeLanguage } from "../i18n";
 import type { Settings, SkillProject } from "@prompthub/shared/types";
 import type { UpdateChannel } from "@prompthub/shared/types";
+import type { AIProtocol } from "@prompthub/shared/types";
 import { isPrereleaseVersion } from "../../utils/version";
 import { resolveLocalImageSrc } from "../utils/media-url";
 
@@ -53,6 +54,35 @@ const DEFAULT_BACKGROUND_IMAGE_OPACITY = 1;
 const DEFAULT_BACKGROUND_IMAGE_BLUR = 0;
 const LEGACY_BACKGROUND_IMAGE_BLUR_DEFAULT = 14;
 const LOCAL_IMAGE_PROTOCOL_PREFIX = "local-image://";
+const createProjectRecordId = (): string =>
+  `project_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+const normalizeProjectRecordPath = (value: string): string => value.trim();
+
+function inferAIProtocol(provider: string | undefined, apiUrl: string | undefined): AIProtocol {
+  const providerLower = (provider || "").trim().toLowerCase();
+  const normalizedUrl = (apiUrl || "").trim().toLowerCase();
+
+  if (providerLower === "anthropic" || normalizedUrl.includes("api.anthropic.com")) {
+    return "anthropic";
+  }
+
+  if (
+    providerLower === "google" ||
+    providerLower === "gemini" ||
+    normalizedUrl.includes("generativelanguage.googleapis.com")
+  ) {
+    return "gemini";
+  }
+
+  return "openai";
+}
+
+function normalizeAIProtocol(value: unknown, provider?: string, apiUrl?: string): AIProtocol {
+  if (value === "openai" || value === "gemini" || value === "anthropic") {
+    return value;
+  }
+  return inferAIProtocol(provider, apiUrl);
+}
 
 type Hs = { hue: number; saturation: number };
 
@@ -230,6 +260,7 @@ export interface AIModelConfig {
   name?: string; // Custom name (optional), used for display
   // 自定义名称（可选），用于显示
   provider: string; // 供应商 ID
+  apiProtocol: AIProtocol;
   apiKey: string;
   apiUrl: string;
   model: string; // Model name, such as gpt-4o, dall-e-3
@@ -362,6 +393,7 @@ interface SettingsState {
   // SECURITY NOTE: aiApiKey is stored in localStorage (plaintext).
   // See WebDAV comment above for migration guidance.
   aiProvider: string;
+  aiApiProtocol: AIProtocol;
   aiApiKey: string;
   aiApiUrl: string;
   aiModel: string;
@@ -381,7 +413,8 @@ interface SettingsState {
   customSkillScanPaths: string[];
   skillProjects: SkillProject[];
 
-  // Custom platform skill paths / 自定义平台 Skill 目录
+  // Custom platform root paths / 自定义平台根目录
+  customPlatformRootPaths: Record<string, string>;
   customSkillPlatformPaths: Record<string, string>;
   skillPlatformOrder: string[];
 
@@ -445,6 +478,7 @@ interface SettingsState {
   setSkillTagsSectionHeight: (height: number) => void;
   setIsSkillTagsSectionCollapsed: (collapsed: boolean) => void;
   setAiProvider: (provider: string) => void;
+  setAiApiProtocol: (protocol: AIProtocol) => void;
   setAiApiKey: (key: string) => void;
   setAiApiUrl: (url: string) => void;
   setAiModel: (model: string) => void;
@@ -475,6 +509,8 @@ interface SettingsState {
     updates: Partial<Pick<SkillProject, "name" | "rootPath" | "scanPaths" | "lastScannedAt">>,
   ) => void;
   removeSkillProject: (projectId: string) => void;
+  setCustomPlatformRootPath: (platformId: string, path: string) => void;
+  resetCustomPlatformRootPath: (platformId: string) => void;
   setCustomSkillPlatformPath: (platformId: string, path: string) => void;
   resetCustomSkillPlatformPath: (platformId: string) => void;
   setSkillPlatformOrder: (order: string[]) => void;
@@ -507,9 +543,6 @@ export const useSettingsStore = create<SettingsState>()(
       const touch = (): string => new Date().toISOString();
       const setTouched = (partial: Partial<SettingsState>) =>
         set({ ...partial, settingsUpdatedAt: touch() } as SettingsState);
-      const createSkillProjectId = (): string =>
-        `project_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
-      const normalizeProjectPath = (value: string): string => value.trim();
       const normalizeProjectScanPaths = (
         scanPaths: string[] | undefined,
         rootPath: string,
@@ -517,7 +550,7 @@ export const useSettingsStore = create<SettingsState>()(
         const normalized = Array.from(
           new Set(
             (scanPaths ?? [rootPath])
-              .map((entry) => normalizeProjectPath(entry))
+              .map((entry) => normalizeProjectRecordPath(entry))
               .filter((entry) => entry.length > 0),
           ),
         );
@@ -588,6 +621,7 @@ export const useSettingsStore = create<SettingsState>()(
         skillTagsSectionHeight: DEFAULT_TAGS_SECTION_HEIGHT,
         isSkillTagsSectionCollapsed: false,
         aiProvider: "openai",
+        aiApiProtocol: "openai",
         aiApiKey: "",
         aiApiUrl: "",
         aiModel: "gpt-4o",
@@ -598,6 +632,7 @@ export const useSettingsStore = create<SettingsState>()(
         sourceHistory: [],
         customSkillScanPaths: [],
         skillProjects: [],
+        customPlatformRootPaths: {},
         customSkillPlatformPaths: {},
         skillPlatformOrder: [],
         skillInstallMethod: "symlink" as const,
@@ -891,6 +926,7 @@ export const useSettingsStore = create<SettingsState>()(
         setIsSkillTagsSectionCollapsed: (collapsed) =>
           setTouched({ isSkillTagsSectionCollapsed: collapsed }),
         setAiProvider: (provider) => setTouched({ aiProvider: provider }),
+        setAiApiProtocol: (protocol) => setTouched({ aiApiProtocol: protocol }),
         setAiApiKey: (key) => setTouched({ aiApiKey: key }),
         setAiApiUrl: (url) => setTouched({ aiApiUrl: url }),
         setAiModel: (model) => setTouched({ aiModel: model }),
@@ -909,6 +945,7 @@ export const useSettingsStore = create<SettingsState>()(
           if (isFirst) {
             setTouched({
               aiProvider: config.provider,
+              aiApiProtocol: config.apiProtocol,
               aiApiKey: config.apiKey,
               aiApiUrl: config.apiUrl,
               aiModel: config.model,
@@ -927,6 +964,7 @@ export const useSettingsStore = create<SettingsState>()(
           if (updated?.isDefault) {
             setTouched({
               aiProvider: updated.provider,
+              aiApiProtocol: updated.apiProtocol,
               aiApiKey: updated.apiKey,
               aiApiUrl: updated.apiUrl,
               aiModel: updated.model,
@@ -952,6 +990,7 @@ export const useSettingsStore = create<SettingsState>()(
             remaining[0] = { ...remaining[0], isDefault: true };
             setTouched({
               aiProvider: remaining[0].provider,
+              aiApiProtocol: remaining[0].apiProtocol,
               aiApiKey: remaining[0].apiKey,
               aiApiUrl: remaining[0].apiUrl,
               aiModel: remaining[0].model,
@@ -982,6 +1021,7 @@ export const useSettingsStore = create<SettingsState>()(
           if (targetType === "chat") {
             setTouched({
               aiProvider: targetModel.provider,
+              aiApiProtocol: targetModel.apiProtocol,
               aiApiKey: targetModel.apiKey,
               aiApiUrl: targetModel.apiUrl,
               aiModel: targetModel.model,
@@ -1057,14 +1097,14 @@ export const useSettingsStore = create<SettingsState>()(
           }),
         addSkillProject: (input) => {
           const name = input.name.trim();
-          const rootPath = normalizeProjectPath(input.rootPath);
+          const rootPath = normalizeProjectRecordPath(input.rootPath);
           if (!name || !rootPath) {
             throw new Error("Skill project name and rootPath are required");
           }
 
           const now = Date.now();
           const nextProject: SkillProject = {
-            id: createSkillProjectId(),
+            id: createProjectRecordId(),
             name,
             rootPath,
             scanPaths: normalizeProjectScanPaths(input.scanPaths, rootPath),
@@ -1096,7 +1136,7 @@ export const useSettingsStore = create<SettingsState>()(
 
           const nextRootPath =
             typeof updates.rootPath === "string"
-              ? normalizeProjectPath(updates.rootPath)
+              ? normalizeProjectRecordPath(updates.rootPath)
               : currentProject.rootPath;
           const nextName =
             typeof updates.name === "string"
@@ -1147,22 +1187,28 @@ export const useSettingsStore = create<SettingsState>()(
           setTouched({ skillProjects: nextProjects });
           syncSettingsToMain({ skillProjects: nextProjects });
         },
-        setCustomSkillPlatformPath: (platformId, pathValue) => {
+        setCustomPlatformRootPath: (platformId, pathValue) => {
           const normalizedPath = pathValue.trim();
-          const nextPaths = { ...get().customSkillPlatformPaths };
+          const nextPaths = { ...get().customPlatformRootPaths };
           if (normalizedPath) {
             nextPaths[platformId] = normalizedPath;
           } else {
             delete nextPaths[platformId];
           }
-          setTouched({ customSkillPlatformPaths: nextPaths });
-          syncSettingsToMain({ customSkillPlatformPaths: nextPaths });
+          setTouched({ customPlatformRootPaths: nextPaths });
+          syncSettingsToMain({ customPlatformRootPaths: nextPaths });
+        },
+        resetCustomPlatformRootPath: (platformId) => {
+          const nextPaths = { ...get().customPlatformRootPaths };
+          delete nextPaths[platformId];
+          setTouched({ customPlatformRootPaths: nextPaths });
+          syncSettingsToMain({ customPlatformRootPaths: nextPaths });
+        },
+        setCustomSkillPlatformPath: (platformId, pathValue) => {
+          get().setCustomPlatformRootPath(platformId, pathValue);
         },
         resetCustomSkillPlatformPath: (platformId) => {
-          const nextPaths = { ...get().customSkillPlatformPaths };
-          delete nextPaths[platformId];
-          setTouched({ customSkillPlatformPaths: nextPaths });
-          syncSettingsToMain({ customSkillPlatformPaths: nextPaths });
+          get().resetCustomPlatformRootPath(platformId);
         },
         setSkillPlatformOrder: (order) => {
           const nextOrder = order.filter(
@@ -1210,12 +1256,39 @@ export const useSettingsStore = create<SettingsState>()(
     },
     {
       name: "prompthub-settings",
-      version: 6,
+      version: 8,
       migrate: (state, version) => {
         if (!state || typeof state !== "object") {
           return state as SettingsState;
         }
         const next = { ...(state as SettingsState) };
+        next.aiApiProtocol = normalizeAIProtocol(
+          next.aiApiProtocol,
+          next.aiProvider,
+          next.aiApiUrl,
+        );
+        if (!Array.isArray(next.aiModels)) {
+          next.aiModels = [];
+        } else {
+          next.aiModels = next.aiModels
+            .filter((model): model is AIModelConfig => {
+              return Boolean(
+                model &&
+                  typeof model.id === "string" &&
+                  typeof model.provider === "string" &&
+                  typeof model.apiUrl === "string" &&
+                  typeof model.model === "string",
+              );
+            })
+            .map((model) => ({
+              ...model,
+              apiProtocol: normalizeAIProtocol(
+                model.apiProtocol,
+                model.provider,
+                model.apiUrl,
+              ),
+            }));
+        }
         if (
           typeof next.tagsSectionHeight === "number" &&
           next.tagsSectionHeight < DEFAULT_TAGS_SECTION_HEIGHT
@@ -1230,11 +1303,25 @@ export const useSettingsStore = create<SettingsState>()(
           next.scenarioModelDefaults = {};
         }
         if (
+          !next.customPlatformRootPaths ||
+          typeof next.customPlatformRootPaths !== "object" ||
+          Array.isArray(next.customPlatformRootPaths)
+        ) {
+          next.customPlatformRootPaths = {};
+        }
+        if (
           !next.customSkillPlatformPaths ||
           typeof next.customSkillPlatformPaths !== "object" ||
           Array.isArray(next.customSkillPlatformPaths)
         ) {
           next.customSkillPlatformPaths = {};
+        }
+        if (
+          version < 7 &&
+          Object.keys(next.customPlatformRootPaths).length === 0 &&
+          Object.keys(next.customSkillPlatformPaths).length > 0
+        ) {
+          next.customPlatformRootPaths = { ...next.customSkillPlatformPaths };
         }
         if (
           !Array.isArray(next.skillPlatformOrder) ||
@@ -1309,6 +1396,21 @@ export const useSettingsStore = create<SettingsState>()(
         if (typeof next.updateChannelExplicitlySet !== "boolean") {
           next.updateChannelExplicitlySet = false;
         }
+        if (version < 8) {
+          next.aiApiProtocol = normalizeAIProtocol(
+            next.aiApiProtocol,
+            next.aiProvider,
+            next.aiApiUrl,
+          );
+          next.aiModels = next.aiModels.map((model) => ({
+            ...model,
+            apiProtocol: normalizeAIProtocol(
+              model.apiProtocol,
+              model.provider,
+              model.apiUrl,
+            ),
+          }));
+        }
         next.backgroundImageFileName = normalizeBackgroundImageFileName(
           next.backgroundImageFileName,
         );
@@ -1332,6 +1434,7 @@ export const useSettingsStore = create<SettingsState>()(
           backgroundImageBlur: state?.backgroundImageBlur,
         });
         syncSettingsToMain({
+          customPlatformRootPaths: state?.customPlatformRootPaths || {},
           customSkillPlatformPaths: state?.customSkillPlatformPaths || {},
           skillPlatformOrder: state?.skillPlatformOrder || [],
           skillProjects: state?.skillProjects || [],

@@ -18,6 +18,7 @@ import {
   getEndpointCategory,
   getEndpointHost,
   getModelCategory,
+  getProtocolLabel,
   getProviderLabel,
 } from "./helpers";
 import type {
@@ -96,6 +97,9 @@ export function EndpointsSection({
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 text-sm font-semibold">
                         {getProviderLabel(group.provider)}
+                        <span className="inline-flex items-center rounded-md border border-border/60 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                          {getProtocolLabel(group.apiProtocol)}
+                        </span>
                         <span
                           className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium ${
                             endpointStatus.tone === "ready"
@@ -148,12 +152,13 @@ export function EndpointsSection({
                     </button>
                     <button
                       type="button"
-                      onClick={() =>
-                        onAddModel({
-                          provider: group.provider,
-                          apiKey: group.models[0]?.apiKey || "",
-                          apiUrl: group.apiUrl,
-                          type: group.models[0]?.type ?? "chat",
+                        onClick={() =>
+                          onAddModel({
+                            provider: group.provider,
+                            apiProtocol: group.apiProtocol,
+                            apiKey: group.models[0]?.apiKey || "",
+                            apiUrl: group.apiUrl,
+                            type: group.models[0]?.type ?? "chat",
                         })
                       }
                       className="inline-flex h-8 items-center gap-1.5 rounded-md bg-primary/10 px-2.5 text-xs font-medium text-primary transition-colors hover:bg-primary/20"

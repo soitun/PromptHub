@@ -1,0 +1,317 @@
+import { useSettingsStore } from "./settings.store";
+import { create } from "zustand";
+import { RULE_PLATFORM_ORDER } from "@prompthub/shared/constants/rules";
+import type {
+  CreateRuleProjectInput,
+  RuleFileContent,
+  RuleFileDescriptor,
+  RuleFileId,
+} from "@prompthub/shared/types";
+
+interface RulesState {
+  files: RuleFileDescriptor[];
+  selectedRuleId: RuleFileId | null;
+  currentFile: RuleFileContent | null;
+  draftContent: string;
+  aiInstruction: string;
+  aiSummary: string | null;
+  isLoading: boolean;
+  isSaving: boolean;
+  isRewriting: boolean;
+  error: string | null;
+  loadFiles: () => Promise<void>;
+  selectRule: (ruleId: RuleFileId) => Promise<void>;
+  setDraftContent: (content: string) => void;
+  setAiInstruction: (instruction: string) => void;
+  saveCurrentRule: () => Promise<void>;
+  rewriteCurrentRule: () => Promise<void>;
+  addProjectRule: (input: CreateRuleProjectInput) => Promise<void>;
+  removeProjectRule: (projectId: string) => Promise<void>;
+  getSidebarSections: () => Array<{
+    id: "global" | "project";
+    title: string;
+    items: Array<{
+      id: RuleFileId;
+      type: "global" | "project";
+      platformId: RuleFileDescriptor["platformId"];
+      file: RuleFileDescriptor;
+      path: string;
+      exists: boolean;
+      active: boolean;
+      canRemove: boolean;
+      projectId: string | null;
+      description: string;
+      icon: string;
+      badge: string | null;
+      name: string;
+    }>;
+  }>;
+  getProjectRuleCount: () => number;
+  getGlobalRuleCount: () => number;
+  getProjectRuleItems: () => Array<{
+    id: RuleFileId;
+    type: "project";
+    platformId: RuleFileDescriptor["platformId"];
+    file: RuleFileDescriptor;
+    path: string;
+    exists: boolean;
+    active: boolean;
+    canRemove: boolean;
+    projectId: string | null;
+    description: string;
+    icon: string;
+    badge: string | null;
+    name: string;
+  }>;
+}
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+export const useRulesStore = create<RulesState>((set, get) => ({
+  files: [],
+  selectedRuleId: null,
+  currentFile: null,
+  draftContent: "",
+  aiInstruction: "",
+  aiSummary: null,
+  isLoading: false,
+  isSaving: false,
+  isRewriting: false,
+  error: null,
+
+  loadFiles: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const files = await window.api.rules.list();
+      const selectedRuleId = get().selectedRuleId ?? files[0]?.id ?? null;
+      set({ files, selectedRuleId, isLoading: false });
+
+      if (selectedRuleId) {
+        await get().selectRule(selectedRuleId);
+      } else {
+        set({ currentFile: null, draftContent: "" });
+      }
+    } catch (error) {
+      set({ isLoading: false, error: getErrorMessage(error) });
+    }
+  },
+
+  selectRule: async (ruleId) => {
+    set({ selectedRuleId: ruleId, isLoading: true, error: null, aiSummary: null });
+    try {
+      const file = await window.api.rules.read(ruleId);
+      set({
+        currentFile: file,
+        draftContent: file.content,
+        isLoading: false,
+      });
+    } catch (error) {
+      set({ isLoading: false, error: getErrorMessage(error) });
+    }
+  },
+
+  setDraftContent: (content) => set({ draftContent: content }),
+
+  setAiInstruction: (instruction) => set({ aiInstruction: instruction }),
+
+  saveCurrentRule: async () => {
+    const selectedRuleId = get().selectedRuleId;
+    if (!selectedRuleId) {
+      return;
+    }
+
+    set({ isSaving: true, error: null });
+    try {
+      const updated = await window.api.rules.save(selectedRuleId, get().draftContent);
+      const nextFiles = get().files.map((file) =>
+        file.id === updated.id ? { ...file, exists: true, path: updated.path } : file,
+      );
+      set({
+        currentFile: updated,
+        files: nextFiles,
+        draftContent: updated.content,
+        isSaving: false,
+      });
+    } catch (error) {
+      set({ isSaving: false, error: getErrorMessage(error) });
+      throw error;
+    }
+  },
+
+  rewriteCurrentRule: async () => {
+    const currentFile = get().currentFile;
+    const instruction = get().aiInstruction.trim();
+    if (!currentFile || !instruction) {
+      return;
+    }
+    const settings = useSettingsStore.getState();
+    const defaultModel = settings.aiModels?.find((m) => m.isDefault) || settings.aiModels?.[0] || {
+      apiKey: settings.aiApiKey,
+      apiUrl: settings.aiApiUrl,
+      model: settings.aiModel,
+      provider: settings.aiProvider,
+      apiProtocol: settings.aiApiProtocol,
+    };
+    
+    if (!defaultModel.apiKey) {
+      set({ error: "AI API key not configured. Please configure it in settings." });
+      return;
+    }
+
+    set({ isRewriting: true, error: null, aiSummary: null });
+    try {
+      const result = await window.api.rules.rewrite({
+        instruction,
+        currentContent: get().draftContent,
+        fileName: currentFile.name,
+        platformName: currentFile.platformName,
+        aiConfig: {
+          apiKey: defaultModel.apiKey || "",
+          apiUrl: defaultModel.apiUrl || "",
+          model: defaultModel.model || "",
+          provider: defaultModel.provider || "openai",
+          apiProtocol: defaultModel.apiProtocol || "openai",
+        },
+      });
+      set({
+        draftContent: result.content,
+        aiSummary: result.summary,
+        isRewriting: false,
+      });
+    } catch (error) {
+      set({ isRewriting: false, error: getErrorMessage(error) });
+      throw error;
+    }
+  },
+
+  addProjectRule: async (input) => {
+    set({ isLoading: true, error: null });
+    try {
+      await window.api.rules.addProject(input);
+      const files = await window.api.rules.list();
+      const created = files.find(
+        (file) =>
+          file.id.startsWith("project:") &&
+          file.projectRootPath?.toLowerCase() === input.rootPath.toLowerCase(),
+      );
+      set({
+        files,
+        selectedRuleId: created?.id ?? get().selectedRuleId,
+        isLoading: false,
+      });
+
+      if (created) {
+        await get().selectRule(created.id);
+      }
+    } catch (error) {
+      set({ isLoading: false, error: getErrorMessage(error) });
+      throw error;
+    }
+  },
+
+  removeProjectRule: async (projectId) => {
+    set({ isLoading: true, error: null });
+    try {
+      await window.api.rules.removeProject(projectId);
+      const files = await window.api.rules.list();
+      const removedRuleId = `project:${projectId}`;
+      const nextSelectedRuleId =
+        get().selectedRuleId === removedRuleId ? files[0]?.id ?? null : get().selectedRuleId;
+
+      set({ files, selectedRuleId: nextSelectedRuleId, isLoading: false });
+
+      if (nextSelectedRuleId) {
+        await get().selectRule(nextSelectedRuleId);
+      } else {
+        set({ currentFile: null, draftContent: "" });
+      }
+    } catch (error) {
+      set({ isLoading: false, error: getErrorMessage(error) });
+      throw error;
+    }
+  },
+
+  getSidebarSections: () => {
+    const { files, selectedRuleId } = get();
+    const globalItems = RULE_PLATFORM_ORDER
+      .map((platformId) => {
+        const file = files.find(
+          (candidate) => candidate.platformId === platformId && !candidate.id.startsWith("project:"),
+        );
+        if (!file) {
+          return null;
+        }
+        return {
+          id: file.id,
+          type: "global" as const,
+          platformId: file.platformId,
+          file,
+          path: file.path,
+          exists: file.exists,
+          active: selectedRuleId === file.id,
+          canRemove: false,
+          projectId: null,
+          description: file.description,
+          icon: file.platformIcon,
+          badge: null,
+          name: file.platformName,
+        };
+      })
+      .filter((item): item is NonNullable<typeof item> => item !== null);
+
+    const projectItems = files
+      .filter((file) => file.id.startsWith("project:"))
+      .map((file) => ({
+        id: file.id,
+        type: "project" as const,
+        platformId: file.platformId,
+        file,
+        path: file.path,
+        exists: file.exists,
+        active: selectedRuleId === file.id,
+        canRemove: file.id.startsWith("project:"),
+        projectId: file.id.startsWith("project:") ? file.id.slice("project:".length) : null,
+        description: file.description,
+        icon: "FolderRoot",
+        badge: null,
+        name: file.platformName,
+      }));
+
+    return [
+      {
+        id: "global" as const,
+        title: "Global Rules",
+        items: globalItems,
+      },
+      {
+        id: "project" as const,
+        title: "Project Rules",
+        items: projectItems,
+      },
+    ];
+  },
+  getProjectRuleCount: () =>
+    get().files.filter((file) => file.id.startsWith("project:")).length,
+  getGlobalRuleCount: () =>
+    get().files.filter((file) => file.platformId !== "workspace" && !file.id.startsWith("project:")).length,
+  getProjectRuleItems: () =>
+    get()
+      .files.filter((file) => file.id.startsWith("project:"))
+      .map((file) => ({
+        id: file.id,
+        type: "project" as const,
+        platformId: file.platformId,
+        file,
+        path: file.path,
+        exists: file.exists,
+        active: get().selectedRuleId === file.id,
+        canRemove: true,
+        projectId: file.id.slice("project:".length),
+        description: file.description,
+        icon: "FolderRoot",
+        badge: null,
+        name: file.platformName,
+      })),
+}));

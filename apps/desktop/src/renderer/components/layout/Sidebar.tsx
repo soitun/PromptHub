@@ -1,11 +1,10 @@
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
-import { StarIcon, HashIcon, PlusIcon, LayoutGridIcon, LinkIcon, SettingsIcon, ChevronLeftIcon, ChevronRightIcon, XIcon, ChevronDownIcon, ChevronUpIcon, ImageIcon, MessageSquareTextIcon, CommandIcon, CuboidIcon, StoreIcon, GlobeIcon, Clock3Icon, FolderPlusIcon } from 'lucide-react';
+import { StarIcon, HashIcon, PlusIcon, LayoutGridIcon, SettingsIcon, XIcon, ChevronDownIcon, ChevronUpIcon, ImageIcon, MessageSquareTextIcon, CommandIcon, CuboidIcon, StoreIcon, GlobeIcon, Clock3Icon, FolderPlusIcon, BookOpenIcon, LinkIcon, FolderOpenIcon, Trash2Icon } from 'lucide-react';
 import { useFolderStore } from '../../stores/folder.store';
 import { usePromptStore } from '../../stores/prompt.store';
 import { useSettingsStore } from '../../stores/settings.store';
 import { useUIStore } from '../../stores/ui.store';
 import { useSkillStore } from '../../stores/skill.store';
-import { ResourcesModal } from '../resources/ResourcesModal';
 import { FolderModal, PrivateFolderUnlockModal } from '../folder';
 import { useTranslation } from 'react-i18next';
 import type { Folder } from '@prompthub/shared/types';
@@ -15,12 +14,17 @@ import type { FlattenedItem } from './tree/utilities';
 import { buildPromptStats } from '../../services/prompt-filter';
 import { buildSkillStats } from '../../services/skill-stats';
 import { getRuntimeCapabilities, isWebRuntime } from '../../runtime';
+import { useRulesStore } from '../../stores/rules.store';
+import { PlatformIcon } from '../ui/PlatformIcon';
+import { RULE_PLATFORM_ORDER } from '@prompthub/shared/constants/rules';
 
 type PageType = 'home' | 'settings';
+type SidebarLayout = 'combined' | 'rail' | 'panel';
 
 interface SidebarProps {
   currentPage: PageType;
   onNavigate: (page: PageType) => void;
+  layout?: SidebarLayout;
 }
 
 interface NavItemProps {
@@ -36,25 +40,25 @@ interface NavItemProps {
 // 使用 React.memo 包装 NavItem 以提升性能
 const NavItem = memo(function NavItem({ icon, label, count, active, onClick, collapsed }: NavItemProps) {
   return (
-    <div className={`w-full flex justify-center py-0.5`}>
+    <div className="w-full py-0.5">
       <button
         onClick={onClick}
         title={label}
         className={`
-          flex items-center justify-center rounded-lg transition-all duration-300 relative group
-          ${collapsed ? 'w-10 h-10' : 'w-full gap-3 px-3 py-2'}
+          flex items-center rounded-lg transition-all duration-300 relative group
+          ${collapsed ? 'h-10 w-10 justify-center' : 'w-full justify-start gap-3 px-3 py-2'}
           ${active
             ? 'bg-primary text-white shadow-sm'
             : 'text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
           }
         `}
       >
-        <span className={`flex items-center justify-center transition-transform duration-300 ${collapsed ? 'w-5 h-5 group-hover:scale-110' : 'w-4 h-4'}`}>
+        <span className={`flex shrink-0 items-center justify-center transition-transform duration-300 ${collapsed ? 'w-5 h-5 group-hover:scale-110' : 'w-4 h-4'}`}>
           {icon}
         </span>
         {!collapsed && (
           <>
-            <span className="flex-1 text-left truncate text-sm">{label}</span>
+            <span className="min-w-0 flex-1 truncate text-left text-sm">{label}</span>
             {count !== undefined && (
               <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-sidebar-accent/80 text-sidebar-foreground/50 border border-white/5">
                 {count}
@@ -67,7 +71,7 @@ const NavItem = memo(function NavItem({ icon, label, count, active, onClick, col
   );
 });
 
-export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
+export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: SidebarProps) {
   const { t } = useTranslation();
   const folders = useFolderStore((state) => state.folders);
   const selectedFolderId = useFolderStore((state) => state.selectedFolderId);
@@ -81,7 +85,6 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
   const prompts = usePromptStore((state) => state.prompts);
   const promptTypeFilter = usePromptStore((state) => state.promptTypeFilter);
   const setPromptTypeFilter = usePromptStore((state) => state.setPromptTypeFilter);
-  const [isResourcesOpen, setIsResourcesOpen] = useState(false);
   const [isMac, setIsMac] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isFolderModalOpen, setIsFolderModalOpen] = useState(false);
@@ -92,7 +95,6 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
   const filterTags = usePromptStore((state) => state.filterTags);
   const toggleFilterTag = usePromptStore((state) => state.toggleFilterTag);
   const clearFilterTags = usePromptStore((state) => state.clearFilterTags);
-  const [isCollapsed, setIsCollapsed] = useState(false);
   const [isTagPopoverOpen, setIsTagPopoverOpen] = useState(false);
   const [isTagPopoverVisible, setIsTagPopoverVisible] = useState(false);
   const [tagPopoverPos, setTagPopoverPos] = useState<{ top?: number; bottom?: number; left: number }>({ top: 0, left: 0 });
@@ -106,8 +108,16 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
   const isTagsCollapsed = useSettingsStore((state) => state.isTagsSectionCollapsed);
   const setIsTagsCollapsed = useSettingsStore((state) => state.setIsTagsSectionCollapsed);
   const viewMode = useUIStore((state) => state.viewMode);
-  const setViewMode = useUIStore((state) => state.setViewMode);
+  const appModule = useUIStore((state) => state.appModule);
+  const setAppModule = useUIStore((state) => state.setAppModule);
+  const isCollapsed = useUIStore((state) => state.isSidebarCollapsed);
   const skillProjects = useSettingsStore((state) => state.skillProjects);
+  const addRuleProject = useRulesStore((state) => state.addProjectRule);
+  const removeRuleProject = useRulesStore((state) => state.removeProjectRule);
+  const ruleFiles = useRulesStore((state) => state.files);
+  const selectedRuleId = useRulesStore((state) => state.selectedRuleId);
+  const selectRule = useRulesStore((state) => state.selectRule);
+  const loadRuleFiles = useRulesStore((state) => state.loadFiles);
   
   // Skill store
   const skills = useSkillStore((state) => state.skills);
@@ -143,7 +153,148 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
   const uniqueSkillTags = skillStats.uniqueUserTags;
   const runtimeCapabilities = getRuntimeCapabilities();
   const webRuntime = isWebRuntime();
-  const showModeLabels = !isCollapsed;
+  const activeModule = appModule === 'rules' ? 'rules' : viewMode;
+  const ruleSidebarSections = useMemo(() => {
+    const globalItems = RULE_PLATFORM_ORDER
+      .map((platformId) => {
+        const file = ruleFiles.find(
+          (candidate) => candidate.platformId === platformId && !candidate.id.startsWith('project:'),
+        );
+        if (!file) {
+          return null;
+        }
+        return {
+          id: file.id,
+          type: 'global' as const,
+          platformId: file.platformId,
+          file,
+          path: file.path,
+          exists: file.exists,
+          active: selectedRuleId === file.id,
+          canRemove: false,
+          projectId: null,
+          description: file.description,
+          icon: file.platformIcon,
+          badge: null,
+          name: file.platformName,
+        };
+      })
+      .filter((item): item is NonNullable<typeof item> => item !== null);
+
+    const projectItems = ruleFiles
+      .filter((file) => file.id.startsWith('project:'))
+      .map((file) => ({
+        id: file.id,
+        type: 'project' as const,
+        platformId: file.platformId,
+        file,
+        path: file.path,
+        exists: file.exists,
+        active: selectedRuleId === file.id,
+        canRemove: true,
+        projectId: file.id.slice('project:'.length),
+        description: file.description,
+        icon: 'FolderRoot',
+        badge: null,
+        name: file.platformName,
+      }));
+
+    return [
+      {
+        id: 'global' as const,
+        title: 'Global Rules',
+        items: globalItems,
+      },
+      {
+        id: 'project' as const,
+        title: 'Project Rules',
+        items: projectItems,
+      },
+    ];
+  }, [ruleFiles, selectedRuleId]);
+
+  const handleAddRuleProject = useCallback(async () => {
+    const selectedPath = await window.electron?.selectFolder?.();
+    if (!selectedPath) {
+      return;
+    }
+
+    const segments = selectedPath.split(/[\\/]/).filter(Boolean);
+    const fallbackName = segments.at(-1) || selectedPath;
+
+    try {
+      await addRuleProject({
+        name: fallbackName,
+        rootPath: selectedPath,
+      });
+    } catch (error) {
+      console.warn('Failed to add rule project:', error);
+    }
+  }, [addRuleProject]);
+
+  const handleRemoveRuleProject = useCallback(
+    async (projectId: string) => {
+      await removeRuleProject(projectId);
+    },
+    [removeRuleProject],
+  );
+  const showRail = layout !== 'panel';
+  const railWidthClass = 'w-20';
+  const combinedWidthClass = 'w-[23rem]';
+  const asideClassName =
+    layout === 'rail'
+      ? `${railWidthClass} border-r border-sidebar-border/60 bg-sidebar-accent/25`
+      : layout === 'panel'
+        ? `border-r border-sidebar-border bg-sidebar-background/85 app-wallpaper-panel-strong transition-[width,opacity,transform] duration-300 ease-out ${
+            isCollapsed
+              ? 'w-0 -translate-x-4 opacity-0 pointer-events-none border-r-0'
+              : 'w-72 translate-x-0 opacity-100'
+          }`
+        : `border-r border-sidebar-border app-left-rail-glass app-wallpaper-panel-strong ${
+            isCollapsed ? railWidthClass : combinedWidthClass
+          }`;
+
+  const railNavItems: Array<{
+    key: 'prompt' | 'skill' | 'rules';
+    label: string;
+    icon: React.ReactNode;
+    active: boolean;
+    onClick: () => void;
+  }> = [
+    {
+      key: 'prompt',
+      label: t('common.prompts'),
+      icon: <CommandIcon className="h-5 w-5" />,
+      active: activeModule === 'prompt',
+      onClick: () => {
+        setAppModule('prompt');
+        closeTagPopover();
+        if (currentPage !== 'home') onNavigate('home');
+      },
+    },
+    {
+      key: 'skill',
+      label: t('common.skills'),
+      icon: <CuboidIcon className="h-5 w-5" />,
+      active: activeModule === 'skill',
+      onClick: () => {
+        setAppModule('skill');
+        closeTagPopover();
+        if (currentPage !== 'home') onNavigate('home');
+      },
+    },
+    {
+      key: 'rules',
+      label: t('rules.title', 'Rules'),
+      icon: <BookOpenIcon className="h-5 w-5" />,
+      active: activeModule === 'rules',
+      onClick: () => {
+        setAppModule('rules');
+        closeTagPopover();
+        if (currentPage !== 'home') onNavigate('home');
+      },
+    },
+  ];
 
   const confirmLeaveDirtySkillEditor = useCallback(() => {
     const hasUnsaved = (
@@ -189,6 +340,16 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
       window.addEventListener('resize', checkFullscreen);
       return () => window.removeEventListener('resize', checkFullscreen);
     }, []);
+
+    useEffect(() => {
+      if (activeModule !== 'rules') {
+        return;
+      }
+      if (ruleFiles.length > 0) {
+        return;
+      }
+      void loadRuleFiles();
+    }, [activeModule, loadRuleFiles, ruleFiles.length]);
   
     useEffect(() => {
       return () => {
@@ -338,80 +499,60 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
   return (
     <aside
       ref={sidebarRef}
-      className={`group relative z-20 app-left-rail-glass app-wallpaper-panel-strong border-r border-sidebar-border flex flex-col transition-all duration-300 ease-in-out ${isCollapsed ? (isMac ? 'w-20' : 'w-16') : 'w-60'
-        }`}
+      className={`relative z-20 flex shrink-0 overflow-hidden transition-all duration-300 ease-in-out ${asideClassName}`}
     >
-      {/* Top spacing - Extra padding for Mac traffic lights */}
-      {!webRuntime && isMac && !isFullscreen && <div className="h-12 titlebar-drag shrink-0" />}
+      {showRail && (
+      <div className={`flex ${railWidthClass} shrink-0 flex-col bg-sidebar-accent/25 ${layout === 'combined' && !isCollapsed ? 'border-r border-sidebar-border/60' : ''}`}>
+        {!webRuntime && isMac && !isFullscreen && <div className="h-14 titlebar-drag shrink-0" />}
 
-      {/* Collapse Button */}
-      <div className="absolute top-1/2 -translate-y-1/2 -right-3 z-50 opacity-0 group-hover:opacity-100 transition-all duration-300 delay-100">
-        <button
-          onClick={() => {
-            setIsCollapsed(!isCollapsed);
-            closeTagPopover();
-          }}
-          className="h-12 w-7 rounded-full border border-border app-wallpaper-surface shadow-sm hover:shadow-md hover:bg-accent hover:text-accent-foreground flex items-center justify-center transition-all duration-200"
-          title={isCollapsed ? t('common.expand', '展开') : t('common.collapse', '收起')}
-        >
-          {isCollapsed ? (
-            <ChevronRightIcon className="w-3 h-3 text-muted-foreground" />
-          ) : (
-            <ChevronLeftIcon className="w-3 h-3 text-muted-foreground" />
-          )}
-        </button>
-      </div>
+        <div className="flex flex-1 flex-col px-2 py-3">
+          <div className="flex flex-1 flex-col gap-2">
+            {railNavItems.map((item) => (
+              <button
+                key={item.key}
+                onClick={item.onClick}
+                title={item.label}
+                className={`flex flex-col items-center justify-center gap-1.5 rounded-2xl px-2 py-3 text-[11px] font-medium transition-colors titlebar-no-drag ${
+                  item.active
+                    ? 'bg-primary text-white shadow-sm'
+                    : 'text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
+                }`}
+              >
+                <span className={`flex h-9 w-9 items-center justify-center rounded-2xl ${item.active ? 'bg-white/10' : 'bg-transparent'}`}>
+                  {item.icon}
+                </span>
+                <span className="leading-none text-center text-[10px]">{item.label}</span>
+              </button>
+            ))}
+          </div>
 
-      {/* Mode Switcher */}
-      <div className={`px-2 pt-4 pb-2 shrink-0 ${isCollapsed ? 'flex flex-col items-center' : ''}`}>
-        <div className={`
-          relative flex transition-all duration-300
-          ${isCollapsed
-            ? 'flex-col items-center justify-center gap-2'
-            : 'p-1 bg-sidebar-accent/50 rounded-xl border border-white/5'
-          }
-        `}>
-          <button
-            onClick={() => {
-              setViewMode('prompt');
-              closeTagPopover();
-              if (currentPage !== 'home') onNavigate('home');
-            }}
-            title={t('common.prompts')}
-            className={`
-              relative flex items-center justify-center transition-all duration-300 z-10
-              ${isCollapsed
-                ? `w-10 h-10 rounded-xl ${viewMode === 'prompt' ? 'bg-primary text-white shadow-lg' : 'text-sidebar-foreground/50 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'}` 
-                : `flex-1 py-1.5 gap-2 text-xs font-semibold rounded-lg ${viewMode === 'prompt' ? 'app-wallpaper-surface text-foreground shadow-sm' : 'text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-white/5'}`
-              }
-            `}
-          >
-            <CommandIcon className="w-5 h-5" />
-            {showModeLabels && <span className="truncate">{t('common.prompts')}</span>}
-          </button>
-          
-          <button
-            onClick={() => {
-              setViewMode('skill');
-              closeTagPopover();
-              if (currentPage !== 'home') onNavigate('home');
-            }}
-            title={t('common.skills')}
-            className={`
-              relative flex items-center justify-center transition-all duration-300 z-10
-              ${isCollapsed
-                ? `w-10 h-10 rounded-xl ${viewMode === 'skill' ? 'bg-primary text-white shadow-lg' : 'text-sidebar-foreground/50 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'}` 
-                : `flex-1 py-1.5 gap-2 text-xs font-semibold rounded-lg ${viewMode === 'skill' ? 'app-wallpaper-surface text-foreground shadow-sm' : 'text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-white/5'}`
-              }
-            `}
-          >
-            <CuboidIcon className="w-5 h-5" />
-            {showModeLabels && <span className="truncate">{t('common.skills')}</span>}
-          </button>
+          <div className="mt-auto pt-4">
+            <div className="flex items-center justify-center titlebar-no-drag">
+              <button
+                type="button"
+                title={t('header.settings')}
+                onClick={() => {
+                  if (!confirmLeaveDirtySkillEditor()) {
+                    return;
+                  }
+                  onNavigate('settings');
+                }}
+                className={`flex h-11 w-11 items-center justify-center rounded-2xl transition-colors ${
+                  currentPage === 'settings'
+                    ? 'bg-sidebar-accent text-sidebar-foreground'
+                    : 'text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
+                }`}
+              >
+                <SettingsIcon className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
         </div>
       </div>
+      )}
 
-      {viewMode === 'prompt' ? (
+      <div className="relative flex min-w-0 flex-1 flex-col bg-sidebar-background/85">
+      {activeModule === 'prompt' ? (
       <>
       {/* Navigation area - Fixed top */}
       <div className="flex-shrink-0 flex flex-col px-3 py-2">
@@ -734,7 +875,7 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
       )}
 
       </>
-      ) : (
+      ) : activeModule === 'skill' ? (
         <>
         {/* Skill Navigation */}
         <div className="flex-shrink-0 flex flex-col px-3 py-2">
@@ -1105,42 +1246,126 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
           </div>
         )}
         </>
+        ) : (
+          <>
+            <div className="flex-shrink-0 flex flex-col px-3 py-4">
+              <div className="px-2 pb-2">
+                <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                  {t('rules.title', 'Rules')}
+                </div>
+                <h3 className="mt-2 text-base font-semibold text-foreground">
+                  {t('rules.platformSidebarTitle', 'Platforms')}
+                </h3>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-3 pb-4">
+              <div className="space-y-5">
+                {ruleSidebarSections.map((section) => (
+                  <div key={section.id}>
+                    <div className="mb-2 flex items-center justify-between px-2">
+                      <div className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                        {section.id === 'global'
+                          ? t('rules.globalSection', 'Global Rules')
+                          : t('rules.projectSection', 'Project Rules')}
+                      </div>
+                      {section.id === 'project' ? (
+                        <button
+                          type="button"
+                          onClick={() => void handleAddRuleProject()}
+                          className="inline-flex items-center gap-1 rounded-lg border border-border bg-background/70 px-2 py-1 text-xs text-foreground transition-colors hover:bg-muted"
+                        >
+                          <PlusIcon className="h-3.5 w-3.5" />
+                          {t('common.add', 'Add')}
+                        </button>
+                      ) : null}
+                    </div>
+
+                    <div className="space-y-2">
+                      {section.items.map((item) => (
+                        <div
+                          key={item.id}
+                          className={`w-full rounded-2xl border px-3 py-3 text-left transition-colors ${
+                            item.active
+                              ? 'border-primary/40 bg-primary/10'
+                              : 'border-border bg-background/60 hover:bg-muted'
+                          }`}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void selectRule(item.file.id);
+                              if (currentPage !== 'home') onNavigate('home');
+                            }}
+                            className="w-full text-left"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="rounded-xl bg-muted p-2 text-muted-foreground">
+                                {item.type === 'project' ? (
+                                  <FolderPlusIcon className="h-5 w-5" />
+                                ) : (
+                                  <PlatformIcon platformId={item.platformId} size={20} className="h-5 w-5" />
+                                )}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2">
+                                  <div className="truncate text-sm font-medium text-foreground">
+                                    {item.name}
+                                  </div>
+                                </div>
+                                <div className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">
+                                  {item.type === 'project'
+                                    ? item.path
+                                    : item.file.name}
+                                </div>
+                              </div>
+                            </div>
+                          </button>
+
+                          {item.canRemove && item.projectId ? (
+                            <div className="mt-3 flex justify-end">
+                              <button
+                                type="button"
+                                onClick={() => void handleRemoveRuleProject(item.projectId!)}
+                                className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                              >
+                                <Trash2Icon className="h-3.5 w-3.5" />
+                                {t('common.remove', 'Remove')}
+                              </button>
+                            </div>
+                          ) : null}
+                        </div>
+                      ))}
+
+                      {section.id === 'project' ? (
+                        <button
+                          type="button"
+                          onClick={() => void handleAddRuleProject()}
+                          className="w-full rounded-2xl border border-dashed border-border px-3 py-4 text-left transition-colors hover:bg-muted/40"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="rounded-xl bg-muted p-2 text-muted-foreground">
+                              <FolderPlusIcon className="h-5 w-5" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="text-sm font-medium text-foreground">
+                                {t('rules.addProjectRuleDirectory', 'Add Project Directory')}
+                              </div>
+                              <div className="mt-1 text-xs leading-5 text-muted-foreground">
+                                {t('rules.addProjectRuleDirectoryHint', 'Pick a folder and PromptHub will manage its canonical AGENTS.md rule file here.')}
+                              </div>
+                            </div>
+                          </div>
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
       )}
 
-      {/* Bottom actions */}
-      <div className="p-2 border-t border-sidebar-border space-y-1">
-        <button
-          onClick={() => {
-            if (!confirmLeaveDirtySkillEditor()) {
-              return;
-            }
-            setIsResourcesOpen(true);
-          }}
-          title={isCollapsed ? t('nav.resources') : undefined}
-          className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2 rounded-lg text-sm text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-colors`}
-        >
-          <LinkIcon className="w-4 h-4" />
-          {!isCollapsed && <span>{t('nav.resources')}</span>}
-        </button>
-        <button
-          onClick={() => {
-            if (!confirmLeaveDirtySkillEditor()) {
-              return;
-            }
-            onNavigate('settings');
-          }}
-          title={isCollapsed ? t('header.settings') : undefined}
-          className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2 rounded-lg text-sm transition-colors ${currentPage === 'settings'
-            ? 'bg-sidebar-accent text-sidebar-foreground'
-            : 'text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
-            }`}
-        >
-          <SettingsIcon className="w-4 h-4" />
-          {!isCollapsed && <span>{t('header.settings')}</span>}
-        </button>
-      </div>
-
-      <ResourcesModal isOpen={isResourcesOpen} onClose={() => setIsResourcesOpen(false)} />
       <FolderModal
         isOpen={isFolderModalOpen}
         onClose={() => {
@@ -1168,6 +1393,7 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
           }}
         />
       )}
+       </div>
     </aside>
   );
 }

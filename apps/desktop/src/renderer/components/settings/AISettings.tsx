@@ -117,12 +117,6 @@ const AI_PROVIDERS = [
     group: "Domestic / 国内",
   },
   {
-    id: "baichuan",
-    name: "百川智能",
-    defaultUrl: "https://api.baichuan-ai.com",
-    group: "Domestic / 国内",
-  },
-  {
     id: "minimax",
     name: "MiniMax",
     defaultUrl: "https://api.minimax.chat",
@@ -298,11 +292,6 @@ const MODEL_CATEGORY_CONFIG: {
     ownerKeywords: ["xunfei", "iflytek"],
   },
   {
-    category: "Baichuan",
-    idKeywords: ["baichuan"],
-    ownerKeywords: ["baichuan"],
-  },
-  {
     category: "Hunyuan",
     idKeywords: ["hunyuan"],
     ownerKeywords: ["tencent"],
@@ -337,7 +326,6 @@ const CATEGORY_ORDER = [
   "Yi",
   "ERNIE",
   "Spark",
-  "Baichuan",
   "Embedding",
   "Audio",
   "Image",
@@ -788,7 +776,16 @@ export function AISettings() {
     setAvailableModels([]);
     setModelSearchQuery("");
 
-    const result = await fetchAvailableModels(newModel.apiUrl, newModel.apiKey);
+    const result = await fetchAvailableModels(
+      newModel.apiUrl,
+      newModel.apiKey,
+      (newModel as { apiProtocol?: "openai" | "gemini" | "anthropic" }).apiProtocol ||
+        (newModel.provider === "google"
+          ? "gemini"
+          : newModel.provider === "anthropic"
+            ? "anthropic"
+            : "openai"),
+    );
 
     setFetchingModels(false);
 
@@ -815,7 +812,16 @@ export function AISettings() {
     setFetchingImageModels(true);
     setAvailableImageModels([]);
 
-    const result = await fetchAvailableModels(newModel.apiUrl, newModel.apiKey);
+    const result = await fetchAvailableModels(
+      newModel.apiUrl,
+      newModel.apiKey,
+      (newModel as { apiProtocol?: "openai" | "gemini" | "anthropic" }).apiProtocol ||
+        (newModel.provider === "google"
+          ? "gemini"
+          : newModel.provider === "anthropic"
+            ? "anthropic"
+            : "openai"),
+    );
 
     setFetchingImageModels(false);
 
@@ -1032,14 +1038,11 @@ export function AISettings() {
                                                 ? "Doubao"
                                                 : group.providerId === "mistral"
                                                   ? "Mistral"
-                                                  : group.providerId ===
-                                                      "baichuan"
-                                                    ? "Baichuan"
-                                                    : group.providerId === "yi"
-                                                      ? "Yi"
-                                                      : group.providerId ===
-                                                          "ernie"
-                                                        ? "ERNIE"
+                                                  : group.providerId === "yi"
+                                                    ? "Yi"
+                                                    : group.providerId ===
+                                                        "ernie"
+                                                      ? "ERNIE"
                                                         : group.providerId ===
                                                             "spark"
                                                           ? "Spark"
@@ -1798,14 +1801,11 @@ export function AISettings() {
                                                 ? "Doubao"
                                                 : group.providerId === "mistral"
                                                   ? "Mistral"
-                                                  : group.providerId ===
-                                                      "baichuan"
-                                                    ? "Baichuan"
-                                                    : group.providerId === "yi"
-                                                      ? "Yi"
-                                                      : group.providerId ===
-                                                          "ernie"
-                                                        ? "ERNIE"
+                                                  : group.providerId === "yi"
+                                                    ? "Yi"
+                                                    : group.providerId ===
+                                                        "ernie"
+                                                      ? "ERNIE"
                                                         : group.providerId ===
                                                             "spark"
                                                           ? "Spark"
