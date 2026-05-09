@@ -1,6 +1,5 @@
 /**
  * Settings type definitions
- * 设置类型定义
  */
 
 import type { SkillProject } from './skill';
@@ -26,10 +25,8 @@ export interface Settings {
   // API calls in the skill store so the user isn't limited to 60 req/h.
   // Never sent to third-party hosts; only attached for api.github.com and
   // raw.githubusercontent.com. See #108.
-  // GitHub PAT，用于给 Skill Store 的 GitHub API 请求加鉴权头 (#108)。
   githubToken?: string;
   // Security
-  // 安全相关
   security?: {
     masterPasswordConfigured: boolean;
     unlocked: boolean;

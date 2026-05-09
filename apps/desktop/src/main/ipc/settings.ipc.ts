@@ -10,7 +10,6 @@ import { DEFAULT_SETTINGS } from '@prompthub/shared/types';
 
 /**
  * Get minimizeOnLaunch setting from database
- * 从数据库读取启动时最小化设置
  * @param db Database instance
  * @returns boolean - whether to minimize on launch
  */
@@ -39,8 +38,6 @@ export function getMinimizeOnLaunchSetting(db: Database.Database): boolean {
  *
  * Security: only callers whose target host is a trusted GitHub endpoint
  * (api.github.com, raw.githubusercontent.com) should attach the token.
- * 从 settings 表读取用户配置的 GitHub PAT，用于给 Skill Store 的 GitHub API
- * 请求加鉴权头，避免未登录状态下触发 60 次/小时的限额 (#108)。
  */
 export function getGithubTokenSetting(db: Database.Database): string | null {
   try {
@@ -63,8 +60,6 @@ export function getGithubTokenSetting(db: Database.Database): string | null {
     // Reject anything containing CR/LF or other control bytes BEFORE
     // trimming — `trim()` would silently drop trailing \n and hide an
     // attempted header injection from the validator.
-    // 必须在 trim 之前校验：trim() 会把末尾的 \n 吃掉，导致 header 注入的
-    // 探测被静默放行。
     if (/[\r\n\x00-\x1f\x7f]/.test(parsed)) {
       return null;
     }
@@ -85,11 +80,9 @@ export function getGithubTokenSetting(db: Database.Database): string | null {
 
 /**
  * Register settings-related IPC handlers
- * 注册设置相关 IPC 处理器
  */
 export function registerSettingsIPC(db: Database.Database): void {
   // Get settings
-  // 获取设置
   ipcMain.handle(IPC_CHANNELS.SETTINGS_GET, async () => {
     const settings: Settings = { ...DEFAULT_SETTINGS };
 
@@ -130,7 +123,6 @@ export function registerSettingsIPC(db: Database.Database): void {
   });
 
   // Save settings
-  // 保存设置
   ipcMain.handle(IPC_CHANNELS.SETTINGS_SET, async (_event, newSettings: Partial<Settings>) => {
     const stmt = db.prepare(`
       INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)

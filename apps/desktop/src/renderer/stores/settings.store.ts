@@ -33,7 +33,6 @@ const normalizeLanguage = (lang: string): SupportedLanguage => {
 };
 
 // Theme colors - Morandi color palette + classic royal blue
-// 主题色 - 莫兰迪色系 + 经典宝蓝
 export const MORANDI_THEMES = [
   { id: "royal-blue", hue: 220, saturation: 70, name: "Royal Blue" },
   { id: "blue", hue: 210, saturation: 35, name: "Misty Blue" },
@@ -185,9 +184,6 @@ function applyBackgroundImageVars(options: {
 
 /**
  * Convert HEX color to HSL hue/saturation (lightness is defined by CSS variables)
- * 将 HEX 颜色转换为 HSL 的 hue/saturation（lightness 由 CSS 变量定义）
- * - Only used for theme colors:最终写入 --theme-hue / --theme-saturation
- * - 仅用于主题色：最终写入 --theme-hue / --theme-saturation
  */
 const hexToHs = (hex: string): Hs => {
   const normalized = (hex || "").trim().replace(/^#/, "");
@@ -221,14 +217,11 @@ const hexToHs = (hex: string): Hs => {
 };
 
 // Theme mode
-// 主题模式
 export type ThemeMode = "light" | "dark" | "system";
 
 // AI model type
-// AI 模型类型
 export type AIModelType = "chat" | "image";
 
-// 对话模型参数配置
 // Chat model parameters configuration
 export interface ChatModelParams {
   temperature?: number; // 温度 (0-2)，控制随机性 / Temperature, controls randomness
@@ -242,7 +235,6 @@ export interface ChatModelParams {
   customParams?: Record<string, string | number | boolean>; // 自定义参数 / Custom parameters
 }
 
-// 图像模型参数配置
 // Image model parameters configuration
 export interface ImageModelParams {
   size?: string; // 图像尺寸，如 1024x1024 / Image size
@@ -252,22 +244,17 @@ export interface ImageModelParams {
 }
 
 // AI model configuration type
-// AI 模型配置类型
 export interface AIModelConfig {
   id: string;
   type: AIModelType; // Model type: chat model or image generation model
-  // 模型类型：对话模型或生图模型
   name?: string; // Custom name (optional), used for display
-  // 自定义名称（可选），用于显示
   provider: string; // 供应商 ID
   apiProtocol: AIProtocol;
   apiKey: string;
   apiUrl: string;
   model: string; // Model name, such as gpt-4o, dall-e-3
-  // 模型名称，如 gpt-4o, dall-e-3
   isDefault?: boolean;
   // Custom parameters
-  // 自定义参数
   chatParams?: ChatModelParams;
   imageParams?: ImageModelParams;
 }
@@ -285,57 +272,43 @@ export type ScenarioModelDefaults = Partial<Record<AIUsageScenario, string>>;
 interface SettingsState {
   creationMode: CreationMode;
   // Clipboard auto-import
-  // 剪切板自动导入
   clipboardImportEnabled: boolean;
 
   // Display settings
-  // 显示设置
   themeMode: ThemeMode;
   isDarkMode: boolean;
   themeColor: string;
   themeHue: number;
   themeSaturation: number;
   customThemeHex: string; // Custom theme color (HEX)
-  // 自定义主题色（HEX）
   settingsUpdatedAt: string; // Settings last update time (used for WebDAV/backup consistency check)
-  // 设置最后更新时间（用于 WebDAV/备份一致性判断）
   fontSize: string;
   backgroundImageFileName?: string;
   backgroundImageOpacity: number;
   backgroundImageBlur: number;
   renderMarkdown: boolean; // Default use Markdown rendering in detail page
-  // 详情页默认使用 Markdown 渲染
   editorMarkdownPreview: boolean; // Editor default enable preview
-  // 编辑器默认开启预览
 
   // General settings
-  // 常规设置
   autoSave: boolean;
   showLineNumbers: boolean;
   launchAtStartup: boolean;
   minimizeOnLaunch: boolean;
   debugMode: boolean;
 
-  // 关闭行为设置 (Windows) / Close behavior settings (Windows)
   closeAction: "ask" | "minimize" | "exit"; // ask=prompt every time, minimize=minimize to tray, exit=exit directly
-  // ask=每次询问, minimize=最小化到托盘, exit=直接退出
 
-  // 快捷键模式配置 / Shortcut modes configuration
   // key: shortcut action id, value: 'global' | 'local'
   shortcutModes: Record<string, "global" | "local">;
-  // 全局/局部快捷键模式，默认 showApp 为 global，其他 recommended 为 local
 
   // Notification settings
-  // 通知设置
   enableNotifications: boolean;
   showCopyNotification: boolean;
   showSaveNotification: boolean;
 
-  // 语言设置 / Language settings
   language: SupportedLanguage; // zh, zh-TW, en, ja, es, de, fr
 
   // Data path
-  // 数据路径
   dataPath: string;
 
   // WebDAV sync settings
@@ -349,23 +322,14 @@ interface SettingsState {
   webdavUsername: string;
   webdavPassword: string;
   webdavAutoSync: boolean; // Legacy compatibility, equivalent to webdavSyncOnStartup
-  // 旧版兼容，等同于 webdavSyncOnStartup
   webdavSyncOnStartup: boolean; // Auto sync once after startup
-  // 启动后自动同步一次
   webdavSyncOnStartupDelay: number; // Delay seconds after startup (0-60)
-  // 启动后延迟秒数（0-60）
   webdavAutoSyncInterval: number; // Auto sync interval (minutes, 0=disabled)
-  // 自动同步间隔（分钟，0=关闭）
   webdavSyncOnSave: boolean; // Sync on save (experimental)
-  // 保存时同步（实验性）
   webdavIncludeImages: boolean; // Whether to include images
-  // 是否包含图片
   webdavIncrementalSync: boolean; // Whether to use incremental sync
-  // 是否使用增量同步
   webdavEncryptionEnabled: boolean; // Whether to enable encryption (experimental)
-  // 是否启用加密（实验性）
   webdavEncryptionPassword: string; // Encryption password
-  // 加密密码
   selfHostedSyncEnabled: boolean;
   selfHostedSyncUrl: string;
   selfHostedSyncUsername: string;
@@ -375,15 +339,12 @@ interface SettingsState {
   selfHostedAutoSyncInterval: number;
 
   // Update settings
-  // 更新设置
   autoCheckUpdate: boolean;
   useUpdateMirror: boolean; // Use GitHub accelerator mirror (e.g. ghfast.top)
-  // 使用 GitHub 加速镜像（如 ghfast.top）
   updateChannel: UpdateChannel;
   updateChannelExplicitlySet: boolean;
 
   // Sidebar settings
-  // 侧边栏设置
   tagsSectionHeight: number;
   isTagsSectionCollapsed: boolean;
   skillTagsSectionHeight: number;
@@ -399,26 +360,20 @@ interface SettingsState {
   aiModel: string;
 
   // Multi-model configuration (new version)
-  // 多模型配置（新版）
   aiModels: AIModelConfig[];
   scenarioModelDefaults: ScenarioModelDefaults;
 
-  // Translation mode setting / 翻译模式设置
   translationMode: TranslationMode; // immersive=沉浸式, full=全文翻译
 
-  // 来源历史 / Source history for autocomplete
   sourceHistory: string[];
 
-  // Custom skill scan paths / 自定义 Skill 扫描路径
   customSkillScanPaths: string[];
   skillProjects: SkillProject[];
 
-  // Custom platform root paths / 自定义平台根目录
   customPlatformRootPaths: Record<string, string>;
   customSkillPlatformPaths: Record<string, string>;
   skillPlatformOrder: string[];
 
-  // Skill install method / Skill 安装方式
   skillInstallMethod: "symlink" | "copy";
   autoScanInstalledSkills: boolean;
   autoScanStoreSkillsBeforeInstall: boolean;
@@ -427,11 +382,9 @@ interface SettingsState {
   // Used to raise the GitHub API rate limit from 60 req/h (unauthenticated)
   // to 5000 req/h (authenticated). Only sent to api.github.com and
   // raw.githubusercontent.com. See #108.
-  // GitHub PAT，提升 Skill Store 的 GitHub API 请求限额 (#108)。
   githubToken: string;
 
   // Actions
-  // 操作
   setThemeMode: (mode: ThemeMode) => void;
   setDarkMode: (isDark: boolean) => void;
   setThemeColor: (colorId: string) => void;
@@ -489,7 +442,6 @@ interface SettingsState {
   setAiApiKey: (key: string) => void;
   setAiApiUrl: (url: string) => void;
   setAiModel: (model: string) => void;
-  // 多模型管理
   addAiModel: (config: Omit<AIModelConfig, "id">) => void;
   updateAiModel: (id: string, config: Partial<AIModelConfig>) => void;
   deleteAiModel: (id: string) => void;
@@ -502,7 +454,6 @@ interface SettingsState {
   setTranslationMode: (mode: TranslationMode) => void;
   addSourceHistory: (source: string) => void;
   applyTheme: () => void;
-  // Custom skill scan paths actions / 自定义 Skill 扫描路径操作
   setCustomSkillScanPaths: (paths: string[]) => void;
   addCustomSkillScanPath: (path: string) => void;
   removeCustomSkillScanPath: (path: string) => void;
@@ -526,12 +477,10 @@ interface SettingsState {
     direction: "up" | "down",
   ) => void;
   resetSkillPlatformOrder: () => void;
-  // Skill install method action / Skill 安装方式操作
   setSkillInstallMethod: (method: "symlink" | "copy") => void;
   setAutoScanInstalledSkills: (enabled: boolean) => void;
   setAutoScanStoreSkillsBeforeInstall: (enabled: boolean) => void;
   // GitHub token action — see #108
-  // GitHub token 操作 (#108)
   setGithubToken: (token: string) => void;
 }
 
@@ -570,7 +519,6 @@ export const useSettingsStore = create<SettingsState>()(
 
       return {
         // Default values
-        // 默认值
         clipboardImportEnabled: false,
         themeMode: "system" as ThemeMode,
         isDarkMode: true,
@@ -656,7 +604,6 @@ export const useSettingsStore = create<SettingsState>()(
         addSourceHistory: (source) => {
           if (!source.trim()) return;
           const history = get().sourceHistory;
-          // 移除重复项，放到最前面 / Remove duplicate and add to front
           const filtered = history.filter((s) => s !== source.trim());
           const updated = [source.trim(), ...filtered].slice(0, 20);
           setTouched({ sourceHistory: updated });
@@ -817,17 +764,14 @@ export const useSettingsStore = create<SettingsState>()(
         setLaunchAtStartup: (enabled) => {
           setTouched({ launchAtStartup: enabled });
           // Update auto launch with current minimizeOnLaunch setting
-          // 更新开机自启，同时传递 minimizeOnLaunch 设置
           const minimizeOnLaunch = get().minimizeOnLaunch;
           window.electron?.setAutoLaunch?.(enabled, minimizeOnLaunch);
         },
         setMinimizeOnLaunch: (enabled) => {
           setTouched({ minimizeOnLaunch: enabled });
           // Notify main process to update tray status
-          // 通知主进程更新托盘状态
           window.electron?.setMinimizeToTray?.(enabled);
           // If auto launch is enabled, update the openAsHidden setting
-          // 如果开机自启已启用，更新 openAsHidden 设置
           const launchAtStartup = get().launchAtStartup;
           if (launchAtStartup) {
             window.electron?.setAutoLaunch?.(true, enabled);
@@ -835,7 +779,6 @@ export const useSettingsStore = create<SettingsState>()(
         },
         setCloseAction: (action) => {
           setTouched({ closeAction: action });
-          // Notify main process of close action change / 通知主进程更新关闭行为
           window.electron?.setCloseAction?.(action);
         },
         setDebugMode: (enabled) => {
@@ -847,7 +790,6 @@ export const useSettingsStore = create<SettingsState>()(
           const newModes = { ...currentModes, [key]: mode };
           setTouched({ shortcutModes: newModes });
           // Notify main process to update shortcut registration
-          // 通知主进程更新快捷键注册
           window.electron?.setShortcutMode?.(newModes);
         },
         setEnableNotifications: (enabled) =>
@@ -943,7 +885,6 @@ export const useSettingsStore = create<SettingsState>()(
         setAiModel: (model) => setTouched({ aiModel: model }),
 
         // Multi-model management methods
-        // 多模型管理方法
         addAiModel: (config) => {
           const id = `model_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
           const models = get().aiModels;
@@ -952,7 +893,6 @@ export const useSettingsStore = create<SettingsState>()(
             aiModels: [...models, { ...config, id, isDefault: isFirst }],
           });
           // If it's the first model, sync to legacy configuration
-          // 如果是第一个模型，同步到旧版配置
           if (isFirst) {
             setTouched({
               aiProvider: config.provider,
@@ -970,7 +910,6 @@ export const useSettingsStore = create<SettingsState>()(
           );
           setTouched({ aiModels: models });
           // If updating the default model, sync to legacy configuration
-          // 如果更新的是默认模型，同步到旧版配置
           const updated = models.find((m) => m.id === id);
           if (updated?.isDefault) {
             setTouched({
@@ -996,7 +935,6 @@ export const useSettingsStore = create<SettingsState>()(
             }
           }
           // If deleting the default model, set the first one as default
-          // 如果删除的是默认模型，设置第一个为默认
           if (toDelete?.isDefault && remaining.length > 0) {
             remaining[0] = { ...remaining[0], isDefault: true };
             setTouched({
@@ -1017,7 +955,6 @@ export const useSettingsStore = create<SettingsState>()(
           const targetType = targetModel.type || "chat";
 
           // Only update isDefault status for models of the same type
-          // 只更新同类型模型的 isDefault 状态
           const models = get().aiModels.map((m) => {
             const modelType = m.type || "chat";
             if (modelType === targetType) {
@@ -1028,7 +965,6 @@ export const useSettingsStore = create<SettingsState>()(
           setTouched({ aiModels: models });
 
           // Only chat models sync to legacy configuration
-          // 只有对话模型才同步到旧版配置
           if (targetType === "chat") {
             setTouched({
               aiProvider: targetModel.provider,
@@ -1053,7 +989,6 @@ export const useSettingsStore = create<SettingsState>()(
         applyTheme: () => {
           const state = get();
           // Handle theme mode
-          // 处理主题模式
           let isDark = state.isDarkMode;
           if (state.themeMode === "system") {
             isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -1078,7 +1013,6 @@ export const useSettingsStore = create<SettingsState>()(
           }
           applyBackgroundImageVars(state);
           // Initialize tray status
-          // 初始化托盘状态
           if (state.minimizeOnLaunch) {
             window.electron?.setMinimizeToTray?.(true);
           }
@@ -1091,7 +1025,6 @@ export const useSettingsStore = create<SettingsState>()(
           }
         },
 
-        // Custom skill scan paths actions / 自定义 Skill 扫描路径操作
         setCustomSkillScanPaths: (paths) =>
           setTouched({ customSkillScanPaths: paths }),
         addCustomSkillScanPath: (path) =>
@@ -1256,7 +1189,6 @@ export const useSettingsStore = create<SettingsState>()(
           setTouched({ skillPlatformOrder: [] });
           syncSettingsToMain({ skillPlatformOrder: [] });
         },
-        // Skill install method action / Skill 安装方式操作
         setSkillInstallMethod: (method) =>
           setTouched({ skillInstallMethod: method }),
         setAutoScanInstalledSkills: (enabled) =>
@@ -1267,13 +1199,10 @@ export const useSettingsStore = create<SettingsState>()(
         // Persist the GitHub PAT to localStorage AND to the main-process
         // SQLite settings table so the main process can attach it as an
         // Authorization header for GitHub API calls. See #108.
-        // 把 GitHub token 同时保存到 localStorage 和主进程 SQLite settings 表，
-        // 以便主进程在调用 GitHub API 时附带 Authorization 头 (#108)。
         setGithubToken: (token) => {
           // Strip control characters (CR, LF, etc.) to prevent header
           // injection — the main process also validates, but defence in
           // depth is cheap here.
-          // 过滤掉 CR/LF 等控制字符，防止 header 注入；主进程还会再次校验。
           const sanitized = token
             .replace(/[\r\n\x00-\x1f\x7f]/g, "")
             .trim();

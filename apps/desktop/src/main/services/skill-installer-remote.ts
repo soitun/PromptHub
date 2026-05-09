@@ -266,7 +266,6 @@ export async function resolvePublicAddress(
  * Hosts on which the user's GitHub token is safe to attach. We only send the
  * Authorization header to these trusted endpoints so the token is never
  * leaked to third-party redirects.
- * 只在这些受信任的主机上携带用户的 GitHub token，避免重定向到第三方时泄露。
  */
 const GITHUB_AUTH_HOSTS = new Set([
   "api.github.com",
@@ -276,7 +275,6 @@ const GITHUB_AUTH_HOSTS = new Set([
 /**
  * Exported for testability. Returns true iff the hostname is one of the
  * trusted GitHub endpoints for which it is safe to attach the user's PAT.
- * 导出仅供测试使用，用于校验是否可以把用户的 PAT 发送到该主机。
  */
 export function shouldAttachGithubAuth(hostname: string): boolean {
   return GITHUB_AUTH_HOSTS.has(hostname.toLowerCase());
@@ -288,8 +286,6 @@ export interface FetchRemoteTextOptions {
    * Bearer <token>` only when the target host is an official GitHub API
    * endpoint (api.github.com or raw.githubusercontent.com). Redirects to
    * any other host will drop the token (#108).
-   * 可选的 GitHub PAT，只会在请求官方 GitHub 端点时加到 Authorization 头；
-   * 跳转到其他主机时会丢弃，防止泄露 (#108)。
    */
   githubToken?: string | null;
 }
@@ -319,7 +315,6 @@ export async function fetchRemoteText(
   // Only attach the user's GitHub token for trusted GitHub endpoints.
   // Any redirect to a different host will drop the token via the options
   // fall-through below.
-  // 仅在受信任的 GitHub 端点上附加用户 token；跳转到其他主机时丢弃 token。
   if (options.githubToken && shouldAttachGithubAuth(parsedUrl.hostname)) {
     baseHeaders.Authorization = `Bearer ${options.githubToken}`;
     baseHeaders["X-GitHub-Api-Version"] = "2022-11-28";
@@ -355,7 +350,6 @@ export async function fetchRemoteText(
           const nextUrl = new URL(location, parsedUrl).toString();
           // Forward the token only if the redirect target is still a
           // trusted GitHub host; otherwise drop it to avoid leakage.
-          // 只有跳转目标仍是受信任的 GitHub 主机时才继续带 token，否则丢弃。
           let nextGithubToken: string | null | undefined = options.githubToken;
           try {
             const nextHostname = new URL(nextUrl).hostname;
