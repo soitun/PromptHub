@@ -16,12 +16,14 @@ import syncRoutes from './routes/sync.js';
 import importExportRoutes from './routes/import-export.js';
 import devicesRoutes from './routes/devices.js';
 import { bootstrapPromptWorkspace } from './services/prompt-workspace.js';
+import { bootstrapRuleWorkspace } from './services/rule-workspace.js';
 import { bootstrapSkillWorkspace } from './services/skill-workspace.js';
 
 export function createApp(): Hono {
   const db = getServerDatabase();
   bootstrapPromptWorkspace(db, new PromptDB(db), new FolderDB(db));
   bootstrapSkillWorkspace(db, new SkillDB(db));
+  bootstrapRuleWorkspace();
 
   const app = new Hono();
 

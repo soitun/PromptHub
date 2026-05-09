@@ -1630,5 +1630,10 @@
       "skill": "技能"
     },
     "skillsOnly": "僅含技能資料"
+  },
+  "toast": {
+    "selfHostedSyncConnectionSuccess": "連線成功。遠端工作區目前包含 {{prompts}} 個 prompts、{{folders}} 個資料夾、{{rules}} 條規則和 {{skills}} 個技能。",
+    "selfHostedSyncPushSuccess": "已上傳 {{prompts}} 個 prompts、{{folders}} 個資料夾、{{rules}} 條規則和 {{skills}} 個技能到 PromptHub Web。",
+    "selfHostedSyncPullSuccess": "已從 PromptHub Web 還原 {{prompts}} 個 prompts、{{folders}} 個資料夾、{{rules}} 條規則和 {{skills}} 個技能。"
   }
 }

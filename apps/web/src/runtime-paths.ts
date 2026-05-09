@@ -60,6 +60,10 @@ export function getSkillsDir(): string {
   return path.join(getDataDir(), 'skills');
 }
 
+export function getRulesDir(): string {
+  return path.join(getDataDir(), 'rules');
+}
+
 export function getAssetsDir(): string {
   return path.join(getDataDir(), 'assets');
 }

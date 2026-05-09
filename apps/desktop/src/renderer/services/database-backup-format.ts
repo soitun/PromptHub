@@ -185,6 +185,41 @@ function hasSkillFileSnapshotShape(value: unknown): boolean {
   );
 }
 
+function hasRuleVersionShape(value: unknown): boolean {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return (
+    typeof value.id === "string" &&
+    typeof value.savedAt === "string" &&
+    typeof value.content === "string" &&
+    (value.source === "manual-save" ||
+      value.source === "ai-rewrite" ||
+      value.source === "create")
+  );
+}
+
+function hasRuleShape(value: unknown): boolean {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return (
+    typeof value.id === "string" &&
+    typeof value.platformId === "string" &&
+    typeof value.platformName === "string" &&
+    typeof value.platformIcon === "string" &&
+    typeof value.platformDescription === "string" &&
+    typeof value.name === "string" &&
+    typeof value.description === "string" &&
+    typeof value.path === "string" &&
+    typeof value.content === "string" &&
+    Array.isArray(value.versions) &&
+    value.versions.every(hasRuleVersionShape)
+  );
+}
+
 /**
  * Counts of records that were dropped from an imported backup because they
  * failed structural validation. This lets the UI surface a transparent
@@ -197,6 +232,7 @@ export interface ImportSkippedStats {
   prompts: number;
   folders: number;
   versions: number;
+  rules: number;
   skills: number;
   skillVersions: number;
   skillFiles: number;
@@ -228,6 +264,7 @@ export function createEmptySkippedStats(): ImportSkippedStats {
     prompts: 0,
     folders: 0,
     versions: 0,
+    rules: 0,
     skills: 0,
     skillVersions: 0,
     skillFiles: 0,
@@ -239,6 +276,7 @@ export function hasAnySkipped(stats: ImportSkippedStats): boolean {
     stats.prompts > 0 ||
     stats.folders > 0 ||
     stats.versions > 0 ||
+    stats.rules > 0 ||
     stats.skills > 0 ||
     stats.skillVersions > 0 ||
     stats.skillFiles > 0
@@ -260,6 +298,10 @@ function validateImportedBackupShape(backup: DatabaseBackup): void {
 
   if (!backup.versions.every(hasPromptVersionShape)) {
     throw new Error("Invalid PromptHub backup: versions payload is malformed.");
+  }
+
+  if (backup.rules && !backup.rules.every(hasRuleShape)) {
+    throw new Error("Invalid PromptHub backup: rules payload is malformed.");
   }
 
   if (backup.skills && !backup.skills.every(hasSkillShape)) {
@@ -318,6 +360,13 @@ export function sanitizeImportedBackup(
   );
   skipped.versions = originalVersionsLen - validVersions.length;
 
+  let validRules = raw.rules;
+  if (raw.rules) {
+    const originalRulesLen = raw.rules.length;
+    validRules = raw.rules.filter(hasRuleShape);
+    skipped.rules = originalRulesLen - validRules.length;
+  }
+
   let validSkills = raw.skills;
   const validSkillIds = new Set<string>();
   if (raw.skills) {
@@ -368,6 +417,7 @@ export function sanitizeImportedBackup(
       prompts: validPrompts,
       folders: validFolders,
       versions: validVersions,
+      rules: validRules,
       skills: validSkills,
       skillVersions: validSkillVersions,
       skillFiles: validSkillFiles,

@@ -125,17 +125,18 @@ async function exportPayload(app: Awaited<ReturnType<typeof createTestApp>>, tok
     }),
   );
 
-  const payload = JSON.parse(await response.text()) as {
-    version: string;
-    exportedAt: string;
-    prompts: Array<Record<string, unknown>>;
-    promptVersions: Array<Record<string, unknown>>;
-    versions: Array<Record<string, unknown>>;
-    folders: Array<Record<string, unknown>>;
-    skills: Array<Record<string, unknown>>;
-    skillVersions: Array<Record<string, unknown>>;
-    settings: Record<string, unknown>;
-  };
+    const payload = JSON.parse(await response.text()) as {
+      version: string;
+      exportedAt: string;
+      prompts: Array<Record<string, unknown>>;
+      promptVersions: Array<Record<string, unknown>>;
+      versions: Array<Record<string, unknown>>;
+      folders: Array<Record<string, unknown>>;
+      rules?: Array<Record<string, unknown>>;
+      skills: Array<Record<string, unknown>>;
+      skillVersions: Array<Record<string, unknown>>;
+      settings: Record<string, unknown>;
+    };
 
   return { response, payload };
 }
@@ -209,6 +210,7 @@ describe('web import/export routes', () => {
           name: 'export-skill',
         }),
       ]);
+      expect(payload.rules).toEqual([]);
       expect(payload.settings).toEqual(expect.objectContaining({
         theme: 'system',
         language: 'zh',
@@ -320,6 +322,23 @@ describe('web import/export routes', () => {
       expect(settingsUpdate.status).toBe(200);
 
       const { payload: backupPayload } = await exportPayload(app, token);
+      backupPayload.rules = [
+        {
+          id: 'project:projects-rule',
+          platformId: 'workspace',
+          platformName: 'Projects Rule',
+          platformIcon: 'FolderRoot',
+          platformDescription: 'Rule imported from desktop',
+          name: 'AGENTS.md',
+          description: 'Project rule file',
+          path: '/workspace/AGENTS.md',
+          targetPath: '/workspace/AGENTS.md',
+          projectRootPath: '/workspace',
+          syncStatus: 'synced',
+          content: '# Projects rules',
+          versions: [],
+        },
+      ];
 
       await createFolder(app, token, { name: 'Replacement Folder' });
       await createPrompt(app, token, { title: 'Replacement Prompt', userPrompt: 'Discard me' });
@@ -347,6 +366,7 @@ describe('web import/export routes', () => {
         data: {
           promptsImported: number;
           foldersImported: number;
+          rulesImported: number;
           skillsImported: number;
           settingsUpdated: boolean;
         };
@@ -354,6 +374,7 @@ describe('web import/export routes', () => {
       expect(importBody.data).toEqual({
         promptsImported: 1,
         foldersImported: 2,
+        rulesImported: 1,
         skillsImported: 1,
         settingsUpdated: true,
       });
@@ -386,6 +407,12 @@ describe('web import/export routes', () => {
         }),
       ]));
       expect(restoredPayload.skillVersions).toHaveLength(1);
+      expect(restoredPayload.rules).toEqual([
+        expect.objectContaining({
+          id: 'project:projects-rule',
+          content: '# Projects rules',
+        }),
+      ]);
 
       const restoredRootFolder = restoredPayload.folders.find((folder) => folder.name === 'Projects');
       const restoredChildFolder = restoredPayload.folders.find((folder) => folder.name === 'Nested');

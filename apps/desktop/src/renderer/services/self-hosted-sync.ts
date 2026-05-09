@@ -1,4 +1,4 @@
-import type { Settings } from "@prompthub/shared/types";
+import type { RuleBackupRecord, Settings } from "@prompthub/shared/types";
 import type { Folder } from "@prompthub/shared/types/folder";
 import type { Prompt, PromptVersion } from "@prompthub/shared/types/prompt";
 import type { Skill, SkillVersion } from "@prompthub/shared/types/skill";
@@ -18,6 +18,7 @@ export interface SelfHostedSyncConfig {
 export interface SelfHostedSyncSummary {
   prompts: number;
   folders: number;
+  rules: number;
   skills: number;
 }
 
@@ -55,6 +56,7 @@ interface WebSyncPayload {
   promptVersions: PromptVersion[];
   versions?: PromptVersion[];
   folders: Folder[];
+  rules?: RuleBackupRecord[];
   skills: Skill[];
   skillVersions: SkillVersion[];
   settings: Settings;
@@ -65,6 +67,7 @@ interface WebSyncPushResult {
   ok: boolean;
   promptsImported: number;
   foldersImported: number;
+  rulesImported?: number;
   skillsImported: number;
 }
 
@@ -485,6 +488,12 @@ function mergeDesktopBackupWithRemote(
     settingsUpdatedAt: useRemoteSettings
       ? remoteSettingsUpdatedAt
       : localBackup.settingsUpdatedAt,
+    rules: mergeLatestById(
+      localBackup.rules || [],
+      payload.rules || [],
+      (rule) => rule.id,
+      (rule) => rule.versions[0]?.savedAt || 0,
+    ),
     skills: normalizedSkills,
     skillVersions: normalizedSkillVersions,
     skillFiles: localBackup.skillFiles,
@@ -537,6 +546,7 @@ function buildDesktopBackupFromRemote(
     aiConfig: localBackup.aiConfig,
     settings: remoteSettingsSnapshot || localBackup.settings,
     settingsUpdatedAt: remoteSettingsUpdatedAt || localBackup.settingsUpdatedAt,
+    rules: payload.rules,
     skills: payload.skills,
     skillVersions: normalizedSkillVersions,
   };
@@ -570,6 +580,7 @@ export async function pushToSelfHostedWeb(
     promptVersions: backup.versions,
     versions: backup.versions,
     folders: backup.folders,
+    rules: backup.rules || [],
     skills: backup.skills || [],
     skillVersions: backup.skillVersions || [],
     settings: toWebSettings(backup),
@@ -586,6 +597,7 @@ export async function pushToSelfHostedWeb(
   return {
     prompts: result.promptsImported,
     folders: result.foldersImported,
+    rules: result.rulesImported ?? backup.rules?.length ?? 0,
     skills: result.skillsImported,
   };
 }
@@ -612,6 +624,7 @@ export async function pullFromSelfHostedWeb(
   return {
     prompts: payload.prompts.length,
     folders: payload.folders.length,
+    rules: payload.rules?.length || 0,
     skills: payload.skills.length,
   };
 }

@@ -1630,5 +1630,10 @@
       "skill": "Habilidad"
     },
     "skillsOnly": "Solo contiene habilidades"
+  },
+  "toast": {
+    "selfHostedSyncConnectionSuccess": "Conexión correcta. El espacio remoto contiene actualmente {{prompts}} prompts, {{folders}} carpetas, {{rules}} reglas y {{skills}} habilidades.",
+    "selfHostedSyncPushSuccess": "Se subieron {{prompts}} prompts, {{folders}} carpetas, {{rules}} reglas y {{skills}} habilidades a PromptHub Web.",
+    "selfHostedSyncPullSuccess": "Se restauraron {{prompts}} prompts, {{folders}} carpetas, {{rules}} reglas y {{skills}} habilidades desde PromptHub Web."
   }
 }

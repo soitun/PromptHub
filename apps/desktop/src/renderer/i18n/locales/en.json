@@ -1674,7 +1674,10 @@
     "batchFavorited": "Batch favorited",
     "batchMoved": "Batch moved",
     "batchDeleted": "Batch deleted",
-    "imageSaved": "Image saved to preview"
+    "imageSaved": "Image saved to preview",
+    "selfHostedSyncConnectionSuccess": "Connection successful. Remote workspace currently stores {{prompts}} prompts, {{folders}} folders, {{rules}} rules, and {{skills}} skills.",
+    "selfHostedSyncPushSuccess": "Uploaded {{prompts}} prompts, {{folders}} folders, {{rules}} rules, and {{skills}} skills to PromptHub Web.",
+    "selfHostedSyncPullSuccess": "Restored {{prompts}} prompts, {{folders}} folders, {{rules}} rules, and {{skills}} skills from PromptHub Web."
   },
   "closeDialog": {
     "title": "Close Application",

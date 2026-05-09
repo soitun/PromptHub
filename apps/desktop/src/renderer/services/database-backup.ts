@@ -334,6 +334,7 @@ export interface ImportPreviewSummary {
     prompts: number;
     folders: number;
     versions: number;
+    rules: number;
     skills: number;
     skillVersions: number;
     skillFiles: number;
@@ -390,6 +391,7 @@ export async function previewImportFile(
       prompts: backup.prompts.length,
       folders: backup.folders.length,
       versions: backup.versions.length,
+      rules: backup.rules?.length ?? 0,
       skills: backup.skills?.length ?? 0,
       skillVersions: backup.skillVersions?.length ?? 0,
       skillFiles: Object.values(backup.skillFiles ?? {}).reduce(

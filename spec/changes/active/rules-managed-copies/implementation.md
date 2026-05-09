@@ -15,6 +15,11 @@ In progress.
 - 扩展 backup / export / restore，让 Rules 正文与历史通过 backup JSON 和 ZIP 导出进入备份链路。
 - 新增 `packages/db/src/rule.ts`、`rules` / `rule_versions` 表结构与 migration，使 `data/rules/` 真相源在写入时同步维护 SQLite 索引。
 - 补充 Rules 回归测试，覆盖 `RulesManager`、`rules.store`、`Sidebar`、`RuleDB`、`rules-workspace`、`rules.ipc`、`database-backup` 中的导出/恢复路径。
+- 补齐桌面端 `DataSettings` 的 Rules 导出选项、导入预览计数、自托管同步统计文案。
+- 补齐桌面端 WebDAV 与自托管同步链路，使 Rules 跟随 backup payload 进行上传、下载与恢复。
+- 为 Web 端新增 `apps/web/src/services/rule-workspace.ts`，将每个用户的 Rules 持久化到 `data/rules/<userId>/...`，避免多用户规则内容混存。
+- 扩展 Web 端 `BackupService`、`/api/sync/*`、`/api/import`、`/api/export`，让 Rules 可通过自托管同步和手工导入导出完整 round-trip。
+- 新增/更新回归测试：`self-hosted-sync.test.ts`、`webdav.test.ts`、`data-settings.test.tsx`、`sync.test.ts`、`import-export.test.ts`、`rule-workspace.test.ts`。
 
 ## Verification
 
@@ -22,6 +27,7 @@ In progress.
 - 当前实现已新增 `data/rules/` 真相源目录，并将 Rules 纳入 ZIP 导出和 JSON backup 载荷。
 - 当前实现已新增 `rules` / `rule_versions` SQLite 索引层，并在 `rules-workspace.ts` 中同步维护。
 - 当前实现已为 Rules 建立 renderer/store/main/backup 的关键回归测试覆盖。
+- 当前实现已将 Rules 纳入桌面端 WebDAV、自托管同步，以及 Web 端 `/api/sync` / `/api/import` / `/api/export` 数据链路。
 - `pnpm lint` 通过。
 - `pnpm build` 通过。
 

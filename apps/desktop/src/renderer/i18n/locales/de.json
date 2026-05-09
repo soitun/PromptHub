@@ -1630,5 +1630,10 @@
       "skill": "Skill"
     },
     "skillsOnly": "Nur Skill-Daten"
+  },
+  "toast": {
+    "selfHostedSyncConnectionSuccess": "Verbindung erfolgreich. Der entfernte Workspace enthält derzeit {{prompts}} Prompts, {{folders}} Ordner, {{rules}} Regeln und {{skills}} Skills.",
+    "selfHostedSyncPushSuccess": "{{prompts}} Prompts, {{folders}} Ordner, {{rules}} Regeln und {{skills}} Skills wurden zu PromptHub Web hochgeladen.",
+    "selfHostedSyncPullSuccess": "{{prompts}} Prompts, {{folders}} Ordner, {{rules}} Regeln und {{skills}} Skills wurden von PromptHub Web wiederhergestellt."
   }
 }

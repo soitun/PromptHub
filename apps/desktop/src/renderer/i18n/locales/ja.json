@@ -1630,5 +1630,10 @@
       "skill": "Skill"
     },
     "skillsOnly": "スキルデータのみ"
+  },
+  "toast": {
+    "selfHostedSyncConnectionSuccess": "接続に成功しました。リモートワークスペースには現在 {{prompts}} 件の prompts、{{folders}} 件の folders、{{rules}} 件の rules、{{skills}} 件の skills があります。",
+    "selfHostedSyncPushSuccess": "{{prompts}} 件の prompts、{{folders}} 件の folders、{{rules}} 件の rules、{{skills}} 件の skills を PromptHub Web にアップロードしました。",
+    "selfHostedSyncPullSuccess": "{{prompts}} 件の prompts、{{folders}} 件の folders、{{rules}} 件の rules、{{skills}} 件の skills を PromptHub Web から復元しました。"
   }
 }

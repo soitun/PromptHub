@@ -1,7 +1,15 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import type { Context } from 'hono';
-import type { Folder, Prompt, PromptVersion, Settings, Skill, SkillVersion } from '@prompthub/shared';
+import type {
+  Folder,
+  Prompt,
+  PromptVersion,
+  RuleBackupRecord,
+  Settings,
+  Skill,
+  SkillVersion,
+} from '@prompthub/shared';
 import { getAuthUser } from '../middleware/auth.js';
 import { BackupService } from '../services/backup.service.js';
 import { error, ErrorCode, success } from '../utils/response.js';
@@ -150,6 +158,30 @@ const skillVersionSchema = z.object({
   createdAt: z.union([z.string(), z.number().int().nonnegative()]),
 });
 
+const ruleVersionSchema = z.object({
+  id: z.string(),
+  savedAt: z.string(),
+  content: z.string(),
+  source: z.enum(['manual-save', 'ai-rewrite', 'create']),
+});
+
+const ruleSchema = z.object({
+  id: z.string(),
+  platformId: z.string(),
+  platformName: z.string(),
+  platformIcon: z.string(),
+  platformDescription: z.string(),
+  name: z.string(),
+  description: z.string(),
+  path: z.string(),
+  managedPath: z.string().optional(),
+  targetPath: z.string().optional(),
+  projectRootPath: z.string().nullable().optional(),
+  syncStatus: z.enum(['synced', 'target-missing', 'out-of-sync', 'sync-error']).optional(),
+  content: z.string(),
+  versions: z.array(ruleVersionSchema),
+});
+
 const settingsSchema = z.object({
   theme: z.enum(['light', 'dark', 'system']),
   language: z.enum(['en', 'zh', 'zh-TW', 'ja', 'fr', 'de', 'es']),
@@ -181,6 +213,7 @@ const backupPayloadSchema = z.object({
   promptVersions: z.array(promptVersionSchema).default([]),
   versions: z.array(promptVersionSchema).optional(),
   folders: z.array(folderSchema),
+  rules: z.array(ruleSchema).optional(),
   skills: z.array(skillSchema),
   skillVersions: z.array(skillVersionSchema).default([]),
   settings: settingsSchema,
@@ -193,6 +226,7 @@ function normalizeBackupPayload(payload: z.infer<typeof backupPayloadSchema>): {
   promptVersions: PromptVersion[];
   versions: PromptVersion[];
   folders: Folder[];
+  rules?: RuleBackupRecord[];
   skills: Skill[];
   skillVersions: SkillVersion[];
   settings: Settings;
@@ -267,6 +301,7 @@ function normalizeBackupPayload(payload: z.infer<typeof backupPayloadSchema>): {
       createdAt: typeof folder.createdAt === 'number' ? new Date(folder.createdAt).toISOString() : folder.createdAt,
       updatedAt: typeof folder.updatedAt === 'number' ? new Date(folder.updatedAt).toISOString() : folder.updatedAt,
     })),
+    rules: payload.rules,
     skills: payload.skills,
     skillVersions: payload.skillVersions.map((version): SkillVersion => ({
       id: version.id,

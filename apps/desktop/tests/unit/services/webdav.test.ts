@@ -116,6 +116,7 @@ describe("WebDAV Service", () => {
         images: {},
         settings: {},
         aiConfig: {},
+        rules: [{ id: "project:docs-site", content: "# Docs rules" }],
       });
 
       const mockEnsureDir = vi.fn().mockResolvedValue(undefined);
@@ -165,6 +166,7 @@ describe("WebDAV Service", () => {
         images: {},
         settings: {},
         aiConfig: {},
+        rules: [{ id: "project:docs-site", content: "# Docs rules" }],
         skills: [{ id: "skill-1", name: "writer" }],
         skillVersions: [{ id: "ver-1", skillId: "skill-1", version: 1 }],
         skillFiles: {
@@ -194,6 +196,9 @@ describe("WebDAV Service", () => {
       expect(dataUploadCall).toBeTruthy();
 
       const uploadedPayload = JSON.parse(String(dataUploadCall?.[2]));
+      expect(uploadedPayload.rules).toEqual([
+        { id: "project:docs-site", content: "# Docs rules" },
+      ]);
       expect(uploadedPayload.skills).toEqual([{ id: "skill-1", name: "writer" }]);
       expect(uploadedPayload.skillVersions).toEqual([
         { id: "ver-1", skillId: "skill-1", version: 1 },
@@ -264,6 +269,7 @@ describe("WebDAV Service", () => {
         videos: {},
         settings: {},
         aiConfig: {},
+        rules: [{ id: "project:docs-site", content: "# Docs rules" }],
         skills: [{ id: "skill-1", name: "writer" }],
         skillVersions: [{ id: "ver-1", skillId: "skill-1", version: 1 }],
         skillFiles: {
@@ -290,6 +296,9 @@ describe("WebDAV Service", () => {
       expect(legacyUploadCall).toBeTruthy();
 
       const uploadedPayload = JSON.parse(String(legacyUploadCall?.[2]));
+      expect(uploadedPayload.rules).toEqual([
+        { id: "project:docs-site", content: "# Docs rules" },
+      ]);
       expect(uploadedPayload.skills).toEqual([{ id: "skill-1", name: "writer" }]);
       expect(uploadedPayload.skillVersions).toEqual([
         { id: "ver-1", skillId: "skill-1", version: 1 },
@@ -317,6 +326,7 @@ describe("WebDAV Service", () => {
         prompts: [],
         folders: [],
         versions: [],
+        rules: [{ id: "project:docs-site", content: "# Docs rules" }],
         skills: [{ id: "skill-1", name: "writer" }],
         skillVersions: [{ id: "ver-1", skillId: "skill-1", version: 1 }],
         skillFiles: {
@@ -347,6 +357,7 @@ describe("WebDAV Service", () => {
 
       expect(backup.restoreFromBackup).toHaveBeenCalledWith(
         expect.objectContaining({
+          rules: [{ id: "project:docs-site", content: "# Docs rules" }],
           skills: [{ id: "skill-1", name: "writer" }],
           skillVersions: [{ id: "ver-1", skillId: "skill-1", version: 1 }],
           skillFiles: {
@@ -364,6 +375,7 @@ describe("WebDAV Service", () => {
         prompts: [],
         folders: [],
         versions: [],
+        rules: [{ id: "project:docs-site", content: "# Docs rules" }],
         skills: [{ id: "skill-1", name: "writer" }],
         skillVersions: [{ id: "ver-1", skillId: "skill-1", version: 1 }],
         skillFiles: {
@@ -387,6 +399,7 @@ describe("WebDAV Service", () => {
 
       expect(backup.restoreFromBackup).toHaveBeenCalledWith(
         expect.objectContaining({
+          rules: [{ id: "project:docs-site", content: "# Docs rules" }],
           skills: [{ id: "skill-1", name: "writer" }],
           skillVersions: [{ id: "ver-1", skillId: "skill-1", version: 1 }],
           skillFiles: {

@@ -1630,5 +1630,10 @@
       "skill": "Compétence"
     },
     "skillsOnly": "Contient uniquement des compétences"
+  },
+  "toast": {
+    "selfHostedSyncConnectionSuccess": "Connexion réussie. L’espace distant contient actuellement {{prompts}} prompts, {{folders}} dossiers, {{rules}} règles et {{skills}} compétences.",
+    "selfHostedSyncPushSuccess": "{{prompts}} prompts, {{folders}} dossiers, {{rules}} règles et {{skills}} compétences ont été envoyés vers PromptHub Web.",
+    "selfHostedSyncPullSuccess": "{{prompts}} prompts, {{folders}} dossiers, {{rules}} règles et {{skills}} compétences ont été restaurés depuis PromptHub Web."
   }
 }

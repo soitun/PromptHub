@@ -168,6 +168,23 @@ function buildRemotePayload() {
         updatedAt: '2026-04-10T00:00:00.000Z',
       },
     ],
+    rules: [
+      {
+        id: 'project:remote-site',
+        platformId: 'workspace',
+        platformName: 'Remote Site',
+        platformIcon: 'FolderRoot',
+        platformDescription: 'Remote rules',
+        name: 'AGENTS.md',
+        description: 'Remote project rules',
+        path: '/remote/AGENTS.md',
+        targetPath: '/remote/AGENTS.md',
+        projectRootPath: '/remote',
+        syncStatus: 'synced',
+        content: '# Remote rules',
+        versions: [],
+      },
+    ],
     skills: [
       {
         id: 'remote-skill-1',
@@ -293,6 +310,7 @@ describe('web sync routes', () => {
       };
       expect(dataBody.data.version).toBe('web-backup-v2');
       expect(dataBody.data.prompts).toEqual([expect.objectContaining({ title: 'Sync Prompt' })]);
+      expect((dataBody.data as { rules?: Array<{ content: string }> }).rules).toEqual([]);
 
       const configUpdate = await app.request(
         new Request('http://local/api/sync/config', {
@@ -374,16 +392,18 @@ describe('web sync routes', () => {
       const importBody = await importResponse.json() as {
         data: {
           ok: boolean;
-          promptsImported: number;
-          foldersImported: number;
-          skillsImported: number;
-          settingsUpdated: boolean;
-        };
+              promptsImported: number;
+              foldersImported: number;
+              rulesImported: number;
+              skillsImported: number;
+              settingsUpdated: boolean;
+            };
       };
       expect(importBody.data.ok).toBe(true);
-      expect(importBody.data.promptsImported).toBe(1);
-      expect(importBody.data.foldersImported).toBe(1);
-      expect(importBody.data.skillsImported).toBe(1);
+        expect(importBody.data.promptsImported).toBe(1);
+        expect(importBody.data.foldersImported).toBe(1);
+        expect(importBody.data.rulesImported).toBe(0);
+        expect(importBody.data.skillsImported).toBe(1);
       expect(importBody.data.settingsUpdated).toBe(false);
 
       const dataAfterImportResponse = await app.request(
@@ -396,6 +416,7 @@ describe('web sync routes', () => {
           prompts: Array<{ title: string }>;
           folders: Array<{ name: string }>;
           skills: Array<{ name: string }>;
+          rules?: Array<{ id: string; content: string }>;
           settings: { sync?: { lastSyncAt?: string } };
         };
       };
@@ -417,6 +438,7 @@ describe('web sync routes', () => {
           expect.objectContaining({ name: 'noisy-sync-skill' }),
         ]),
       );
+      expect(dataAfterImport.data.rules).toEqual([]);
       expect(dataAfterImport.data.settings.sync?.lastSyncAt).toBeTruthy();
     } finally {
       fs.rmSync(dataDir, { recursive: true, force: true });
@@ -715,10 +737,11 @@ describe('web sync routes', () => {
       const pullBody = await pullResponse.json() as {
         data: {
           ok: boolean;
-          promptsImported: number;
-          foldersImported: number;
-          skillsImported: number;
-          provider: string;
+              promptsImported: number;
+              foldersImported: number;
+              rulesImported: number;
+              skillsImported: number;
+              provider: string;
           remoteFile: string;
           syncedAt: string;
         };
@@ -726,6 +749,7 @@ describe('web sync routes', () => {
       expect(pullBody.data.ok).toBe(true);
       expect(pullBody.data.promptsImported).toBe(1);
       expect(pullBody.data.foldersImported).toBe(2);
+      expect(pullBody.data.rulesImported).toBe(1);
       expect(pullBody.data.skillsImported).toBe(1);
       expect(pullBody.data.provider).toBe('webdav');
       expect(pullBody.data.remoteFile).toBe('prompthub-backup/data.json');
@@ -745,6 +769,7 @@ describe('web sync routes', () => {
           prompts: Array<{ title: string; folderId?: string }>;
           folders: Array<{ id: string; name: string; parentId?: string }>;
           skills: Array<{ name: string }>;
+          rules?: Array<{ id: string; content: string }>;
           settings: {
             theme: string;
             language: string;
@@ -767,6 +792,12 @@ describe('web sync routes', () => {
           expect.objectContaining({ name: 'stale-skill' }),
         ]),
       );
+      expect(dataBody.data.rules).toEqual([
+        expect.objectContaining({
+          id: 'project:remote-site',
+          content: '# Remote rules',
+        }),
+      ]);
 
       const rootFolder = dataBody.data.folders.find((entry) => entry.name === 'Remote Root');
       const childFolder = dataBody.data.folders.find((entry) => entry.name === 'Remote Child');

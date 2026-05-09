@@ -1674,7 +1674,10 @@
     "batchFavorited": "已批量收藏",
     "batchMoved": "已批量移动",
     "batchDeleted": "已批量删除",
-    "imageSaved": "图片已保存到预览"
+    "imageSaved": "图片已保存到预览",
+    "selfHostedSyncConnectionSuccess": "连接成功。远端工作区当前包含 {{prompts}} 个 prompts、{{folders}} 个文件夹、{{rules}} 条规则和 {{skills}} 个技能。",
+    "selfHostedSyncPushSuccess": "已上传 {{prompts}} 个 prompts、{{folders}} 个文件夹、{{rules}} 条规则和 {{skills}} 个技能到 PromptHub Web。",
+    "selfHostedSyncPullSuccess": "已从 PromptHub Web 恢复 {{prompts}} 个 prompts、{{folders}} 个文件夹、{{rules}} 条规则和 {{skills}} 个技能。"
   },
   "closeDialog": {
     "title": "关闭应用",

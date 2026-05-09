@@ -3,6 +3,7 @@ import type {
   Folder,
   Prompt,
   PromptVersion,
+  RuleBackupRecord,
   Settings,
   Skill,
   SkillSafetyReport,
@@ -11,6 +12,10 @@ import type {
 import { getServerDatabase } from '../database.js';
 import { SettingsService } from './settings.service.js';
 import { syncPromptWorkspaceFromDatabase } from './prompt-workspace.js';
+import {
+  exportRuleBackupRecords,
+  importRuleBackupRecords,
+} from './rule-workspace.js';
 import { syncSkillWorkspaceFromDatabase } from './skill-workspace.js';
 
 export interface BackupActor {
@@ -25,6 +30,7 @@ export interface WebBackupPayload {
   promptVersions: PromptVersion[];
   versions?: PromptVersion[];
   folders: Folder[];
+  rules?: RuleBackupRecord[];
   skills: Skill[];
   skillVersions: SkillVersion[];
   settings: Settings;
@@ -34,6 +40,7 @@ export interface WebBackupPayload {
 export interface BackupImportResult {
   promptsImported: number;
   foldersImported: number;
+  rulesImported: number;
   skillsImported: number;
   settingsUpdated: boolean;
 }
@@ -84,6 +91,7 @@ export class BackupService {
       promptVersions,
       versions: promptVersions,
       folders,
+      rules: exportRuleBackupRecords(actor.userId),
       skills,
       skillVersions,
       settings,
@@ -94,6 +102,7 @@ export class BackupService {
   import(actor: BackupActor, payload: WebBackupPayload): BackupImportResult {
     let promptsImported = 0;
     let foldersImported = 0;
+    const rulesImported = payload.rules?.length ?? 0;
     let skillsImported = 0;
 
     const folders = [...payload.folders].sort((left, right) => {
@@ -124,6 +133,8 @@ export class BackupService {
 
     this.mergeSkillVersions(payload);
 
+    importRuleBackupRecords(actor.userId, payload.rules ?? []);
+
     const settingsUpdated = this.mergeSettings(actor, payload);
 
     syncPromptWorkspaceFromDatabase(this.db, this.promptDb, this.folderDb);
@@ -132,6 +143,7 @@ export class BackupService {
     return {
       promptsImported,
       foldersImported,
+      rulesImported,
       skillsImported,
       settingsUpdated,
     };

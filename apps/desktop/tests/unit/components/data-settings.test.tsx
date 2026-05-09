@@ -7,6 +7,7 @@ import { installWindowMocks } from "../../helpers/window";
 import { restoreFromFile } from "../../../src/renderer/services/database-backup";
 import { previewImportFile } from "../../../src/renderer/services/database-backup";
 import { testSelfHostedConnection } from "../../../src/renderer/services/self-hosted-sync";
+import { downloadSelectiveExport } from "../../../src/renderer/services/database-backup";
 import {
   createUpgradeBackup,
   listUpgradeBackups,
@@ -593,6 +594,7 @@ describe("DataSettings", { timeout: 15_000 }, () => {
     vi.mocked(testSelfHostedConnection).mockResolvedValue({
       prompts: 3,
       folders: 2,
+      rules: 4,
       skills: 1,
     });
 
@@ -613,9 +615,29 @@ describe("DataSettings", { timeout: 15_000 }, () => {
       });
     });
     expect(showToast).toHaveBeenCalledWith(
-      "Connection successful. Remote workspace currently stores 3 prompts, 2 folders, and 1 skills.",
+      "Connection successful. Remote workspace currently stores 3 prompts, 2 folders, 4 rules, and 1 skills.",
       "success",
     );
+  });
+
+  it("includes rules in selective export by default", async () => {
+    await act(async () => {
+      await renderWithI18n(<DataSettings />, { language: "en" });
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Export Data" }));
+
+    await waitFor(() => {
+      expect(downloadSelectiveExport).toHaveBeenCalledWith(
+        expect.objectContaining({
+          rules: true,
+          skills: true,
+        }),
+      );
+    });
   });
 
   it("keeps web data settings focused on backup flows", async () => {

@@ -78,6 +78,7 @@ describe("self-hosted-sync", () => {
             counts: {
               prompts: 4,
               folders: 2,
+              rules: 1,
               skills: 3,
             },
           },
@@ -98,6 +99,7 @@ describe("self-hosted-sync", () => {
     ).resolves.toEqual({
       prompts: 4,
       folders: 2,
+      rules: 1,
       skills: 3,
     });
 
@@ -178,6 +180,20 @@ describe("self-hosted-sync", () => {
           customPlatformRootPaths: { claude: "/tmp/claude-root" },
         },
       },
+      rules: [
+        {
+          id: "project:docs-site",
+          platformId: "workspace",
+          platformName: "Docs Site",
+          platformIcon: "FolderRoot",
+          platformDescription: "Project rules",
+          name: "AGENTS.md",
+          description: "Project rules file",
+          path: "/repo/AGENTS.md",
+          content: "# Docs rules",
+          versions: [],
+        },
+      ],
       skills: [
         {
           id: "skill-1",
@@ -220,6 +236,7 @@ describe("self-hosted-sync", () => {
         const parsedBody = JSON.parse(String(init?.body)) as {
           payload: {
             prompts: Array<{ images?: string[]; videos?: string[] }>;
+            rules?: Array<{ id: string; content: string }>;
             settings: {
               theme: string;
               language: string;
@@ -233,6 +250,12 @@ describe("self-hosted-sync", () => {
           expect.objectContaining({
             images: ["remote-image.png"],
             videos: ["remote-video.mp4"],
+          }),
+        ]);
+        expect(parsedBody.payload.rules).toEqual([
+          expect.objectContaining({
+            id: "project:docs-site",
+            content: "# Docs rules",
           }),
         ]);
         expect(parsedBody.payload.settings).toEqual({
@@ -253,6 +276,7 @@ describe("self-hosted-sync", () => {
             ok: true,
             promptsImported: 1,
             foldersImported: 1,
+            rulesImported: 1,
             skillsImported: 1,
           },
         });
@@ -272,6 +296,7 @@ describe("self-hosted-sync", () => {
     ).resolves.toEqual({
       prompts: 1,
       folders: 1,
+      rules: 1,
       skills: 1,
     });
 
@@ -347,6 +372,20 @@ describe("self-hosted-sync", () => {
                 updatedAt: "2026-04-16T02:03:04.000Z",
               },
             ],
+            rules: [
+              {
+                id: "project:remote-site",
+                platformId: "workspace",
+                platformName: "Remote Site",
+                platformIcon: "FolderRoot",
+                platformDescription: "Remote rules",
+                name: "AGENTS.md",
+                description: "Remote project rules",
+                path: "/remote/AGENTS.md",
+                content: "# Remote rules",
+                versions: [],
+              },
+            ],
             skills: [
               {
                 id: "skill-remote",
@@ -399,6 +438,7 @@ describe("self-hosted-sync", () => {
     ).resolves.toEqual({
       prompts: 1,
       folders: 1,
+      rules: 1,
       skills: 1,
     });
 
@@ -429,6 +469,12 @@ describe("self-hosted-sync", () => {
             settingsUpdatedAt: "2026-04-16T02:03:04.000Z",
           }),
         },
+        rules: [
+          expect.objectContaining({
+            id: "project:remote-site",
+            content: "# Remote rules",
+          }),
+        ],
         skills: [expect.objectContaining({ name: "Remote Skill" })],
       }),
     );
@@ -489,6 +535,27 @@ describe("self-hosted-sync", () => {
         },
       },
       settingsUpdatedAt: "2026-04-16T03:00:00.000Z",
+      rules: [
+        {
+          id: "project:local-site",
+          platformId: "workspace",
+          platformName: "Local Site",
+          platformIcon: "FolderRoot",
+          platformDescription: "Local rules",
+          name: "AGENTS.md",
+          description: "Local project rules",
+          path: "/local/AGENTS.md",
+          content: "# Local rules",
+          versions: [
+            {
+              id: "local-rule-v1",
+              savedAt: "2026-04-16T03:00:00.000Z",
+              source: "manual-save",
+              content: "# Local rules",
+            },
+          ],
+        },
+      ],
       skills: [
         {
           id: "skill-local",
@@ -581,6 +648,39 @@ describe("self-hosted-sync", () => {
                 updatedAt: "2026-04-16T02:03:04.000Z",
               },
             ],
+            rules: [
+              {
+                id: "project:local-site",
+                platformId: "workspace",
+                platformName: "Local Site",
+                platformIcon: "FolderRoot",
+                platformDescription: "Remote older local rules",
+                name: "AGENTS.md",
+                description: "Remote older local rules",
+                path: "/remote/local/AGENTS.md",
+                content: "# Remote older local rules",
+                versions: [
+                  {
+                    id: "remote-local-rule-v1",
+                    savedAt: "2026-04-16T02:00:00.000Z",
+                    source: "manual-save",
+                    content: "# Remote older local rules",
+                  },
+                ],
+              },
+              {
+                id: "project:remote-site",
+                platformId: "workspace",
+                platformName: "Remote Site",
+                platformIcon: "FolderRoot",
+                platformDescription: "Remote rules",
+                name: "AGENTS.md",
+                description: "Remote project rules",
+                path: "/remote/AGENTS.md",
+                content: "# Remote rules",
+                versions: [],
+              },
+            ],
             skills: [
               {
                 id: "skill-remote",
@@ -654,6 +754,16 @@ describe("self-hosted-sync", () => {
             autoSave: true,
           }),
         },
+        rules: expect.arrayContaining([
+          expect.objectContaining({
+            id: "project:local-site",
+            content: "# Local rules",
+          }),
+          expect.objectContaining({
+            id: "project:remote-site",
+            content: "# Remote rules",
+          }),
+        ]),
         skills: expect.arrayContaining([
           expect.objectContaining({ id: "skill-local", name: "Local Skill" }),
           expect.objectContaining({ id: "skill-remote", name: "Remote Skill" }),
@@ -703,6 +813,20 @@ describe("self-hosted-sync", () => {
       aiConfig: {
         rootApiKey: "local-root-key",
       },
+      rules: [
+        {
+          id: "project:local-site",
+          platformId: "workspace",
+          platformName: "Local Site",
+          platformIcon: "FolderRoot",
+          platformDescription: "Local rules",
+          name: "AGENTS.md",
+          description: "Local project rules",
+          path: "/local/AGENTS.md",
+          content: "# Local rules",
+          versions: [],
+        },
+      ],
       skills: [
         {
           id: "skill-local",
@@ -774,6 +898,20 @@ describe("self-hosted-sync", () => {
                 order: 1,
                 createdAt: "2026-04-16T02:03:04.000Z",
                 updatedAt: "2026-04-16T02:03:04.000Z",
+              },
+            ],
+            rules: [
+              {
+                id: "project:remote-site",
+                platformId: "workspace",
+                platformName: "Remote Site",
+                platformIcon: "FolderRoot",
+                platformDescription: "Remote rules",
+                name: "AGENTS.md",
+                description: "Remote project rules",
+                path: "/remote/AGENTS.md",
+                content: "# Remote rules",
+                versions: [],
               },
             ],
             skills: [
@@ -853,6 +991,12 @@ describe("self-hosted-sync", () => {
         aiConfig: {
           rootApiKey: "local-root-key",
         },
+        rules: [
+          expect.objectContaining({
+            id: "project:remote-site",
+            content: "# Remote rules",
+          }),
+        ],
         skills: [
           expect.objectContaining({ id: "skill-remote", name: "Remote Skill" }),
         ],

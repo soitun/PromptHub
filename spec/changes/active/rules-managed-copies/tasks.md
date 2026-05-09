@@ -10,6 +10,6 @@
 - [x] 扩展备份格式与恢复逻辑，纳入 Rules 正文与历史
 - [x] 为 Rules 设计数据库 schema（`rules` / `rule_versions`）
 - [ ] 处理旧版 `rule-history` 与文件直读模型的迁移
-- [ ] 为同步状态、冲突导入、部署动作补充 UI/IPC 文案与测试
+- [x] 为同步状态、冲突导入、部署动作补充 UI/IPC 文案与测试
 - [x] 更新 implementation.md
 - [x] 同步稳定 specs / logic / assets / docs

@@ -130,51 +130,119 @@ export function RulesManager() {
   return (
     <div className="flex h-full min-h-0 bg-background">
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className="grid min-h-0 flex-1 grid-cols-[minmax(280px,340px)_minmax(0,1fr)]">
-          {/* Middle Settings Column */}
-          <div className="flex flex-col border-r border-border bg-muted/20">
-            {/* Header info */}
-            <div className="min-h-[168px] border-b border-border p-5">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    {currentFile?.platformId === "workspace" ? (
-                      <FolderIcon className="h-4 w-4 text-primary" />
-                    ) : currentFile ? (
-                      <PlatformIcon platformId={currentFile.platformId} size={16} className="h-4 w-4" />
-                    ) : (
-                      <BookOpenIcon className="h-4 w-4 text-primary" />
-                    )}
-                    <span className="truncate">
-                      {currentFile?.platformName || t("rules.title", "Rules")}
-                    </span>
-                  </div>
-                  <h3 className="mt-2 truncate text-xl font-semibold text-foreground">
-                    {currentFile?.name || t("rules.pathUnknown", "No file selected")}
-                  </h3>
-                </div>
-                {currentFile?.path ? (
-                  <button
-                    type="button"
-                    onClick={() => void window.electron?.openPath?.(currentFile.path)}
-                    className="shrink-0 rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                    title={t("rules.openLocation", "Open Location")}
-                  >
-                    <FolderOpenIcon className="h-4 w-4" />
-                  </button>
-                ) : null}
-              </div>
-
-              {currentFile?.path ? (
-                <div className="mt-3 flex items-center justify-between text-xs">
-                  <span className="truncate text-muted-foreground" title={currentFile.path}>
-                    {currentFile.path}
+        <div className="grid min-h-0 flex-1 grid-cols-[minmax(280px,340px)_minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)]">
+          {/* Middle Header */}
+          <div className="border-b border-r border-border bg-muted/20 px-5 py-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  {currentFile?.platformId === "workspace" ? (
+                    <FolderIcon className="h-4 w-4 text-primary" />
+                  ) : currentFile ? (
+                    <PlatformIcon platformId={currentFile.platformId} size={16} className="h-4 w-4" />
+                  ) : (
+                    <BookOpenIcon className="h-4 w-4 text-primary" />
+                  )}
+                  <span className="truncate">
+                    {currentFile?.platformName || t("rules.title", "Rules")}
                   </span>
                 </div>
+                <h3 className="mt-1.5 truncate text-xl font-semibold text-foreground">
+                  {currentFile?.name || t("rules.pathUnknown", "No file selected")}
+                </h3>
+              </div>
+              {currentFile?.path ? (
+                <button
+                  type="button"
+                  onClick={() => void window.electron?.openPath?.(currentFile.path)}
+                  className="shrink-0 rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  title={t("rules.openLocation", "Open Location")}
+                >
+                  <FolderOpenIcon className="h-4 w-4" />
+                </button>
               ) : null}
             </div>
 
-            <div className="flex-1 overflow-y-auto p-5">
+            {currentFile?.path ? (
+              <div className="mt-2.5 flex items-center justify-between text-xs">
+                <span className="truncate text-muted-foreground" title={currentFile.path}>
+                  {currentFile.path}
+                </span>
+              </div>
+            ) : null}
+          </div>
+
+          {/* Right Header */}
+          <div className="flex items-start justify-between border-b border-border px-5 py-4">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                {currentFile?.platformId === "workspace" ? (
+                  <FolderIcon className="h-4 w-4 text-primary" />
+                ) : currentFile ? (
+                  <PlatformIcon platformId={currentFile.platformId} size={16} className="h-4 w-4" />
+                ) : (
+                  <BookOpenIcon className="h-4 w-4 text-primary" />
+                )}
+                {selectedVersion
+                  ? t("rules.versionPreviewTitle", "Snapshot Preview")
+                  : t("rules.editorCanvas", "Rule Content")}
+              </div>
+              <h3 className="mt-1 truncate text-lg font-semibold text-foreground">
+                {currentFile?.name || t("rules.title", "Rules")}
+              </h3>
+              <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                {selectedVersion ? (
+                  <>
+                    <span>{t("rules.versionPreviewReadonly", "Preview mode is read-only.")}</span>
+                    <span>{new Date(selectedVersion.savedAt).toLocaleString()}</span>
+                    <span className="rounded-full bg-muted px-2 py-0.5 text-[10px]">
+                      {getVersionSourceLabel(selectedVersion.source)}
+                    </span>
+                  </>
+                ) : (
+                  <span>
+                    {hasChanges
+                      ? t("rules.changesTitle", "Unsaved Changes")
+                      : t("rules.versionEditingDraft", "Editing current draft")}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {selectedVersion ? (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedVersionId(null)}
+                  className="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                >
+                  <ArrowLeftIcon className="h-4 w-4" />
+                  {t("rules.versionBackToDraft", "Back to Draft")}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleRestoreVersion}
+                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:bg-primary/90"
+                >
+                  <RotateCcwIcon className="h-4 w-4" />
+                  {t("rules.versionRestoreToDraft", "Restore to Draft")}
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => void handleSave()}
+                disabled={!currentFile || isSaving || !hasChanges}
+                className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <SaveIcon className="h-4 w-4" />
+                {isSaving ? t("common.saving", "Saving...") : t("common.save", "Save")}
+              </button>
+            )}
+          </div>
+
+          {/* Middle Settings Column */}
+          <div className="flex min-h-0 flex-col overflow-y-auto border-r border-border bg-muted/20 p-5">
               <div className="flex flex-col gap-6">
                 {/* AI Rewrite */}
                 <div>
@@ -290,79 +358,10 @@ export function RulesManager() {
                   </div>
                 </div>
               </div>
-            </div>
           </div>
 
           {/* Right Editor Column */}
-          <div className="flex min-w-0 flex-1 flex-col bg-background">
-            <div className="flex min-h-[168px] items-start justify-between border-b border-border p-5">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  {currentFile?.platformId === "workspace" ? (
-                    <FolderIcon className="h-4 w-4 text-primary" />
-                  ) : currentFile ? (
-                    <PlatformIcon platformId={currentFile.platformId} size={16} className="h-4 w-4" />
-                  ) : (
-                    <BookOpenIcon className="h-4 w-4 text-primary" />
-                  )}
-                  {selectedVersion
-                    ? t("rules.versionPreviewTitle", "Snapshot Preview")
-                    : t("rules.editorCanvas", "Rule Content")}
-                </div>
-                <h3 className="mt-1 truncate text-lg font-semibold text-foreground">
-                  {currentFile?.name || t("rules.title", "Rules")}
-                </h3>
-                <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                  {selectedVersion ? (
-                    <>
-                      <span>{t("rules.versionPreviewReadonly", "Preview mode is read-only.")}</span>
-                      <span>{new Date(selectedVersion.savedAt).toLocaleString()}</span>
-                      <span className="rounded-full bg-muted px-2 py-0.5 text-[10px]">
-                        {getVersionSourceLabel(selectedVersion.source)}
-                      </span>
-                    </>
-                  ) : (
-                    <span>
-                      {hasChanges
-                        ? t("rules.changesTitle", "Unsaved Changes")
-                        : t("rules.versionEditingDraft", "Editing current draft")}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {selectedVersion ? (
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedVersionId(null)}
-                    className="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-                  >
-                    <ArrowLeftIcon className="h-4 w-4" />
-                    {t("rules.versionBackToDraft", "Back to Draft")}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleRestoreVersion}
-                    className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:bg-primary/90"
-                  >
-                    <RotateCcwIcon className="h-4 w-4" />
-                    {t("rules.versionRestoreToDraft", "Restore to Draft")}
-                  </button>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => void handleSave()}
-                  disabled={!currentFile || isSaving || !hasChanges}
-                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <SaveIcon className="h-4 w-4" />
-                  {isSaving ? t("common.saving", "Saving...") : t("common.save", "Save")}
-                </button>
-              )}
-            </div>
-
+          <div className="flex min-h-0 min-w-0 flex-col bg-background">
             {error ? (
               <div className="mx-6 mt-4 flex items-start gap-3 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
                 <AlertCircleIcon className="mt-0.5 h-4 w-4" />

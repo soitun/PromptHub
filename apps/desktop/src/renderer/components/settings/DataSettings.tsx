@@ -187,6 +187,7 @@ export function DataSettings() {
     aiConfig: true,
     settings: true,
     versions: false,
+    rules: true,
     skills: true,
   });
 
@@ -346,6 +347,7 @@ export function DataSettings() {
       skipped.prompts > 0 ? `prompts: ${skipped.prompts}` : null,
       skipped.folders > 0 ? `folders: ${skipped.folders}` : null,
       skipped.versions > 0 ? `versions: ${skipped.versions}` : null,
+      skipped.rules > 0 ? `rules: ${skipped.rules}` : null,
       skipped.skills > 0 ? `skills: ${skipped.skills}` : null,
       skipped.skillVersions > 0 ? `skill versions: ${skipped.skillVersions}` : null,
       skipped.skillFiles > 0 ? `skill files: ${skipped.skillFiles}` : null,
@@ -974,10 +976,11 @@ export function DataSettings() {
                           showToast(
                             t(
                               "toast.selfHostedSyncConnectionSuccess",
-                              "Connection successful. Remote workspace currently stores {{prompts}} prompts, {{folders}} folders, and {{skills}} skills.",
+                              "Connection successful. Remote workspace currently stores {{prompts}} prompts, {{folders}} folders, {{rules}} rules, and {{skills}} skills.",
                               {
                                 prompts: summary.prompts,
                                 folders: summary.folders,
+                                rules: summary.rules,
                                 skills: summary.skills,
                               },
                             ),
@@ -1016,10 +1019,11 @@ export function DataSettings() {
                           showToast(
                             t(
                               "toast.selfHostedSyncPushSuccess",
-                              "Uploaded {{prompts}} prompts, {{folders}} folders, and {{skills}} skills to PromptHub Web.",
+                              "Uploaded {{prompts}} prompts, {{folders}} folders, {{rules}} rules, and {{skills}} skills to PromptHub Web.",
                               {
                                 prompts: summary.prompts,
                                 folders: summary.folders,
+                                rules: summary.rules,
                                 skills: summary.skills,
                               },
                             ),
@@ -1056,10 +1060,11 @@ export function DataSettings() {
                           showToast(
                             t(
                               "toast.selfHostedSyncPullSuccess",
-                              "Restored {{prompts}} prompts, {{folders}} folders, and {{skills}} skills from PromptHub Web.",
+                              "Restored {{prompts}} prompts, {{folders}} folders, {{rules}} rules, and {{skills}} skills from PromptHub Web.",
                               {
                                 prompts: summary.prompts,
                                 folders: summary.folders,
+                                rules: summary.rules,
                                 skills: summary.skills,
                               },
                             ),
@@ -1602,6 +1607,10 @@ export function DataSettings() {
                     label: t("settings.exportVersions", "版本历史"),
                   },
                   {
+                    key: "rules",
+                    label: t("settings.exportRules", "Rules"),
+                  },
+                  {
                     key: "skills",
                     label: t("settings.exportSkills", "Skills"),
                   },
@@ -1643,7 +1652,7 @@ export function DataSettings() {
                 <div className="text-xs text-muted-foreground mt-0.5">
                   {t(
                     "settings.fullBackupDesc",
-                    "用于迁移/跨设备恢复：包含 prompts、图片、AI 配置、系统设置",
+                    "用于迁移/跨设备恢复：包含 prompts、图片、AI 配置、系统设置、规则与技能",
                   )}
                 </div>
               </div>
@@ -2102,7 +2111,7 @@ export function DataSettings() {
                 ).toLocaleString()}
               </p>
               <p>
-                {t("settings.importPreviewCounts", "Will import")}: {importPreview.summary.counts.prompts} prompts, {importPreview.summary.counts.folders} folders, {importPreview.summary.counts.versions} versions, {importPreview.summary.counts.skills} skills
+                {t("settings.importPreviewCounts", "Will import")}: {importPreview.summary.counts.prompts} prompts, {importPreview.summary.counts.folders} folders, {importPreview.summary.counts.versions} versions, {importPreview.summary.counts.rules} rules, {importPreview.summary.counts.skills} skills
               </p>
               <p>
                 {t(

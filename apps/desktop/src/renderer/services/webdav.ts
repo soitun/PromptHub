@@ -103,6 +103,7 @@ interface BackupData {
   // Encryption flag
   // 加密标记
   encrypted?: boolean;
+  rules?: any[];
   // Skills (stored in main process SQLite)
   // 技能（存储在主进程 SQLite）
   skills?: any[];
@@ -536,6 +537,7 @@ export async function uploadToWebDAV(
       aiConfig: fullBackup.aiConfig,
       settings: fullBackup.settings,
       settingsUpdatedAt: fullBackup.settingsUpdatedAt,
+      rules: fullBackup.rules,
       skills: fullBackup.skills,
       skillVersions: fullBackup.skillVersions,
       skillFiles: fullBackup.skillFiles,
@@ -562,6 +564,7 @@ export async function uploadToWebDAV(
           aiConfig: backupData.aiConfig,
           settings: backupData.settings,
           settingsUpdatedAt: backupData.settingsUpdatedAt,
+          rules: backupData.rules,
           skills: backupData.skills,
           skillVersions: backupData.skillVersions,
           skillFiles: backupData.skillFiles,
@@ -732,6 +735,7 @@ export async function incrementalUpload(
       aiConfig: fullBackup.aiConfig,
       settings: fullBackup.settings,
       settingsUpdatedAt: fullBackup.settingsUpdatedAt,
+      rules: fullBackup.rules,
       skills: fullBackup.skills,
       skillVersions: fullBackup.skillVersions,
       skillFiles: fullBackup.skillFiles,
@@ -1063,6 +1067,7 @@ export async function incrementalDownload(
       folders: coreData.folders,
       // Support both desktop `versions` and web `promptVersions` field names
       versions: coreData.versions || coreData.promptVersions || [],
+      rules: coreData.rules,
       skills: coreData.skills,
       skillVersions: coreData.skillVersions,
       skillFiles: coreData.skillFiles,
@@ -1266,6 +1271,7 @@ export async function downloadFromWebDAV(
       folders: data.folders,
       versions: data.versions || [],
       videos: videos || {},
+      rules: data.rules,
       skills: data.skills,
       skillVersions: data.skillVersions,
       skillFiles: data.skillFiles,
