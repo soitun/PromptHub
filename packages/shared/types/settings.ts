@@ -21,6 +21,9 @@ export interface Settings {
   sync?: SyncSettings;
   device?: DeviceManagementSettings;
   updateChannel?: UpdateChannel;
+  // Startup behavior — main process reads these to honor "minimize on launch"
+  launchAtStartup?: boolean;
+  minimizeOnLaunch?: boolean;
   // GitHub personal access token (optional). Used to authenticate GitHub
   // API calls in the skill store so the user isn't limited to 60 req/h.
   // Never sent to third-party hosts; only attached for api.github.com and
@@ -30,6 +33,7 @@ export interface Settings {
   security?: {
     masterPasswordConfigured: boolean;
     unlocked: boolean;
+  
   };
 }
 

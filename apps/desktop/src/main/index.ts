@@ -222,27 +222,51 @@ async function createWindow() {
   });
 
   // Handle window ready-to-show: check if we should minimize on launch
-  // 窗口准备就绪时：检查是否应该启动时最小化
   mainWindow.once("ready-to-show", () => {
-    if (!appDb) {
-      // No database available, show window normally
-      // 数据库不可用，正常显示窗口
+    // OS-level signals that the app was auto-launched hidden:
+    //   - Windows: the registered Run entry passes `--hidden`
+    //   - macOS:   `wasOpenedAsHidden` reflects the `openAsHidden` flag
+    const launchArgs = Array.isArray(process.argv) ? process.argv : [];
+    const hasHiddenArg = launchArgs.includes("--hidden");
+    let openedAsHiddenByOs = false;
+    try {
+      openedAsHiddenByOs =
+        app.getLoginItemSettings().wasOpenedAsHidden === true;
+    } catch (error) {
+      // Electron may throw on systems without an accessible login-items
+      // service (some Linux distros, locked-down corporate macOS). Falling
+      // back to false is the right behavior here, but we log so the
+      // failure is not completely invisible in support logs.
+      console.warn(
+        "Failed to read login item settings; assuming not opened-as-hidden:",
+        error instanceof Error ? error.message : error,
+      );
+      openedAsHiddenByOs = false;
+    }
+    const osRequestedHidden = hasHiddenArg || openedAsHiddenByOs;
+
+    // Fall back to the persisted setting only if the OS didn't already
+    // tell us to start hidden. This also covers users who haven't yet had
+    // the renderer sync their preference to the main DB.
+    const shouldMinimize =
+      osRequestedHidden ||
+      (appDb ? getMinimizeOnLaunchSetting(appDb) : false);
+
+    if (!appDb && !osRequestedHidden) {
+      // No database available and OS didn't request hidden — show normally.
       mainWindow?.show();
       emitWindowVisibility(true);
       return;
     }
 
-    const shouldMinimize = getMinimizeOnLaunchSetting(appDb);
     if (shouldMinimize) {
-      // Minimize to tray on launch
-      // 启动时最小化到托盘
+      // Minimize to tray on launch — ensure tray exists so the user can
+      // bring the window back.
       createTray();
       emitWindowVisibility(false);
       // Don't show window, just keep it hidden
-      // 不显示窗口，保持隐藏
     } else {
       // Show window normally
-      // 正常显示窗口
       mainWindow?.show();
       emitWindowVisibility(true);
     }
@@ -417,7 +441,6 @@ ipcMain.on("window:toggleFullscreen", () => {
 });
 
 // Configure auto launch on login
-// 设置开机自启动
 ipcMain.on(
   "app:setAutoLaunch",
   (_event, enabled: boolean, minimizeOnLaunch?: boolean) => {
@@ -425,12 +448,25 @@ ipcMain.on(
       console.error("app:setAutoLaunch requires enabled to be a boolean");
       return;
     }
-    app.setLoginItemSettings({
-      openAtLogin: enabled,
-      // If minimizeOnLaunch is true, start hidden (minimize to tray on launch)
-      // 如果 minimizeOnLaunch 为 true，则隐藏启动（启动时最小化到托盘）
-      openAsHidden: enabled && minimizeOnLaunch === true,
-    });
+    const startHidden = enabled && minimizeOnLaunch === true;
+    // Pass `--hidden` as a launch arg so Windows (and any other platform where
+    // `openAsHidden` is not honored by the OS) can still detect that the app
+    // should start minimized (#115).
+    try {
+      app.setLoginItemSettings({
+        openAtLogin: enabled,
+        openAsHidden: startHidden,
+        args: startHidden ? ["--hidden"] : [],
+      });
+    } catch (error) {
+      // Never crash the main process from a settings toggle — this IPC is
+      // fire-and-forget from the renderer, so a structured error response
+      // is not available here. Log for support visibility.
+      console.error(
+        "app:setAutoLaunch failed to apply login item settings:",
+        error instanceof Error ? error.message : error,
+      );
+    }
   },
 );
 

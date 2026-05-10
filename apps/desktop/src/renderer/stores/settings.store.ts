@@ -766,6 +766,9 @@ export const useSettingsStore = create<SettingsState>()(
           // Update auto launch with current minimizeOnLaunch setting
           const minimizeOnLaunch = get().minimizeOnLaunch;
           window.electron?.setAutoLaunch?.(enabled, minimizeOnLaunch);
+          // Persist to main process DB so the main-process startup path
+          // can read the setting on next launch (#115).
+          syncSettingsToMain({ launchAtStartup: enabled });
         },
         setMinimizeOnLaunch: (enabled) => {
           setTouched({ minimizeOnLaunch: enabled });
@@ -776,6 +779,11 @@ export const useSettingsStore = create<SettingsState>()(
           if (launchAtStartup) {
             window.electron?.setAutoLaunch?.(true, enabled);
           }
+          // Persist to main process DB so the main-process startup path
+          // can read the setting on next launch (#115). Without this, the
+          // main process always saw the DB default (false) even when the
+          // user had enabled "minimize on launch" in the UI.
+          syncSettingsToMain({ minimizeOnLaunch: enabled });
         },
         setCloseAction: (action) => {
           setTouched({ closeAction: action });
@@ -1395,6 +1403,12 @@ export const useSettingsStore = create<SettingsState>()(
           customSkillPlatformPaths: state?.customSkillPlatformPaths || {},
           skillPlatformOrder: state?.skillPlatformOrder || [],
           skillProjects: state?.skillProjects || [],
+          // Re-sync startup behavior to main DB on rehydrate so the main
+          // process can honor the user's preference on next launch (#115).
+          // This also migrates existing users whose value lives only in
+          // localStorage today.
+          launchAtStartup: state?.launchAtStartup ?? false,
+          minimizeOnLaunch: state?.minimizeOnLaunch ?? false,
         });
       },
     },
