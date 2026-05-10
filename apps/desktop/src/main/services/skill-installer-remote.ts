@@ -262,9 +262,38 @@ export async function resolvePublicAddress(
   };
 }
 
+/**
+ * Hosts on which the user's GitHub token is safe to attach. We only send the
+ * Authorization header to these trusted endpoints so the token is never
+ * leaked to third-party redirects.
+ */
+const GITHUB_AUTH_HOSTS = new Set([
+  "api.github.com",
+  "raw.githubusercontent.com",
+]);
+
+/**
+ * Exported for testability. Returns true iff the hostname is one of the
+ * trusted GitHub endpoints for which it is safe to attach the user's PAT.
+ */
+export function shouldAttachGithubAuth(hostname: string): boolean {
+  return GITHUB_AUTH_HOSTS.has(hostname.toLowerCase());
+}
+
+export interface FetchRemoteTextOptions {
+  /**
+   * Optional GitHub personal access token. Attached as `Authorization:
+   * Bearer <token>` only when the target host is an official GitHub API
+   * endpoint (api.github.com or raw.githubusercontent.com). Redirects to
+   * any other host will drop the token (#108).
+   */
+  githubToken?: string | null;
+}
+
 export async function fetchRemoteText(
   targetUrl: string,
   redirectCount = 0,
+  options: FetchRemoteTextOptions = {},
 ): Promise<string> {
   if (redirectCount > REMOTE_FETCH_MAX_REDIRECTS) {
     throw new Error("Too many redirects while fetching remote content");
@@ -277,6 +306,19 @@ export async function fetchRemoteText(
 
   const resolvedAddress = await resolvePublicAddress(parsedUrl.hostname);
   const requestModule = getRequestModule(parsedUrl.protocol);
+
+  const baseHeaders: Record<string, string> = {
+    Host: parsedUrl.host,
+    "User-Agent": "PromptHub/remote-skill-fetch",
+    Accept: "text/plain, application/json;q=0.9, */*;q=0.1",
+  };
+  // Only attach the user's GitHub token for trusted GitHub endpoints.
+  // Any redirect to a different host will drop the token via the options
+  // fall-through below.
+  if (options.githubToken && shouldAttachGithubAuth(parsedUrl.hostname)) {
+    baseHeaders.Authorization = `Bearer ${options.githubToken}`;
+    baseHeaders["X-GitHub-Api-Version"] = "2022-11-28";
+  }
 
   return new Promise((resolve, reject) => {
     const request = requestModule.request(
@@ -292,11 +334,7 @@ export async function fetchRemoteText(
             : 80,
         path: toRequestPath(parsedUrl),
         method: "GET",
-        headers: {
-          Host: parsedUrl.host,
-          "User-Agent": "PromptHub/remote-skill-fetch",
-          Accept: "text/plain, application/json;q=0.9, */*;q=0.1",
-        },
+        headers: baseHeaders,
         timeout: REMOTE_FETCH_TIMEOUT_MS,
       },
       (response) => {
@@ -310,7 +348,21 @@ export async function fetchRemoteText(
         ) {
           response.resume();
           const nextUrl = new URL(location, parsedUrl).toString();
-          void fetchRemoteText(nextUrl, redirectCount + 1)
+          // Forward the token only if the redirect target is still a
+          // trusted GitHub host; otherwise drop it to avoid leakage.
+          let nextGithubToken: string | null | undefined = options.githubToken;
+          try {
+            const nextHostname = new URL(nextUrl).hostname;
+            if (!shouldAttachGithubAuth(nextHostname)) {
+              nextGithubToken = undefined;
+            }
+          } catch {
+            nextGithubToken = undefined;
+          }
+          void fetchRemoteText(nextUrl, redirectCount + 1, {
+            ...options,
+            githubToken: nextGithubToken,
+          })
             .then(resolve)
             .catch(reject);
           return;

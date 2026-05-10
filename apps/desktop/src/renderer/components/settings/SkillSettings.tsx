@@ -2,6 +2,9 @@ import { useMemo, useState, type DragEvent } from "react";
 import {
   ArrowDownIcon,
   ArrowUpIcon,
+  EyeIcon,
+  EyeOffIcon,
+  ExternalLinkIcon,
   GripVerticalIcon,
   PlusIcon,
   RotateCcwIcon,
@@ -85,6 +88,7 @@ export function SkillSettings() {
   const [dropTargetPlatformId, setDropTargetPlatformId] = useState<string | null>(
     null,
   );
+  const [isGithubTokenVisible, setIsGithubTokenVisible] = useState(false);
 
   const movePlatformOrder = (platformId: string, direction: "up" | "down") => {
     const nextOrder = orderedPlatforms.map((platform) => platform.id);
@@ -154,6 +158,79 @@ export function SkillSettings() {
 
   return (
     <>
+      <SettingSection
+        title={t("settings.githubTokenTitle", "GitHub Access Token")}
+      >
+        <div className="p-4 space-y-3">
+          <p className="text-xs text-muted-foreground">
+            {t(
+              "settings.githubTokenDesc",
+              "Optional. Attach a GitHub personal access token (classic or fine-grained) so Skill Store requests use your authenticated rate limit (5 000 req/h) instead of the anonymous 60 req/h limit. The token is only sent to api.github.com and raw.githubusercontent.com.",
+            )}
+          </p>
+          <div className="flex items-center gap-2">
+            <input
+              type={isGithubTokenVisible ? "text" : "password"}
+              autoComplete="off"
+              spellCheck={false}
+              value={settings.githubToken}
+              onChange={(e) => settings.setGithubToken(e.target.value)}
+              placeholder={t(
+                "settings.githubTokenPlaceholder",
+                "ghp_… or github_pat_…",
+              )}
+              className="flex-1 h-9 px-3 rounded-lg bg-muted border-0 text-sm font-mono placeholder:text-muted-foreground/50"
+              aria-label={t("settings.githubTokenTitle", "GitHub Access Token")}
+            />
+            <button
+              type="button"
+              onClick={() => setIsGithubTokenVisible((prev) => !prev)}
+              className="h-9 px-3 rounded-lg border border-border text-sm text-muted-foreground hover:border-primary/30 hover:text-foreground transition-colors"
+              aria-label={
+                isGithubTokenVisible
+                  ? t("settings.githubTokenHide", "Hide token")
+                  : t("settings.githubTokenShow", "Show token")
+              }
+              title={
+                isGithubTokenVisible
+                  ? t("settings.githubTokenHide", "Hide token")
+                  : t("settings.githubTokenShow", "Show token")
+              }
+            >
+              {isGithubTokenVisible ? (
+                <EyeOffIcon className="h-4 w-4" />
+              ) : (
+                <EyeIcon className="h-4 w-4" />
+              )}
+            </button>
+            {settings.githubToken.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => settings.setGithubToken("")}
+                className="h-9 px-3 rounded-lg border border-border text-sm text-muted-foreground hover:border-primary/30 hover:text-foreground transition-colors"
+              >
+                {t("common.clear", "Clear")}
+              </button>
+            ) : null}
+          </div>
+          <a
+            href="https://github.com/settings/tokens"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+          >
+            <ExternalLinkIcon className="h-3 w-3" />
+            {t("settings.githubTokenLearnMore", "Create a personal access token")}
+          </a>
+          <p className="text-[11px] text-muted-foreground/80">
+            {t(
+              "settings.githubTokenScopeHint",
+              "A read-only token without any scope (public repositories) is enough for the skill store.",
+            )}
+          </p>
+        </div>
+      </SettingSection>
+
       <SettingSection
         title={t("settings.skillInstallMethod", "Skill Install Method")}
       >
