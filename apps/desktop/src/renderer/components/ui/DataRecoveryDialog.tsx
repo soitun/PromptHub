@@ -223,7 +223,7 @@ export function DataRecoveryDialog({
       isOpen={isOpen}
       onClose={requestClose}
       title={t("recovery.title")}
-      size="2xl"
+      size="full"
       showCloseButton={allowWindowClose}
       closeOnBackdrop={allowWindowClose}
       closeOnEscape={allowWindowClose}
@@ -246,7 +246,7 @@ export function DataRecoveryDialog({
               {t("recovery.description")}
             </p>
 
-            <div className="grid gap-4 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+            <div className="grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
               <div className="rounded-xl border border-border bg-accent/20 p-3 flex flex-col gap-3 min-h-[20rem]">
                 <div className="flex items-center justify-between gap-3">
                   <div>

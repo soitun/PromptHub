@@ -20,7 +20,7 @@ import type {
 } from "@prompthub/shared/types";
 import { initDatabase, RuleDB } from "../database";
 import { getRulesDir } from "../runtime-paths";
-import { getPlatformGlobalRulePath } from "./skill-installer-utils";
+import { getPlatformGlobalRulePath, getPlatformRootDir } from "./skill-installer-utils";
 
 const RULE_VERSION_LIMIT = 20;
 const RULE_META_FILE_NAME = "_rule.json";
@@ -450,18 +450,46 @@ export async function listRuleDescriptors(): Promise<RuleFileDescriptor[]> {
 export async function listCachedRuleDescriptors(): Promise<RuleFileDescriptor[]> {
   const records = getRuleDb().getAll();
   if (records.length > 0) {
-    return records.map(descriptorFromRuleRecord);
+    const all = records.map(descriptorFromRuleRecord);
+    // Filter out global platforms that are no longer installed (same logic as scanRuleDescriptors).
+    const filtered = (
+      await Promise.all(
+        all.map(async (descriptor) => {
+          if (descriptor.id.startsWith("project:")) return descriptor;
+          if (descriptor.exists) return descriptor;
+          const platform = getPlatformById(descriptor.platformId);
+          if (!platform) return null;
+          const rootDir = getPlatformRootDir(platform);
+          return (await fileExists(rootDir)) ? descriptor : null;
+        }),
+      )
+    ).filter((item): item is RuleFileDescriptor => item !== null);
+    return filtered;
   }
 
   return scanRuleDescriptors();
 }
 
 export async function scanRuleDescriptors(): Promise<RuleFileDescriptor[]> {
-  const globalDescriptors = await Promise.all(
+  const allGlobalDescriptors = await Promise.all(
     (Object.keys(KNOWN_RULE_FILE_TEMPLATES) as KnownRuleFileId[]).map(async (ruleId) =>
       buildDescriptor(await ensureGlobalRuleMaterialized(ruleId)),
     ),
   );
+
+  // Only include platforms where the app is installed (rootDir exists on disk)
+  // or where the user has already created a rule file in PromptHub.
+  const globalDescriptors = (
+    await Promise.all(
+      allGlobalDescriptors.map(async (descriptor) => {
+        if (descriptor.exists) return descriptor;
+        const platform = getPlatformById(descriptor.platformId);
+        if (!platform) return null;
+        const rootDir = getPlatformRootDir(platform);
+        return (await fileExists(rootDir)) ? descriptor : null;
+      }),
+    )
+  ).filter((item): item is RuleFileDescriptor => item !== null);
 
   const projectDescriptors = await Promise.all(
     (await listProjectMetaPaths()).map(async (metaPath) => {

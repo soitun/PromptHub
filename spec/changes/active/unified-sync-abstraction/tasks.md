@@ -8,6 +8,7 @@
 - [ ] 实施 self-hosted adapter 接入统一 orchestrator
 - [ ] Web 路由切换到 orchestrator（保留旧路径开关）
 - [ ] Desktop 入口切换到 orchestrator（保留旧路径开关）
+- [x] Desktop 手动备份入口接入 orchestrator（`DataSettings` + `UpdateDialog`）
 - [ ] 统一错误码与返回摘要结构
 - [ ] 增补测试：契约测试、provider 适配测试、端到端回归
 - [x] 更新 implementation.md

@@ -5,12 +5,10 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeSanitize from 'rehype-sanitize';
 import { useSettingsStore } from '../stores/settings.store';
-import { downloadCompressedBackup } from "../services/database-backup";
 import {
   getManualBackupStatus,
-  recordManualBackup,
 } from "../services/backup-status";
-import { createUpgradeBackup } from "../services/upgrade-backup";
+import { runPreUpgradeBackup } from "../services/backup-orchestrator";
 
 export interface UpdateInfo {
   version: string;
@@ -248,9 +246,7 @@ export function UpdateDialog({ isOpen, onClose, initialStatus }: UpdateDialogPro
 
     setIsCreatingBackup(true);
     try {
-      await createUpgradeBackup({ fromVersion: currentVersion });
-      await downloadCompressedBackup();
-      const status = await recordManualBackup(currentVersion);
+      const status = await runPreUpgradeBackup(currentVersion);
       setLastManualBackupAt(status.lastManualBackupAt);
       setLastManualBackupVersion(status.lastManualBackupVersion);
     } finally {

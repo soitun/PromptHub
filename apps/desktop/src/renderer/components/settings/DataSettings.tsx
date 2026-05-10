@@ -18,8 +18,6 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
-  downloadBackup,
-  downloadCompressedBackup,
   downloadSelectiveExport,
   previewImportFile,
   restoreFromFile,
@@ -31,8 +29,8 @@ import {
   restoreUpgradeBackup,
 } from "../../services/upgrade-backup";
 import { hasAnySkipped } from "../../services/database-backup-format";
-import { recordManualBackup } from "../../services/backup-status";
 import { clearDatabase } from "../../services/database";
+import { runFullExportBackup } from "../../services/backup-orchestrator";
 import {
   testConnection,
   uploadToWebDAV,
@@ -342,18 +340,11 @@ export function DataSettings({ activeSubsection = "local" }: DataSettingsProps) 
 
   const handleFullBackup = async (compressed: boolean) => {
     try {
-      await createUpgradeBackup(
-        currentVersion ? { fromVersion: currentVersion } : undefined,
-      );
-
-      if (compressed) {
-        await downloadCompressedBackup();
-      } else {
-        await downloadBackup();
-      }
-      if (currentVersion) {
-        await recordManualBackup(currentVersion);
-      }
+      await runFullExportBackup({
+        currentVersion,
+        compressed,
+        recordManualBackup: true,
+      });
       showToast(t("toast.exportSuccess"), "success");
     } catch (error) {
       console.error("Backup failed:", error);
