@@ -84,6 +84,7 @@
     "create": "Erstellen",
     "noPrompts": "Keine Prompts",
     "addFirst": "Klicken Sie auf \"Neu\", um Ihren ersten Prompt zu erstellen",
+    "resizeListPaneAria": "Prompt-Liste anpassen",
     "selectPrompt": "Wählen Sie einen Prompt",
     "selectPromptDesc": "Wählen Sie einen Prompt aus der Liste, um Details anzuzeigen, oder klicken Sie auf \"Neu\"",
     "variableHint": "Verwenden Sie {{variablenName}} um Variablen zu definieren",

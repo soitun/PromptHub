@@ -60,8 +60,12 @@ export function PromptListView({
           {/* 标题和描述 */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <h3 className={`font-medium text-sm truncate ${selectedId === prompt.id ? 'text-primary' : 'text-foreground'
-                }`}>
+              <h3
+                className={`font-medium text-sm leading-snug break-words line-clamp-2 ${
+                  selectedId === prompt.id ? 'text-primary' : 'text-foreground'
+                }`}
+                title={prompt.title}
+              >
                 {prompt.title}
               </h3>
               {prompt.isFavorite && (
@@ -69,7 +73,7 @@ export function PromptListView({
               )}
             </div>
             {prompt.description && (
-              <p className="text-xs text-muted-foreground truncate mt-0.5">
+              <p className="text-xs text-muted-foreground line-clamp-2 break-words mt-0.5">
                 {prompt.description}
               </p>
             )}
