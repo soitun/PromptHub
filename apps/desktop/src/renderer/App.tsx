@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, lazy, Suspense } from "react";
+import { useCallback, useEffect, useRef, useState, lazy, Suspense } from "react";
 import type { RecoveryCandidate } from "@prompthub/shared/types";
 import { Sidebar, TopBar, MainContent, TitleBar } from "./components/layout";
 import { usePromptStore } from "./stores/prompt.store";
@@ -94,11 +94,20 @@ function App() {
   const [isOsFullscreen, setIsOsFullscreen] = useState(false);
 
   // Update state
-  // 更新状态
   const [showUpdateDialog, setShowUpdateDialog] = useState(false);
   const [initialUpdateStatus, setInitialUpdateStatus] =
     useState<UpdateStatus | null>(null);
   const lastUpdateStatusRef = useRef<UpdateStatus | null>(null);
+
+  // Open the update dialog, seeding the last known status so both the TopBar
+  // button and the custom `open-update-dialog` event start the dialog from
+  // the same baseline. Without this, TopBar opened with a stale
+  // `initialUpdateStatus` from a previous session and the dialog briefly
+  // showed the wrong state before re-checking (review feedback on #122).
+  const openUpdateDialog = useCallback(() => {
+    setInitialUpdateStatus(lastUpdateStatusRef.current);
+    setShowUpdateDialog(true);
+  }, []);
 
   // Close dialog state (Windows)
   // 关闭对话框状态（Windows）
@@ -298,7 +307,6 @@ function App() {
     });
 
     // Listen for update status
-    // 监听更新状态
     const handleStatus = (status: UpdateStatus) => {
       const previousStatus = lastUpdateStatusRef.current;
       const shouldIgnoreTransientChecking =
@@ -318,9 +326,12 @@ function App() {
         setUpdateAvailable(null);
       }
 
-      if (showUpdateDialog) {
-        setInitialUpdateStatus(status);
-      }
+      // While the dialog is open, it owns its status via its own onStatus
+      // listener. Re-pushing the status into `initialUpdateStatus` here
+      // created a feedback loop — the dialog's useEffect depends on
+      // `initialStatus`, so every push would trigger another check, which
+      // then produced the next status update, and so on. This was the
+      // root cause of the flickering reported in #117/#118.
     };
 
     const offUpdaterStatus = window.electron?.updater?.onStatus(handleStatus);
@@ -400,10 +411,8 @@ function App() {
     updateCheckTimer = setInterval(checkForUpdates, UPDATE_CHECK_INTERVAL);
 
     // Listen for manual check trigger - always force a fresh check
-    // 监听手动检查触发（始终强制刷新检查状态）
     const handleOpenUpdate = () => {
-      setInitialUpdateStatus(lastUpdateStatusRef.current);
-      setShowUpdateDialog(true);
+      openUpdateDialog();
     };
     window.addEventListener("open-update-dialog", handleOpenUpdate);
 
@@ -437,7 +446,13 @@ function App() {
       }
       window.removeEventListener("open-update-dialog", handleOpenUpdate);
     };
-  }, [showUpdateDialog]);
+    // `openUpdateDialog` is wrapped in useCallback with an empty dep array,
+    // so it is stable for the lifetime of this component. `handleOpenUpdate`
+    // calls it via closure, so listing `openUpdateDialog` (instead of the
+    // previous `showUpdateDialog`, which was no longer read inside the
+    // effect) avoids the unnecessary listener/timer churn flagged in the
+    // review.
+  }, [openUpdateDialog]);
 
   // Handle dragging a prompt into a folder
   // 处理 Prompt 拖拽到文件夹
@@ -923,7 +938,7 @@ function App() {
               <TopBar
                 onOpenSettings={() => setCurrentPage("settings")}
                 updateAvailable={updateAvailable}
-                onShowUpdateDialog={() => setShowUpdateDialog(true)}
+                onShowUpdateDialog={openUpdateDialog}
               />
 
               <div className="flex min-h-0 flex-1 overflow-hidden">
