@@ -1173,6 +1173,8 @@
     "confirmUninstallTitle": "确认卸载",
     "confirmUninstallMessage": "确定要从 {{platform}} 卸载此技能吗？",
     "installSuccess": "操作成功",
+    "installPartialFailure": "部分平台安装失败\n{{details}}",
+    "installFailureRow": "{{platform}}：{{reason}}",
     "uninstallSuccess": "卸载成功",
     "aiGenerate": "AI 生成",
     "generating": "生成中...",

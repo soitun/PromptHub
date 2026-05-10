@@ -451,6 +451,33 @@ export function SkillFullDetailPage({
           "success",
         );
       }
+      // Surface per-platform failures instead of swallowing them. Without
+      // this, a partial failure looked like a silent success — the user
+      // saw e.g. "2/3" in the toast but had no idea which platform failed
+      // or why. See #93.
+      if (result.failures.length > 0) {
+        const details = result.failures
+          .map((failure) => {
+            const platform = availablePlatforms.find(
+              (entry) => entry.id === failure.platformId,
+            );
+            const label = platform?.name ?? failure.platformId;
+            return t("skill.installFailureRow", {
+              platform: label,
+              reason: failure.reason,
+              defaultValue: "{{platform}}: {{reason}}",
+            });
+          })
+          .join("\n");
+        showToast(
+          t("skill.installPartialFailure", {
+            details,
+            defaultValue:
+              "Some platforms could not be installed\n{{details}}",
+          }),
+          "error",
+        );
+      }
     } catch (error) {
       console.error("Batch install failed:", error);
       showToast(

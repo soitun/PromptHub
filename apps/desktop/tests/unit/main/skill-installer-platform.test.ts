@@ -112,4 +112,33 @@ describe("skill-installer-platform symlink install", () => {
       "dir",
     );
   });
+
+  it("falls back to copy install for UNKNOWN errors (Windows without Developer Mode)", async () => {
+    // Node can surface Windows symlink permission failures as code "UNKNOWN"
+    // (not just "EPERM"). Before #93 this escaped the fallback and threw all
+    // the way up to the renderer, where the error was silently console.errored
+    // and the user saw no install and no explanation.
+    fsMocks.symlink.mockRejectedValueOnce(
+      Object.assign(new Error("unknown symlink failure"), { code: "UNKNOWN" }),
+    );
+
+    await installSkillMdSymlink("demo-skill", "# skill", "claude");
+
+    expect(fsMocks.writeFile).toHaveBeenCalledWith(
+      "/platform/skills/demo-skill/SKILL.md",
+      "# skill",
+      "utf-8",
+    );
+  });
+
+  it("rethrows with an actionable error message when no fallback applies", async () => {
+    const rootCause = Object.assign(new Error("disk is full"), {
+      code: "ENOSPC",
+    });
+    fsMocks.symlink.mockRejectedValueOnce(rootCause);
+
+    await expect(
+      installSkillMdSymlink("demo-skill", "# skill", "claude"),
+    ).rejects.toThrowError(/Symlink install failed for "demo-skill"/);
+  });
 });

@@ -390,7 +390,18 @@ export async function installSkillMdSymlink(
   } catch (error) {
     const code = getErrorCode(error);
     const message = error instanceof Error ? error.message : String(error);
-    if (code === "EPERM" || code === "EACCES" || code === "ENOTSUP") {
+    // Windows needs either admin or Developer Mode to call CreateSymbolicLink.
+    // macOS/Linux commonly fail with EACCES on read-only file systems. In all
+    // these cases the copy fallback is the right behavior — the user still
+    // gets the skill installed. We log a structured warning so that a
+    // partial-failure toast (see renderer #93 handling) can tell the user
+    // that a copy was used instead of a symlink.
+    if (
+      code === "EPERM" ||
+      code === "EACCES" ||
+      code === "ENOTSUP" ||
+      code === "UNKNOWN"
+    ) {
       await fallbackInstall(`${code}: ${message}`);
       return;
     }
@@ -399,6 +410,16 @@ export async function installSkillMdSymlink(
       `Failed to create symlink for "${skillName}" to ${platform.name}:`,
       error,
     );
-    throw error;
+    // Rethrow with a more actionable message so the renderer can show a
+    // localizable error. The raw node error message is preserved in .cause.
+    const formatted = new Error(
+      `Symlink install failed for "${skillName}" on ${platform.name}: ${message}${
+        code ? ` (${code})` : ""
+      }`,
+    );
+    if (error instanceof Error) {
+      (formatted as Error & { cause?: unknown }).cause = error;
+    }
+    throw formatted;
   }
 }
