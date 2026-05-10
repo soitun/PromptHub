@@ -191,7 +191,7 @@ const settingsSchema = z.object({
   customSkillPlatformPaths: z.record(z.string()).optional(),
   sync: z.object({
     enabled: z.boolean(),
-    provider: z.enum(['manual', 'webdav']),
+    provider: z.enum(['manual', 'webdav', 'self-hosted', 's3']),
     endpoint: z.string().url().optional(),
     username: z.string().optional(),
     password: z.string().optional(),

@@ -53,9 +53,12 @@ export const IPC_CHANNELS = {
   RULES_ADD_PROJECT: "rules:addProject",
   RULES_REMOVE_PROJECT: "rules:removeProject",
   RULES_IMPORT_RECORDS: "rules:importRecords",
+  RULES_VERSION_DELETE: "rules:version:delete",
 
   // App lifecycle
   APP_RELAUNCH: "app:relaunch",
+  APP_GET_CACHE_SIZE: "app:getCacheSize",
+  APP_CLEAR_CACHE: "app:clearCache",
 
   // AI transport
   AI_HTTP_REQUEST: "ai:httpRequest",

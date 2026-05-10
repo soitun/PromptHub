@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import type { RuleVersionSnapshot } from "@prompthub/shared/types";
+import type { RuleFileId } from "@prompthub/shared/types";
 import {
   AlertCircleIcon,
   ArrowLeftIcon,
   BookOpenIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
   FileTextIcon,
   FolderIcon,
   FolderOpenIcon,
@@ -13,6 +16,7 @@ import {
   RotateCcwIcon,
   SaveIcon,
   SparklesIcon,
+  Trash2Icon,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -20,6 +24,7 @@ import { useRulesStore } from "../../stores/rules.store";
 import { useToast } from "../ui/Toast";
 import { PlatformIcon } from "../ui/PlatformIcon";
 import { generateTextDiff } from "../skill/detail-utils";
+import { ConfirmDialog } from "../ui/ConfirmDialog";
 
 export function RulesManager() {
   const { t } = useTranslation();
@@ -39,6 +44,12 @@ export function RulesManager() {
   const setAiInstruction = useRulesStore((state) => state.setAiInstruction);
   const saveCurrentRule = useRulesStore((state) => state.saveCurrentRule);
   const rewriteCurrentRule = useRulesStore((state) => state.rewriteCurrentRule);
+  const deleteRuleVersion = useRulesStore((state) => state.deleteRuleVersion);
+
+  const [showAllVersions, setShowAllVersions] = useState(false);
+  const VISIBLE_SNAPSHOTS_LIMIT = 5;
+  const [deleteConfirm, setDeleteConfirm] = useState<{ ruleId: string; versionId: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (!hasLoadedFiles) {
@@ -48,6 +59,7 @@ export function RulesManager() {
 
   useEffect(() => {
     setSelectedVersionId(null);
+    setShowAllVersions(false);
   }, [currentFile?.id]);
 
   useEffect(() => {
@@ -151,6 +163,7 @@ export function RulesManager() {
   const editorCharCount = editorContent.length;
 
   return (
+    <>
     <div className="flex h-full min-h-0 bg-background">
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="grid min-h-0 flex-1 grid-cols-[minmax(280px,340px)_minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)]">
@@ -215,7 +228,7 @@ export function RulesManager() {
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <FileTextIcon className="h-4 w-4 text-primary" />
                 {selectedVersion
-                  ? "快照对比 (→ 当前草稿)"
+                  ? t("rules.diffSnapshotHeader", "Snapshot vs Current Draft")
                   : t("rules.editorCanvas", "Rule Content")}
               </div>
               <h3 className="mt-1 truncate text-lg font-semibold text-foreground">
@@ -306,7 +319,7 @@ export function RulesManager() {
                 {aiSummary ? (
                   <div className="mt-2 flex items-start gap-2 rounded-lg border border-primary/20 bg-primary/8 px-3 py-2 text-xs text-primary">
                     <SparklesIcon className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                    <span>{aiSummary}</span>
+                    <span>{t("rules.aiRewriteSummary", "AI has generated a new draft. Review it and save when ready.")}</span>
                   </div>
                 ) : null}
                 <button
@@ -341,59 +354,111 @@ export function RulesManager() {
                 </p>
                 <div className="mt-3 space-y-2">
                   {currentFile?.versions?.length ? (
-                    currentFile.versions.map((version) => {
-                      const isCurrent = version.id === currentSavedVersionId;
-                      const isSelected = selectedVersionId === version.id;
-                      return (
-                        <button
-                          key={version.id}
-                          type="button"
-                          onClick={() => {
-                            if (isCurrent) return;
-                            setSelectedVersionId((currentId) =>
-                              currentId === version.id ? null : version.id,
-                            );
-                          }}
-                          aria-pressed={isSelected}
-                          className={`w-full rounded-xl border px-3 py-3 text-left transition-all ${
-                            isCurrent
-                              ? "cursor-default border-border bg-card/60 opacity-75"
-                              : isSelected
-                                ? "border-primary/50 bg-primary/8 shadow-sm ring-1 ring-primary/20"
-                                : "border-border bg-card/60 hover:border-border/80 hover:bg-muted/60"
-                          }`}
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-1.5 flex-wrap">
-                                <span className="text-xs font-medium text-foreground">
-                                  {new Date(version.savedAt).toLocaleString()}
-                                </span>
-                                {isCurrent && (
-                                  <span className="inline-flex items-center rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
-                                    ✓ 当前
+                    <>
+                      {(showAllVersions
+                        ? currentFile.versions
+                        : currentFile.versions.slice(0, VISIBLE_SNAPSHOTS_LIMIT)
+                      ).map((version) => {
+                        const isCurrent = version.id === currentSavedVersionId;
+                        const isSelected = selectedVersionId === version.id;
+                        return (
+                          <div
+                            key={version.id}
+                            role="button"
+                            tabIndex={0}
+                            aria-pressed={isSelected}
+                            onClick={() => {
+                              if (isCurrent) return;
+                              setSelectedVersionId((currentId) =>
+                                currentId === version.id ? null : version.id,
+                              );
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                if (isCurrent) return;
+                                setSelectedVersionId((currentId) =>
+                                  currentId === version.id ? null : version.id,
+                                );
+                              }
+                            }}
+                            className={`group relative w-full rounded-xl border px-3 py-3 text-left transition-all ${
+                              isCurrent
+                                ? "cursor-default border-border bg-card/60 opacity-75"
+                                : isSelected
+                                  ? "cursor-pointer border-primary/50 bg-primary/8 shadow-sm ring-1 ring-primary/20"
+                                  : "cursor-pointer border-border bg-card/60 hover:border-border/80 hover:bg-muted/60"
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="text-xs font-medium text-foreground">
+                                    {new Date(version.savedAt).toLocaleString()}
                                   </span>
+                                  {isCurrent && (
+                                    <span className="inline-flex items-center rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
+                                      ✓ {t("rules.versionCurrentLabel")}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="mt-1 truncate text-[11px] leading-4 text-muted-foreground">
+                                  {version.content
+                                    .split("\n")
+                                    .map((line) => line.trim())
+                                    .find(Boolean) ||
+                                    t("rules.emptyHint", "Rule content will appear here.")}
+                                </div>
+                              </div>
+                              <div className="flex shrink-0 items-center gap-1.5">
+                                <span className={`rounded-full px-2 py-0.5 text-[10px] ${
+                                  version.source === "ai-rewrite"
+                                    ? "bg-primary/10 text-primary"
+                                    : "bg-muted text-muted-foreground"
+                                }`}>
+                                  {getVersionSourceLabel(version.source)}
+                                </span>
+                                {!isCurrent && (
+                                  <button
+                                    type="button"
+                                    aria-label={t("rules.versionDeleteAction")}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (!currentFile) return;
+                                      setDeleteConfirm({ ruleId: currentFile.id, versionId: version.id });
+                                    }}
+                                    className="hidden rounded-md p-1 text-muted-foreground opacity-0 transition-all hover:bg-destructive/10 hover:text-destructive group-hover:flex group-hover:opacity-100"
+                                  >
+                                    <Trash2Icon className="h-3 w-3" />
+                                  </button>
                                 )}
                               </div>
-                              <div className="mt-1 truncate text-[11px] leading-4 text-muted-foreground">
-                                {version.content
-                                  .split("\n")
-                                  .map((line) => line.trim())
-                                  .find(Boolean) ||
-                                  t("rules.emptyHint", "Rule content will appear here.")}
-                              </div>
                             </div>
-                            <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] ${
-                              version.source === "ai-rewrite"
-                                ? "bg-primary/10 text-primary"
-                                : "bg-muted text-muted-foreground"
-                            }`}>
-                              {getVersionSourceLabel(version.source)}
-                            </span>
                           </div>
+                        );
+                      })}
+                      {currentFile.versions.length > VISIBLE_SNAPSHOTS_LIMIT && (
+                        <button
+                          type="button"
+                          onClick={() => setShowAllVersions((v) => !v)}
+                          className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-border py-2 text-xs text-muted-foreground transition-colors hover:border-border/80 hover:bg-muted/40 hover:text-foreground"
+                        >
+                          {showAllVersions ? (
+                            <>
+                              <ChevronUpIcon className="h-3.5 w-3.5" />
+                              {t("rules.versionShowLess")}
+                            </>
+                          ) : (
+                            <>
+                              <ChevronDownIcon className="h-3.5 w-3.5" />
+                              {t("rules.versionShowMore", {
+                                count: currentFile.versions.length - VISIBLE_SNAPSHOTS_LIMIT,
+                              })}
+                            </>
+                          )}
                         </button>
-                      );
-                    })
+                      )}
+                    </>
                   ) : (
                     <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-border px-4 py-6 text-center">
                       <HistoryIcon className="h-6 w-6 text-muted-foreground/40" />
@@ -431,7 +496,7 @@ export function RulesManager() {
                         <HistoryIcon className="h-3 w-3" />
                         {new Date(selectedVersion!.savedAt).toLocaleString()}
                       </span>
-                      <span className="text-muted-foreground">→ 当前草稿</span>
+                      <span className="text-muted-foreground">→ {t("rules.diffCurrentDraft", "Current Draft")}</span>
                     </div>
                     <div className="flex items-center gap-3 text-muted-foreground">
                       <span className="text-emerald-500 dark:text-emerald-400">
@@ -496,21 +561,32 @@ export function RulesManager() {
                 </div>
               ) : (
                 /* Normal editor */
-                <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+                <div className={`flex h-full min-h-0 flex-col overflow-hidden rounded-xl border bg-card shadow-sm transition-colors ${isRewriting ? "border-primary/40" : "border-border"}`}>
                   <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border/70 bg-muted/30 px-4 py-2.5 text-xs">
-                    <span className="text-muted-foreground">
-                      {t("rules.draftEditMode", "Draft editor - not saved until you click Save")}
-                    </span>
+                    {isRewriting ? (
+                      <span className="flex items-center gap-1.5 text-primary">
+                        <svg className="h-3 w-3 animate-spin" viewBox="0 0 24 24" fill="none">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                        </svg>
+                        {t("rules.aiRewriteWorking", "Generating draft...")}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">
+                        {t("rules.draftEditMode", "Draft editor - not saved until you click Save")}
+                      </span>
+                    )}
                     <div className="flex items-center gap-3 text-muted-foreground">
-                      <span>{editorLineCount} {editorLineCount === 1 ? "line" : "lines"}</span>
+                      <span>{t("rules.editorLineCount", "{{count}} lines", { count: editorLineCount })}</span>
                       <span className="text-border">·</span>
-                      <span>{editorCharCount} chars</span>
+                      <span>{t("rules.editorCharCount", "{{count}} chars", { count: editorCharCount })}</span>
                     </div>
                   </div>
                   <textarea
                     value={editorContent}
                     onChange={(event) => setDraftContent(event.target.value)}
-                    className="h-full min-h-0 w-full flex-1 resize-none bg-card p-5 font-mono text-sm leading-relaxed text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:ring-1 focus:ring-primary/30"
+                    readOnly={isRewriting}
+                    className={`h-full min-h-0 w-full flex-1 resize-none bg-card p-5 font-mono text-sm leading-relaxed text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:ring-1 focus:ring-primary/30 ${isRewriting ? "cursor-not-allowed opacity-50" : ""}`}
                     placeholder={t("rules.emptyHint", "Rule content will appear here.")}
                     spellCheck={false}
                   />
@@ -521,5 +597,34 @@ export function RulesManager() {
         </div>
       </div>
     </div>
+    <ConfirmDialog
+      isOpen={deleteConfirm !== null}
+      onClose={() => setDeleteConfirm(null)}
+      onConfirm={() => {
+        if (!deleteConfirm) return;
+        setIsDeleting(true);
+        void (async () => {
+          try {
+            await deleteRuleVersion(deleteConfirm.ruleId as RuleFileId, deleteConfirm.versionId);
+            if (selectedVersionId === deleteConfirm.versionId) {
+              setSelectedVersionId(null);
+            }
+            showToast(t("rules.versionDeleteDone"), "success");
+          } catch {
+            showToast(t("common.error"), "error");
+          } finally {
+            setIsDeleting(false);
+            setDeleteConfirm(null);
+          }
+        })();
+      }}
+      title={t("rules.versionDeleteAction")}
+      message={t("rules.versionDeleteConfirmMessage")}
+      confirmText={t("common.delete")}
+      cancelText={t("common.cancel")}
+      variant="destructive"
+      isLoading={isDeleting}
+    />
+    </>
   );
 }

@@ -12,11 +12,10 @@ import {
 } from "./stores/settings.store";
 import { initDatabase, migrateLegacyIndexedDbToMainProcess } from "./services/database";
 import { ImportedPromptData } from "./components/prompt/ImportPromptModal";
-import { autoSync } from "./services/webdav";
 import {
-  pullFromSelfHostedWeb,
-  pushToSelfHostedWeb,
-} from "./services/self-hosted-sync";
+  runSelfHostedAutoSync,
+  runWebDAVAutoSync,
+} from "./services/backup-orchestrator";
 import {
   hasValidSelfHostedConfig,
   hasValidWebDAVConfig,
@@ -616,20 +615,22 @@ function App() {
       isWebDAVSyncInFlightRef.current = true;
 
       try {
-        const result = await autoSync(
+        const result = await runWebDAVAutoSync(
           {
-            url: settings.webdavUrl,
-            username: settings.webdavUsername,
-            password: settings.webdavPassword,
-          },
-          {
-            includeImages: settings.webdavIncludeImages,
-            incrementalSync: settings.webdavIncrementalSync,
-            encryptionPassword:
-              settings.webdavEncryptionEnabled &&
-              settings.webdavEncryptionPassword
-                ? settings.webdavEncryptionPassword
-                : undefined,
+            config: {
+              url: settings.webdavUrl,
+              username: settings.webdavUsername,
+              password: settings.webdavPassword,
+            },
+            options: {
+              includeImages: settings.webdavIncludeImages,
+              incrementalSync: settings.webdavIncrementalSync,
+              encryptionPassword:
+                settings.webdavEncryptionEnabled &&
+                settings.webdavEncryptionPassword
+                  ? settings.webdavEncryptionPassword
+                  : undefined,
+            },
           },
         );
 
@@ -697,25 +698,19 @@ function App() {
       isSelfHostedSyncInFlightRef.current = true;
 
       try {
-        const summary =
-          reason === "interval"
-            ? await pushToSelfHostedWeb({
-                url: settings.selfHostedSyncUrl,
-                username: settings.selfHostedSyncUsername,
-                password: settings.selfHostedSyncPassword,
-              })
-            : await pullFromSelfHostedWeb({
-                url: settings.selfHostedSyncUrl,
-                username: settings.selfHostedSyncUsername,
-                password: settings.selfHostedSyncPassword,
-              }, {
-                mode: "replace",
-              });
+        const result = await runSelfHostedAutoSync(reason, {
+          url: settings.selfHostedSyncUrl,
+          username: settings.selfHostedSyncUsername,
+          password: settings.selfHostedSyncPassword,
+        });
 
-        console.log(
-          `✅ self-hosted ${reason === "interval" ? "push" : "pull"} sync completed: ${summary.prompts} prompts, ${summary.folders} folders, ${summary.skills} skills`,
-        );
-        if (reason !== "interval") {
+        if (!result.success) {
+          console.error(`⚠️ self-hosted ${reason} sync error:`, result.message);
+          return;
+        }
+
+        console.log(`✅ ${result.message}`);
+        if (result.localChanged) {
           await Promise.all([fetchPrompts(), fetchFolders()]);
         }
       } catch (syncError) {

@@ -476,6 +476,16 @@ ipcMain.handle(IPC_CHANNELS.APP_RELAUNCH, () => {
   return { success: true };
 });
 
+ipcMain.handle(IPC_CHANNELS.APP_GET_CACHE_SIZE, async () => {
+  const size = await session.defaultSession.getCacheSize();
+  return { size };
+});
+
+ipcMain.handle(IPC_CHANNELS.APP_CLEAR_CACHE, async () => {
+  await session.defaultSession.clearCache();
+  return { success: true };
+});
+
 // Configure minimize-to-tray behavior
 // 设置最小化到托盘
 ipcMain.on("app:setMinimizeToTray", (_event, enabled: boolean) => {

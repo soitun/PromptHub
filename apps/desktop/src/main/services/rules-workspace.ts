@@ -586,6 +586,26 @@ export async function saveRuleContent(
   };
 }
 
+export async function deleteRuleVersion(
+  ruleId: RuleFileId,
+  versionId: string,
+): Promise<RuleVersionSnapshot[]> {
+  const versionDir = getRuleVersionsDir(ruleId);
+  const index = await readVersionIndex(ruleId);
+  const entry = index.find((e) => e.id === versionId);
+  if (!entry) {
+    return readRuleVersions(ruleId);
+  }
+  const nextIndex = index.filter((e) => e.id !== versionId);
+  await writeVersionIndex(ruleId, nextIndex);
+  try {
+    await fsp.rm(path.join(versionDir, entry.fileName), { force: true });
+  } catch {
+    // ignore file deletion failures
+  }
+  return readRuleVersions(ruleId);
+}
+
 export async function createProjectRule(
   input: CreateRuleProjectInput,
 ): Promise<RuleFileDescriptor> {

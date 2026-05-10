@@ -8,24 +8,23 @@ import type {
   Settings,
   Skill,
   SkillVersion,
+  SyncProviderKind,
   SyncSettings,
 } from '@prompthub/shared';
 import { getAuthUser } from '../middleware/auth.js';
 import { BackupService } from '../services/backup.service.js';
 import { SettingsService } from '../services/settings.service.js';
-import { pullWebDavFile, pushWebDavFile, testWebDavConnection, mkcolWebDavDirectory } from '../services/webdav.server.js';
+import {
+  pullWebDavSnapshot,
+  pushWebDavSnapshot,
+  REMOTE_BACKUP_DATA_FILE,
+} from '../services/sync-orchestrator.js';
 import { error, ErrorCode, success } from '../utils/response.js';
 import { parseJsonBody } from '../utils/validation.js';
 
 const sync = new Hono();
 const backupService = new BackupService();
 const settingsService = new SettingsService();
-
-// Unified path shared with desktop. Legacy path kept for pull fallback (migration).
-const REMOTE_BACKUP_DIR = 'prompthub-backup';
-const REMOTE_BACKUP_DATA_FILE = 'prompthub-backup/data.json';
-const REMOTE_MANIFEST_FILE = 'prompthub-backup/manifest.json';
-const LEGACY_REMOTE_BACKUP_FILE = 'prompthub-web-backup.json';
 
 interface NormalizedSyncPayload {
   version: string;
@@ -39,6 +38,13 @@ interface NormalizedSyncPayload {
   skillVersions: SkillVersion[];
   settings: Settings;
   settingsUpdatedAt?: string;
+}
+
+interface SyncOperationSummary {
+  prompts: number;
+  folders: number;
+  rules: number;
+  skills: number;
 }
 
 const ruleVersionSchema = z.object({
@@ -224,7 +230,7 @@ const importPayloadSchema = z.object({
       customSkillPlatformPaths: z.record(z.string()).optional(),
       sync: z.object({
         enabled: z.boolean(),
-        provider: z.enum(['manual', 'webdav']),
+        provider: z.enum(['manual', 'webdav', 'self-hosted', 's3']),
         endpoint: z.string().url().optional(),
         username: z.string().optional(),
         password: z.string().optional(),
@@ -244,7 +250,7 @@ const importPayloadSchema = z.object({
 
 const syncConfigSchema = z.object({
   enabled: z.boolean(),
-  provider: z.enum(['manual', 'webdav']),
+  provider: z.enum(['manual', 'webdav', 'self-hosted', 's3']),
   endpoint: z.string().url().optional(),
   username: z.string().optional(),
   password: z.string().optional(),
@@ -269,7 +275,7 @@ function assertWebDavConfig(settings: SyncSettings): asserts settings is SyncSet
 
 function buildSyncStatus(userId: string, payload: { exportedAt: string; prompts: unknown[]; folders: unknown[]; skills: unknown[] }): {
   enabled: boolean;
-  provider: 'manual' | 'webdav';
+  provider: SyncProviderKind;
   lastSyncAt: string;
   summary: {
     prompts: number;
@@ -290,6 +296,10 @@ function buildSyncStatus(userId: string, payload: { exportedAt: string; prompts:
       ? syncSettings.enabled
         ? 'WebDAV sync is configured for this account'
         : 'WebDAV sync is configured but currently disabled'
+      : syncSettings.provider === 'self-hosted'
+        ? 'Self-hosted sync is configured for this account'
+        : syncSettings.provider === 's3'
+          ? 'S3 sync is configured for this account'
       : 'Manual sync is available for this account';
 
   return {
@@ -309,6 +319,72 @@ function buildSyncStatus(userId: string, payload: { exportedAt: string; prompts:
       autoSync: Boolean(syncSettings.enabled && syncSettings.autoSync && syncSettings.provider === 'webdav'),
     },
   };
+}
+
+function buildSummaryFromExport(payload: {
+  prompts: unknown[];
+  folders: unknown[];
+  rules?: unknown[];
+  skills: unknown[];
+}): SyncOperationSummary {
+  return {
+    prompts: payload.prompts.length,
+    folders: payload.folders.length,
+    rules: payload.rules?.length ?? 0,
+    skills: payload.skills.length,
+  };
+}
+
+function buildSummaryFromImport(result: {
+  promptsImported: number;
+  foldersImported: number;
+  rulesImported?: number;
+  skillsImported: number;
+}): SyncOperationSummary {
+  return {
+    prompts: result.promptsImported,
+    folders: result.foldersImported,
+    rules: result.rulesImported ?? 0,
+    skills: result.skillsImported,
+  };
+}
+
+function parseRemoteSyncPayload(body: string): z.infer<typeof importPayloadSchema>['payload'] {
+  let rawPayload: unknown;
+  try {
+    rawPayload = JSON.parse(body);
+  } catch {
+    throw new Error('Remote sync payload is not valid JSON');
+  }
+
+  const parsedPayload = importPayloadSchema.shape.payload.safeParse(rawPayload);
+  if (!parsedPayload.success) {
+    throw new Error(
+      `Remote sync payload is invalid: ${parsedPayload.error.issues.map((i) => i.message).join(', ')}`,
+    );
+  }
+
+  return parsedPayload.data;
+}
+
+function toSyncValidationError(c: Parameters<typeof success>[0], routeError: unknown, fallbackMessage: string): Response {
+  return error(
+    c,
+    422,
+    ErrorCode.VALIDATION_ERROR,
+    routeError instanceof Error ? routeError.message : fallbackMessage,
+  );
+}
+
+function updateSyncLastSyncAt(userId: string, syncSettings: SyncSettings, lastSyncAt: string): void {
+  const currentSettings = settingsService.get(userId);
+  settingsService.set(userId, {
+    ...currentSettings,
+    sync: {
+      ...syncSettings,
+      lastSyncAt,
+    },
+  });
 }
 
 function normalizeSyncPayload(payload: z.infer<typeof importPayloadSchema>['payload']): NormalizedSyncPayload {
@@ -435,17 +511,11 @@ sync.put('/data', async (c) => {
 
   const actor = getAuthUser(c);
   const result = backupService.import(actor, normalizeSyncPayload(parsed.data.payload));
-  const currentSettings = settingsService.get(actor.userId);
-  settingsService.set(actor.userId, {
-    ...currentSettings,
-    sync: {
-      ...getSyncSettings(actor.userId),
-      lastSyncAt: new Date().toISOString(),
-    },
-  });
+  updateSyncLastSyncAt(actor.userId, getSyncSettings(actor.userId), new Date().toISOString());
   return success(c, {
     ok: true,
     ...result,
+    summary: buildSummaryFromImport(result),
   });
 });
 
@@ -483,48 +553,26 @@ sync.post('/push', async (c) => {
   try {
     assertWebDavConfig(syncSettings);
     const exported = backupService.export(actor);
-    const connection = await testWebDavConnection(syncSettings);
-    if (!connection.ok) {
-      return error(c, 422, ErrorCode.VALIDATION_ERROR, `WebDAV connection failed with HTTP ${connection.status}`);
-    }
-
-    // Ensure directory exists (MKCOL is idempotent – 405 means already exists)
-    await mkcolWebDavDirectory(syncSettings, REMOTE_BACKUP_DIR);
-
-    const pushed = await pushWebDavFile(syncSettings, REMOTE_BACKUP_DATA_FILE, JSON.stringify(exported));
-    if (!pushed.ok) {
-      return error(c, 422, ErrorCode.VALIDATION_ERROR, `WebDAV upload failed with HTTP ${pushed.status}`);
-    }
-
-    // Write a minimal manifest.json so the desktop client can locate data.json
-    const manifest = {
-      version: '1',
-      createdAt: exported.exportedAt,
-      dataHash: '',
-      encrypted: false,
-      images: {},
-      videos: {},
-    };
-    await pushWebDavFile(syncSettings, REMOTE_MANIFEST_FILE, JSON.stringify(manifest));
-
-    const syncedAt = new Date().toISOString();
-    const currentSettings = settingsService.get(actor.userId);
-    settingsService.set(actor.userId, {
-      ...currentSettings,
-      sync: {
-        ...syncSettings,
-        lastSyncAt: syncedAt,
-      },
-    });
+    const pushed = await pushWebDavSnapshot(
+      syncSettings,
+      JSON.stringify(exported),
+      exported.exportedAt,
+    );
+    updateSyncLastSyncAt(actor.userId, syncSettings, pushed.syncedAt);
 
     return success(c, {
       ok: true,
       provider: 'webdav',
-      syncedAt,
-      remoteFile: REMOTE_BACKUP_DATA_FILE,
+      syncedAt: pushed.syncedAt,
+      remoteFile: pushed.remoteFile,
+      promptsExported: exported.prompts.length,
+      foldersExported: exported.folders.length,
+      rulesExported: exported.rules?.length ?? 0,
+      skillsExported: exported.skills.length,
+      summary: buildSummaryFromExport(exported),
     });
   } catch (routeError) {
-    return error(c, 422, ErrorCode.VALIDATION_ERROR, routeError instanceof Error ? routeError.message : 'Sync push failed');
+    return toSyncValidationError(c, routeError, 'Sync push failed');
   }
 });
 
@@ -534,41 +582,24 @@ sync.post('/pull', async (c) => {
 
   try {
     assertWebDavConfig(syncSettings);
+    const pulled = await pullWebDavSnapshot(syncSettings);
 
-    // Try unified path first, fall back to legacy web-only path for migration
-    let pulled = await pullWebDavFile(syncSettings, REMOTE_BACKUP_DATA_FILE);
-    if (!pulled.ok) {
-      pulled = await pullWebDavFile(syncSettings, LEGACY_REMOTE_BACKUP_FILE);
-    }
-    if (!pulled.ok) {
-      return error(c, 422, ErrorCode.VALIDATION_ERROR, `WebDAV download failed: no backup found at ${REMOTE_BACKUP_DATA_FILE} or ${LEGACY_REMOTE_BACKUP_FILE}`);
-    }
-
-    const parsedPayload = importPayloadSchema.shape.payload.safeParse(JSON.parse(pulled.body));
-    if (!parsedPayload.success) {
-      return error(c, 422, ErrorCode.VALIDATION_ERROR, `Remote sync payload is invalid: ${parsedPayload.error.issues.map((i) => i.message).join(', ')}`);
-    }
-
-    const imported = backupService.import(actor, normalizeSyncPayload(parsedPayload.data));
-    const syncedAt = new Date().toISOString();
-    const currentSettings = settingsService.get(actor.userId);
-    settingsService.set(actor.userId, {
-      ...currentSettings,
-      sync: {
-        ...syncSettings,
-        lastSyncAt: syncedAt,
-      },
-    });
+    const imported = backupService.import(
+      actor,
+      normalizeSyncPayload(parseRemoteSyncPayload(pulled.body)),
+    );
+    updateSyncLastSyncAt(actor.userId, syncSettings, pulled.syncedAt);
 
     return success(c, {
       ok: true,
       ...imported,
       provider: 'webdav',
-      syncedAt,
-      remoteFile: REMOTE_BACKUP_DATA_FILE,
+      syncedAt: pulled.syncedAt,
+      remoteFile: pulled.remoteFile,
+      summary: buildSummaryFromImport(imported),
     });
   } catch (routeError) {
-    return error(c, 422, ErrorCode.VALIDATION_ERROR, routeError instanceof Error ? routeError.message : 'Sync pull failed');
+    return toSyncValidationError(c, routeError, 'Sync pull failed');
   }
 });
 

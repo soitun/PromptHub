@@ -38,15 +38,12 @@ async function createTestApp(dataDir: string, webDavMocks?: WebDavMockSet) {
   process.env.ALLOW_REGISTRATION = 'true';
   process.env.LOG_LEVEL = 'debug';
 
-  vi.doUnmock('../services/webdav.server.js');
-  if (webDavMocks) {
-    vi.doMock('../services/webdav.server.js', () => ({
-      testWebDavConnection: webDavMocks.testWebDavConnection ?? vi.fn(async () => ({ ok: true, status: 207 })),
-      pushWebDavFile: webDavMocks.pushWebDavFile ?? vi.fn(async () => ({ ok: true, status: 201 })),
-      pullWebDavFile: webDavMocks.pullWebDavFile ?? vi.fn(async () => ({ ok: true, status: 200, body: '{}' })),
-      mkcolWebDavDirectory: webDavMocks.mkcolWebDavDirectory ?? vi.fn(async () => ({ ok: true, status: 201 })),
-    }));
-  }
+  vi.doMock('../services/webdav.server.js', () => ({
+    testWebDavConnection: webDavMocks?.testWebDavConnection ?? vi.fn(async () => ({ ok: true, status: 207 })),
+    pushWebDavFile: webDavMocks?.pushWebDavFile ?? vi.fn(async () => ({ ok: true, status: 201 })),
+    pullWebDavFile: webDavMocks?.pullWebDavFile ?? vi.fn(async () => ({ ok: true, status: 200, body: '{}' })),
+    mkcolWebDavDirectory: webDavMocks?.mkcolWebDavDirectory ?? vi.fn(async () => ({ ok: true, status: 201 })),
+  }));
 
   const [{ createApp }] = await Promise.all([import('../app')]);
   return createApp();
@@ -660,6 +657,16 @@ describe('web sync routes', () => {
           provider: string;
           syncedAt: string;
           remoteFile: string;
+          promptsExported: number;
+          foldersExported: number;
+          rulesExported: number;
+          skillsExported: number;
+          summary: {
+            prompts: number;
+            folders: number;
+            rules: number;
+            skills: number;
+          };
         };
       };
 
@@ -667,6 +674,16 @@ describe('web sync routes', () => {
       expect(pushBody.data.provider).toBe('webdav');
       expect(pushBody.data.remoteFile).toBe('prompthub-backup/data.json');
       expect(pushBody.data.syncedAt).toBeTruthy();
+      expect(pushBody.data.promptsExported).toBe(1);
+      expect(pushBody.data.foldersExported).toBe(1);
+      expect(pushBody.data.rulesExported).toBe(0);
+      expect(pushBody.data.skillsExported).toBe(0);
+      expect(pushBody.data.summary).toEqual({
+        prompts: 1,
+        folders: 1,
+        rules: 0,
+        skills: 0,
+      });
       expect(testWebDavConnection).toHaveBeenCalledTimes(1);
       expect(pushWebDavFile).toHaveBeenCalledTimes(2); // data.json + manifest.json
       const pushCall = getMockCall(pushWebDavFile, 0);
@@ -744,6 +761,12 @@ describe('web sync routes', () => {
               provider: string;
           remoteFile: string;
           syncedAt: string;
+          summary: {
+            prompts: number;
+            folders: number;
+            rules: number;
+            skills: number;
+          };
         };
       };
       expect(pullBody.data.ok).toBe(true);
@@ -751,6 +774,12 @@ describe('web sync routes', () => {
       expect(pullBody.data.foldersImported).toBe(2);
       expect(pullBody.data.rulesImported).toBe(1);
       expect(pullBody.data.skillsImported).toBe(1);
+      expect(pullBody.data.summary).toEqual({
+        prompts: 1,
+        folders: 2,
+        rules: 1,
+        skills: 1,
+      });
       expect(pullBody.data.provider).toBe('webdav');
       expect(pullBody.data.remoteFile).toBe('prompthub-backup/data.json');
       expect(pullWebDavFile).toHaveBeenCalledTimes(1);
@@ -812,6 +841,80 @@ describe('web sync routes', () => {
       expect(dataBody.data.settings.customPlatformRootPaths).toEqual({ claude: '/tmp/remote-root' });
       expect(dataBody.data.settings.sync?.endpoint).toBe('https://dav.example.com/remote.php/dav/files/pull');
       expect(dataBody.data.settings.sync?.lastSyncAt).toBe(pullBody.data.syncedAt);
+    } finally {
+      fs.rmSync(dataDir, { recursive: true, force: true });
+    }
+  }, TEST_TIMEOUT);
+
+  it('accepts extended sync providers in config and reflects provider in status', async () => {
+    const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'prompthub-web-sync-providers-'));
+
+    try {
+      const app = await createTestApp(dataDir);
+      const { payload: registerPayload } = await registerUser(app, 'providerowner', 'debugpass001');
+      const token = registerPayload.data.accessToken;
+
+      const selfHostedConfigResponse = await app.request(
+        new Request('http://local/api/sync/config', {
+          method: 'PUT',
+          headers: authHeaders(token),
+          body: JSON.stringify({
+            enabled: true,
+            provider: 'self-hosted',
+            endpoint: 'https://sync.example.com/workspace',
+            autoSync: true,
+          }),
+        }),
+      );
+      expect(selfHostedConfigResponse.status).toBe(200);
+
+      const selfHostedStatusResponse = await app.request(
+        new Request('http://local/api/sync/status', {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      );
+      expect(selfHostedStatusResponse.status).toBe(200);
+      const selfHostedStatusBody = await selfHostedStatusResponse.json() as {
+        data: {
+          provider: string;
+          message: string;
+          capabilities: { autoSync: boolean };
+        };
+      };
+      expect(selfHostedStatusBody.data.provider).toBe('self-hosted');
+      expect(selfHostedStatusBody.data.message).toContain('Self-hosted sync');
+      expect(selfHostedStatusBody.data.capabilities.autoSync).toBe(false);
+
+      const s3ConfigResponse = await app.request(
+        new Request('http://local/api/sync/config', {
+          method: 'PUT',
+          headers: authHeaders(token),
+          body: JSON.stringify({
+            enabled: true,
+            provider: 's3',
+            endpoint: 'https://s3.example.com/bucket',
+            autoSync: true,
+          }),
+        }),
+      );
+      expect(s3ConfigResponse.status).toBe(200);
+
+      const s3StatusResponse = await app.request(
+        new Request('http://local/api/sync/status', {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      );
+      expect(s3StatusResponse.status).toBe(200);
+      const s3StatusBody = await s3StatusResponse.json() as {
+        data: {
+          provider: string;
+          message: string;
+          capabilities: { autoSync: boolean };
+        };
+      };
+      expect(s3StatusBody.data.provider).toBe('s3');
+      expect(s3StatusBody.data.message).toContain('S3 sync');
+      expect(s3StatusBody.data.capabilities.autoSync).toBe(false);
     } finally {
       fs.rmSync(dataDir, { recursive: true, force: true });
     }

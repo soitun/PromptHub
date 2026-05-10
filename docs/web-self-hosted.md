@@ -47,6 +47,17 @@ Then desktop can:
 - automatically pull once on startup
 - periodically push updates in the background
 
+## Sync Contract Snapshot
+
+Current sync provider contract (shared with desktop/web settings) supports:
+
+- `manual`
+- `webdav`
+- `self-hosted`
+- `s3`
+
+For web sync operations, `PUT /sync/data`, `POST /sync/push`, and `POST /sync/pull` return a unified `summary` block (`prompts`, `folders`, `rules`, `skills`) to keep cross-client parsing stable.
+
 ## First-Run Bootstrap
 
 When a new deployment starts with an empty database:

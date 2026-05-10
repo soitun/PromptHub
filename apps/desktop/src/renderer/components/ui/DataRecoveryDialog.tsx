@@ -24,6 +24,7 @@ interface DataRecoveryDialogProps {
   databases: RecoveryCandidate[];
   persistDismiss?: boolean;
   allowWindowClose?: boolean;
+  allowStartFresh?: boolean;
   /** Number of prompts currently in the active database. When > 0, a warning
    *  banner is shown to inform the user that recovery will overwrite their data. */
   currentPromptCount?: number;
@@ -81,6 +82,7 @@ export function DataRecoveryDialog({
   databases,
   persistDismiss = true,
   allowWindowClose = false,
+  allowStartFresh = true,
   currentPromptCount = 0,
 }: DataRecoveryDialogProps): JSX.Element | null {
   const { t } = useTranslation();
@@ -444,13 +446,15 @@ export function DataRecoveryDialog({
             )}
 
             <div className="flex gap-3 justify-end pt-1">
-              <button
-                onClick={handleDismiss}
-                disabled={isRecovering}
-                className="px-4 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors disabled:opacity-50"
-              >
-                {t("recovery.dismiss")}
-              </button>
+              {allowStartFresh ? (
+                <button
+                  onClick={handleDismiss}
+                  disabled={isRecovering}
+                  className="px-4 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors disabled:opacity-50"
+                >
+                  {t("recovery.dismiss")}
+                </button>
+              ) : null}
               <button
                 onClick={handleRecover}
                 disabled={isRecovering || !selectedCandidate}

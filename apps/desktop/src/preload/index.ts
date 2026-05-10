@@ -158,6 +158,8 @@ contextBridge.exposeInMainWorld("electron", {
   setAutoLaunch: (enabled: boolean, minimizeOnLaunch?: boolean) =>
     ipcRenderer.send("app:setAutoLaunch", enabled, minimizeOnLaunch),
   relaunchApp: () => ipcRenderer.invoke(IPC_CHANNELS.APP_RELAUNCH),
+  getCacheSize: () => ipcRenderer.invoke(IPC_CHANNELS.APP_GET_CACHE_SIZE) as Promise<{ size: number }>,
+  clearCache: () => ipcRenderer.invoke(IPC_CHANNELS.APP_CLEAR_CACHE) as Promise<{ success: boolean }>,
   setDebugMode: (enabled: boolean) =>
     ipcRenderer.send("app:setDebugMode", enabled),
   toggleDevTools: () => ipcRenderer.send("window:toggleDevTools"),
@@ -381,6 +383,8 @@ declare global {
       toggleFullscreen?: () => void;
       setAutoLaunch?: (enabled: boolean, minimizeOnLaunch?: boolean) => void;
       relaunchApp?: () => Promise<{ success: boolean }>;
+      getCacheSize?: () => Promise<{ size: number }>;
+      clearCache?: () => Promise<{ success: boolean }>;
       setDebugMode?: (enabled: boolean) => void;
       toggleDevTools?: () => void;
       setMinimizeToTray?: (enabled: boolean) => void;

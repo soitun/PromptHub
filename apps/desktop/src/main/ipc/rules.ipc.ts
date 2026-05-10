@@ -13,9 +13,11 @@ import type {
   RuleFileId,
   RuleRewriteRequest,
   RuleRewriteResult,
+  RuleVersionSnapshot,
 } from "@prompthub/shared/types";
 import {
   createProjectRule,
+  deleteRuleVersion,
   exportRuleBackupRecords,
   importRuleBackupRecords,
   listCachedRuleDescriptors,
@@ -70,7 +72,7 @@ async function rewriteRuleWithAi(payload: RuleRewriteRequest): Promise<RuleRewri
 
   return {
     content,
-    summary: "AI rewrite generated a new draft.",
+    summary: null,
   };
 }
 
@@ -148,6 +150,19 @@ export function registerRulesIPC(): void {
         replace: options?.replace === true,
       });
       return { success: true };
+    },
+  );
+
+  ipcMain.handle(
+    IPC_CHANNELS.RULES_VERSION_DELETE,
+    async (_event, ruleId: RuleFileId, versionId: string): Promise<RuleVersionSnapshot[]> => {
+      if (!ruleId || typeof ruleId !== "string") {
+        throw new Error("rules:version:delete requires a ruleId");
+      }
+      if (!versionId || typeof versionId !== "string") {
+        throw new Error("rules:version:delete requires a versionId");
+      }
+      return deleteRuleVersion(ruleId, versionId);
     },
   );
 }

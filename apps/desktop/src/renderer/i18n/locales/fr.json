@@ -308,7 +308,7 @@
     "globalSection": "Règles globales",
     "projectSection": "Règles de projet",
     "addProjectRuleDirectory": "Ajouter un répertoire de projet",
-    "addProjectRuleDirectoryHint": "Choisissez un dossier et PromptHub gérera ici son fichier canonique AGENTS.md.",
+    "addProjectRuleDirectoryHint": "Choisissez un dossier de projet et PromptHub créera et maintiendra automatiquement un fichier de règles AGENTS.md à l'intérieur, que les outils IA pourront lire.",
     "currentProjectBadge": "Actuel",
     "editorTitle": "Éditeur de règles",
     "editorCanvas": "Contenu des règles",
@@ -351,7 +351,18 @@
     "notExists": "Sera créé à l'enregistrement",
     "openLocation": "Ouvrir l'emplacement",
     "pathUnknown": "Chemin indisponible",
-    "emptyHint": "Le contenu de la règle apparaîtra ici."
+    "emptyHint": "Le contenu de la règle apparaîtra ici.",
+    "diffSnapshotHeader": "Instantané → Brouillon actuel",
+    "diffCurrentDraft": "Brouillon actuel",
+    "editorLineCount": "{{count}} lignes",
+    "editorCharCount": "{{count}} caractères",
+    "aiRewriteSummary": "L'IA a généré un nouveau brouillon. Vérifiez-le et enregistrez quand vous êtes prêt.",
+    "versionCurrentLabel": "Actuel",
+    "versionDeleteAction": "Supprimer le snapshot",
+    "versionDeleteConfirmMessage": "Êtes-vous sûr de vouloir supprimer ce snapshot ? Cette action est irréversible.",
+    "versionDeleteDone": "Snapshot supprimé",
+    "versionShowMore": "Voir {{count}} de plus",
+    "versionShowLess": "Réduire"
   },
   "settings": {
     "developer": "Options pour les développeurs",
@@ -459,6 +470,16 @@
     "dataPath": "Répertoire des données",
     "dataPathDesc": "Emplacement de stockage des données Prompt",
     "openFolder": "Ouvrir le dossier",
+    "openLogs": "Ouvrir les logs",
+    "applicationData": "Données de l'application",
+    "applicationLogs": "Logs de l'application",
+    "rulesData": "Répertoire des règles",
+    "skillsData": "Répertoire Skills",
+    "backupsData": "Répertoire des sauvegardes",
+    "cacheData": "Cache de l'application",
+    "cacheDataDesc": "Cache du processus de rendu Electron, sans impact sur les données",
+    "clearCache": "Vider le cache",
+    "cacheClearedToast": "Cache vidé",
     "change": "Modifier",
     "confirmDataMigration": "Êtes-vous sûr de vouloir migrer les données vers le nouveau répertoire ?\n\nL'application doit redémarrer après la migration.",
     "existingDataPathTitle": "Le répertoire cible contient déjà des données PromptHub",
@@ -1564,34 +1585,9 @@
     "sha512Desc": "SHA512 checksum mismatch.\nThis is usually caused by CDN cache inconsistencies or network issues.\nThe file may have been downloaded successfully. You can try to install it manually."
   },
   "toast": {
-    "exportSuccess": "Données exportées avec succès",
-    "exportFailed": "Échec de l'exportation",
-    "importSuccess": "Données importées avec succès",
-    "importPartialSuccess": "Données importées. Enregistrements corrompus ignorés ({{details}}).",
-    "importFailed": "Échec de l'importation",
-    "clearSuccess": "Données effacées",
-    "clearFailed": "Échec de l'effacement",
-    "connectionSuccess": "Connexion réussie",
-    "connectionFailed": "Échec de la connexion",
-    "uploadSuccess": "Téléchargement réussi",
-    "uploadFailed": "Échec du téléchargement",
-    "downloadSuccess": "Téléchargement réussi",
-    "downloadFailed": "Échec du téléchargement",
-    "copied": "Copié dans le presse-papiers",
-    "saved": "Enregistré avec succès",
-    "updateFailed": "Échec de la mise à jour",
-    "deleted": "Supprimé",
-    "restored": "Restauré à la version historique",
-    "configApiKey": "Veuillez d'abord remplir la clé API",
-    "configAI": "Veuillez d'abord configurer le modèle IA dans les paramètres",
-    "aiFailed": "Échec de l'appel IA",
-    "movedToFolder": "Déplacé vers le dossier",
-    "dataPathChanged": "Répertoire des données modifié",
-    "dataPathChangeFailed": "Échec de la migration des données",
-    "batchFavorited": "Ajoutés aux favoris en lot",
-    "batchMoved": "Déplacés en lot",
-    "batchDeleted": "Supprimés en lot",
-    "imageSaved": "Image saved to preview"
+    "selfHostedSyncConnectionSuccess": "Connexion réussie. L’espace distant contient actuellement {{prompts}} prompts, {{folders}} dossiers, {{rules}} règles et {{skills}} compétences.",
+    "selfHostedSyncPushSuccess": "{{prompts}} prompts, {{folders}} dossiers, {{rules}} règles et {{skills}} compétences ont été envoyés vers PromptHub Web.",
+    "selfHostedSyncPullSuccess": "{{prompts}} prompts, {{folders}} dossiers, {{rules}} règles et {{skills}} compétences ont été restaurés depuis PromptHub Web."
   },
   "closeDialog": {
     "title": "Fermer la fenêtre",
@@ -1665,10 +1661,5 @@
       "skill": "Compétence"
     },
     "skillsOnly": "Contient uniquement des compétences"
-  },
-  "toast": {
-    "selfHostedSyncConnectionSuccess": "Connexion réussie. L’espace distant contient actuellement {{prompts}} prompts, {{folders}} dossiers, {{rules}} règles et {{skills}} compétences.",
-    "selfHostedSyncPushSuccess": "{{prompts}} prompts, {{folders}} dossiers, {{rules}} règles et {{skills}} compétences ont été envoyés vers PromptHub Web.",
-    "selfHostedSyncPullSuccess": "{{prompts}} prompts, {{folders}} dossiers, {{rules}} règles et {{skills}} compétences ont été restaurés depuis PromptHub Web."
   }
 }

@@ -26,6 +26,7 @@ interface RulesState {
   setAiInstruction: (instruction: string) => void;
   saveCurrentRule: () => Promise<void>;
   rewriteCurrentRule: () => Promise<void>;
+  deleteRuleVersion: (ruleId: RuleFileId, versionId: string) => Promise<void>;
   addProjectRule: (input: CreateRuleProjectInput) => Promise<void>;
   removeProjectRule: (projectId: string) => Promise<void>;
   getSidebarSections: () => Array<{
@@ -193,7 +194,7 @@ export const useRulesStore = create<RulesState>((set, get) => ({
       });
       set({
         draftContent: result.content,
-        aiSummary: result.summary,
+        aiSummary: "done",
         isRewriting: false,
       });
     } catch (error) {
@@ -246,6 +247,18 @@ export const useRulesStore = create<RulesState>((set, get) => ({
       }
     } catch (error) {
       set({ isLoading: false, error: getErrorMessage(error) });
+      throw error;
+    }
+  },
+
+  deleteRuleVersion: async (ruleId, versionId) => {
+    try {
+      const updatedVersions = await window.api.rules.deleteVersion(ruleId, versionId);
+      const currentFile = get().currentFile;
+      if (currentFile?.id === ruleId) {
+        set({ currentFile: { ...currentFile, versions: updatedVersions } });
+      }
+    } catch (error) {
       throw error;
     }
   },

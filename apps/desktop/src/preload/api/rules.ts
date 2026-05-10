@@ -8,6 +8,7 @@ import type {
   RuleFileId,
   RuleRewriteRequest,
   RuleRewriteResult,
+  RuleVersionSnapshot,
 } from "@prompthub/shared/types";
 
 export const rulesApi = {
@@ -30,4 +31,6 @@ export const rulesApi = {
     options?: { replace?: boolean },
   ): Promise<{ success: boolean }> =>
     ipcRenderer.invoke(IPC_CHANNELS.RULES_IMPORT_RECORDS, records, options),
+  deleteVersion: (ruleId: RuleFileId, versionId: string): Promise<RuleVersionSnapshot[]> =>
+    ipcRenderer.invoke(IPC_CHANNELS.RULES_VERSION_DELETE, ruleId, versionId),
 };

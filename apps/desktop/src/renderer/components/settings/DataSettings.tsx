@@ -30,17 +30,15 @@ import {
 } from "../../services/upgrade-backup";
 import { hasAnySkipped } from "../../services/database-backup-format";
 import { clearDatabase } from "../../services/database";
-import { runFullExportBackup } from "../../services/backup-orchestrator";
 import {
-  testConnection,
-  uploadToWebDAV,
-  downloadFromWebDAV,
-} from "../../services/webdav";
-import {
-  pullFromSelfHostedWeb,
-  pushToSelfHostedWeb,
-  testSelfHostedConnection,
-} from "../../services/self-hosted-sync";
+  runFullExportBackup,
+  runSelfHostedConnectionCheck,
+  runSelfHostedPull,
+  runSelfHostedPush,
+  runWebDAVConnectionCheck,
+  runWebDAVDownload,
+  runWebDAVUpload,
+} from "../../services/backup-orchestrator";
 import { useSettingsStore } from "../../stores/settings.store";
 import { usePromptStore } from "../../stores/prompt.store";
 import { useToast } from "../ui/Toast";
@@ -94,6 +92,12 @@ interface DataPathChangePreview {
     skillCount: number;
     available: boolean;
   };
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
 }
 
 function loadManualRecoveryPaths(): string[] {
@@ -196,6 +200,12 @@ export function DataSettings({ activeSubsection = "local" }: DataSettingsProps) 
   const [pendingDataPathChange, setPendingDataPathChange] =
     useState<DataPathChangePreview | null>(null);
   const [dataPathActionLoading, setDataPathActionLoading] = useState(false);
+  const [cacheSize, setCacheSize] = useState<number | null>(null);
+  const [clearingCache, setClearingCache] = useState(false);
+
+  useEffect(() => {
+    void window.electron?.getCacheSize?.().then((res) => setCacheSize(res.size));
+  }, []);
 
   const restartApp = async () => {
     if (window.electron?.relaunchApp) {
@@ -292,6 +302,7 @@ export function DataSettings({ activeSubsection = "local" }: DataSettingsProps) 
     0,
     upgradeBackups.length - DEFAULT_VISIBLE_UPGRADE_BACKUPS,
   );
+  const normalizedDataPath = currentDataPath.replace(/[\\/]+$/, "");
 
   useEffect(() => {
     window.api?.security?.status().then((status) => {
@@ -1041,7 +1052,7 @@ export function DataSettings({ activeSubsection = "local" }: DataSettingsProps) 
                         }
                         setSelfHostedTesting(true);
                         try {
-                          const summary = await testSelfHostedConnection({
+                          const summary = await runSelfHostedConnectionCheck({
                             url: settings.selfHostedSyncUrl,
                             username: settings.selfHostedSyncUsername,
                             password: settings.selfHostedSyncPassword,
@@ -1084,7 +1095,7 @@ export function DataSettings({ activeSubsection = "local" }: DataSettingsProps) 
                         }
                         setSelfHostedUploading(true);
                         try {
-                          const summary = await pushToSelfHostedWeb({
+                          const summary = await runSelfHostedPush({
                             url: settings.selfHostedSyncUrl,
                             username: settings.selfHostedSyncUsername,
                             password: settings.selfHostedSyncPassword,
@@ -1125,10 +1136,12 @@ export function DataSettings({ activeSubsection = "local" }: DataSettingsProps) 
                         }
                         setSelfHostedDownloading(true);
                         try {
-                          const summary = await pullFromSelfHostedWeb({
-                            url: settings.selfHostedSyncUrl,
-                            username: settings.selfHostedSyncUsername,
-                            password: settings.selfHostedSyncPassword,
+                          const summary = await runSelfHostedPull({
+                            config: {
+                              url: settings.selfHostedSyncUrl,
+                              username: settings.selfHostedSyncUsername,
+                              password: settings.selfHostedSyncPassword,
+                            },
                           });
                           showToast(
                             t(
@@ -1337,7 +1350,7 @@ export function DataSettings({ activeSubsection = "local" }: DataSettingsProps) 
                       }
                       setWebdavTesting(true);
                       try {
-                        const result = await testConnection({
+                        const result = await runWebDAVConnectionCheck({
                           url: settings.webdavUrl,
                           username: settings.webdavUsername,
                           password: settings.webdavPassword,
@@ -1371,13 +1384,13 @@ export function DataSettings({ activeSubsection = "local" }: DataSettingsProps) 
                       }
                       setWebdavUploading(true);
                       try {
-                        const result = await uploadToWebDAV(
-                          {
+                        const result = await runWebDAVUpload({
+                          config: {
                             url: settings.webdavUrl,
                             username: settings.webdavUsername,
                             password: settings.webdavPassword,
                           },
-                          {
+                          options: {
                             includeImages: settings.webdavIncludeImages,
                             incrementalSync: settings.webdavIncrementalSync,
                             encryptionPassword:
@@ -1386,7 +1399,7 @@ export function DataSettings({ activeSubsection = "local" }: DataSettingsProps) 
                                 ? settings.webdavEncryptionPassword
                                 : undefined,
                           },
-                        );
+                        });
                         showToast(
                           result.success ? result.message : result.message,
                           result.success ? "success" : "error",
@@ -1412,13 +1425,13 @@ export function DataSettings({ activeSubsection = "local" }: DataSettingsProps) 
                       }
                       setWebdavDownloading(true);
                       try {
-                        const result = await downloadFromWebDAV(
-                          {
+                        const result = await runWebDAVDownload({
+                          config: {
                             url: settings.webdavUrl,
                             username: settings.webdavUsername,
                             password: settings.webdavPassword,
                           },
-                          {
+                          options: {
                             incrementalSync: settings.webdavIncrementalSync,
                             encryptionPassword:
                               settings.webdavEncryptionEnabled &&
@@ -1426,7 +1439,7 @@ export function DataSettings({ activeSubsection = "local" }: DataSettingsProps) 
                                 ? settings.webdavEncryptionPassword
                                 : undefined,
                           },
-                        );
+                        });
                         if (result.success) {
                           showToast(result.message, "success");
                           setTimeout(() => window.location.reload(), 1000);
@@ -2142,26 +2155,96 @@ export function DataSettings({ activeSubsection = "local" }: DataSettingsProps) 
         ) : null}
 
         {!webRuntime && activeSubsection === "local" ? (
-        <DataSettingsSection title={t("settings.dbInfo", "本地数据路径")}>
-          <div className="p-4 text-sm text-muted-foreground space-y-1">
-            {currentDataPath ? (
-              [
-                "prompthub.db",
-                "data/",
-                "config/",
-                "skills/",
-                "backups/",
-                "logs/",
-              ].map((sub) => (
-                <p key={sub} className="font-mono text-xs break-all">
-                  {currentDataPath.replace(/\/$/, "")}/{sub}
-                </p>
-              ))
-            ) : (
-              <p className="italic">{t("common.loading", "Loading...")}</p>
-            )}
-          </div>
-        </DataSettingsSection>
+          <DataSettingsSection title={t("settings.dbInfo", "数据目录")}>
+            <div className="divide-y divide-border">
+              {normalizedDataPath ? (
+                <>
+                  {[
+                    {
+                      label: t("settings.applicationData", "应用数据"),
+                      path: normalizedDataPath,
+                      actionLabel: t("settings.openFolder"),
+                    },
+                    {
+                      label: t("settings.applicationLogs", "应用日志"),
+                      path: `${normalizedDataPath}/logs`,
+                      actionLabel: t("settings.openLogs", "打开日志"),
+                    },
+                    {
+                      label: t("settings.rulesData", "规则文件"),
+                      path: `${normalizedDataPath}/rules`,
+                      actionLabel: t("settings.openFolder"),
+                    },
+                    {
+                      label: t("settings.skillsData", "Skills 目录"),
+                      path: `${normalizedDataPath}/data`,
+                      actionLabel: t("settings.openFolder"),
+                    },
+                    {
+                      label: t("settings.backupsData", "备份目录"),
+                      path: `${normalizedDataPath}/backups`,
+                      actionLabel: t("settings.openFolder"),
+                    },
+                  ].map((item) => (
+                    <div key={item.label} className="flex items-center justify-between gap-4 px-5 py-3.5">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-foreground">{item.label}</p>
+                        <p className="mt-0.5 break-all font-mono text-xs text-muted-foreground">
+                          {item.path}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => void window.electron?.openPath?.(item.path)}
+                        className="h-8 shrink-0 rounded-lg border border-border bg-muted px-3 text-sm text-foreground transition-colors hover:bg-muted/80"
+                      >
+                        {item.actionLabel}
+                      </button>
+                    </div>
+                  ))}
+
+                  {/* Cache row */}
+                  <div className="flex items-center justify-between gap-4 px-5 py-3.5">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-foreground">
+                        {t("settings.cacheData", "应用缓存")}
+                        {cacheSize !== null && (
+                          <span className="ml-1.5 text-xs font-normal text-muted-foreground">
+                            ({formatBytes(cacheSize)})
+                          </span>
+                        )}
+                      </p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        {t("settings.cacheDataDesc", "Electron 渲染进程缓存，不影响数据")}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={clearingCache}
+                      onClick={() => {
+                        setClearingCache(true);
+                        void window.electron?.clearCache?.().then(async () => {
+                          const res = await window.electron?.getCacheSize?.();
+                          setCacheSize(res?.size ?? 0);
+                          setClearingCache(false);
+                          showToast(t("settings.cacheClearedToast", "缓存已清除"), "success");
+                        });
+                      }}
+                      className="h-8 shrink-0 rounded-lg border border-border bg-muted px-3 text-sm text-foreground transition-colors hover:bg-muted/80 disabled:opacity-50"
+                    >
+                      {clearingCache ? t("common.loading", "Loading...") : t("settings.clearCache", "清除缓存")}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="px-5 py-4">
+                  <p className="text-sm italic text-muted-foreground">
+                    {t("common.loading", "Loading...")}
+                  </p>
+                </div>
+              )}
+            </div>
+          </DataSettingsSection>
         ) : null}
 
         {!webRuntime && activeSubsection === "backup" ? (
@@ -2447,6 +2530,7 @@ export function DataSettings({ activeSubsection = "local" }: DataSettingsProps) 
         databases={manualRecoveryCandidates}
         persistDismiss={false}
         allowWindowClose={true}
+        allowStartFresh={false}
         currentPromptCount={currentPromptCount}
       />
     </>

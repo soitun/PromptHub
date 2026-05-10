@@ -1,4 +1,4 @@
-import type { Folder, Settings, Skill } from '@prompthub/shared';
+import type { Folder, Settings, Skill, SyncProviderKind } from '@prompthub/shared';
 import type { SkillSafetyReport, SkillVersion } from '@prompthub/shared';
 import { fetchWithAuthRetry } from './auth-session';
 
@@ -14,7 +14,7 @@ interface ApiErrorPayload {
 
 export interface SyncStatus {
   enabled: boolean;
-  provider: 'manual' | 'webdav';
+  provider: SyncProviderKind;
   lastSyncAt: string;
   summary: {
     prompts: number;
@@ -32,7 +32,7 @@ export interface SyncStatus {
 
 export interface SyncConfig {
   enabled: boolean;
-  provider: 'manual' | 'webdav';
+  provider: SyncProviderKind;
   endpoint?: string;
   username?: string;
   password?: string;

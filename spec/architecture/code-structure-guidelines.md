@@ -60,12 +60,18 @@ Separate core storage primitives from orchestration:
 - `database.ts`: IndexedDB CRUD and local storage reset primitives
 - `database-backup.ts`: export/import/restore workflow
 - `webdav.ts`: sync transport and remote merge behavior
+- `backup-orchestrator.ts`: backup/sync entry orchestration for UI-facing flows (manual backup, manual sync, auto sync)
 
 When adding new service code, prefer:
 
 1. primitive read/write APIs
 2. workflow composition on top
 3. UI-facing adapters at the edge
+
+For sync features specifically:
+
+- keep provider transport details in provider services (`webdav.ts`, `self-hosted-sync.ts`, `apps/web/src/services/webdav.server.ts`)
+- keep route/page entry logic thin and delegate flow sequencing to orchestrator modules (`backup-orchestrator.ts`, `apps/web/src/services/sync-orchestrator.ts`)
 
 ### Main-process services
 

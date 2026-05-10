@@ -112,6 +112,43 @@ describe("DataRecoveryDialog", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  it("hides start-fresh action in settings-triggered recovery browser", async () => {
+    await act(async () => {
+      await renderWithI18n(
+        <DataRecoveryDialog
+          isOpen={true}
+          onClose={vi.fn()}
+          allowWindowClose={true}
+          persistDismiss={false}
+          allowStartFresh={false}
+          databases={[
+            {
+              sourcePath: "C:/Users/test/AppData/Roaming/PromptHub",
+              sourceType: "external-user-data",
+              displayName: "Previous data directory",
+              displayPath: "C:/Users/test/AppData/Roaming/PromptHub",
+              promptCount: 3,
+              folderCount: 1,
+              skillCount: 0,
+              dbSizeBytes: 8192,
+              lastModified: "2026-04-18T10:00:00.000Z",
+              previewAvailable: true,
+              dataSources: ["sqlite", "workspace"],
+            },
+          ]}
+        />,
+        { language: "en" },
+      );
+    });
+
+    expect(
+      screen.queryByRole("button", { name: "Start Fresh" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Restore Selected Source" }),
+    ).toBeInTheDocument();
+  });
+
   it("renders multiple candidates, previews the selected source, and restores the chosen one", async () => {
     await act(async () => {
       await renderWithI18n(

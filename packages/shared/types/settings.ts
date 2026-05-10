@@ -39,7 +39,7 @@ export interface Settings {
 
 export interface SyncSettings {
   enabled: boolean;
-  provider: 'manual' | 'webdav';
+  provider: SyncProviderKind;
   endpoint?: string;
   username?: string;
   password?: string;
@@ -47,6 +47,12 @@ export interface SyncSettings {
   autoSync?: boolean;
   lastSyncAt?: string;
 }
+
+export type SyncProviderKind =
+  | 'manual'
+  | 'webdav'
+  | 'self-hosted'
+  | 's3';
 
 export interface DeviceManagementSettings {
   syncCadence?: 'manual' | '15m' | '1h' | '1d';

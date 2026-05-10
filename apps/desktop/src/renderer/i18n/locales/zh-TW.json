@@ -308,7 +308,7 @@
     "globalSection": "全域規則",
     "projectSection": "專案規則",
     "addProjectRuleDirectory": "新增專案目錄",
-    "addProjectRuleDirectoryHint": "選擇一個目錄後，PromptHub 會在這裡管理它的 canonical AGENTS.md 規則檔案。",
+    "addProjectRuleDirectoryHint": "選擇一個程式碼專案目錄，PromptHub 會自動在其中建立並維護 AGENTS.md 規則檔案，供 AI 工具讀取。",
     "currentProjectBadge": "當前",
     "editorTitle": "規則編輯器",
     "editorCanvas": "規則內容",
@@ -351,7 +351,18 @@
     "notExists": "保存時建立",
     "openLocation": "打開位置",
     "pathUnknown": "暫無可用路徑",
-    "emptyHint": "規則內容會顯示在這裡。"
+    "emptyHint": "規則內容會顯示在這裡。",
+    "diffSnapshotHeader": "快照對比 → 當前草稿",
+    "diffCurrentDraft": "當前草稿",
+    "editorLineCount": "{{count}} 行",
+    "editorCharCount": "{{count}} 字元",
+    "aiRewriteSummary": "AI 已生成新草稿，請確認後點擊儲存。",
+    "versionCurrentLabel": "目前",
+    "versionDeleteAction": "刪除快照",
+    "versionDeleteConfirmMessage": "確定要刪除這條快照嗎？此操作無法撤銷。",
+    "versionDeleteDone": "已刪除快照",
+    "versionShowMore": "查看更多 ({{count}})",
+    "versionShowLess": "收起"
   },
   "settings": {
     "developer": "開發者選項",
@@ -459,6 +470,16 @@
     "dataPath": "資料目錄",
     "dataPathDesc": "Prompt 資料儲存位置",
     "openFolder": "開啟資料夾",
+    "openLogs": "開啟日誌",
+    "applicationData": "應用資料",
+    "applicationLogs": "應用日誌",
+    "rulesData": "規則目錄",
+    "skillsData": "Skills 目錄",
+    "backupsData": "備份目錄",
+    "cacheData": "應用程式快取",
+    "cacheDataDesc": "Electron 渲染進程快取，不影響資料",
+    "clearCache": "清除快取",
+    "cacheClearedToast": "快取已清除",
     "change": "變更",
     "confirmDataMigration": "確定要將資料遷移到新目錄嗎？\n\n遷移完成後需要重新啟動應用程式。",
     "existingDataPathTitle": "目標目錄已包含 PromptHub 資料",
@@ -1564,34 +1585,9 @@
     "sha512Desc": "SHA512 校验失败。\n这通常是由于 CDN 缓存不一致或网络劫持导致的。\n文件可能已下载完成，您可以尝试手动安装。"
   },
   "toast": {
-    "exportSuccess": "資料匯出成功",
-    "exportFailed": "匯出失敗",
-    "importSuccess": "資料匯入成功",
-    "importPartialSuccess": "資料已匯入，已略過損壞記錄（{{details}}）",
-    "importFailed": "匯入失敗",
-    "clearSuccess": "資料已清空",
-    "clearFailed": "清空失敗",
-    "connectionSuccess": "連線成功",
-    "connectionFailed": "連線失敗",
-    "uploadSuccess": "上傳成功",
-    "uploadFailed": "上傳失敗",
-    "downloadSuccess": "下載成功",
-    "downloadFailed": "下載失敗",
-    "copied": "已複製到剪貼簿",
-    "saved": "儲存成功",
-    "updateFailed": "更新失敗",
-    "deleted": "已刪除",
-    "restored": "已還原到歷史版本",
-    "configApiKey": "請先填寫 API Key",
-    "configAI": "請先在設定中設定 AI 模型",
-    "aiFailed": "AI 呼叫失敗",
-    "movedToFolder": "已移動到資料夾",
-    "dataPathChanged": "資料目錄已變更",
-    "dataPathChangeFailed": "資料遷移失敗",
-    "batchFavorited": "已批次收藏",
-    "batchMoved": "已批次移動",
-    "batchDeleted": "已批次刪除",
-    "imageSaved": "图片已保存到预览"
+    "selfHostedSyncConnectionSuccess": "連線成功。遠端工作區目前包含 {{prompts}} 個 prompts、{{folders}} 個資料夾、{{rules}} 條規則和 {{skills}} 個技能。",
+    "selfHostedSyncPushSuccess": "已上傳 {{prompts}} 個 prompts、{{folders}} 個資料夾、{{rules}} 條規則和 {{skills}} 個技能到 PromptHub Web。",
+    "selfHostedSyncPullSuccess": "已從 PromptHub Web 還原 {{prompts}} 個 prompts、{{folders}} 個資料夾、{{rules}} 條規則和 {{skills}} 個技能。"
   },
   "closeDialog": {
     "title": "關閉視窗",
@@ -1665,10 +1661,5 @@
       "skill": "技能"
     },
     "skillsOnly": "僅含技能資料"
-  },
-  "toast": {
-    "selfHostedSyncConnectionSuccess": "連線成功。遠端工作區目前包含 {{prompts}} 個 prompts、{{folders}} 個資料夾、{{rules}} 條規則和 {{skills}} 個技能。",
-    "selfHostedSyncPushSuccess": "已上傳 {{prompts}} 個 prompts、{{folders}} 個資料夾、{{rules}} 條規則和 {{skills}} 個技能到 PromptHub Web。",
-    "selfHostedSyncPullSuccess": "已從 PromptHub Web 還原 {{prompts}} 個 prompts、{{folders}} 個資料夾、{{rules}} 條規則和 {{skills}} 個技能。"
   }
 }
