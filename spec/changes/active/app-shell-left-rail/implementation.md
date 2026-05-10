@@ -10,7 +10,7 @@ In progress.
 
 ## Current Decision
 
-- 参考 Cherry Studio 的最左侧一级功能栏结构
+- 采用最左侧一级功能栏结构
 - 不照抄对方视觉，仅借鉴导航层级
 - Prompt / Skill / Rules / Agent / MCP 作为未来并列一级模块
 - Skill 下保留 `Projects` 等二级导航

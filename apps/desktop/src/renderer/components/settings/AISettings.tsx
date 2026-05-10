@@ -390,6 +390,7 @@ export function AISettings() {
   const [newModel, setNewModel] = useState({
     name: "",
     provider: "openai",
+    apiProtocol: "openai" as const,
     apiKey: "",
     apiUrl: "",
     model: "",
@@ -850,6 +851,7 @@ export function AISettings() {
     settings.addAiModel({
       name: modelId,
       provider: newModel.provider,
+      apiProtocol: newModel.apiProtocol,
       apiKey: newModel.apiKey,
       apiUrl: newModel.apiUrl,
       model: modelId,
@@ -871,6 +873,7 @@ export function AISettings() {
     settings.addAiModel({
       name: modelId,
       provider: newModel.provider,
+      apiProtocol: newModel.apiProtocol,
       apiKey: newModel.apiKey,
       apiUrl: newModel.apiUrl,
       model: modelId,
@@ -892,6 +895,7 @@ export function AISettings() {
 
     const result = await testAIConnection({
       provider: settings.aiProvider,
+      apiProtocol: settings.aiApiProtocol,
       apiKey: settings.aiApiKey,
       apiUrl: settings.aiApiUrl,
       model: settings.aiModel,
@@ -932,12 +936,16 @@ export function AISettings() {
     const [result1, result2] = await Promise.all([
       testAIConnection({
         provider: settings.aiProvider,
+        apiProtocol: settings.aiApiProtocol,
         apiKey: settings.aiApiKey,
         apiUrl: settings.aiApiUrl,
         model: settings.aiModel,
       }),
       testAIConnection({
         provider: compareConfig.provider || "custom",
+        apiProtocol:
+          (compareConfig as { apiProtocol?: "openai" | "gemini" | "anthropic" }).apiProtocol ||
+          "openai",
         apiKey: compareConfig.apiKey,
         apiUrl: compareConfig.apiUrl,
         model: compareConfig.model,
@@ -962,6 +970,7 @@ export function AISettings() {
     const result = await testImageGeneration(
       {
         provider: settings.aiProvider,
+        apiProtocol: settings.aiApiProtocol,
         apiKey: settings.aiApiKey,
         apiUrl: settings.aiApiUrl,
         model: settings.aiModel,
@@ -1129,6 +1138,7 @@ export function AISettings() {
                                     setNewModel({
                                       name: model.name || "",
                                       provider: model.provider,
+                                      apiProtocol: model.apiProtocol,
                                       apiKey: model.apiKey,
                                       apiUrl: model.apiUrl,
                                       model: model.model,
@@ -1214,6 +1224,7 @@ export function AISettings() {
                       setNewModel({
                         name: "",
                         provider: "openai",
+                        apiProtocol: "openai",
                         apiKey: "",
                         apiUrl: "",
                         model: "",
@@ -1249,6 +1260,12 @@ export function AISettings() {
                       setNewModel({
                         ...newModel,
                         provider: value,
+                        apiProtocol:
+                          value === "google"
+                            ? "gemini"
+                            : value === "anthropic"
+                              ? "anthropic"
+                              : "openai",
                         apiUrl: provider?.defaultUrl || "",
                       });
                     }}
@@ -1899,6 +1916,7 @@ export function AISettings() {
                                     setNewModel({
                                       name: model.name || "",
                                       provider: model.provider,
+                                      apiProtocol: model.apiProtocol,
                                       apiKey: model.apiKey,
                                       apiUrl: model.apiUrl,
                                       model: model.model,
@@ -1948,6 +1966,7 @@ export function AISettings() {
                       setNewModel({
                         name: "",
                         provider: "openai",
+                        apiProtocol: "openai",
                         apiKey: "",
                         apiUrl: "",
                         model: "",
@@ -1985,6 +2004,12 @@ export function AISettings() {
                       setNewModel({
                         ...newModel,
                         provider: value,
+                        apiProtocol:
+                          value === "google"
+                            ? "gemini"
+                            : value === "anthropic"
+                              ? "anthropic"
+                              : "openai",
                         apiUrl: provider?.defaultUrl || "",
                       });
                     }}

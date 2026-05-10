@@ -4,7 +4,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const handleMock = vi.fn();
+const listCachedRuleDescriptorsMock = vi.fn();
 const listRuleDescriptorsMock = vi.fn();
+const scanRuleDescriptorsMock = vi.fn();
 const readRuleContentMock = vi.fn();
 const saveRuleContentMock = vi.fn();
 const createProjectRuleMock = vi.fn();
@@ -19,7 +21,9 @@ vi.mock("electron", () => ({
 }));
 
 vi.mock("../../../src/main/services/rules-workspace", () => ({
+  listCachedRuleDescriptors: listCachedRuleDescriptorsMock,
   listRuleDescriptors: listRuleDescriptorsMock,
+  scanRuleDescriptors: scanRuleDescriptorsMock,
   readRuleContent: readRuleContentMock,
   saveRuleContent: saveRuleContentMock,
   createProjectRule: createProjectRuleMock,
@@ -54,7 +58,9 @@ async function setupRulesIpc() {
 describe("rules IPC", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    listCachedRuleDescriptorsMock.mockReset();
     listRuleDescriptorsMock.mockReset();
+    scanRuleDescriptorsMock.mockReset();
     readRuleContentMock.mockReset();
     saveRuleContentMock.mockReset();
     createProjectRuleMock.mockReset();
@@ -64,7 +70,10 @@ describe("rules IPC", () => {
   });
 
   it("registers list/read/save handlers and forwards valid payloads", async () => {
-    listRuleDescriptorsMock.mockResolvedValue([
+    listCachedRuleDescriptorsMock.mockResolvedValue([
+      { id: "claude-global", platformId: "claude", path: "/tmp/CLAUDE.md" },
+    ]);
+    scanRuleDescriptorsMock.mockResolvedValue([
       { id: "claude-global", platformId: "claude", path: "/tmp/CLAUDE.md" },
     ]);
     readRuleContentMock.mockResolvedValue({ id: "claude-global", content: "# Claude" });
@@ -73,6 +82,9 @@ describe("rules IPC", () => {
     const { handlers, IPC_CHANNELS } = await setupRulesIpc();
 
     await expect(handlers[IPC_CHANNELS.RULES_LIST](null)).resolves.toEqual([
+      expect.objectContaining({ id: "claude-global" }),
+    ]);
+    await expect(handlers[IPC_CHANNELS.RULES_SCAN](null)).resolves.toEqual([
       expect.objectContaining({ id: "claude-global" }),
     ]);
     await expect(handlers[IPC_CHANNELS.RULES_READ](null, "claude-global")).resolves.toEqual(
@@ -84,6 +96,8 @@ describe("rules IPC", () => {
 
     expect(readRuleContentMock).toHaveBeenCalledWith("claude-global");
     expect(saveRuleContentMock).toHaveBeenCalledWith("claude-global", "# Saved");
+    expect(listCachedRuleDescriptorsMock).toHaveBeenCalledTimes(1);
+    expect(scanRuleDescriptorsMock).toHaveBeenCalledTimes(1);
   });
 
   it("rejects invalid save, rewrite, addProject, removeProject, and import payloads", async () => {
@@ -155,11 +169,11 @@ describe("rules IPC", () => {
       },
     ];
 
-    await expect(handlers[IPC_CHANNELS.RULES_IMPORT_RECORDS](null, records)).resolves.toEqual({
-      success: true,
-    });
+    await expect(
+      handlers[IPC_CHANNELS.RULES_IMPORT_RECORDS](null, records, { replace: true }),
+    ).resolves.toEqual({ success: true });
 
-    expect(importRuleBackupRecordsMock).toHaveBeenCalledWith(records);
+    expect(importRuleBackupRecordsMock).toHaveBeenCalledWith(records, { replace: true });
   });
 
   it("rewrites rules through AI when a valid payload is provided", async () => {

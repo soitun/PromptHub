@@ -891,8 +891,25 @@ async function macDownloadDmg(
 
 // Register IPC handlers
 // 注册 IPC 处理程序
+const UPDATER_IPC_CHANNELS = [
+  "updater:version",
+  "updater:installSource",
+  "updater:check",
+  "updater:download",
+  "updater:install",
+  "updater:platform",
+  "updater:openReleases",
+  "updater:openDownloadedUpdate",
+] as const;
+
 export function registerUpdaterIPC() {
   const isDev = process.env.NODE_ENV === "development" || !app.isPackaged;
+
+  if (typeof ipcMain.removeHandler === "function") {
+    for (const channel of UPDATER_IPC_CHANNELS) {
+      ipcMain.removeHandler(channel);
+    }
+  }
 
   // Get current version - always available
   // 获取当前版本 - 总是可用

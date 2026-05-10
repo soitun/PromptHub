@@ -15,6 +15,7 @@ const backupMocks = vi.hoisted(() => ({
 vi.mock("electron", () => ({
   ipcMain: {
     handle: electronMocks.handleMock,
+    removeHandler: vi.fn(),
   },
   app: {
     getVersion: vi.fn(() => "0.5.1"),

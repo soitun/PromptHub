@@ -46,6 +46,7 @@ export const IPC_CHANNELS = {
 
   // Rules
   RULES_LIST: "rules:list",
+  RULES_SCAN: "rules:scan",
   RULES_READ: "rules:read",
   RULES_SAVE: "rules:save",
   RULES_REWRITE: "rules:rewrite",

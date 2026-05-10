@@ -13,6 +13,7 @@ import {
   createProjectRule,
   exportRuleBackupRecords,
   importRuleBackupRecords,
+  listRuleDescriptors,
   readRuleContent,
   removeProjectRule,
   saveRuleContent,
@@ -159,5 +160,84 @@ describe("rules workspace storage", () => {
         currentVersion: 1,
       }),
     );
+    expect(fs.readFileSync(path.join(projectRoot, "AGENTS.md"), "utf8")).toBe("# Imported rule");
+  });
+
+  it("removes project rules missing from a replace import", async () => {
+    const staleProjectRoot = path.join(tempDir, "stale-site");
+    fs.mkdirSync(staleProjectRoot, { recursive: true });
+    await createProjectRule({ id: "stale-site", name: "Stale Site", rootPath: staleProjectRoot });
+    await saveRuleContent("project:stale-site", "# stale");
+
+    const keptProjectRoot = path.join(tempDir, "kept-site");
+    fs.mkdirSync(keptProjectRoot, { recursive: true });
+
+    await importRuleBackupRecords(
+      [
+        {
+          id: "project:kept-site",
+          platformId: "workspace",
+          platformName: "Kept Site",
+          platformIcon: "FolderRoot",
+          platformDescription: "Kept project rules",
+          name: "AGENTS.md",
+          description: "Kept rule",
+          path: path.join(keptProjectRoot, "AGENTS.md"),
+          managedPath: undefined,
+          targetPath: path.join(keptProjectRoot, "AGENTS.md"),
+          projectRootPath: keptProjectRoot,
+          syncStatus: "synced",
+          content: "# kept",
+          versions: [],
+        },
+      ],
+      { replace: true },
+    );
+
+    const db = new RuleDB(initDatabase());
+    expect(db.getById("project:stale-site")).toBeNull();
+    expect(db.getById("project:kept-site")).toEqual(
+      expect.objectContaining({ platformName: "Kept Site" }),
+    );
+  });
+
+  it("keeps unique history after the version retention limit", async () => {
+    const projectRoot = path.join(tempDir, "docs-site");
+    fs.mkdirSync(projectRoot, { recursive: true });
+
+    await createProjectRule({ id: "docs-site", name: "Docs Site", rootPath: projectRoot });
+
+    for (let index = 1; index <= 22; index += 1) {
+      await saveRuleContent("project:docs-site", `# version-${index}`);
+    }
+
+    const content = await readRuleContent("project:docs-site");
+    expect(content.versions).toHaveLength(20);
+    expect(content.versions[0]?.content).toBe("# version-22");
+    expect(content.versions[1]?.content).toBe("# version-21");
+    expect(content.versions[19]?.content).toBe("# version-3");
+
+    const versionDir = path.join(
+      getRulesDir(),
+      ".versions",
+      encodeURIComponent("project:docs-site"),
+    );
+    expect(fs.existsSync(path.join(versionDir, "0022.md"))).toBe(true);
+    expect(fs.existsSync(path.join(versionDir, "0021.md"))).toBe(true);
+  });
+
+  it("always includes built-in global rule descriptors even when target files are missing", async () => {
+    const descriptors = await listRuleDescriptors();
+
+    expect(descriptors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "codex-global", name: "AGENTS.md" }),
+        expect.objectContaining({ id: "opencode-global", name: "AGENTS.md" }),
+        expect.objectContaining({ id: "claude-global", name: "CLAUDE.md" }),
+      ]),
+    );
+
+    const opencodeRule = descriptors.find((descriptor) => descriptor.id === "opencode-global");
+    expect(opencodeRule?.path).toContain("AGENTS.md");
   });
 });

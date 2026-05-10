@@ -44,6 +44,7 @@ export function createWindowApiMock(overrides?: DeepPartial<MockRecord>) {
       settings: {},
       rules: {
         list: vi.fn().mockResolvedValue([]),
+        scan: vi.fn().mockResolvedValue([]),
         read: vi.fn(),
         save: vi.fn(),
         rewrite: vi.fn(),

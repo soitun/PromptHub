@@ -13,6 +13,8 @@ import type {
 export const rulesApi = {
   list: (): Promise<RuleFileDescriptor[]> =>
     ipcRenderer.invoke(IPC_CHANNELS.RULES_LIST),
+  scan: (): Promise<RuleFileDescriptor[]> =>
+    ipcRenderer.invoke(IPC_CHANNELS.RULES_SCAN),
   read: (ruleId: RuleFileId): Promise<RuleFileContent> =>
     ipcRenderer.invoke(IPC_CHANNELS.RULES_READ, ruleId),
   save: (ruleId: RuleFileId, content: string): Promise<RuleFileContent> =>
@@ -23,6 +25,9 @@ export const rulesApi = {
     ipcRenderer.invoke(IPC_CHANNELS.RULES_ADD_PROJECT, input),
   removeProject: (projectId: string): Promise<{ success: boolean }> =>
     ipcRenderer.invoke(IPC_CHANNELS.RULES_REMOVE_PROJECT, projectId),
-  importRecords: (records: RuleBackupRecord[]): Promise<{ success: boolean }> =>
-    ipcRenderer.invoke(IPC_CHANNELS.RULES_IMPORT_RECORDS, records),
+  importRecords: (
+    records: RuleBackupRecord[],
+    options?: { replace?: boolean },
+  ): Promise<{ success: boolean }> =>
+    ipcRenderer.invoke(IPC_CHANNELS.RULES_IMPORT_RECORDS, records, options),
 };

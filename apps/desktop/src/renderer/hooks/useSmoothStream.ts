@@ -9,9 +9,7 @@ interface UseSmoothStreamOptions {
 
 /**
  * A hook for smooth streaming text display
- * Inspired by Cherry Studio's useSmoothStream
  * 用于平滑流式文本显示的 Hook
- * 参考自 Cherry Studio 的 useSmoothStream
  */
 export const useSmoothStream = ({
     onUpdate,

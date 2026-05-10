@@ -242,11 +242,12 @@ export const SKILL_PLATFORMS: SkillPlatform[] = [
     name: "Amp",
     icon: "Zap",
     rootDir: {
-      darwin: "~/.config/agents",
-      win32: "%APPDATA%\\agents",
-      linux: "~/.config/agents",
+      darwin: "~/.config/amp",
+      win32: "%APPDATA%\\amp",
+      linux: "~/.config/amp",
     },
     skillsRelativePath: "skills",
+    globalRuleFile: "AGENTS.md",
   },
   {
     id: "openclaw",
@@ -258,6 +259,7 @@ export const SKILL_PLATFORMS: SkillPlatform[] = [
       linux: "~/.openclaw",
     },
     skillsRelativePath: "skills",
+    globalRuleFile: "workspace/SOUL.md",
   },
   {
     id: "qoder",
@@ -291,6 +293,7 @@ export const SKILL_PLATFORMS: SkillPlatform[] = [
       linux: "~/.hermes",
     },
     skillsRelativePath: "skills",
+    globalRuleFile: "AGENTS.md",
   },
   {
     id: "codebuddy",

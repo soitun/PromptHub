@@ -38,6 +38,7 @@ function mockGithubReleases(
 vi.mock('electron', () => ({
     ipcMain: {
         handle: vi.fn(),
+        removeHandler: vi.fn(),
     },
     BrowserWindow: {
         getAllWindows: vi.fn(() => []),
@@ -218,6 +219,24 @@ describe('Updater Service (Main Process)', () => {
         expect(autoUpdater.setFeedURL).toHaveBeenCalledWith(
             expect.objectContaining({ provider: 'github', releaseType: 'release' }),
         );
+    });
+
+    it('registers installSource handler and replaces old updater handlers on re-register', async () => {
+        const electron = await import('electron');
+        const removeHandlerMock = vi.fn();
+        vi.mocked(electron.ipcMain).removeHandler = removeHandlerMock;
+
+        registerUpdaterIPC();
+        registerUpdaterIPC();
+
+        const handleCalls = vi.mocked(electron.ipcMain.handle).mock.calls;
+        const installSourceHandler = handleCalls.find(
+            ([channel]) => channel === 'updater:installSource',
+        )?.[1] as (() => 'direct' | 'homebrew' | 'unknown') | undefined;
+
+        expect(removeHandlerMock).toHaveBeenCalledWith('updater:installSource');
+        expect(installSourceHandler).toBeTypeOf('function');
+        expect(installSourceHandler?.()).toBe('direct');
     });
 
     it('uses the preview prerelease feed only after joining preview channel', async () => {

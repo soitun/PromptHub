@@ -259,6 +259,7 @@ describe("database-backup restore", () => {
           content: "# Gemini rules",
         }),
       ]),
+      { replace: true },
     );
   });
 

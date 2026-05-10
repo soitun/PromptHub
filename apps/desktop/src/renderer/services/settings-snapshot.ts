@@ -22,6 +22,9 @@ export const SENSITIVE_SETTINGS_FIELDS = [
   "webdavEncryptionPassword",
   "selfHostedSyncUsername",
   "selfHostedSyncPassword",
+  "s3AccessKeyId",
+  "s3SecretAccessKey",
+  "s3EncryptionPassword",
   "aiApiKey",
 ] as const;
 

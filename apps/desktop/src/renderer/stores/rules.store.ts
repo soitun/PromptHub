@@ -19,7 +19,8 @@ interface RulesState {
   isSaving: boolean;
   isRewriting: boolean;
   error: string | null;
-  loadFiles: () => Promise<void>;
+  hasLoadedFiles: boolean;
+  loadFiles: (options?: { force?: boolean }) => Promise<void>;
   selectRule: (ruleId: RuleFileId) => Promise<void>;
   setDraftContent: (content: string) => void;
   setAiInstruction: (instruction: string) => void;
@@ -80,15 +81,25 @@ export const useRulesStore = create<RulesState>((set, get) => ({
   isSaving: false,
   isRewriting: false,
   error: null,
+  hasLoadedFiles: false,
 
-  loadFiles: async () => {
+  loadFiles: async (options) => {
+    if (get().hasLoadedFiles && !options?.force) {
+      return;
+    }
+
     set({ isLoading: true, error: null });
     try {
-      const files = await window.api.rules.list();
+      const files = options?.force ? await window.api.rules.scan() : await window.api.rules.list();
       const selectedRuleId = get().selectedRuleId ?? files[0]?.id ?? null;
-      set({ files, selectedRuleId, isLoading: false });
+      set({ files, selectedRuleId, isLoading: false, hasLoadedFiles: true });
 
       if (selectedRuleId) {
+        // When force-scanning, clear currentFile so selectRule's early-return guard
+        // doesn't skip re-reading the file from disk.
+        if (options?.force) {
+          set({ currentFile: null });
+        }
         await get().selectRule(selectedRuleId);
       } else {
         set({ currentFile: null, draftContent: "" });
@@ -99,6 +110,11 @@ export const useRulesStore = create<RulesState>((set, get) => ({
   },
 
   selectRule: async (ruleId) => {
+    const currentState = get();
+    if (currentState.selectedRuleId === ruleId && currentState.currentFile?.id === ruleId) {
+      return;
+    }
+
     set({ selectedRuleId: ruleId, isLoading: true, error: null, aiSummary: null });
     try {
       const file = await window.api.rules.read(ruleId);
@@ -200,6 +216,7 @@ export const useRulesStore = create<RulesState>((set, get) => ({
         files,
         selectedRuleId: created?.id ?? get().selectedRuleId,
         isLoading: false,
+        hasLoadedFiles: true,
       });
 
       if (created) {
@@ -220,7 +237,7 @@ export const useRulesStore = create<RulesState>((set, get) => ({
       const nextSelectedRuleId =
         get().selectedRuleId === removedRuleId ? files[0]?.id ?? null : get().selectedRuleId;
 
-      set({ files, selectedRuleId: nextSelectedRuleId, isLoading: false });
+      set({ files, selectedRuleId: nextSelectedRuleId, isLoading: false, hasLoadedFiles: true });
 
       if (nextSelectedRuleId) {
         await get().selectRule(nextSelectedRuleId);

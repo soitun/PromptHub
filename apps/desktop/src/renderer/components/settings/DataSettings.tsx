@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import type { ReactNode } from "react";
 import {
   FolderIcon,
   CloudIcon,
@@ -50,7 +51,6 @@ import { DataRecoveryDialog } from "../ui/DataRecoveryDialog";
 import { Select } from "../ui/Select";
 import { Checkbox } from "../ui";
 import {
-  SettingSection,
   SettingItem,
   ToggleSwitch,
   PasswordInput,
@@ -64,6 +64,23 @@ const DEFAULT_VISIBLE_UPGRADE_BACKUPS = 3;
 const EXPANDED_UPGRADE_BACKUP_MAX_HEIGHT = 420;
 
 type DataPathChangeAction = "migrate" | "switch" | "overwrite";
+type DataSettingsSubsection =
+  | "local"
+  | "recovery"
+  | "selfHosted"
+  | "webdav"
+  | "s3"
+  | "backup";
+type ExportScopeKey =
+  | "prompts"
+  | "folders"
+  | "images"
+  | "aiConfig"
+  | "settings"
+  | "versions"
+  | "rules"
+  | "skills";
+export type DataSettingsSubsectionId = DataSettingsSubsection;
 
 interface DataPathChangePreview {
   success: boolean;
@@ -123,12 +140,33 @@ function getErrorMessage(error: unknown): string {
   return "Unknown error";
 }
 
+function DataSettingsSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="space-y-3">
+      <h3 className="px-1 text-[15px] font-semibold tracking-tight text-foreground/80">
+        {title}
+      </h3>
+      <div className="app-settings-card overflow-hidden">{children}</div>
+    </section>
+  );
+}
+
 /**
  * DataSettings — Data management tab
  * Handles: data path, WebDAV sync, backup/restore, clear data
  * 数据管理标签页：数据路径、WebDAV 同步、备份/恢复、清除数据
  */
-export function DataSettings() {
+interface DataSettingsProps {
+  activeSubsection?: DataSettingsSubsectionId;
+}
+
+export function DataSettings({ activeSubsection = "local" }: DataSettingsProps) {
   const { t } = useTranslation();
   const { showToast } = useToast();
   const webRuntime = isWebRuntime();
@@ -199,7 +237,6 @@ export function DataSettings() {
   // Security status for clear-data flow (independent from SecuritySettings)
   // 清除数据流程需要的安全状态（独立于 SecuritySettings）
   const [securityConfigured, setSecurityConfigured] = useState(false);
-
   const refreshDataPathStatus = async () => {
     const status = await window.electron?.getDataPathStatus?.();
     if (status?.currentPath) {
@@ -305,6 +342,10 @@ export function DataSettings() {
 
   const handleFullBackup = async (compressed: boolean) => {
     try {
+      await createUpgradeBackup(
+        currentVersion ? { fromVersion: currentVersion } : undefined,
+      );
+
       if (compressed) {
         await downloadCompressedBackup();
       } else {
@@ -733,11 +774,52 @@ export function DataSettings() {
     }
   };
 
+  const exportScopeItems: Array<{ key: ExportScopeKey; label: string }> = [
+    {
+      key: "prompts",
+      label: t("settings.exportPrompts", "Prompts"),
+    },
+    {
+      key: "folders",
+      label: t("settings.exportFolders", "Folders"),
+    },
+    {
+      key: "images",
+      label: t("settings.exportImages", "Images"),
+    },
+    {
+      key: "aiConfig",
+      label: t("settings.exportAiConfig", "AI Config"),
+    },
+    {
+      key: "settings",
+      label: t("settings.exportSettings", "Settings"),
+    },
+    {
+      key: "versions",
+      label: t("settings.exportVersions", "Version History"),
+    },
+    {
+      key: "rules",
+      label: t("settings.exportRules", "Rules"),
+    },
+    {
+      key: "skills",
+      label: t("settings.exportSkills", "Skills"),
+    },
+  ];
+
   return (
     <>
-      <div className="space-y-6">
-        {!webRuntime ? (
-          <SettingSection title={t("settings.dataPath")}>
+      <div
+        className={
+          webRuntime
+            ? "space-y-6"
+            : "data-settings-shell min-w-0 space-y-6"
+        }
+      >
+        {!webRuntime && activeSubsection === "local" ? (
+          <DataSettingsSection title={t("settings.dataPath")}>
             <div className="p-4 space-y-3">
               <div className="flex items-center gap-3">
                 <FolderIcon className="w-5 h-5 text-muted-foreground" />
@@ -774,11 +856,11 @@ export function DataSettings() {
                 </button>
               </div>
             </div>
-          </SettingSection>
+          </DataSettingsSection>
         ) : null}
 
-        {!webRuntime ? (
-          <SettingSection title={t("settings.recoveryScanner", "历史数据急救")}>
+        {!webRuntime && activeSubsection === "recovery" ? (
+          <DataSettingsSection title={t("settings.recoveryScanner", "历史数据急救")}>
             <div className="p-4 space-y-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
@@ -887,11 +969,11 @@ export function DataSettings() {
                 )}
               </div>
             </div>
-          </SettingSection>
+          </DataSettingsSection>
         ) : null}
 
-        {!webRuntime ? (
-          <SettingSection title={t("settings.selfHostedWeb")}>
+        {!webRuntime && activeSubsection === "selfHosted" ? (
+          <DataSettingsSection title={t("settings.selfHostedWeb")}>
             <div className="p-4 space-y-4">
               <div className="flex items-center gap-3">
                 <ServerCogIcon className="w-5 h-5 text-muted-foreground" />
@@ -1194,11 +1276,11 @@ export function DataSettings() {
                 </div>
               ) : null}
             </div>
-          </SettingSection>
+          </DataSettingsSection>
         ) : null}
 
-        {!webRuntime ? (
-        <SettingSection title={t("settings.webdav")}>
+        {!webRuntime && activeSubsection === "webdav" ? (
+        <DataSettingsSection title={t("settings.webdav")}>
           <div className="p-4 space-y-4">
             <div className="flex items-center gap-3">
               <CloudIcon className="w-5 h-5 text-muted-foreground" />
@@ -1553,10 +1635,271 @@ export function DataSettings() {
               </div>
             )}
           </div>
-        </SettingSection>
+        </DataSettingsSection>
         ) : null}
 
-        <SettingSection title={t("settings.backup")}>
+        {!webRuntime && activeSubsection === "s3" ? (
+        <DataSettingsSection title={t("settings.s3Storage", "S3 compatible storage")}>
+          <div className="p-4 space-y-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium">
+                  {t("settings.s3Storage", "S3 compatible storage")}
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {t(
+                    "settings.s3StorageDesc",
+                    "Configure an S3-compatible object storage backup target such as AWS S3, Cloudflare R2, OSS, or COS.",
+                  )}
+                </p>
+              </div>
+              <ToggleSwitch
+                checked={settings.s3StorageEnabled}
+                onChange={settings.setS3StorageEnabled}
+              />
+            </div>
+
+            <div className="space-y-3 pt-2 border-t border-border">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">
+                  {t("settings.s3Endpoint", "API endpoint")}
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://s3.example.com"
+                  value={settings.s3Endpoint}
+                  onChange={(e) => settings.setS3Endpoint(e.target.value)}
+                  className="w-full h-9 px-3 rounded-lg bg-muted border-0 text-sm placeholder:text-muted-foreground/50"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">
+                  {t("settings.s3Region", "Region")}
+                </label>
+                <input
+                  type="text"
+                  placeholder="us-east-1"
+                  value={settings.s3Region}
+                  onChange={(e) => settings.setS3Region(e.target.value)}
+                  className="w-full h-9 px-3 rounded-lg bg-muted border-0 text-sm placeholder:text-muted-foreground/50"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">
+                  {t("settings.s3Bucket", "Bucket")}
+                </label>
+                <input
+                  type="text"
+                  placeholder="prompthub-backups"
+                  value={settings.s3Bucket}
+                  onChange={(e) => settings.setS3Bucket(e.target.value)}
+                  className="w-full h-9 px-3 rounded-lg bg-muted border-0 text-sm placeholder:text-muted-foreground/50"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">
+                  {t("settings.s3AccessKeyId", "Access Key ID")}
+                </label>
+                <input
+                  type="text"
+                  placeholder={t("settings.s3AccessKeyId", "Access Key ID")}
+                  value={settings.s3AccessKeyId}
+                  onChange={(e) => settings.setS3AccessKeyId(e.target.value)}
+                  className="w-full h-9 px-3 rounded-lg bg-muted border-0 text-sm placeholder:text-muted-foreground/50"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">
+                  {t("settings.s3SecretAccessKey", "Secret Access Key")}
+                </label>
+                <PasswordInput
+                  placeholder={t("settings.s3SecretAccessKey", "Secret Access Key")}
+                  value={settings.s3SecretAccessKey}
+                  onChange={settings.setS3SecretAccessKey}
+                  className="h-9"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">
+                  {t("settings.s3BackupPrefix", "Backup directory (optional)")}
+                </label>
+                <input
+                  type="text"
+                  placeholder="/prompthub"
+                  value={settings.s3BackupPrefix}
+                  onChange={(e) => settings.setS3BackupPrefix(e.target.value)}
+                  className="w-full h-9 px-3 rounded-lg bg-muted border-0 text-sm placeholder:text-muted-foreground/50"
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2 pt-2 border-t border-border">
+              <button
+                disabled
+                className="h-8 px-4 rounded-lg bg-muted text-sm transition-colors flex items-center gap-2 opacity-50 cursor-not-allowed"
+              >
+                <RefreshCwIcon className="w-4 h-4" />
+                {t("settings.testConnection")}
+              </button>
+              <button
+                disabled
+                className="h-8 px-4 rounded-lg bg-primary text-white text-sm transition-colors flex items-center gap-2 opacity-50 cursor-not-allowed"
+              >
+                <UploadIcon className="w-4 h-4" />
+                {t("settings.upload")}
+              </button>
+              <button
+                disabled
+                className="h-8 px-4 rounded-lg bg-muted text-sm transition-colors flex items-center gap-2 opacity-50 cursor-not-allowed"
+              >
+                <DownloadIcon className="w-4 h-4" />
+                {t("settings.download")}
+              </button>
+            </div>
+
+            <div className="space-y-3 pt-2 border-t border-border">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex-1 mr-4">
+                  <p className="text-sm font-medium">
+                    {t("settings.webdavAutoRun", "Automatic sync")}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {t("settings.webdavAutoRunDesc")}
+                  </p>
+                </div>
+                <div className="min-w-[140px]">
+                  <Select
+                    value={String(settings.s3AutoSyncInterval)}
+                    onChange={(val) => settings.setS3AutoSyncInterval(Number(val))}
+                    disabled={!settings.s3StorageEnabled}
+                    options={[
+                      { value: "0", label: t("common.off", "Off") },
+                      { value: "5", label: t("settings.every5min", "Every 5 minutes") },
+                      { value: "15", label: t("settings.every15min", "Every 15 minutes") },
+                      { value: "30", label: t("settings.every30min", "Every 30 minutes") },
+                      { value: "60", label: t("settings.every60min", "Every 60 minutes") },
+                    ]}
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between gap-3 pt-3 border-t border-border">
+                <div className="flex-1 mr-4">
+                  <p className="text-sm font-medium">
+                    {t("settings.webdavSyncOnStartup", "Run Once on Startup")}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {t("settings.webdavSyncOnStartupDesc")}
+                  </p>
+                </div>
+                <div className="min-w-[180px]">
+                  <Select
+                    value={String(
+                      settings.s3SyncOnStartup
+                        ? settings.s3SyncOnStartupDelay
+                        : -1,
+                    )}
+                    onChange={(val) => {
+                      const num = Number(val);
+                      if (num === -1) {
+                        settings.setS3SyncOnStartup(false);
+                      } else {
+                        settings.setS3SyncOnStartup(true);
+                        settings.setS3SyncOnStartupDelay(num);
+                      }
+                    }}
+                    disabled={!settings.s3StorageEnabled}
+                    options={[
+                      { value: "-1", label: t("common.off", "Off") },
+                      { value: "0", label: t("settings.startupImmediate", "Run immediately on startup") },
+                      { value: "5", label: t("settings.startupDelay5s", "Run 5 seconds after startup") },
+                      { value: "10", label: t("settings.startupDelay10s", "Run 10 seconds after startup") },
+                      { value: "30", label: t("settings.startupDelay30s", "Run 30 seconds after startup") },
+                    ]}
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between gap-3 pt-3 border-t border-border">
+                <div className="flex-1 mr-4">
+                  <p className="text-sm font-medium">
+                    {t("settings.webdavSyncOnSave", "Sync on Save (Experimental)")}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {t("settings.webdavSyncOnSaveDesc")}
+                  </p>
+                </div>
+                <ToggleSwitch
+                  checked={settings.s3SyncOnSave}
+                  onChange={settings.setS3SyncOnSave}
+                />
+              </div>
+
+              <div className="flex items-center justify-between gap-3 pt-3 border-t border-border">
+                <div className="flex-1 mr-4">
+                  <p className="text-sm font-medium">
+                    {t("settings.webdavIncludeImages", "Include Images")}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {t("settings.webdavIncludeImagesDesc")}
+                  </p>
+                </div>
+                <ToggleSwitch
+                  checked={settings.s3IncludeImages}
+                  onChange={settings.setS3IncludeImages}
+                />
+              </div>
+
+              <div className="flex items-center justify-between gap-3 pt-3 border-t border-border">
+                <div className="flex-1 mr-4">
+                  <p className="text-sm font-medium">
+                    {t("settings.webdavIncrementalSync", "Incremental Sync")}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {t("settings.webdavIncrementalSyncDesc")}
+                  </p>
+                </div>
+                <ToggleSwitch
+                  checked={settings.s3IncrementalSync}
+                  onChange={settings.setS3IncrementalSync}
+                />
+              </div>
+
+              <div className="flex items-center justify-between gap-3 pt-3 border-t border-border">
+                <div className="flex-1 mr-4">
+                  <p className="text-sm font-medium">
+                    {t("settings.webdavEncryption", "Encrypt Backup (Experimental)")}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5 text-amber-500">
+                    {t("settings.webdavEncryptionDesc")}
+                  </p>
+                </div>
+                <ToggleSwitch
+                  checked={settings.s3EncryptionEnabled}
+                  onChange={settings.setS3EncryptionEnabled}
+                />
+              </div>
+
+              {settings.s3EncryptionEnabled ? (
+                <div className="pt-2">
+                  <PasswordInput
+                    placeholder={t(
+                      "settings.webdavEncryptionPasswordPlaceholder",
+                      "Enter encryption password (optional, leave empty to skip)",
+                    )}
+                    value={settings.s3EncryptionPassword}
+                    onChange={settings.setS3EncryptionPassword}
+                    className="h-9"
+                  />
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </DataSettingsSection>
+        ) : null}
+
+        {webRuntime || activeSubsection === "backup" ? (
+        <DataSettingsSection title={t("settings.backup")}>
           {/* 选择性导出（只导出） */}
           <div className="p-4 space-y-3">
             <div className="flex items-center justify-between gap-3">
@@ -1580,43 +1923,8 @@ export function DataSettings() {
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-              {(
-                [
-                  {
-                    key: "prompts",
-                    label: t("settings.exportPrompts", "Prompts"),
-                  },
-                  {
-                    key: "folders",
-                    label: t("settings.exportFolders", "文件夹"),
-                  },
-                  {
-                    key: "images",
-                    label: t("settings.exportImages", "图片"),
-                  },
-                  {
-                    key: "aiConfig",
-                    label: t("settings.exportAiConfig", "AI 配置"),
-                  },
-                  {
-                    key: "settings",
-                    label: t("settings.exportSettings", "系统设置"),
-                  },
-                  {
-                    key: "versions",
-                    label: t("settings.exportVersions", "版本历史"),
-                  },
-                  {
-                    key: "rules",
-                    label: t("settings.exportRules", "Rules"),
-                  },
-                  {
-                    key: "skills",
-                    label: t("settings.exportSkills", "Skills"),
-                  },
-                ] as const
-              ).map((item) => {
-                const checked = (exportScope as any)[item.key] as boolean;
+              {exportScopeItems.map((item) => {
+                const checked = exportScope[item.key];
                 return (
                   <div
                     key={item.key}
@@ -1839,21 +2147,11 @@ export function DataSettings() {
             </div>
           ) : null}
 
-          {!webRuntime ? (
-            <SettingItem
-              label={t("settings.clear")}
-              description={t("settings.clearDesc")}
-            >
-              <button
-                onClick={handleClearData}
-                className="h-9 px-4 rounded-lg bg-destructive text-white text-sm font-medium hover:bg-destructive/90 transition-colors"
-              >
-                {t("settings.clear")}
-              </button>
-            </SettingItem>
-          ) : null}
-        </SettingSection>
-        <SettingSection title={t("settings.dbInfo", "本地数据路径")}>
+        </DataSettingsSection>
+        ) : null}
+
+        {!webRuntime && activeSubsection === "local" ? (
+        <DataSettingsSection title={t("settings.dbInfo", "本地数据路径")}>
           <div className="p-4 text-sm text-muted-foreground space-y-1">
             {currentDataPath ? (
               [
@@ -1872,7 +2170,24 @@ export function DataSettings() {
               <p className="italic">{t("common.loading", "Loading...")}</p>
             )}
           </div>
-        </SettingSection>
+        </DataSettingsSection>
+        ) : null}
+
+        {!webRuntime && activeSubsection === "backup" ? (
+        <DataSettingsSection title={t("settings.dangerOperation", "Danger")}>
+          <SettingItem
+            label={t("settings.clear")}
+            description={t("settings.clearDesc")}
+          >
+            <button
+              onClick={handleClearData}
+              className="h-9 px-4 rounded-lg bg-destructive text-white text-sm font-medium hover:bg-destructive/90 transition-colors"
+            >
+              {t("settings.clear")}
+            </button>
+          </SettingItem>
+        </DataSettingsSection>
+        ) : null}
       </div>
 
       {pendingDataPathChange ? (

@@ -287,4 +287,55 @@ describe("ai transport", () => {
       },
     });
   });
+
+  it("preserves image attachments when sending Anthropic multimodal chat requests", async () => {
+    window.api.ai.request.mockResolvedValue({
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      body: JSON.stringify({
+        content: [{ type: "text", text: "I can see the screenshot." }],
+      }),
+      headers: { "content-type": "application/json" },
+    });
+
+    const messages = buildMessagesFromPrompt(
+      "You inspect screenshots.",
+      "Describe the UI",
+      undefined,
+      [{ mimeType: "image/png", base64: "iVBORw0KGgo=" }],
+    );
+
+    const result = await chatCompletion(
+      {
+        provider: "anthropic",
+        apiProtocol: "anthropic",
+        apiKey: "anthropic-key",
+        apiUrl: "https://api.anthropic.com",
+        model: "claude-3-7-sonnet-latest",
+      },
+      messages,
+    );
+
+    expect(result.content).toBe("I can see the screenshot.");
+    const request = window.api.ai.request.mock.calls[0]?.[0];
+    const body = JSON.parse(String(request?.body));
+    expect(body.system).toBe("You inspect screenshots.");
+    expect(body.messages).toEqual([
+      {
+        role: "user",
+        content: [
+          { type: "text", text: "Describe the UI" },
+          {
+            type: "image",
+            source: {
+              type: "base64",
+              media_type: "image/png",
+              data: "iVBORw0KGgo=",
+            },
+          },
+        ],
+      },
+    ]);
+  });
 });

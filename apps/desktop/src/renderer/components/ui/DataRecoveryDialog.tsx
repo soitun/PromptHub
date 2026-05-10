@@ -223,7 +223,7 @@ export function DataRecoveryDialog({
       isOpen={isOpen}
       onClose={requestClose}
       title={t("recovery.title")}
-      size="lg"
+      size="2xl"
       showCloseButton={allowWindowClose}
       closeOnBackdrop={allowWindowClose}
       closeOnEscape={allowWindowClose}

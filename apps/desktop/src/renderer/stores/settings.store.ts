@@ -311,11 +311,12 @@ interface SettingsState {
   // Data path
   dataPath: string;
 
-  // WebDAV sync settings
-  // SECURITY NOTE: webdavPassword is stored in localStorage (plaintext).
+  // Cloud sync settings
+  // SECURITY NOTE: webdavPassword/selfHostedSyncPassword/s3SecretAccessKey
+  // are stored in localStorage (plaintext).
   // In Electron, localStorage is sandboxed to the app data directory and not
   // accessible to other apps, but it is readable on disk. Consider migrating
-  // sensitive fields (webdavPassword, webdavEncryptionPassword, aiApiKey) to
+  // sensitive fields (webdavPassword, webdavEncryptionPassword, s3SecretAccessKey, aiApiKey) to
   // the main process using Electron's safeStorage API for at-rest encryption.
   webdavEnabled: boolean;
   webdavUrl: string;
@@ -337,6 +338,21 @@ interface SettingsState {
   selfHostedSyncOnStartup: boolean;
   selfHostedSyncOnStartupDelay: number;
   selfHostedAutoSyncInterval: number;
+  s3StorageEnabled: boolean;
+  s3Endpoint: string;
+  s3Region: string;
+  s3Bucket: string;
+  s3AccessKeyId: string;
+  s3SecretAccessKey: string;
+  s3BackupPrefix: string;
+  s3SyncOnStartup: boolean;
+  s3SyncOnStartupDelay: number;
+  s3AutoSyncInterval: number;
+  s3SyncOnSave: boolean;
+  s3IncludeImages: boolean;
+  s3IncrementalSync: boolean;
+  s3EncryptionEnabled: boolean;
+  s3EncryptionPassword: string;
 
   // Update settings
   autoCheckUpdate: boolean;
@@ -425,6 +441,21 @@ interface SettingsState {
   setSelfHostedSyncOnStartup: (enabled: boolean) => void;
   setSelfHostedSyncOnStartupDelay: (delay: number) => void;
   setSelfHostedAutoSyncInterval: (interval: number) => void;
+  setS3StorageEnabled: (enabled: boolean) => void;
+  setS3Endpoint: (endpoint: string) => void;
+  setS3Region: (region: string) => void;
+  setS3Bucket: (bucket: string) => void;
+  setS3AccessKeyId: (accessKeyId: string) => void;
+  setS3SecretAccessKey: (secretAccessKey: string) => void;
+  setS3BackupPrefix: (prefix: string) => void;
+  setS3SyncOnStartup: (enabled: boolean) => void;
+  setS3SyncOnStartupDelay: (delay: number) => void;
+  setS3AutoSyncInterval: (interval: number) => void;
+  setS3SyncOnSave: (enabled: boolean) => void;
+  setS3IncludeImages: (enabled: boolean) => void;
+  setS3IncrementalSync: (enabled: boolean) => void;
+  setS3EncryptionEnabled: (enabled: boolean) => void;
+  setS3EncryptionPassword: (password: string) => void;
   setAutoCheckUpdate: (enabled: boolean) => void;
   setUseUpdateMirror: (enabled: boolean) => void;
   setUpdateChannel: (channel: UpdateChannel) => void;
@@ -615,6 +646,21 @@ export const useSettingsStore = create<SettingsState>()(
         selfHostedSyncOnStartup: false,
         selfHostedSyncOnStartupDelay: 10,
         selfHostedAutoSyncInterval: 0,
+        s3StorageEnabled: false,
+        s3Endpoint: "",
+        s3Region: "",
+        s3Bucket: "",
+        s3AccessKeyId: "",
+        s3SecretAccessKey: "",
+        s3BackupPrefix: "",
+        s3SyncOnStartup: false,
+        s3SyncOnStartupDelay: 10,
+        s3AutoSyncInterval: 0,
+        s3SyncOnSave: false,
+        s3IncludeImages: true,
+        s3IncrementalSync: true,
+        s3EncryptionEnabled: false,
+        s3EncryptionPassword: "",
         autoCheckUpdate: true,
         useUpdateMirror: false,
         updateChannel: "stable",
@@ -898,6 +944,31 @@ export const useSettingsStore = create<SettingsState>()(
           }),
         setSelfHostedAutoSyncInterval: (interval) =>
           setTouched({ selfHostedAutoSyncInterval: Math.max(0, interval) }),
+        setS3StorageEnabled: (enabled) =>
+          setTouched({ s3StorageEnabled: enabled }),
+        setS3Endpoint: (endpoint) => setTouched({ s3Endpoint: endpoint }),
+        setS3Region: (region) => setTouched({ s3Region: region }),
+        setS3Bucket: (bucket) => setTouched({ s3Bucket: bucket }),
+        setS3AccessKeyId: (accessKeyId) =>
+          setTouched({ s3AccessKeyId: accessKeyId }),
+        setS3SecretAccessKey: (secretAccessKey) =>
+          setTouched({ s3SecretAccessKey: secretAccessKey }),
+        setS3BackupPrefix: (prefix) => setTouched({ s3BackupPrefix: prefix }),
+        setS3SyncOnStartup: (enabled) =>
+          setTouched({ s3SyncOnStartup: enabled }),
+        setS3SyncOnStartupDelay: (delay) =>
+          setTouched({ s3SyncOnStartupDelay: Math.max(0, Math.min(60, delay)) }),
+        setS3AutoSyncInterval: (interval) =>
+          setTouched({ s3AutoSyncInterval: Math.max(0, interval) }),
+        setS3SyncOnSave: (enabled) => setTouched({ s3SyncOnSave: enabled }),
+        setS3IncludeImages: (enabled) =>
+          setTouched({ s3IncludeImages: enabled }),
+        setS3IncrementalSync: (enabled) =>
+          setTouched({ s3IncrementalSync: enabled }),
+        setS3EncryptionEnabled: (enabled) =>
+          setTouched({ s3EncryptionEnabled: enabled }),
+        setS3EncryptionPassword: (password) =>
+          setTouched({ s3EncryptionPassword: password }),
         setAutoCheckUpdate: (enabled) =>
           setTouched({ autoCheckUpdate: enabled }),
         setUseUpdateMirror: (enabled) =>

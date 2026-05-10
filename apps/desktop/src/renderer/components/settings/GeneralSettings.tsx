@@ -3,6 +3,16 @@ import { useSettingsStore } from "../../stores/settings.store";
 import { SettingSection, SettingItem, ToggleSwitch } from "./shared";
 import { Select } from "../ui/Select";
 
+const LANGUAGE_OPTIONS = [
+  { value: "zh", label: "简体中文" },
+  { value: "zh-TW", label: "繁體中文" },
+  { value: "en", label: "English" },
+  { value: "ja", label: "日本語" },
+  { value: "es", label: "Español" },
+  { value: "de", label: "Deutsch" },
+  { value: "fr", label: "Français" },
+];
+
 export function GeneralSettings() {
   const { t } = useTranslation();
   const settings = useSettingsStore();
@@ -80,6 +90,50 @@ export function GeneralSettings() {
           <ToggleSwitch
             checked={settings.showLineNumbers}
             onChange={settings.setShowLineNumbers}
+          />
+        </SettingItem>
+      </SettingSection>
+
+      <SettingSection title={t("settings.languageAndRegion", "语言与地区")}>
+        <SettingItem
+          label={t("settings.language")}
+          description={t("settings.selectLanguage")}
+        >
+          <Select
+            value={settings.language}
+            onChange={(value) => settings.setLanguage(value)}
+            options={LANGUAGE_OPTIONS}
+            className="w-40"
+          />
+        </SettingItem>
+      </SettingSection>
+
+      <SettingSection title={t("settings.notifications")}>
+        <SettingItem
+          label={t("settings.enableNotifications")}
+          description={t("settings.enableNotificationsDesc")}
+        >
+          <ToggleSwitch
+            checked={settings.enableNotifications}
+            onChange={settings.setEnableNotifications}
+          />
+        </SettingItem>
+        <SettingItem
+          label={t("settings.copyNotification")}
+          description={t("settings.copyNotificationDesc")}
+        >
+          <ToggleSwitch
+            checked={settings.showCopyNotification}
+            onChange={settings.setShowCopyNotification}
+          />
+        </SettingItem>
+        <SettingItem
+          label={t("settings.saveNotification")}
+          description={t("settings.saveNotificationDesc")}
+        >
+          <ToggleSwitch
+            checked={settings.showSaveNotification}
+            onChange={settings.setShowSaveNotification}
           />
         </SettingItem>
       </SettingSection>

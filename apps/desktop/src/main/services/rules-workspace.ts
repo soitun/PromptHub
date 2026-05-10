@@ -49,6 +49,10 @@ interface StoredRuleVersionIndexEntry {
   fileName: string;
 }
 
+interface ImportRuleBackupRecordsOptions {
+  replace?: boolean;
+}
+
 function ensureDir(targetPath: string): void {
   fs.mkdirSync(targetPath, { recursive: true });
 }
@@ -166,6 +170,24 @@ async function writeVersionIndex(
   await writeJsonFile(getRuleVersionIndexPath(ruleId), index);
 }
 
+function getVersionSequenceFromFileName(fileName: string): number {
+  const match = fileName.match(/^(\d+)\.md$/);
+  if (!match) {
+    return 0;
+  }
+
+  return Number.parseInt(match[1], 10) || 0;
+}
+
+async function getNextVersionSequence(ruleId: RuleFileId): Promise<number> {
+  const index = await readVersionIndex(ruleId);
+  const highestExistingSequence = index.reduce((highest, entry) => {
+    return Math.max(highest, getVersionSequenceFromFileName(entry.fileName));
+  }, 0);
+
+  return highestExistingSequence + 1;
+}
+
 async function readRuleVersions(ruleId: RuleFileId): Promise<RuleVersionSnapshot[]> {
   const index = await readVersionIndex(ruleId);
   const versionDir = getRuleVersionsDir(ruleId);
@@ -195,8 +217,8 @@ async function appendRuleVersion(
 
   const versionDir = getRuleVersionsDir(ruleId);
   ensureDir(versionDir);
-  const versionNumber = current.length + 1;
-  const fileName = `${String(versionNumber).padStart(4, "0")}.md`;
+  const versionSequence = await getNextVersionSequence(ruleId);
+  const fileName = `${String(versionSequence).padStart(4, "0")}.md`;
   const nextVersion: RuleVersionSnapshot = {
     id: `${encodeRuleId(ruleId)}-${Date.now()}`,
     savedAt: new Date().toISOString(),
@@ -236,6 +258,16 @@ async function appendRuleVersion(
 async function writeManagedRule(meta: StoredRuleMeta, content: string): Promise<void> {
   await fsp.mkdir(path.dirname(meta.managedPath), { recursive: true });
   await fsp.writeFile(meta.managedPath, content, "utf-8");
+}
+
+async function writeTargetRule(meta: StoredRuleMeta, content: string): Promise<RuleSyncStatus> {
+  try {
+    await fsp.mkdir(path.dirname(meta.targetPath), { recursive: true });
+    await fsp.writeFile(meta.targetPath, content, "utf-8");
+    return "synced";
+  } catch {
+    return "sync-error";
+  }
 }
 
 async function readStoredMeta(metaPath: string): Promise<StoredRuleMeta | null> {
@@ -281,6 +313,44 @@ async function buildDescriptor(meta: StoredRuleMeta): Promise<RuleFileDescriptor
     exists,
     group: meta.scope === "project" ? "workspace" : ruleGroupForKnownId(meta.id),
     syncStatus: await syncStatusForMeta(meta),
+  };
+}
+
+function descriptorFromRuleRecord(record: RuleRecord): RuleFileDescriptor {
+  return {
+    id: record.id,
+    platformId: record.platformId,
+    platformName: record.platformName,
+    platformIcon: record.platformIcon,
+    platformDescription: record.platformDescription,
+    name: record.canonicalFileName,
+    description: record.description,
+    path: record.targetPath,
+    targetPath: record.targetPath,
+    managedPath: record.managedPath,
+    projectRootPath: record.projectRootPath ?? null,
+    exists: record.syncStatus !== "target-missing",
+    group: record.scope === "project" ? "workspace" : ruleGroupForKnownId(record.id),
+    syncStatus: record.syncStatus,
+  };
+}
+
+function metaFromRuleRecord(record: RuleRecord): StoredRuleMeta {
+  return {
+    id: record.id,
+    scope: record.scope,
+    platformId: record.platformId,
+    platformName: record.platformName,
+    platformIcon: record.platformIcon,
+    platformDescription: record.platformDescription,
+    canonicalFileName: record.canonicalFileName,
+    description: record.description,
+    managedPath: record.managedPath,
+    targetPath: record.targetPath,
+    projectRootPath: record.projectRootPath ?? null,
+    syncStatus: record.syncStatus,
+    createdAt: record.createdAt,
+    updatedAt: record.updatedAt,
   };
 }
 
@@ -338,6 +408,11 @@ function ruleGroupForKnownId(ruleId: RuleFileId): RuleFileGroup {
 
 async function ensureGlobalRuleMaterialized(ruleId: KnownRuleFileId): Promise<StoredRuleMeta> {
   const fallbackMeta = buildGlobalMeta(ruleId);
+  console.info("[rules] scanning global rule", {
+    ruleId,
+    managedPath: fallbackMeta.managedPath,
+    targetPath: fallbackMeta.targetPath,
+  });
   const metaPath = getRuleMetaPath(fallbackMeta.managedPath);
   const existingMeta = await readStoredMeta(metaPath);
   const meta = existingMeta ?? fallbackMeta;
@@ -369,6 +444,19 @@ async function listProjectMetaPaths(): Promise<string[]> {
 }
 
 export async function listRuleDescriptors(): Promise<RuleFileDescriptor[]> {
+  return scanRuleDescriptors();
+}
+
+export async function listCachedRuleDescriptors(): Promise<RuleFileDescriptor[]> {
+  const records = getRuleDb().getAll();
+  if (records.length > 0) {
+    return records.map(descriptorFromRuleRecord);
+  }
+
+  return scanRuleDescriptors();
+}
+
+export async function scanRuleDescriptors(): Promise<RuleFileDescriptor[]> {
   const globalDescriptors = await Promise.all(
     (Object.keys(KNOWN_RULE_FILE_TEMPLATES) as KnownRuleFileId[]).map(async (ruleId) =>
       buildDescriptor(await ensureGlobalRuleMaterialized(ruleId)),
@@ -410,10 +498,19 @@ export async function resolveRuleMeta(ruleId: RuleFileId): Promise<StoredRuleMet
   return ensureGlobalRuleMaterialized(ruleId);
 }
 
+async function resolveCachedRuleMeta(ruleId: RuleFileId): Promise<StoredRuleMeta> {
+  const cachedRecord = getRuleDb().getById(ruleId);
+  if (cachedRecord) {
+    return metaFromRuleRecord(cachedRecord);
+  }
+
+  return resolveRuleMeta(ruleId);
+}
+
 export async function readRuleContent(ruleId: RuleFileId): Promise<RuleFileContent> {
-  const meta = await resolveRuleMeta(ruleId);
-  await syncRuleIndex(meta);
-  const descriptor = await buildDescriptor(meta);
+  const meta = await resolveCachedRuleMeta(ruleId);
+  const cachedRecord = getRuleDb().getById(ruleId);
+  const descriptor = cachedRecord ? descriptorFromRuleRecord(cachedRecord) : await buildDescriptor(meta);
   const content = (await fileExists(meta.managedPath))
     ? await fsp.readFile(meta.managedPath, "utf-8")
     : descriptor.exists
@@ -437,13 +534,7 @@ export async function saveRuleContent(
 
   await writeManagedRule(meta, content);
 
-  let syncStatus: RuleSyncStatus = "synced";
-  try {
-    await fsp.mkdir(path.dirname(meta.targetPath), { recursive: true });
-    await fsp.writeFile(meta.targetPath, content, "utf-8");
-  } catch {
-    syncStatus = "sync-error";
-  }
+  const syncStatus = await writeTargetRule(meta, content);
 
   const versions = await appendRuleVersion(
     ruleId,
@@ -520,6 +611,30 @@ export async function createProjectRule(
   return buildDescriptor(meta);
 }
 
+async function removeMissingProjectRules(importedRecords: RuleBackupRecord[]): Promise<void> {
+  const importedProjectIds = new Set(
+    importedRecords.filter((record) => record.id.startsWith("project:")).map((record) => record.id),
+  );
+
+  const metaPaths = await listProjectMetaPaths();
+  for (const metaPath of metaPaths) {
+    const meta = await readStoredMeta(metaPath);
+    if (!meta || !meta.id.startsWith("project:")) {
+      continue;
+    }
+
+    if (!importedProjectIds.has(meta.id)) {
+      await removeProjectRule(meta.id.slice("project:".length));
+    }
+  }
+}
+
+export async function bootstrapRuleWorkspace(): Promise<void> {
+  await fsp.mkdir(getRulesDir(), { recursive: true });
+  await fsp.mkdir(getRuleProjectsRoot(), { recursive: true });
+  await fsp.mkdir(getRuleVersionsRoot(), { recursive: true });
+}
+
 export async function removeProjectRule(projectId: string): Promise<void> {
   const meta = await getProjectMetaById(`project:${projectId}` as RuleFileId);
   if (!meta) {
@@ -555,7 +670,16 @@ export async function exportRuleBackupRecords(): Promise<RuleBackupRecord[]> {
   );
 }
 
-export async function importRuleBackupRecords(records: RuleBackupRecord[]): Promise<void> {
+export async function importRuleBackupRecords(
+  records: RuleBackupRecord[],
+  options: ImportRuleBackupRecordsOptions = {},
+): Promise<void> {
+  await bootstrapRuleWorkspace();
+
+  if (options.replace) {
+    await removeMissingProjectRules(records);
+  }
+
   for (const record of records) {
     if (record.id.startsWith("project:")) {
       const projectId = record.id.slice("project:".length);
@@ -571,6 +695,7 @@ export async function importRuleBackupRecords(records: RuleBackupRecord[]): Prom
 
     const meta = await resolveRuleMeta(record.id);
     await writeManagedRule(meta, record.content);
+    const restoredSyncStatus = await writeTargetRule(meta, record.content);
     await fsp.rm(getRuleVersionsDir(record.id), { recursive: true, force: true });
     const versionDir = getRuleVersionsDir(record.id);
     ensureDir(versionDir);
@@ -594,7 +719,7 @@ export async function importRuleBackupRecords(records: RuleBackupRecord[]): Prom
     await writeVersionIndex(record.id, index);
     const nextMeta: StoredRuleMeta = {
       ...meta,
-      syncStatus: record.syncStatus ?? (await syncStatusForMeta(meta)),
+      syncStatus: record.syncStatus === "sync-error" ? restoredSyncStatus : restoredSyncStatus,
       updatedAt: new Date().toISOString(),
     };
     await writeMeta(nextMeta);

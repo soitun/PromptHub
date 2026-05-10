@@ -26,6 +26,17 @@ export type ChatMessageContentPart =
 
 export type ChatMessageContent = string | ChatMessageContentPart[];
 
+type AnthropicMessageContentPart =
+  | { type: "text"; text: string }
+  | {
+      type: "image";
+      source: {
+        type: "base64";
+        media_type: string;
+        data: string;
+      };
+    };
+
 export interface ChatMessage {
   role: "system" | "user" | "assistant";
   content: ChatMessageContent;
@@ -464,6 +475,40 @@ function normalizeAssistantContent(content: ChatMessageContent): string {
     .join("");
 }
 
+function toAnthropicMessageContent(content: ChatMessageContent): string | AnthropicMessageContentPart[] {
+  if (typeof content === "string") {
+    return content;
+  }
+
+  const parts = content.flatMap((part): AnthropicMessageContentPart[] => {
+    if (part.type === "text") {
+      return [{ type: "text", text: part.text }];
+    }
+
+    if (part.type === "image_url") {
+      const match = part.image_url.url.match(/^data:(.+?);base64,(.+)$/);
+      if (!match) {
+        return [];
+      }
+
+      return [
+        {
+          type: "image",
+          source: {
+            type: "base64",
+            media_type: match[1],
+            data: match[2],
+          },
+        },
+      ];
+    }
+
+    return [];
+  });
+
+  return parts.length > 0 ? parts : "";
+}
+
 async function getErrorMessageFromResponse(
   response: ResponseLike,
 ): Promise<string> {
@@ -581,7 +626,7 @@ export async function chatCompletion(
       .filter((message) => message.role !== "system")
       .map((message) => ({
         role: message.role === "assistant" ? "assistant" : "user",
-        content: normalizeAssistantContent(message.content),
+        content: toAnthropicMessageContent(message.content),
       }));
 
     const anthropicBody: Record<string, unknown> = {

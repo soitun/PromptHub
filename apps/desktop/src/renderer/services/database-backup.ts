@@ -616,7 +616,9 @@ export async function importDatabase(backup: DatabaseBackup): Promise<void> {
 
   if (normalizedBackup.rules && normalizedBackup.rules.length > 0) {
     try {
-      await window.api?.rules?.importRecords?.(normalizedBackup.rules);
+      await window.api?.rules?.importRecords?.(normalizedBackup.rules, {
+        replace: true,
+      });
     } catch (error) {
       restoreFailures.push("rules restore");
       console.warn("Failed to restore rules:", error);

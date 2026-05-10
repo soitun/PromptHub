@@ -18,9 +18,11 @@ import {
   createProjectRule,
   exportRuleBackupRecords,
   importRuleBackupRecords,
+  listCachedRuleDescriptors,
   listRuleDescriptors,
   readRuleContent,
   removeProjectRule,
+  scanRuleDescriptors,
   saveRuleContent,
 } from "../services/rules-workspace";
 
@@ -74,7 +76,11 @@ async function rewriteRuleWithAi(payload: RuleRewriteRequest): Promise<RuleRewri
 
 export function registerRulesIPC(): void {
   ipcMain.handle(IPC_CHANNELS.RULES_LIST, async (): Promise<RuleFileDescriptor[]> => {
-    return listRuleDescriptors();
+    return listCachedRuleDescriptors();
+  });
+
+  ipcMain.handle(IPC_CHANNELS.RULES_SCAN, async (): Promise<RuleFileDescriptor[]> => {
+    return scanRuleDescriptors();
   });
 
   ipcMain.handle(
@@ -130,11 +136,17 @@ export function registerRulesIPC(): void {
 
   ipcMain.handle(
     IPC_CHANNELS.RULES_IMPORT_RECORDS,
-    async (_event, records: RuleBackupRecord[]): Promise<{ success: boolean }> => {
+    async (
+      _event,
+      records: RuleBackupRecord[],
+      options?: { replace?: boolean },
+    ): Promise<{ success: boolean }> => {
       if (!Array.isArray(records)) {
         throw new Error("rules:importRecords requires an array payload");
       }
-      await importRuleBackupRecords(records);
+      await importRuleBackupRecords(records, {
+        replace: options?.replace === true,
+      });
       return { success: true };
     },
   );

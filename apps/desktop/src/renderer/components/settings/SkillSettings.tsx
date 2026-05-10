@@ -157,7 +157,7 @@ export function SkillSettings() {
   };
 
   return (
-    <>
+    <div className="space-y-6">
       <SettingSection
         title={t("settings.githubTokenTitle", "GitHub Access Token")}
       >
@@ -540,7 +540,7 @@ export function SkillSettings() {
           )}
         </div>
       </SettingSection>
-    </>
+    </div>
   );
 }
 

@@ -39,8 +39,13 @@ const REBINDABLE_DB_CHANNELS = [
   IPC_CHANNELS.SETTINGS_GET,
   IPC_CHANNELS.SETTINGS_SET,
   IPC_CHANNELS.RULES_LIST,
+  IPC_CHANNELS.RULES_SCAN,
   IPC_CHANNELS.RULES_READ,
   IPC_CHANNELS.RULES_SAVE,
+  IPC_CHANNELS.RULES_REWRITE,
+  IPC_CHANNELS.RULES_ADD_PROJECT,
+  IPC_CHANNELS.RULES_REMOVE_PROJECT,
+  IPC_CHANNELS.RULES_IMPORT_RECORDS,
   IPC_CHANNELS.SECURITY_SET_MASTER_PASSWORD,
   IPC_CHANNELS.SECURITY_CHANGE_MASTER_PASSWORD,
   IPC_CHANNELS.SECURITY_UNLOCK,
@@ -70,15 +75,22 @@ const REBINDABLE_DB_CHANNELS = [
   IPC_CHANNELS.SKILL_INSTALL_MD_SYMLINK,
   IPC_CHANNELS.SKILL_FETCH_REMOTE_CONTENT,
   IPC_CHANNELS.SKILL_LIST_LOCAL_FILES,
+  IPC_CHANNELS.SKILL_LIST_LOCAL_FILES_BY_PATH,
   IPC_CHANNELS.SKILL_READ_LOCAL_FILE,
+  IPC_CHANNELS.SKILL_READ_LOCAL_FILE_BY_PATH,
   IPC_CHANNELS.SKILL_READ_LOCAL_FILES,
   IPC_CHANNELS.SKILL_RENAME_LOCAL_PATH,
+  IPC_CHANNELS.SKILL_RENAME_LOCAL_PATH_BY_PATH,
   IPC_CHANNELS.SKILL_WRITE_LOCAL_FILE,
+  IPC_CHANNELS.SKILL_WRITE_LOCAL_FILE_BY_PATH,
   IPC_CHANNELS.SKILL_DELETE_LOCAL_FILE,
+  IPC_CHANNELS.SKILL_DELETE_LOCAL_FILE_BY_PATH,
   IPC_CHANNELS.SKILL_CREATE_LOCAL_DIR,
+  IPC_CHANNELS.SKILL_CREATE_LOCAL_DIR_BY_PATH,
   IPC_CHANNELS.SKILL_SAVE_TO_REPO,
   IPC_CHANNELS.SKILL_GET_REPO_PATH,
   IPC_CHANNELS.SKILL_SYNC_FROM_REPO,
+  IPC_CHANNELS.SKILL_EXPORT_ZIP,
   IPC_CHANNELS.SKILL_VERSION_GET_ALL,
   IPC_CHANNELS.SKILL_VERSION_CREATE,
   IPC_CHANNELS.SKILL_VERSION_ROLLBACK,
@@ -97,6 +109,15 @@ function resetAllRegisteredIpcHandlers(): void {
   }
 }
 
+function registerIpcGroup(label: string, register: () => void): void {
+  try {
+    register();
+  } catch (error) {
+    console.error(`[ipc] Failed to register ${label} handlers:`, error);
+    throw error;
+  }
+}
+
 /**
  * Register all IPC handlers
  * 注册所有 IPC 处理器
@@ -111,13 +132,15 @@ export function registerAllIPC(
   const folderDB = new FolderDB(db);
   const skillDB = new SkillDB(db);
 
-  registerPromptIPC(promptDB, folderDB, db);
-  registerFolderIPC(folderDB, promptDB);
-  registerSkillIPC(skillDB);
-  registerSettingsIPC(db);
-  registerRulesIPC();
-  registerSecurityIPC(db);
-  registerBackupIPC(setDbRef, (nextDb) => registerAllIPC(nextDb, setDbRef));
-  registerImageIPC();
-  registerAIIPC();
+  registerIpcGroup("prompt", () => registerPromptIPC(promptDB, folderDB, db));
+  registerIpcGroup("folder", () => registerFolderIPC(folderDB, promptDB));
+  registerIpcGroup("rules", () => registerRulesIPC());
+  registerIpcGroup("settings", () => registerSettingsIPC(db));
+  registerIpcGroup("security", () => registerSecurityIPC(db));
+  registerIpcGroup("backup", () =>
+    registerBackupIPC(setDbRef, (nextDb) => registerAllIPC(nextDb, setDbRef)),
+  );
+  registerIpcGroup("skill", () => registerSkillIPC(skillDB));
+  registerIpcGroup("image", () => registerImageIPC());
+  registerIpcGroup("ai", () => registerAIIPC());
 }

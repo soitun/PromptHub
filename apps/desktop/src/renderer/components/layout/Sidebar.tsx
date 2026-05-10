@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo, memo, type CSSProperties } from 'react';
-import { StarIcon, HashIcon, PlusIcon, LayoutGridIcon, SettingsIcon, XIcon, ChevronDownIcon, ChevronUpIcon, ImageIcon, MessageSquareTextIcon, CommandIcon, CuboidIcon, StoreIcon, GlobeIcon, Clock3Icon, FolderPlusIcon, BookOpenIcon, LinkIcon, FolderOpenIcon, Trash2Icon } from 'lucide-react';
+import { StarIcon, HashIcon, PlusIcon, LayoutGridIcon, SettingsIcon, XIcon, ChevronDownIcon, ChevronUpIcon, ChevronRightIcon, ImageIcon, MessageSquareTextIcon, CommandIcon, CuboidIcon, StoreIcon, GlobeIcon, Clock3Icon, FolderPlusIcon, BookOpenIcon, LinkIcon, FolderOpenIcon, Trash2Icon, RefreshCwIcon } from 'lucide-react';
 import { useFolderStore } from '../../stores/folder.store';
 import { usePromptStore } from '../../stores/prompt.store';
 import { useSettingsStore } from '../../stores/settings.store';
@@ -22,6 +22,7 @@ import { buildSkillStats } from '../../services/skill-stats';
 import { getRuntimeCapabilities, isWebRuntime } from '../../runtime';
 import { useRulesStore } from '../../stores/rules.store';
 import { PlatformIcon } from '../ui/PlatformIcon';
+import { useToast } from '../ui/Toast';
 import { RULE_PLATFORM_ORDER } from '@prompthub/shared/constants/rules';
 
 type PageType = 'home' | 'settings';
@@ -98,6 +99,10 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [passwordFolder, setPasswordFolder] = useState<Folder | null>(null);
   const [showAllTags, setShowAllTags] = useState(false);
+  const [collapsedRuleSections, setCollapsedRuleSections] = useState<Record<'global' | 'project', boolean>>({
+    global: false,
+    project: false,
+  });
   const filterTags = usePromptStore((state) => state.filterTags);
   const toggleFilterTag = usePromptStore((state) => state.toggleFilterTag);
   const clearFilterTags = usePromptStore((state) => state.clearFilterTags);
@@ -128,6 +133,17 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
   const selectedRuleId = useRulesStore((state) => state.selectedRuleId);
   const selectRule = useRulesStore((state) => state.selectRule);
   const loadRuleFiles = useRulesStore((state) => state.loadFiles);
+  const isRulesLoading = useRulesStore((state) => state.isLoading);
+  const { showToast } = useToast();
+
+  const handleRescanRules = useCallback(async () => {
+    try {
+      await loadRuleFiles({ force: true });
+      showToast(t('rules.rescanDone', 'Rules rescanned'), 'success');
+    } catch {
+      showToast(t('rules.rescanFailed', 'Rescan failed'), 'error');
+    }
+  }, [loadRuleFiles, showToast, t]);
   
   // Skill store
   const skills = useSkillStore((state) => state.skills);
@@ -248,6 +264,12 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
     },
     [removeRuleProject],
   );
+  const toggleRuleSection = useCallback((sectionId: 'global' | 'project') => {
+    setCollapsedRuleSections((current) => ({
+      ...current,
+      [sectionId]: !current[sectionId],
+    }));
+  }, []);
   const showRail = layout !== 'panel';
   const railWidthClass = 'w-20';
   const combinedWidthClass = 'w-[23rem]';
@@ -1272,9 +1294,21 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
                 <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
                   {t('rules.title', 'Rules')}
                 </div>
-                <h3 className="mt-2 text-base font-semibold text-foreground">
-                  {t('rules.platformSidebarTitle', 'Platforms')}
-                </h3>
+                <div className="mt-2 flex items-center justify-between gap-2">
+                  <h3 className="text-base font-semibold text-foreground">
+                    {t('rules.platformSidebarTitle', 'Platforms')}
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => void handleRescanRules()}
+                    disabled={isRulesLoading}
+                    className="inline-flex items-center gap-1 rounded-lg border border-border bg-background/70 px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                    title={t('rules.rescanAction', 'Rescan rules')}
+                  >
+                    <RefreshCwIcon className={`h-3.5 w-3.5 ${isRulesLoading ? 'animate-spin' : ''}`} />
+                    {isRulesLoading ? t('rules.rescanWorking', 'Scanning...') : t('rules.rescanShortAction', 'Rescan')}
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -1282,26 +1316,28 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
               <div className="space-y-5">
                 {ruleSidebarSections.map((section) => (
                   <div key={section.id}>
-                    <div className="mb-2 flex items-center justify-between px-2">
-                      <div className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                        {section.id === 'global'
-                          ? t('rules.globalSection', 'Global Rules')
-                          : t('rules.projectSection', 'Project Rules')}
-                      </div>
-                      {section.id === 'project' ? (
-                        <button
-                          type="button"
-                          onClick={() => void handleAddRuleProject()}
-                          className="inline-flex items-center gap-1 rounded-lg border border-border bg-background/70 px-2 py-1 text-xs text-foreground transition-colors hover:bg-muted"
-                        >
-                          <PlusIcon className="h-3.5 w-3.5" />
-                          {t('common.add', 'Add')}
-                        </button>
-                      ) : null}
+                    <div className="mb-2 px-2">
+                      <button
+                        type="button"
+                        onClick={() => toggleRuleSection(section.id)}
+                        className="flex w-full items-center gap-1 text-left text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-foreground"
+                      >
+                        {collapsedRuleSections[section.id] ? (
+                          <ChevronRightIcon className="h-3.5 w-3.5" />
+                        ) : (
+                          <ChevronDownIcon className="h-3.5 w-3.5" />
+                        )}
+                        <span>
+                          {section.id === 'global'
+                            ? t('rules.globalSection', 'Global Rules')
+                            : t('rules.projectSection', 'Project Rules')}
+                        </span>
+                      </button>
                     </div>
 
-                    <div className="space-y-2">
-                      {section.items.map((item) => (
+                    {!collapsedRuleSections[section.id] ? (
+                      <div className="space-y-2">
+                        {section.items.map((item) => (
                         <div
                           key={item.id}
                           className={`w-full rounded-2xl border px-3 py-3 text-left transition-colors ${
@@ -1354,30 +1390,46 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
                             </div>
                           ) : null}
                         </div>
-                      ))}
+                        ))}
 
-                      {section.id === 'project' ? (
-                        <button
-                          type="button"
-                          onClick={() => void handleAddRuleProject()}
-                          className="w-full rounded-2xl border border-dashed border-border px-3 py-4 text-left transition-colors hover:bg-muted/40"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="rounded-xl bg-muted p-2 text-muted-foreground">
-                              <FolderPlusIcon className="h-5 w-5" />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="text-sm font-medium text-foreground">
-                                {t('rules.addProjectRuleDirectory', 'Add Project Directory')}
+                        {section.id === 'project' ? (
+                          <button
+                            type="button"
+                            onClick={() => void handleAddRuleProject()}
+                            className="w-full rounded-2xl border border-dashed border-border px-3 py-4 text-left transition-colors hover:bg-muted/40"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="rounded-xl bg-muted p-2 text-muted-foreground">
+                                <FolderPlusIcon className="h-5 w-5" />
                               </div>
-                              <div className="mt-1 text-xs leading-5 text-muted-foreground">
-                                {t('rules.addProjectRuleDirectoryHint', 'Pick a folder and PromptHub will manage its canonical AGENTS.md rule file here.')}
+                              <div className="min-w-0 flex-1">
+                                <div className="text-sm font-medium text-foreground">
+                                  {t('rules.addProjectRuleDirectory', 'Add Project Directory')}
+                                </div>
+                                <div className="mt-1 text-xs leading-5 text-muted-foreground">
+                                  {t('rules.addProjectRuleDirectoryHint', 'Pick a folder and PromptHub will manage its canonical AGENTS.md rule file here.')}
+                                </div>
                               </div>
                             </div>
+                          </button>
+                        ) : null}
+                      </div>
+                    ) : section.id === 'project' ? (
+                      <button
+                        type="button"
+                        onClick={() => void handleAddRuleProject()}
+                        className="w-full rounded-2xl border border-dashed border-border px-3 py-3 text-left transition-colors hover:bg-muted/40"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="rounded-xl bg-muted p-2 text-muted-foreground">
+                            <PlusIcon className="h-4 w-4" />
                           </div>
-                        </button>
-                      ) : null}
-                    </div>
+                          <div className="min-w-0 flex-1 text-sm font-medium text-foreground">
+                            {t('rules.addProjectRuleDirectory', 'Add Project Directory')}
+                          </div>
+                        </div>
+                      </button>
+                    ) : null}
                   </div>
                 ))}
               </div>

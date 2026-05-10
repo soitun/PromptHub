@@ -14,8 +14,8 @@ export function SettingSection({
   children: ReactNode;
 }) {
   return (
-    <div className="relative">
-      <h3 className="text-sm font-medium text-muted-foreground mb-2">
+    <div className="relative space-y-3">
+      <h3 className="text-sm font-medium text-muted-foreground">
         {title}
       </h3>
       <div className="app-settings-card">

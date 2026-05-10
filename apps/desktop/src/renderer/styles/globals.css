@@ -494,6 +494,19 @@ body {
   box-shadow: var(--app-settings-segment-active-shadow);
 }
 
+.data-settings-shell .app-settings-card {
+  border-radius: 1.25rem;
+  box-shadow: none;
+}
+
+.data-settings-shell .app-settings-card > div {
+  border-color: hsl(var(--border) / 0.78);
+}
+
+.dark .data-settings-shell .app-settings-card {
+  box-shadow: none;
+}
+
 .prompt-list-pane {
   background: var(--app-prompt-list-pane-bg);
   border-color: var(--app-prompt-list-pane-border);

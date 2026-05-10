@@ -10,6 +10,7 @@ import {
   getManualBackupStatus,
   recordManualBackup,
 } from "../services/backup-status";
+import { createUpgradeBackup } from "../services/upgrade-backup";
 
 export interface UpdateInfo {
   version: string;
@@ -247,6 +248,7 @@ export function UpdateDialog({ isOpen, onClose, initialStatus }: UpdateDialogPro
 
     setIsCreatingBackup(true);
     try {
+      await createUpgradeBackup({ fromVersion: currentVersion });
       await downloadCompressedBackup();
       const status = await recordManualBackup(currentVersion);
       setLastManualBackupAt(status.lastManualBackupAt);

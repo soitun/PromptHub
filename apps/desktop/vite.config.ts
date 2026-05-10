@@ -4,6 +4,14 @@ import electron from "vite-plugin-electron";
 import renderer from "vite-plugin-electron-renderer";
 import path from "path";
 
+const aliases = {
+  "@": path.resolve(__dirname, "src"),
+  "@shared": path.resolve(__dirname, "../../packages/shared"),
+  "@prompthub/shared": path.resolve(__dirname, "../../packages/shared"),
+  "@prompthub/db": path.resolve(__dirname, "../../packages/db/src"),
+  "@renderer": path.resolve(__dirname, "src/renderer"),
+};
+
 export default defineConfig({
   plugins: [
     react(),
@@ -22,6 +30,9 @@ export default defineConfig({
           args.startup(["."]);
         },
         vite: {
+          resolve: {
+            alias: aliases,
+          },
           build: {
             outDir: "out/main",
             rollupOptions: {
@@ -36,6 +47,9 @@ export default defineConfig({
           args.reload();
         },
         vite: {
+          resolve: {
+            alias: aliases,
+          },
           build: {
             outDir: "out/preload",
           },
@@ -45,13 +59,7 @@ export default defineConfig({
     renderer(),
   ],
   resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "src"),
-      "@shared": path.resolve(__dirname, "../../packages/shared"),
-      "@prompthub/shared": path.resolve(__dirname, "../../packages/shared"),
-      "@prompthub/db": path.resolve(__dirname, "../../packages/db/src"),
-      "@renderer": path.resolve(__dirname, "src/renderer"),
-    },
+    alias: aliases,
   },
   optimizeDeps: {
     include: ["fflate"],

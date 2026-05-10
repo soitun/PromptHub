@@ -13,6 +13,9 @@ const codexPlatform = requirePlatform("codex");
 const geminiPlatform = requirePlatform("gemini");
 const opencodePlatform = requirePlatform("opencode");
 const windsurfPlatform = requirePlatform("windsurf");
+const openclawPlatform = requirePlatform("openclaw");
+const hermesPlatform = requirePlatform("hermes");
+const ampPlatform = requirePlatform("amp");
 
 export const RULE_FILE_GROUPS = ["workspace", "assistant", "tooling"] as const;
 
@@ -22,6 +25,9 @@ export const RULE_PLATFORM_ORDER = [
   "gemini",
   "opencode",
   "windsurf",
+  "openclaw",
+  "hermes",
+  "amp",
 ] as const;
 
 export const KNOWN_RULE_FILE_TEMPLATES = {
@@ -79,6 +85,42 @@ export const KNOWN_RULE_FILE_TEMPLATES = {
     name: "global_rules.md",
     description:
       "Global Windsurf rules loaded from the local Windsurf configuration.",
+    group: "tooling",
+  },
+  "openclaw-global": {
+    id: "openclaw-global",
+    platformId: "openclaw",
+    platformName: openclawPlatform.name,
+    platformIcon: openclawPlatform.icon,
+    platformDescription:
+      "OpenClaw workspace persona and tone file injected into every session.",
+    name: "SOUL.md",
+    description:
+      "Global OpenClaw persona rules loaded from the local workspace bootstrap directory.",
+    group: "assistant",
+  },
+  "hermes-global": {
+    id: "hermes-global",
+    platformId: "hermes",
+    platformName: hermesPlatform.name,
+    platformIcon: hermesPlatform.icon,
+    platformDescription:
+      "Global Hermes Agent instructions stored in the local Hermes configuration directory.",
+    name: "AGENTS.md",
+    description:
+      "Global Hermes Agent rules loaded from the local Hermes configuration.",
+    group: "assistant",
+  },
+  "amp-global": {
+    id: "amp-global",
+    platformId: "amp",
+    platformName: ampPlatform.name,
+    platformIcon: ampPlatform.icon,
+    platformDescription:
+      "Global Amp instructions stored in the local Amp configuration directory (~/.config/amp/).",
+    name: "AGENTS.md",
+    description:
+      "Global Amp rules loaded from the local Amp configuration. Amp also checks $HOME/.config/AGENTS.md as a fallback.",
     group: "tooling",
   },
 } as const;
