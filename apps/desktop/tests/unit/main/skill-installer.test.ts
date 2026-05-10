@@ -5,8 +5,12 @@ import * as os from "os";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock the database module before importing SkillInstaller
-vi.mock("../../../src/main/database", () => ({
+vi.mock("@/main/database", () => ({
   initDatabase: vi.fn(),
+}));
+
+vi.mock("@/main/settings/settings-readers", () => ({
+  readGithubTokenSetting: vi.fn(),
 }));
 
 import {
@@ -15,9 +19,11 @@ import {
   resetRuntimePaths,
 } from "../../../src/main/runtime-paths";
 import { SkillInstaller } from "../../../src/main/services/skill-installer";
-import { initDatabase } from "../../../src/main/database";
+import { initDatabase } from "@/main/database";
+import { readGithubTokenSetting } from "@/main/settings/settings-readers";
 import { invalidateCustomPathsCache } from "../../../src/main/services/skill-installer-utils";
 import { SKILL_PLATFORMS } from "@prompthub/shared/constants/platforms";
+import * as remoteInstaller from "../../../src/main/services/skill-installer-remote";
 // Direct imports for real DB tests (these are NOT mocked)
 import Database from "../../../src/main/database/sqlite";
 import {
@@ -172,6 +178,29 @@ describe("SkillInstaller.exportAsSkillMd", () => {
     });
     expect(md).toContain('"tag:with:colons"');
     expect(md).toContain("normal");
+  });
+});
+
+describe("SkillInstaller.fetchRemoteContent", () => {
+  it("reads the GitHub token without importing Electron-bound IPC modules", async () => {
+    const db = { prepare: vi.fn() } as unknown;
+    vi.mocked(initDatabase).mockReturnValue(db as ReturnType<typeof initDatabase>);
+    vi.mocked(readGithubTokenSetting).mockReturnValue("ghp_FromDb");
+    const fetchSpy = vi
+      .spyOn(remoteInstaller, "fetchRemoteText")
+      .mockResolvedValue("ok");
+
+    const result = await SkillInstaller.fetchRemoteContent(
+      "https://api.github.com/repos/foo/bar/contents/SKILL.md",
+    );
+
+    expect(result).toBe("ok");
+    expect(readGithubTokenSetting).toHaveBeenCalledWith(db);
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "https://api.github.com/repos/foo/bar/contents/SKILL.md",
+      0,
+      { githubToken: "ghp_FromDb" },
+    );
   });
 });
 

@@ -19,9 +19,9 @@ import type {
   ScanLocalResult,
   SkillManifest,
 } from "@prompthub/shared/types";
-import { SkillDB } from "../database/skill";
-import { initDatabase } from "../database";
-import { getGithubTokenSetting } from "../ipc/settings.ipc";
+import { initDatabase } from "@/main/database";
+import { SkillDB } from "@/main/database/skill";
+import { readGithubTokenSetting } from "@/main/settings/settings-readers";
 import { parseSkillMd } from "./skill-validator";
 import { sanitizeImportedSkillDraft } from "./skill-import-sanitize";
 import {
@@ -826,7 +826,7 @@ export class SkillInstaller {
       try {
         const db = initDatabase();
         if (db && typeof db.prepare === "function") {
-          githubToken = getGithubTokenSetting(db);
+          githubToken = readGithubTokenSetting(db);
         }
       } catch (tokenError) {
         // DB may be unavailable during very early startup or in tests —
@@ -834,7 +834,7 @@ export class SkillInstaller {
         // fetch.
         console.warn(
           "Unable to load githubToken setting, continuing unauthenticated:",
-          tokenError instanceof Error ? tokenError.message : "unknown",
+          tokenError,
         );
       }
       return await fetchRemoteText(url, 0, { githubToken });

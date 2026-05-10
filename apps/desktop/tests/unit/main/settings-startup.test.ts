@@ -12,7 +12,7 @@ import {
   SCHEMA_INDEXES,
 } from "../../../src/main/database/schema";
 import DatabaseAdapter from "../../../src/main/database/sqlite";
-import { getMinimizeOnLaunchSetting } from "../../../src/main/ipc/settings.ipc";
+import { getMinimizeOnLaunchSetting } from "../../../src/main/settings/settings-readers";
 
 describe("getMinimizeOnLaunchSetting (issue #115)", () => {
   let rawDb: DatabaseAdapter.Database;

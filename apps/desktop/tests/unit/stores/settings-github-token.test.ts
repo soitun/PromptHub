@@ -22,18 +22,19 @@ vi.mock("../../../src/renderer/i18n", () => ({
 
 async function importStoreWithSpy() {
   vi.resetModules();
-  localStorage.clear();
   const setSpy = vi.fn().mockResolvedValue(undefined);
+  const getSpy = vi.fn().mockResolvedValue({ githubToken: "" });
   window.api = {
     ...(window.api ?? {}),
     settings: {
       ...(window.api?.settings ?? {}),
+      get: getSpy,
       set: setSpy,
     },
   };
   const mod = await import("../../../src/renderer/stores/settings.store");
   await Promise.resolve();
-  return { useSettingsStore: mod.useSettingsStore, setSpy };
+  return { useSettingsStore: mod.useSettingsStore, setSpy, getSpy };
 }
 
 function lastPayloadWithKey(
@@ -68,8 +69,88 @@ describe("settings store · setGithubToken (issue #108)", () => {
 
     expect(useSettingsStore.getState().githubToken).toBe("ghp_ValidToken123");
     const payload = lastPayloadWithKey(setSpy, "githubToken");
-    expect(payload).toBeDefined();
     expect(payload?.githubToken).toBe("ghp_ValidToken123");
+  });
+
+  it("does not persist the raw token into localStorage", async () => {
+    const { useSettingsStore } = await importStoreWithSpy();
+
+    useSettingsStore.getState().setGithubToken("ghp_OnlyInMemory");
+
+    const persistedState = localStorage.getItem("prompthub-settings") ?? "";
+    expect(persistedState).not.toContain("ghp_OnlyInMemory");
+  });
+
+  it("loads the token from the main process on demand", async () => {
+    const { useSettingsStore, getSpy } = await importStoreWithSpy();
+    getSpy.mockResolvedValueOnce({ githubToken: "ghp_FromMain" });
+
+    const { loadSettingsFromMainProcess } = await import(
+      "../../../src/renderer/stores/settings.store"
+    );
+    await loadSettingsFromMainProcess();
+
+    expect(useSettingsStore.getState().githubToken).toBe("ghp_FromMain");
+  });
+
+  it("does not overwrite an existing main-process startup setting during hydration", async () => {
+    localStorage.setItem(
+      "prompthub-settings",
+      JSON.stringify({
+        state: {
+          launchAtStartup: false,
+          minimizeOnLaunch: false,
+        },
+        version: 8,
+      }),
+    );
+
+    const { useSettingsStore, getSpy, setSpy } = await importStoreWithSpy();
+    getSpy.mockResolvedValueOnce({
+      launchAtStartup: true,
+      minimizeOnLaunch: true,
+      githubToken: "",
+    });
+
+    const { loadSettingsFromMainProcess } = await import(
+      "../../../src/renderer/stores/settings.store"
+    );
+    await loadSettingsFromMainProcess();
+
+    expect(useSettingsStore.getState().launchAtStartup).toBe(true);
+    expect(useSettingsStore.getState().minimizeOnLaunch).toBe(true);
+    expect(lastPayloadWithKey(setSpy, "launchAtStartup")).toBeUndefined();
+    expect(lastPayloadWithKey(setSpy, "minimizeOnLaunch")).toBeUndefined();
+  });
+
+  it("migrates startup settings from local storage when main-process values are missing", async () => {
+    localStorage.setItem(
+      "prompthub-settings",
+      JSON.stringify({
+        state: {
+          launchAtStartup: true,
+          minimizeOnLaunch: false,
+        },
+        version: 8,
+      }),
+    );
+
+    const { useSettingsStore, getSpy, setSpy } = await importStoreWithSpy();
+    getSpy.mockResolvedValueOnce({ githubToken: "" });
+
+    const { loadSettingsFromMainProcess } = await import(
+      "../../../src/renderer/stores/settings.store"
+    );
+    await loadSettingsFromMainProcess();
+
+    expect(useSettingsStore.getState().launchAtStartup).toBe(true);
+    expect(useSettingsStore.getState().minimizeOnLaunch).toBe(false);
+    expect(
+      lastPayloadWithKey(setSpy, "launchAtStartup")?.launchAtStartup,
+    ).toBe(true);
+    expect(
+      lastPayloadWithKey(setSpy, "minimizeOnLaunch")?.minimizeOnLaunch,
+    ).toBe(false);
   });
 
   it("trims surrounding whitespace", async () => {

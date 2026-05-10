@@ -7,76 +7,15 @@ import {
 } from '@prompthub/shared/constants/platforms';
 import type { Settings } from '@prompthub/shared/types';
 import { DEFAULT_SETTINGS } from '@prompthub/shared/types';
+import {
+  getMinimizeOnLaunchSetting,
+  readGithubTokenSetting,
+} from '../settings/settings-readers';
 
-/**
- * Get minimizeOnLaunch setting from database
- * @param db Database instance
- * @returns boolean - whether to minimize on launch
- */
-export function getMinimizeOnLaunchSetting(db: Database.Database): boolean {
-  try {
-    const stmt = db.prepare('SELECT value FROM settings WHERE key = ?');
-    const row = stmt.get('minimizeOnLaunch') as { value: string } | undefined;
-    if (row) {
-      return JSON.parse(row.value) === true;
-    }
-  } catch (e) {
-    console.error('Failed to read minimizeOnLaunch setting:', e);
-  }
-  return false; // Default to false
-}
-
-/**
- * Read the user's configured GitHub personal access token from the settings
- * database. The token is used to authenticate GitHub API calls made from the
- * skill store (e.g. listing repository trees) so users can raise the API
- * rate limit from the unauthenticated 60 req/h to the authenticated limit.
- *
- * Returns the trimmed token, or `null` if no valid token is configured.
- * This function never throws — callers should treat a missing token as a
- * normal "unauthenticated" scenario.
- *
- * Security: only callers whose target host is a trusted GitHub endpoint
- * (api.github.com, raw.githubusercontent.com) should attach the token.
- */
-export function getGithubTokenSetting(db: Database.Database): string | null {
-  try {
-    const stmt = db.prepare('SELECT value FROM settings WHERE key = ?');
-    const row = stmt.get('githubToken') as { value: string } | undefined;
-    if (!row) {
-      return null;
-    }
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(row.value);
-    } catch {
-      // Tolerate a legacy plain-string row, but only if it looks like a
-      // printable token — we never want to attach raw garbage to a header.
-      parsed = row.value;
-    }
-    if (typeof parsed !== 'string') {
-      return null;
-    }
-    // Reject anything containing CR/LF or other control bytes BEFORE
-    // trimming — `trim()` would silently drop trailing \n and hide an
-    // attempted header injection from the validator.
-    if (/[\r\n\x00-\x1f\x7f]/.test(parsed)) {
-      return null;
-    }
-    const trimmed = parsed.trim();
-    if (trimmed.length === 0) {
-      return null;
-    }
-    return trimmed;
-  } catch (e) {
-    // Never log the token content, only the error class.
-    console.error(
-      'Failed to read githubToken setting:',
-      e instanceof Error ? e.message : 'unknown',
-    );
-    return null;
-  }
-}
+export {
+  getMinimizeOnLaunchSetting,
+  readGithubTokenSetting as getGithubTokenSetting,
+} from '../settings/settings-readers';
 
 /**
  * Register settings-related IPC handlers

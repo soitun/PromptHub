@@ -378,10 +378,6 @@ interface SettingsState {
   autoScanInstalledSkills: boolean;
   autoScanStoreSkillsBeforeInstall: boolean;
 
-  // GitHub personal access token for authenticated skill-store fetches
-  // Used to raise the GitHub API rate limit from 60 req/h (unauthenticated)
-  // to 5000 req/h (authenticated). Only sent to api.github.com and
-  // raw.githubusercontent.com. See #108.
   githubToken: string;
 
   // Actions
@@ -494,6 +490,55 @@ function syncSettingsToMain(settings: Partial<Settings>): void {
     .catch((error: unknown) =>
       console.warn("Failed to sync settings to main process:", error),
     );
+}
+
+function sanitizeGithubToken(token: string): string {
+  return token.replace(/[\r\n\x00-\x1f\x7f]/g, "").trim();
+}
+
+type PersistedSettingsState = Omit<SettingsState, "githubToken">;
+
+function stripEphemeralSettings(
+  state: SettingsState,
+): PersistedSettingsState {
+  const { githubToken: _githubToken, ...persistedState } = state;
+  return persistedState;
+}
+
+export async function loadSettingsFromMainProcess(): Promise<void> {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const settings = await window.api?.settings?.get?.();
+  if (!settings) {
+    return;
+  }
+
+  const state = useSettingsStore.getState();
+  const launchAtStartup =
+    typeof settings.launchAtStartup === "boolean"
+      ? settings.launchAtStartup
+      : state.launchAtStartup;
+  const minimizeOnLaunch =
+    typeof settings.minimizeOnLaunch === "boolean"
+      ? settings.minimizeOnLaunch
+      : state.minimizeOnLaunch;
+  const githubToken = sanitizeGithubToken(settings.githubToken ?? "");
+
+  useSettingsStore.setState({
+    launchAtStartup,
+    minimizeOnLaunch,
+    githubToken,
+  });
+
+  if (typeof settings.launchAtStartup !== "boolean") {
+    syncSettingsToMain({ launchAtStartup });
+  }
+
+  if (typeof settings.minimizeOnLaunch !== "boolean") {
+    syncSettingsToMain({ minimizeOnLaunch });
+  }
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -1204,9 +1249,8 @@ export const useSettingsStore = create<SettingsState>()(
         setAutoScanStoreSkillsBeforeInstall: (enabled) =>
           setTouched({ autoScanStoreSkillsBeforeInstall: enabled }),
 
-        // Persist the GitHub PAT to localStorage AND to the main-process
-        // SQLite settings table so the main process can attach it as an
-        // Authorization header for GitHub API calls. See #108.
+        // Persist the GitHub PAT to the main-process settings store while
+        // keeping it out of renderer localStorage snapshots.
         setGithubToken: (token) => {
           // Strip control characters (CR, LF, etc.) to prevent header
           // injection — the main process also validates, but defence in
@@ -1214,19 +1258,21 @@ export const useSettingsStore = create<SettingsState>()(
           const sanitized = token
             .replace(/[\r\n\x00-\x1f\x7f]/g, "")
             .trim();
-          setTouched({ githubToken: sanitized });
-          syncSettingsToMain({ githubToken: sanitized } as Partial<Settings>);
-        },
+        setTouched({ githubToken: sanitized });
+        syncSettingsToMain({ githubToken: sanitized });
+      },
       };
     },
     {
       name: "prompthub-settings",
       version: 8,
+      partialize: stripEphemeralSettings,
       migrate: (state, version) => {
         if (!state || typeof state !== "object") {
           return state as SettingsState;
         }
         const next = { ...(state as SettingsState) };
+        next.githubToken = "";
         next.aiApiProtocol = normalizeAIProtocol(
           next.aiApiProtocol,
           next.aiProvider,
@@ -1403,12 +1449,6 @@ export const useSettingsStore = create<SettingsState>()(
           customSkillPlatformPaths: state?.customSkillPlatformPaths || {},
           skillPlatformOrder: state?.skillPlatformOrder || [],
           skillProjects: state?.skillProjects || [],
-          // Re-sync startup behavior to main DB on rehydrate so the main
-          // process can honor the user's preference on next launch (#115).
-          // This also migrates existing users whose value lives only in
-          // localStorage today.
-          launchAtStartup: state?.launchAtStartup ?? false,
-          minimizeOnLaunch: state?.minimizeOnLaunch ?? false,
         });
       },
     },

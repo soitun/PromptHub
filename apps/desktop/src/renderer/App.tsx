@@ -8,6 +8,7 @@ import { useUIStore } from "./stores/ui.store";
 import {
   getRenderedBackgroundImageBlur,
   getRenderedBackgroundImageOpacity,
+  loadSettingsFromMainProcess,
 } from "./stores/settings.store";
 import { initDatabase, migrateLegacyIndexedDbToMainProcess } from "./services/database";
 import { ImportedPromptData } from "./components/prompt/ImportPromptModal";
@@ -830,6 +831,11 @@ function App() {
       }
       if (installedVersion) {
         inferUpdateChannel(installedVersion);
+      }
+
+      await loadSettingsFromMainProcess();
+      if (disposed) {
+        return;
       }
 
       await init();

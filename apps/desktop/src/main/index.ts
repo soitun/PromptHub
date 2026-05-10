@@ -24,7 +24,7 @@ import {
   performDatabaseRecovery,
 } from "./database";
 import { registerAllIPC } from "./ipc";
-import { getMinimizeOnLaunchSetting } from "./ipc/settings.ipc";
+import { getMinimizeOnLaunchSetting } from "./settings/settings-readers";
 import { createMenu } from "./menu";
 import {
   registerShortcuts,

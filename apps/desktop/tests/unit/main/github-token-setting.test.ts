@@ -21,9 +21,9 @@ import {
   SCHEMA_INDEXES,
 } from "../../../src/main/database/schema";
 import DatabaseAdapter from "../../../src/main/database/sqlite";
-import { getGithubTokenSetting } from "../../../src/main/ipc/settings.ipc";
+import { readGithubTokenSetting } from "../../../src/main/settings/settings-readers";
 
-describe("getGithubTokenSetting (issue #108)", () => {
+describe("readGithubTokenSetting (issue #108)", () => {
   let rawDb: DatabaseAdapter.Database;
 
   beforeEach(() => {
@@ -51,27 +51,27 @@ describe("getGithubTokenSetting (issue #108)", () => {
   };
 
   it("returns null when no token has been persisted", () => {
-    expect(getGithubTokenSetting(rawDb)).toBeNull();
+    expect(readGithubTokenSetting(rawDb)).toBeNull();
   });
 
   it("returns the token when the user has saved a valid PAT", () => {
     writeJson("githubToken", "ghp_ExampleTokenAAAAAAAAAAAAAAAAAAAAAAAA");
-    expect(getGithubTokenSetting(rawDb)).toBe(
+    expect(readGithubTokenSetting(rawDb)).toBe(
       "ghp_ExampleTokenAAAAAAAAAAAAAAAAAAAAAAAA",
     );
   });
 
   it("trims surrounding whitespace before returning the token", () => {
     writeJson("githubToken", "  ghp_Spaces_Trimmed  ");
-    expect(getGithubTokenSetting(rawDb)).toBe("ghp_Spaces_Trimmed");
+    expect(readGithubTokenSetting(rawDb)).toBe("ghp_Spaces_Trimmed");
   });
 
   it("returns null for an empty or whitespace-only token", () => {
     writeJson("githubToken", "");
-    expect(getGithubTokenSetting(rawDb)).toBeNull();
+    expect(readGithubTokenSetting(rawDb)).toBeNull();
 
     writeJson("githubToken", "   ");
-    expect(getGithubTokenSetting(rawDb)).toBeNull();
+    expect(readGithubTokenSetting(rawDb)).toBeNull();
   });
 
   it.each([
@@ -84,7 +84,7 @@ describe("getGithubTokenSetting (issue #108)", () => {
     "rejects non-string persisted values: %s",
     (_label, value) => {
       writeJson("githubToken", value);
-      expect(getGithubTokenSetting(rawDb)).toBeNull();
+      expect(readGithubTokenSetting(rawDb)).toBeNull();
     },
   );
 
@@ -99,39 +99,39 @@ describe("getGithubTokenSetting (issue #108)", () => {
     (dangerous) => {
       writeJson("githubToken", dangerous);
       // Must be null to prevent header injection via `Authorization: Bearer`.
-      expect(getGithubTokenSetting(rawDb)).toBeNull();
+      expect(readGithubTokenSetting(rawDb)).toBeNull();
     },
   );
 
   it("tolerates malformed JSON rows without throwing", () => {
     writeRaw("githubToken", "{not-json");
-    expect(() => getGithubTokenSetting(rawDb)).not.toThrow();
+    expect(() => readGithubTokenSetting(rawDb)).not.toThrow();
     // A bare "{not-json" still looks like a printable string — but the
     // current semantics fall back to treating it as a plain string. Assert
     // it returns something non-null in that case (the raw text) so the
     // caller can at least decide what to do; it is NOT equal to null.
     // Implementation detail: we accept the raw value as a last-ditch
     // compatibility option.
-    expect(getGithubTokenSetting(rawDb)).toBe("{not-json");
+    expect(readGithubTokenSetting(rawDb)).toBe("{not-json");
   });
 
   it("treats a legacy plain-string row as the token for back-compat", () => {
     // Earlier builds wrote string values without JSON.stringify wrapping.
     // We still want those users to work without data migration.
     writeRaw("githubToken", "ghp_LegacyPlainValue");
-    expect(getGithubTokenSetting(rawDb)).toBe("ghp_LegacyPlainValue");
+    expect(readGithubTokenSetting(rawDb)).toBe("ghp_LegacyPlainValue");
   });
 
   it("is independent from other setting keys", () => {
     writeJson("minimizeOnLaunch", true);
     writeJson("autoSave", false);
     writeJson("githubToken", "ghp_IsolatedLookup");
-    expect(getGithubTokenSetting(rawDb)).toBe("ghp_IsolatedLookup");
+    expect(readGithubTokenSetting(rawDb)).toBe("ghp_IsolatedLookup");
   });
 
   it("handles long tokens (fine-grained PATs are ~93 chars)", () => {
     const longToken = "github_pat_" + "A".repeat(82);
     writeJson("githubToken", longToken);
-    expect(getGithubTokenSetting(rawDb)).toBe(longToken);
+    expect(readGithubTokenSetting(rawDb)).toBe(longToken);
   });
 });
