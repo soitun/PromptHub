@@ -1,9 +1,15 @@
-import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, memo, type CSSProperties } from 'react';
 import { StarIcon, HashIcon, PlusIcon, LayoutGridIcon, SettingsIcon, XIcon, ChevronDownIcon, ChevronUpIcon, ImageIcon, MessageSquareTextIcon, CommandIcon, CuboidIcon, StoreIcon, GlobeIcon, Clock3Icon, FolderPlusIcon, BookOpenIcon, LinkIcon, FolderOpenIcon, Trash2Icon } from 'lucide-react';
 import { useFolderStore } from '../../stores/folder.store';
 import { usePromptStore } from '../../stores/prompt.store';
 import { useSettingsStore } from '../../stores/settings.store';
 import { useUIStore } from '../../stores/ui.store';
+import {
+  SIDEBAR_PANEL_WIDTH_DEFAULT,
+  SIDEBAR_PANEL_WIDTH_MAX,
+  SIDEBAR_PANEL_WIDTH_MIN,
+} from '../../stores/ui.store';
+import { ColumnResizer } from '../ui/ColumnResizer';
 import { useSkillStore } from '../../stores/skill.store';
 import { FolderModal, PrivateFolderUnlockModal } from '../folder';
 import { useTranslation } from 'react-i18next';
@@ -111,6 +117,10 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
   const appModule = useUIStore((state) => state.appModule);
   const setAppModule = useUIStore((state) => state.setAppModule);
   const isCollapsed = useUIStore((state) => state.isSidebarCollapsed);
+  const sidebarPanelWidth = useUIStore((state) => state.sidebarPanelWidth);
+  const setSidebarPanelWidth = useUIStore(
+    (state) => state.setSidebarPanelWidth,
+  );
   const skillProjects = useSettingsStore((state) => state.skillProjects);
   const addRuleProject = useRulesStore((state) => state.addProjectRule);
   const removeRuleProject = useRulesStore((state) => state.removeProjectRule);
@@ -241,14 +251,22 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
   const showRail = layout !== 'panel';
   const railWidthClass = 'w-20';
   const combinedWidthClass = 'w-[23rem]';
+  // Dynamic pane widths are delivered via a CSS custom property so the
+  // <aside> can use a Tailwind arbitrary-value utility (see below) rather
+  // than applying an inline width property. Only one CSS variable is set
+  // via `style`, which Tailwind explicitly recommends as the way to wire
+  // up runtime-dynamic sizing to its utility classes.
+  const panelStyle = layout === 'panel' && !isCollapsed
+    ? ({ '--sidebar-panel-width': `${sidebarPanelWidth}px` } as CSSProperties)
+    : undefined;
   const asideClassName =
     layout === 'rail'
       ? `${railWidthClass} border-r border-sidebar-border/60 bg-sidebar-accent/25`
       : layout === 'panel'
-        ? `border-r border-sidebar-border bg-sidebar-background/85 app-wallpaper-panel-strong transition-[width,opacity,transform] duration-300 ease-out ${
+        ? `border-r border-sidebar-border bg-sidebar-background/85 app-wallpaper-panel-strong transition-[opacity,transform] duration-300 ease-out ${
             isCollapsed
               ? 'w-0 -translate-x-4 opacity-0 pointer-events-none border-r-0'
-              : 'w-72 translate-x-0 opacity-100'
+              : 'w-[var(--sidebar-panel-width)] translate-x-0 opacity-100'
           }`
         : `border-r border-sidebar-border app-left-rail-glass app-wallpaper-panel-strong ${
             isCollapsed ? railWidthClass : combinedWidthClass
@@ -500,6 +518,7 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
     <aside
       ref={sidebarRef}
       className={`relative z-20 flex shrink-0 overflow-hidden transition-all duration-300 ease-in-out ${asideClassName}`}
+      style={panelStyle}
     >
       {showRail && (
       <div className={`flex ${railWidthClass} shrink-0 flex-col bg-sidebar-accent/25 ${layout === 'combined' && !isCollapsed ? 'border-r border-sidebar-border/60' : ''}`}>
@@ -1394,6 +1413,22 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
         />
       )}
        </div>
+      {/* Drag-to-resize handle — only for the panel layout, hidden when */}
+      {/* the panel itself is collapsed. Absolutely positioned so it */}
+      {/* overlays the aside's right border instead of pushing layout. */}
+      {/* 仅在 panel 布局下显示拖拽手柄；折叠时隐藏；绝对定位避免影响布局 (#119) */}
+      {layout === 'panel' && !isCollapsed && (
+        <div className="absolute inset-y-0 right-0 z-10 flex">
+          <ColumnResizer
+            currentWidth={sidebarPanelWidth}
+            min={SIDEBAR_PANEL_WIDTH_MIN}
+            max={SIDEBAR_PANEL_WIDTH_MAX}
+            defaultWidth={SIDEBAR_PANEL_WIDTH_DEFAULT}
+            onResize={setSidebarPanelWidth}
+            ariaLabel={t('sidebar.resizeAria', 'Resize folder sidebar')}
+          />
+        </div>
+      )}
     </aside>
   );
 }

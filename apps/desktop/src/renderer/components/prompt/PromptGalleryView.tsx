@@ -139,7 +139,10 @@ const GalleryCard = memo(({
             {/* Content Area */}
             {/* 内容区域 */}
             <div className="flex-1 p-3 flex flex-col gap-2">
-                <h3 className="font-semibold text-sm truncate leading-tight" title={prompt.title}>
+                <h3
+                    className="font-semibold text-sm leading-snug break-words line-clamp-2"
+                    title={prompt.title}
+                >
                     {renderHighlightedText(prompt.title, highlightTerms, highlightClassName)}
                 </h3>
 

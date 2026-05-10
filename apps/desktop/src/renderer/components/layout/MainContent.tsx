@@ -1,9 +1,14 @@
-import { useState, useEffect, useMemo, useCallback, useRef, Children, isValidElement, cloneElement, memo, lazy, Suspense } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef, Children, isValidElement, cloneElement, memo, lazy, Suspense, type CSSProperties } from 'react';
 import { flushSync } from 'react-dom';
 import { usePromptStore, ViewMode } from '../../stores/prompt.store';
 import { useFolderStore } from '../../stores/folder.store';
 import { useSettingsStore } from '../../stores/settings.store';
 import { useUIStore } from '../../stores/ui.store';
+import {
+  PROMPT_LIST_PANE_WIDTH_DEFAULT,
+  PROMPT_LIST_PANE_WIDTH_MAX,
+  PROMPT_LIST_PANE_WIDTH_MIN,
+} from '../../stores/ui.store';
 import { resolveScenarioModel } from '../../services/ai-defaults';
 import { RulesManager } from '../rules/RulesManager';
 
@@ -20,6 +25,7 @@ import { Input } from '../ui/Input';
 import { Textarea } from '../ui/Textarea';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { CollapsibleThinking } from '../ui/CollapsibleThinking';
+import { ColumnResizer } from '../ui/ColumnResizer';
 import { useToast } from '../ui/Toast';
 import { chatCompletion, generateImage, buildMessagesFromPrompt, multiModelCompare, AITestResult, StreamCallbacks } from '../../services/ai';
 import { useTranslation } from 'react-i18next';
@@ -161,7 +167,10 @@ const PromptCard = memo(function PromptCard({
           {prompt.promptType === 'image' && (
             <ImageIcon className={`w-3 h-3 flex-shrink-0 ${isSelected ? 'text-white/70' : 'text-blue-500'}`} />
           )}
-          <h3 className="font-medium truncate text-sm">
+          <h3
+            className="font-medium text-sm leading-snug break-words line-clamp-2"
+            title={prompt.title}
+          >
             {renderHighlightedText(prompt.title, highlightTerms, highlightClassName)}
           </h3>
         </div>
@@ -171,7 +180,7 @@ const PromptCard = memo(function PromptCard({
         )}
       </div>
       {prompt.description && (
-        <p className={`text-xs truncate mt-0.5 ${isSelected ? 'text-white/70' : 'text-muted-foreground'
+        <p className={`text-xs line-clamp-2 break-words mt-0.5 ${isSelected ? 'text-white/70' : 'text-muted-foreground'
           }`}>
           {renderHighlightedText(prompt.description, highlightTerms, highlightClassName)}
         </p>
@@ -229,6 +238,11 @@ function PromptSkillMainContent() {
   const sortOrder = usePromptStore((state) => state.sortOrder);
   const viewMode = usePromptStore((state) => state.viewMode);
   const incrementUsageCount = usePromptStore((state) => state.incrementUsageCount);
+  // Resizable prompt-list pane width (#119)
+  const promptListPaneWidth = useUIStore((state) => state.promptListPaneWidth);
+  const setPromptListPaneWidth = useUIStore(
+    (state) => state.setPromptListPaneWidth,
+  );
   const selectedFolderId = useFolderStore((state) => state.selectedFolderId);
   const unlockedFolderIds = useFolderStore((state) => state.unlockedFolderIds);
   const folders = useFolderStore((state) => state.folders);
@@ -1621,8 +1635,10 @@ function PromptSkillMainContent() {
         className={getViewClass('card', 'row')}
       >
         {/* Prompt list */}
-        {/* Prompt 列表 */}
-        <div className="prompt-list-pane w-80 border-r border-border flex flex-col bg-card/50">
+        <div
+          className="prompt-list-pane relative w-[var(--prompt-list-pane-width)] shrink-0 border-r border-border flex flex-col bg-card/50"
+          style={{ '--prompt-list-pane-width': `${promptListPaneWidth}px` } as CSSProperties}
+        >
           {/* List header: sort + view switch */}
           {/* 列表头部：排序 + 视图切换 */}
           <PromptListHeader count={sortedPrompts.length} />
@@ -1652,6 +1668,18 @@ function PromptSkillMainContent() {
                 ))}
               </div>
             )}
+          </div>
+          {/* Drag-to-resize handle for the prompt list pane (#119) */}
+          {/* Prompt 列表栏的拖拽手柄 (#119) */}
+          <div className="absolute inset-y-0 right-0 z-10 flex">
+            <ColumnResizer
+              currentWidth={promptListPaneWidth}
+              min={PROMPT_LIST_PANE_WIDTH_MIN}
+              max={PROMPT_LIST_PANE_WIDTH_MAX}
+              defaultWidth={PROMPT_LIST_PANE_WIDTH_DEFAULT}
+              onResize={setPromptListPaneWidth}
+              ariaLabel={t('prompt.resizeListPaneAria', 'Resize prompt list')}
+            />
           </div>
         </div>
 

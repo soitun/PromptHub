@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DownloadIcon, CheckCircleIcon, XIcon, Loader2Icon, RefreshCwIcon, FolderOpenIcon, ExternalLinkIcon, ZapIcon } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
@@ -53,6 +53,7 @@ export function UpdateDialog({ isOpen, onClose, initialStatus }: UpdateDialogPro
   const useUpdateMirror = useSettingsStore((state) => state.useUpdateMirror);
   const updateChannel = useSettingsStore((state) => state.updateChannel);
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(initialStatus || null);
+  const updateStatusRef = useRef<UpdateStatus | null>(initialStatus || null);
   const [useMirror, setUseMirror] = useState<boolean>(useUpdateMirror);
   const [currentVersion, setCurrentVersion] = useState<string>('');
   const [platform, setPlatform] = useState<string>('');
@@ -65,10 +66,19 @@ export function UpdateDialog({ isOpen, onClose, initialStatus }: UpdateDialogPro
   const [isManualRefreshPending, setIsManualRefreshPending] = useState(false);
 
   useEffect(() => {
-    if (initialStatus) {
-      setUpdateStatus(initialStatus);
-    }
+    // Keep the ref in sync with the `initialStatus` prop, including `null`
+    // transitions. If we only wrote the ref on truthy values (the previous
+    // behavior), a parent that cleared `initialStatus` back to null would
+    // leave the ref holding a stale `available` / `downloaded`, and the
+    // "ignore transient checking" guard plus the `preserveVisibleStatus`
+    // computation would both misbehave on the next open.
+    setUpdateStatus(initialStatus ?? null);
+    updateStatusRef.current = initialStatus ?? null;
   }, [initialStatus]);
+
+  useEffect(() => {
+    updateStatusRef.current = updateStatus;
+  }, [updateStatus]);
 
   useEffect(() => {
     // Get current version and platform
@@ -86,13 +96,18 @@ export function UpdateDialog({ isOpen, onClose, initialStatus }: UpdateDialogPro
     // Listen for update status
     // 监听更新状态
     const handleStatus = (status: UpdateStatus) => {
+      // Use the ref to read the latest state — this effect runs once with an
+      // empty dep array, so the closure-captured `updateStatus` would be
+      // stale on subsequent invocations and miss already-known
+      // 'available'/'downloaded' states.
       if (
         status.status === 'checking' &&
-        isStableUpgradeState(updateStatus)
+        isStableUpgradeState(updateStatusRef.current)
       ) {
         return;
       }
 
+      updateStatusRef.current = status;
       setUpdateStatus(status);
       if (status.status !== 'checking') {
         setIsManualRefreshPending(false);
@@ -142,7 +157,12 @@ export function UpdateDialog({ isOpen, onClose, initialStatus }: UpdateDialogPro
   }, []);
 
   // When dialog opens, always force a fresh update check (no cache)
-  // 当对话框打开时，总是强制检查更新（不使用缓存）
+  //
+  // Note: this effect intentionally does NOT depend on `initialStatus`. The
+  // parent App pushes status into `initialStatus` while the dialog is open;
+  // depending on it here produced a feedback loop where every status update
+  // re-triggered the check, which produced the next status, and so on —
+  // this was the root cause of the flickering reported in #117/#118.
   useEffect(() => {
     if (isOpen) {
       setHasAcknowledgedBackup(false);
@@ -153,10 +173,10 @@ export function UpdateDialog({ isOpen, onClose, initialStatus }: UpdateDialogPro
         setLastManualBackupVersion(status.lastManualBackupVersion);
       });
       void handleCheckUpdate(useUpdateMirror, {
-        preserveVisibleStatus: isStableUpgradeState(initialStatus),
+        preserveVisibleStatus: isStableUpgradeState(updateStatusRef.current),
       });
     }
-  }, [initialStatus, isOpen, updateChannel, useUpdateMirror]);
+  }, [isOpen, updateChannel, useUpdateMirror]);
 
   const handleCheckUpdate = async (
     mirror: boolean,
