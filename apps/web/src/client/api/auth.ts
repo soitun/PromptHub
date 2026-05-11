@@ -1,6 +1,16 @@
 export interface LoginCredentials {
   username: string;
   password: string;
+  captchaId: string;
+  captchaAnswer: string;
+}
+
+export interface AuthCaptchaResponse {
+  data: {
+    captchaId: string;
+    expiresInSeconds: number;
+    imageData: string;
+  };
 }
 
 export interface AuthResponse {
@@ -69,6 +79,16 @@ export async function register(credentials: LoginCredentials) {
     throw new Error(await extractErrorMessage(res, 'Request failed'));
   }
   return res.json() as Promise<AuthResponse>;
+}
+
+export async function getCaptcha() {
+  const res = await fetch('/api/auth/captcha', {
+    credentials: 'include',
+  });
+  if (!res.ok) {
+    throw new Error(await extractErrorMessage(res, 'Request failed'));
+  }
+  return res.json() as Promise<AuthCaptchaResponse>;
 }
 
 export async function getBootstrapStatus() {

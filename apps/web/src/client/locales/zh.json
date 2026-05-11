@@ -1,9 +1,15 @@
 {
   "auth": {
     "loginTitle": "登录 PromptHub",
+    "loginDescription": "使用现有账户登录，进入你的自部署 PromptHub 工作区。",
     "registerTitle": "创建账户",
     "username": "用户名",
     "password": "密码",
+    "captchaLabel": "验证码",
+    "captchaPlaceholder": "输入图片中的字符",
+    "captchaRefresh": "刷新图片",
+    "captchaLoading": "正在加载验证码...",
+    "captchaImageAlt": "验证码图片",
     "signIn": "登录",
     "register": "注册",
     "needAccount": "没有账户？点击注册",

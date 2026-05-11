@@ -1,9 +1,15 @@
 {
   "auth": {
     "loginTitle": "Login to PromptHub",
+    "loginDescription": "Sign in with an existing account to access your self-hosted PromptHub workspace.",
     "registerTitle": "Create Account",
     "username": "Username",
     "password": "Password",
+    "captchaLabel": "Verification",
+    "captchaPlaceholder": "Enter the characters shown",
+    "captchaRefresh": "Refresh Image",
+    "captchaLoading": "Loading verification...",
+    "captchaImageAlt": "Captcha image",
     "signIn": "Sign In",
     "register": "Register",
     "needAccount": "Need an account? Register",

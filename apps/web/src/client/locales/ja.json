@@ -1,9 +1,15 @@
 {
   "auth": {
     "loginTitle": "PromptHub にログイン",
+    "loginDescription": "既存のアカウントでサインインして、セルフホスト版 PromptHub ワークスペースにアクセスします。",
     "registerTitle": "アカウント作成",
     "username": "ユーザー名",
     "password": "パスワード",
+    "captchaLabel": "認証コード",
+    "captchaPlaceholder": "画像内の文字を入力",
+    "captchaRefresh": "画像を更新",
+    "captchaLoading": "認証コードを読み込み中...",
+    "captchaImageAlt": "認証コード画像",
     "signIn": "サインイン",
     "register": "登録",
     "needAccount": "アカウントが必要ですか？登録",

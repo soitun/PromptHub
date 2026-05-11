@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
@@ -7,6 +7,7 @@ export function SetupPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const {
+    getCaptcha,
     register,
     isAuthenticated,
     isBootstrapLoading,
@@ -15,7 +16,57 @@ export function SetupPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [captchaId, setCaptchaId] = useState('');
+  const [captchaAnswer, setCaptchaAnswer] = useState('');
+  const [captchaImageData, setCaptchaImageData] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [captchaLoading, setCaptchaLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadCaptcha = async () => {
+      setCaptchaLoading(true);
+      try {
+        const captcha = await getCaptcha();
+        if (!cancelled) {
+          setCaptchaId(captcha.captchaId);
+          setCaptchaImageData(captcha.imageData);
+          setCaptchaAnswer('');
+        }
+      } catch (captchaError: unknown) {
+        if (!cancelled) {
+          setError(
+            captchaError instanceof Error
+              ? captchaError.message
+              : t('common.requestFailed'),
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setCaptchaLoading(false);
+        }
+      }
+    };
+
+    void loadCaptcha();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [getCaptcha, t]);
+
+  const refreshCaptcha = async () => {
+    setCaptchaLoading(true);
+    try {
+      const captcha = await getCaptcha();
+      setCaptchaId(captcha.captchaId);
+      setCaptchaImageData(captcha.imageData);
+      setCaptchaAnswer('');
+    } finally {
+      setCaptchaLoading(false);
+    }
+  };
 
   if (isBootstrapLoading) {
     return <div className="loading-screen">{t('dashboard.loading')}</div>;
@@ -35,9 +86,14 @@ export function SetupPage() {
     }
 
     try {
-      await register({ username, password });
+      await register({ username, password, captchaId, captchaAnswer });
       navigate('/', { replace: true });
     } catch (setupError: unknown) {
+      try {
+        await refreshCaptcha();
+      } catch (captchaRefreshError: unknown) {
+        console.error('Failed to refresh captcha after setup error:', captchaRefreshError);
+      }
       if (setupError instanceof Error && setupError.message) {
         setError(setupError.message);
       } else {
@@ -111,7 +167,46 @@ export function SetupPage() {
             />
           </div>
 
-          <button type="submit" className="login-submit web-auth-submit">
+          <div className="form-group">
+            <label htmlFor="setup-captcha" className="text-sm font-semibold text-slate-700">
+              {t('auth.captchaLabel')}
+            </label>
+            <div className="web-auth-captcha-row">
+              <div className="web-auth-captcha-prompt" aria-live="polite">
+                {captchaLoading ? (
+                  <span>{t('auth.captchaLoading')}</span>
+                ) : (
+                  <img
+                    src={captchaImageData}
+                    alt={t('auth.captchaImageAlt')}
+                    className="web-auth-captcha-image"
+                  />
+                )}
+              </div>
+              <button
+                type="button"
+                className="secondary-button web-auth-captcha-refresh"
+                onClick={() => void refreshCaptcha()}
+                disabled={captchaLoading}
+              >
+                {t('auth.captchaRefresh')}
+              </button>
+            </div>
+            <input
+              id="setup-captcha"
+              type="text"
+              autoCapitalize="characters"
+              autoCorrect="off"
+              spellCheck={false}
+              value={captchaAnswer}
+              onChange={(event) => setCaptchaAnswer(event.target.value)}
+              required
+              className="web-auth-input"
+              placeholder={t('auth.captchaPlaceholder')}
+            />
+          </div>
+
+          <button type="submit" className="login-submit web-auth-submit" disabled={captchaLoading}>
             <span className="text-white">{t('auth.completeSetup')}</span>
           </button>
         </form>

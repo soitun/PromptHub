@@ -1,9 +1,15 @@
 {
   "auth": {
     "loginTitle": "Connexion à PromptHub",
+    "loginDescription": "Connectez-vous avec un compte existant pour accéder à votre espace PromptHub auto-hébergé.",
     "registerTitle": "Créer un compte",
     "username": "Nom d'utilisateur",
     "password": "Mot de passe",
+    "captchaLabel": "Vérification",
+    "captchaPlaceholder": "Saisissez les caractères affichés",
+    "captchaRefresh": "Actualiser l'image",
+    "captchaLoading": "Chargement de la vérification...",
+    "captchaImageAlt": "Image du captcha",
     "signIn": "Se connecter",
     "register": "S'inscrire",
     "needAccount": "Besoin d'un compte ? S'inscrire",

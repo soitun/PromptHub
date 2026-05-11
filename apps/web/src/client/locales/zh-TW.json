@@ -1,9 +1,15 @@
 {
   "auth": {
     "loginTitle": "登入 PromptHub",
+    "loginDescription": "使用現有帳號登入，進入你的自部署 PromptHub 工作區。",
     "registerTitle": "建立帳戶",
     "username": "使用者名稱",
     "password": "密碼",
+    "captchaLabel": "驗證碼",
+    "captchaPlaceholder": "輸入圖片中的字元",
+    "captchaRefresh": "重新整理圖片",
+    "captchaLoading": "正在載入驗證碼...",
+    "captchaImageAlt": "驗證碼圖片",
     "signIn": "登入",
     "register": "註冊",
     "needAccount": "沒有帳戶？點此註冊",

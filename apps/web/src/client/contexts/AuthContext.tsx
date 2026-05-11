@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import {
+  getCaptcha as apiGetCaptcha,
   getBootstrapStatus,
   getMe,
   login as apiLogin,
@@ -24,6 +25,7 @@ interface AuthContextType {
   isBootstrapLoading: boolean;
   isInitialized: boolean;
   registrationAllowed: boolean;
+  getCaptcha: () => Promise<{ captchaId: string; expiresInSeconds: number; imageData: string }>;
   login: (credentials: LoginCredentials) => Promise<void>;
   register: (credentials: LoginCredentials) => Promise<void>;
   logout: () => void;
@@ -158,6 +160,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await refreshBootstrap();
   };
 
+  const getCaptcha = async () => {
+    const res = await apiGetCaptcha();
+    return res.data;
+  };
+
   const logout = async () => {
     const currentToken = token;
     const currentRefreshToken = refreshToken;
@@ -182,6 +189,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isBootstrapLoading,
         isInitialized,
         registrationAllowed,
+        getCaptcha,
         login,
         register,
         logout,

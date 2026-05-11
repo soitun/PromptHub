@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { getMe, login, logout, refresh, register } from './auth';
+import { getCaptcha, getMe, login, logout, refresh, register } from './auth';
 
 const fetchMock = vi.fn<typeof fetch>();
 
@@ -33,13 +33,42 @@ describe('client auth api', () => {
       }),
     );
 
-    const response = await login({ username: 'alice', password: 'secret' });
+    const response = await login({
+      username: 'alice',
+      password: 'secret',
+      captchaId: '550e8400-e29b-41d4-a716-446655440000',
+      captchaAnswer: '7',
+    });
 
     expect(response.data.user.username).toBe('alice');
     expect(fetchMock).toHaveBeenCalledWith('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: 'alice', password: 'secret' }),
+      body: JSON.stringify({
+        username: 'alice',
+        password: 'secret',
+        captchaId: '550e8400-e29b-41d4-a716-446655440000',
+        captchaAnswer: '7',
+      }),
+      credentials: 'include',
+    });
+  });
+
+  it('loads captcha challenges for auth forms', async () => {
+    fetchMock.mockResolvedValueOnce(
+      createJsonResponse(200, {
+        data: {
+          captchaId: '550e8400-e29b-41d4-a716-446655440000',
+          expiresInSeconds: 300,
+          imageData: 'data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=',
+        },
+      }),
+    );
+
+    const response = await getCaptcha();
+
+    expect(response.data.imageData).toContain('data:image/svg+xml;base64,');
+    expect(fetchMock).toHaveBeenCalledWith('/api/auth/captcha', {
       credentials: 'include',
     });
   });
@@ -47,7 +76,14 @@ describe('client auth api', () => {
   it('extracts API error messages for register and refresh failures', async () => {
     fetchMock.mockResolvedValueOnce(createJsonResponse(409, { error: { message: 'Username already exists' } }));
 
-    await expect(register({ username: 'alice', password: 'secret' })).rejects.toThrow('Username already exists');
+    await expect(
+      register({
+        username: 'alice',
+        password: 'secret',
+        captchaId: '550e8400-e29b-41d4-a716-446655440000',
+        captchaAnswer: '7',
+      }),
+    ).rejects.toThrow('Username already exists');
 
     fetchMock.mockResolvedValueOnce(createJsonResponse(401, { error: { message: 'Refresh expired' } }));
 

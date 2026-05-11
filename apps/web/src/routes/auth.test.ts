@@ -4,6 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { closeDatabase } from '@prompthub/db';
 import { resetRateLimits } from '../services/auth-rate-limit';
+import { issueSolvedCaptcha } from '../test-helpers/auth-captcha';
 
 const ENV_KEYS = [
   'PORT',
@@ -47,11 +48,12 @@ async function createTestApp(dataDir: string, options?: { allowRegistration?: bo
 }
 
 async function registerUser(app: Awaited<ReturnType<typeof createTestApp>>, username: string, password: string) {
+  const captcha = await issueSolvedCaptcha(app);
   const response = await app.request(
     new Request('http://local/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ username, password, ...captcha }),
     }),
   );
 
@@ -67,11 +69,12 @@ async function registerUser(app: Awaited<ReturnType<typeof createTestApp>>, user
 }
 
 async function loginUser(app: Awaited<ReturnType<typeof createTestApp>>, username: string, password: string) {
+  const captcha = await issueSolvedCaptcha(app);
   const response = await app.request(
     new Request('http://local/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ username, password, ...captcha }),
     }),
   );
 
@@ -155,6 +158,7 @@ describe('web auth routes', () => {
           body: JSON.stringify({
             username: 'firstadmin',
             password: 'debugpass001',
+            ...(await issueSolvedCaptcha(app)),
           }),
         }),
       );
@@ -180,6 +184,7 @@ describe('web auth routes', () => {
           body: JSON.stringify({
             username: 'firstadmin',
             password: 'debugpass001',
+            ...(await issueSolvedCaptcha(app)),
           }),
         }),
       );
@@ -215,6 +220,7 @@ describe('web auth routes', () => {
           body: JSON.stringify({
             username: 'duplicateuser',
             password: 'debugpass001',
+            ...(await issueSolvedCaptcha(app)),
           }),
         }),
       );
@@ -226,6 +232,7 @@ describe('web auth routes', () => {
           body: JSON.stringify({
             username: 'duplicateuser',
             password: 'debugpass001',
+            ...(await issueSolvedCaptcha(app)),
           }),
         }),
       );
@@ -255,6 +262,7 @@ describe('web auth routes', () => {
           body: JSON.stringify({
             username: 'ab',
             password: 'debugpass001',
+            ...(await issueSolvedCaptcha(app)),
           }),
         }),
       );
@@ -282,7 +290,11 @@ describe('web auth routes', () => {
         new Request('http://local/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: 'wrongpassuser', password: 'wrongpass999' }),
+          body: JSON.stringify({
+            username: 'wrongpassuser',
+            password: 'wrongpass999',
+            ...(await issueSolvedCaptcha(app)),
+          }),
         }),
       );
 
@@ -303,22 +315,28 @@ describe('web auth routes', () => {
       await registerUser(app, 'ratelimituser', 'debugpass001');
 
       for (let index = 0; index < 5; index++) {
+        const captcha = await issueSolvedCaptcha(app, {
+          headers: { 'x-real-ip': '203.0.113.10' },
+        });
         const response = await app.request(
           new Request('http://local/api/auth/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'x-real-ip': '203.0.113.10' },
-            body: JSON.stringify({ username: 'ratelimituser', password: 'wrongpass999' }),
+            body: JSON.stringify({ username: 'ratelimituser', password: 'wrongpass999', ...captcha }),
           }),
         );
 
         expect(response.status).toBe(401);
       }
 
+      const captcha = await issueSolvedCaptcha(app, {
+        headers: { 'x-real-ip': '203.0.113.10' },
+      });
       const blockedResponse = await app.request(
         new Request('http://local/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-real-ip': '203.0.113.10' },
-          body: JSON.stringify({ username: 'ratelimituser', password: 'wrongpass999' }),
+          body: JSON.stringify({ username: 'ratelimituser', password: 'wrongpass999', ...captcha }),
         }),
       );
 
@@ -344,6 +362,72 @@ describe('web auth routes', () => {
       const cookies = getSetCookieHeaders(response).join('\n');
       expect(cookies).toContain('prompthub_access=');
       expect(cookies).toContain('prompthub_refresh=');
+    } finally {
+      fs.rmSync(dataDir, { recursive: true, force: true });
+    }
+  }, TEST_TIMEOUT);
+
+  it('rejects login when captcha is missing', async () => {
+    const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'prompthub-web-auth-test-'));
+
+    try {
+      const app = await createTestApp(dataDir);
+      await registerUser(app, 'captchalessuser', 'debugpass001');
+
+      const response = await app.request(
+        new Request('http://local/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: 'captchalessuser', password: 'debugpass001' }),
+        }),
+      );
+
+      expect(response.status).toBe(422);
+      const payload = await response.json() as { error: { code: string; message: string } };
+      expect(payload.error.code).toBe('VALIDATION_ERROR');
+      expect(payload.error.message).toContain('captchaId');
+    } finally {
+      fs.rmSync(dataDir, { recursive: true, force: true });
+    }
+  }, TEST_TIMEOUT);
+
+  it('rejects reused captcha challenges', async () => {
+    const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'prompthub-web-auth-test-'));
+
+    try {
+      const app = await createTestApp(dataDir);
+      await registerUser(app, 'singleuseuser', 'debugpass001');
+      const captcha = await issueSolvedCaptcha(app);
+
+      const firstResponse = await app.request(
+        new Request('http://local/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: 'singleuseuser',
+            password: 'wrongpass999',
+            ...captcha,
+          }),
+        }),
+      );
+      expect(firstResponse.status).toBe(401);
+
+      const secondResponse = await app.request(
+        new Request('http://local/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: 'singleuseuser',
+            password: 'debugpass001',
+            ...captcha,
+          }),
+        }),
+      );
+
+      expect(secondResponse.status).toBe(422);
+      const payload = await secondResponse.json() as { error: { code: string; message: string } };
+      expect(payload.error.code).toBe('VALIDATION_ERROR');
+      expect(payload.error.message).toBe('Captcha challenge is missing or expired');
     } finally {
       fs.rmSync(dataDir, { recursive: true, force: true });
     }
@@ -470,7 +554,11 @@ describe('web auth routes', () => {
         new Request('http://local/api/auth/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: 'blockeduser', password: 'debugpass001' }),
+          body: JSON.stringify({
+            username: 'blockeduser',
+            password: 'debugpass001',
+            ...(await issueSolvedCaptcha(lockedApp)),
+          }),
         }),
       );
 
@@ -541,7 +629,11 @@ describe('web auth routes', () => {
         new Request('http://local/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: 'passworduser', password: 'debugpass001' }),
+          body: JSON.stringify({
+            username: 'passworduser',
+            password: 'debugpass001',
+            ...(await issueSolvedCaptcha(app)),
+          }),
         }),
       );
       expect(oldLogin.status).toBe(401);
