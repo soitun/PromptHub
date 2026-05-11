@@ -582,15 +582,20 @@ export const useSettingsStore = create<SettingsState>()(
         scanPaths: string[] | undefined,
         rootPath: string,
       ): string[] => {
+        const normalizedRootPath = normalizeProjectRecordPath(rootPath);
         const normalized = Array.from(
           new Set(
-            (scanPaths ?? [rootPath])
+            (scanPaths ?? [])
               .map((entry) => normalizeProjectRecordPath(entry))
-              .filter((entry) => entry.length > 0),
+              .filter(
+                (entry) =>
+                  entry.length > 0 &&
+                  entry.toLowerCase() !== normalizedRootPath.toLowerCase(),
+              ),
           ),
         );
 
-        return normalized.length > 0 ? normalized : [rootPath];
+        return normalized;
       };
 
       return {
@@ -1432,14 +1437,15 @@ export const useSettingsStore = create<SettingsState>()(
                   : "";
               const normalizedScanPaths = Array.from(
                 new Set(
-                  (Array.isArray(project.scanPaths)
-                    ? project.scanPaths
-                    : [normalizedRootPath]
-                  )
+                  (Array.isArray(project.scanPaths) ? project.scanPaths : [])
                     .map((entry) =>
                       typeof entry === "string" ? entry.trim() : "",
                     )
-                    .filter((entry) => entry.length > 0),
+                    .filter(
+                      (entry) =>
+                        entry.length > 0 &&
+                        entry.toLowerCase() !== normalizedRootPath.toLowerCase(),
+                    ),
                 ),
               );
 
@@ -1447,10 +1453,7 @@ export const useSettingsStore = create<SettingsState>()(
                 ...project,
                 name: project.name.trim(),
                 rootPath: normalizedRootPath,
-                scanPaths:
-                  normalizedScanPaths.length > 0
-                    ? normalizedScanPaths
-                    : [normalizedRootPath],
+                scanPaths: normalizedScanPaths,
                 createdAt:
                   typeof project.createdAt === "number"
                     ? project.createdAt

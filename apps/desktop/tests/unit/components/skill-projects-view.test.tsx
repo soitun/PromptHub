@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { SkillProjectsView } from "../../../src/renderer/components/skill/SkillProjectsView";
@@ -172,5 +172,114 @@ describe("SkillProjectsView", () => {
     expect(screen.queryByText("Source / Content")).not.toBeInTheDocument();
     expect(screen.getByText("novel-auditor")).toBeInTheDocument();
     expect(screen.getByText("novel-builder")).toBeInTheDocument();
+  });
+
+  it("prefills project name from the selected root path and auto scans after creation", async () => {
+    const selectFolder = vi.fn().mockResolvedValue("/tmp/story-world");
+    const addSkillProject = vi.fn().mockReturnValue({
+      id: "project-2",
+      name: "story-world",
+      rootPath: "/tmp/story-world",
+      scanPaths: [],
+      createdAt: 2,
+      updatedAt: 2,
+    });
+    const scanProjectSkills = vi.fn().mockResolvedValue([]);
+    const selectProject = vi.fn();
+
+    installWindowMocks({
+      api: {
+        skill: {
+          readLocalFileByPath: vi.fn().mockResolvedValue({
+            content: "# novel-auditor\n\nHelp audit fiction.",
+          }),
+          listLocalFilesByPath: vi.fn().mockResolvedValue([]),
+        },
+      },
+      electron: {
+        selectFolder,
+        openPath: vi.fn(),
+      },
+    });
+
+    useSettingsStore.setState({
+      translationMode: "basic",
+      skillInstallMethod: "copy",
+      autoScanInstalledSkills: false,
+      aiModels: [],
+      skillProjects: [],
+      addSkillProject,
+      updateSkillProject: vi.fn(),
+      removeSkillProject: vi.fn(),
+    } as Partial<ReturnType<typeof useSettingsStore.getState>>);
+
+    useSkillStore.setState({
+      skills: [],
+      selectedSkillId: null,
+      searchQuery: "",
+      selectedProjectId: null,
+      projectScanState: {},
+      scanProjectSkills,
+      selectProject,
+      importScannedSkills: vi.fn().mockResolvedValue({
+        importedCount: 0,
+        importedSkills: [],
+        failed: [],
+        skipped: [],
+      }),
+      loadDeployedStatus: vi.fn().mockResolvedValue(undefined),
+      translateContent: vi.fn().mockResolvedValue("# translated"),
+      getTranslationState: vi.fn().mockReturnValue({
+        value: null,
+        hasTranslation: false,
+        isStale: false,
+      }),
+      clearTranslation: vi.fn(),
+      toggleFavorite: vi.fn(),
+      deleteSkill: vi.fn(),
+      loadSkills: vi.fn().mockResolvedValue(undefined),
+      syncSkillFromRepo: vi.fn().mockResolvedValue(null),
+      saveSafetyReport: vi.fn().mockResolvedValue(undefined),
+      selectSkill: vi.fn(),
+    } as Partial<ReturnType<typeof useSkillStore.getState>>);
+
+    await act(async () => {
+      render(<SkillProjectsView />);
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Add Project" }));
+
+    const rootPathLabel = screen.getByText("Project Root Path");
+    const projectNameLabel = screen.getByText("Project Name");
+    expect(
+      rootPathLabel.compareDocumentPosition(projectNameLabel) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).not.toBe(0);
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Browse" })[0]);
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue("story-world")).toBeInTheDocument();
+    });
+
+    fireEvent.click(
+      screen.getAllByRole("button", { name: "Add Project" }).at(-1)!,
+    );
+
+    await waitFor(() => {
+      expect(addSkillProject).toHaveBeenCalledWith({
+        name: "story-world",
+        rootPath: "/tmp/story-world",
+        scanPaths: [],
+      });
+    });
+
+    expect(selectProject).toHaveBeenCalledWith("project-2");
+    expect(scanProjectSkills).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "project-2",
+        rootPath: "/tmp/story-world",
+      }),
+    );
   });
 });

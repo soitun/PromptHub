@@ -207,6 +207,26 @@ describe("skill store", () => {
     ]);
   });
 
+  it("does not duplicate the project root when extra scan paths already include it", () => {
+    expect(
+      getProjectScanPaths({
+        id: "project-1",
+        name: "Workspace",
+        rootPath: "/tmp/workspace",
+        scanPaths: ["/tmp/workspace", "/tmp/workspace/custom-skills"],
+        createdAt: 1,
+        updatedAt: 1,
+      }),
+    ).toEqual([
+      "/tmp/workspace",
+      "/tmp/workspace/.claude/skills",
+      "/tmp/workspace/.agents/skills",
+      "/tmp/workspace/skills",
+      "/tmp/workspace/.gemini",
+      "/tmp/workspace/custom-skills",
+    ]);
+  });
+
   it("syncs an intentionally empty SKILL.md back to the local repo on update", async () => {
     const update = vi.fn().mockResolvedValue({
       id: "skill-1",

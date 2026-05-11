@@ -28,6 +28,28 @@ import { buildProjectDetailSkill } from "./project-detail-adapter";
 
 const OPEN_CREATE_SKILL_PROJECT_MODAL_EVENT = "open-create-skill-project-modal";
 
+function normalizePathForComparison(value: string): string {
+  return value.replace(/\\/g, "/").replace(/\/+$/, "").toLowerCase();
+}
+
+function inferProjectNameFromPath(rootPath: string): string {
+  const normalized = rootPath.replace(/\\/g, "/").replace(/\/+$/, "");
+  const segments = normalized.split("/").filter(Boolean);
+  return segments[segments.length - 1] ?? "";
+}
+
+function getProjectInitial(name: string): string {
+  const trimmed = name.trim();
+  return trimmed ? trimmed.charAt(0).toUpperCase() : "?";
+}
+
+function getExtraProjectScanPaths(rootPath: string, scanPaths: string[]): string[] {
+  const normalizedRoot = normalizePathForComparison(rootPath);
+  return scanPaths.filter(
+    (entry) => normalizePathForComparison(entry) !== normalizedRoot,
+  );
+}
+
 interface ProjectFormModalProps {
   isOpen: boolean;
   project?: SkillProject | null;
@@ -50,6 +72,7 @@ function ProjectFormModal({
   const [rootPath, setRootPath] = useState("");
   const [scanPathInput, setScanPathInput] = useState("");
   const [scanPaths, setScanPaths] = useState<string[]>([]);
+  const [isNameAutoDerived, setIsNameAutoDerived] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -59,10 +82,22 @@ function ProjectFormModal({
 
     setName(project?.name ?? "");
     setRootPath(project?.rootPath ?? "");
-    setScanPaths(project?.scanPaths ?? []);
+    setScanPaths(
+      project ? getExtraProjectScanPaths(project.rootPath, project.scanPaths ?? []) : [],
+    );
     setScanPathInput("");
+    setIsNameAutoDerived(!project);
     setError(null);
   }, [isOpen, project]);
+
+  useEffect(() => {
+    if (!isOpen || !isNameAutoDerived) {
+      return;
+    }
+
+    const inferredName = inferProjectNameFromPath(rootPath);
+    setName(inferredName);
+  }, [isNameAutoDerived, isOpen, rootPath]);
 
   const addScanPath = (value?: string) => {
     const nextPath = (value ?? scanPathInput).trim();
@@ -126,23 +161,23 @@ function ProjectFormModal({
       size="lg"
     >
       <div className="space-y-4">
-        <Input
-          label={t("skill.projectName", "Project Name")}
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          placeholder={t("skill.projectNamePlaceholder", "Workspace Project")}
-          error={error ?? undefined}
-        />
-
         <div className="space-y-2">
           <label className="block text-sm font-medium text-foreground">
             {t("skill.projectRootPath", "Project Root Path")}
           </label>
+          <p className="text-xs text-muted-foreground">
+            {t(
+              "skill.projectRootPathFirstHint",
+              "Choose the project root first. PromptHub can infer the project name and start scanning right away.",
+            )}
+          </p>
           <div className="flex gap-2">
             <Input
               className="flex-1"
               value={rootPath}
-              onChange={(event) => setRootPath(event.target.value)}
+              onChange={(event) => {
+                setRootPath(event.target.value);
+              }}
               placeholder={t(
                 "skill.projectRootPathPlaceholder",
                 "/path/to/project",
@@ -158,6 +193,17 @@ function ProjectFormModal({
             </button>
           </div>
         </div>
+
+        <Input
+          label={t("skill.projectName", "Project Name")}
+          value={name}
+          onChange={(event) => {
+            setName(event.target.value);
+            setIsNameAutoDerived(false);
+          }}
+          placeholder={t("skill.projectNamePlaceholder", "Workspace Project")}
+          error={error ?? undefined}
+        />
 
         <div className="space-y-2">
           <label className="block text-sm font-medium text-foreground">
@@ -199,7 +245,7 @@ function ProjectFormModal({
           <p className="text-xs text-muted-foreground">
             {t(
               "skill.projectScanPathsHint",
-              "PromptHub always scans the project root plus default skill folders like .claude/skills, .agents/skills, skills, and .gemini. Add extra scan paths here if your project uses custom locations.",
+              "PromptHub always scans the project root plus default skill folders like .claude/skills, .agents/skills, skills, and .gemini. Add extra scan paths here only if your project uses custom locations.",
             )}
           </p>
           <div className="space-y-2">
@@ -207,7 +253,7 @@ function ProjectFormModal({
               <div className="rounded-xl border border-dashed border-border px-3 py-3 text-xs text-muted-foreground">
                 {t(
                   "skill.projectScanPathsEmpty",
-                  "No extra scan paths configured yet.",
+                  "No extra scan paths configured yet. PromptHub will still scan the project root automatically.",
                 )}
               </div>
             ) : (
@@ -379,11 +425,11 @@ export function SkillProjectsView() {
     };
   }, [handleOpenCreate]);
 
-  const handleSaveProject = (input: {
+  const handleSaveProject = async (input: {
     name: string;
     rootPath: string;
     scanPaths: string[];
-  }): boolean => {
+  }): Promise<boolean> => {
     try {
       if (editingProject) {
         updateSkillProject(editingProject.id, input);
@@ -391,7 +437,11 @@ export function SkillProjectsView() {
       } else {
         const createdProject = addSkillProject(input);
         selectProject(createdProject.id);
-        showToast(t("skill.projectCreated", "Project added"), "success");
+        showToast(
+          t("skill.projectCreatedAndScanning", "Project added. Scanning now..."),
+          "success",
+        );
+        await handleScanProject(createdProject, { suppressToast: true });
       }
       return true;
     } catch (error) {
@@ -415,17 +465,23 @@ export function SkillProjectsView() {
     }
   };
 
-  const handleScanProject = async (project: SkillProject) => {
+  const handleScanProject = async (
+    project: SkillProject,
+    options?: { suppressToast?: boolean },
+  ) => {
     try {
       const scanned = await scanProjectSkills(project);
       updateSkillProject(project.id, { lastScannedAt: Date.now() });
-      showToast(
-        t("skill.projectScanComplete", {
-          count: scanned.length,
-          defaultValue: `Scanned ${scanned.length} skills`,
-        }),
-        "success",
-      );
+      if (!options?.suppressToast) {
+        showToast(
+          t("skill.projectScanComplete", {
+            count: scanned.length,
+            defaultValue: `Scanned ${scanned.length} skills`,
+          }),
+          "success",
+        );
+      }
+      return scanned;
     } catch (error) {
       showToast(
         error instanceof Error
@@ -433,6 +489,7 @@ export function SkillProjectsView() {
           : t("skill.projectScanFailed", "Failed to scan project skills"),
         "error",
       );
+      throw error;
     }
   };
 
@@ -523,7 +580,7 @@ export function SkillProjectsView() {
       ) : (
         <>
       <div className="w-80 shrink-0 border-r border-border app-wallpaper-panel-strong">
-        <div className="flex items-center justify-between border-b border-border px-4 py-4">
+        <div className="flex min-h-[112px] items-center justify-between border-b border-border px-4 py-5">
           <div>
             <h2 className="text-lg font-semibold text-foreground">
               {t("nav.projects", "Projects")}
@@ -564,23 +621,31 @@ export function SkillProjectsView() {
               const isActive = selectedProject?.id === project.id;
               const scanState = projectScanState[project.id];
               return (
-                <button
-                  key={project.id}
-                  type="button"
-                  onClick={() => selectProject(project.id)}
-                  className={`w-full rounded-2xl border px-4 py-3 text-left transition-colors ${
-                    isActive
-                      ? "border-primary/40 bg-primary/5"
-                      : "border-border app-wallpaper-surface hover:bg-accent"
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="truncate font-medium text-foreground">
-                        {project.name}
-                      </div>
-                    </div>
-                    {scanState?.isScanning ? (
+                 <button
+                   key={project.id}
+                   type="button"
+                   onClick={() => selectProject(project.id)}
+                   className={`w-full rounded-2xl border px-4 py-3 text-left transition-colors ${
+                     isActive
+                       ? "border-primary/40 bg-primary/5"
+                       : "border-border app-wallpaper-surface hover:bg-accent"
+                   }`}
+                 >
+                   <div className="flex items-start justify-between gap-3">
+                     <div className="flex min-w-0 flex-1 items-start gap-3">
+                       <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-sm font-semibold text-primary">
+                         {getProjectInitial(project.name)}
+                       </div>
+                       <div className="min-w-0 flex-1">
+                         <div className="truncate font-medium text-foreground">
+                           {project.name}
+                         </div>
+                         <div className="mt-1 truncate text-[11px] text-muted-foreground">
+                           {project.rootPath}
+                         </div>
+                       </div>
+                     </div>
+                     {scanState?.isScanning ? (
                       <Loader2Icon className="h-4 w-4 shrink-0 animate-spin text-primary" />
                     ) : null}
                   </div>
@@ -603,20 +668,25 @@ export function SkillProjectsView() {
         {selectedProject ? (
           <div className="min-w-0 flex-1 overflow-hidden">
             <div className="flex h-full min-h-0 flex-col overflow-hidden">
-              <div className="border-b border-border px-6 py-5 app-wallpaper-panel-strong">
+              <div className="min-h-[112px] border-b border-border px-6 py-5 app-wallpaper-panel-strong">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="min-w-0">
                     <div className="flex items-center gap-3">
-                      <FolderOpenIcon className="h-5 w-5 text-primary" />
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-base font-semibold text-primary">
+                        {getProjectInitial(selectedProject.name)}
+                      </div>
                       <h2 className="truncate text-xl font-semibold text-foreground">
                         {selectedProject.name}
                       </h2>
                     </div>
-                    <div className="mt-2 text-sm text-muted-foreground">
-                      {t("skill.projectSkillCount", {
-                        count: currentProjectState?.scannedSkills.length || 0,
-                        defaultValue: `${currentProjectState?.scannedSkills.length || 0} skills`,
-                      })}
+                    <div className="mt-2 space-y-1 text-sm text-muted-foreground">
+                      <div className="truncate">{selectedProject.rootPath}</div>
+                      <div>
+                        {t("skill.projectSkillCount", {
+                          count: currentProjectState?.scannedSkills.length || 0,
+                          defaultValue: `${currentProjectState?.scannedSkills.length || 0} skills`,
+                        })}
+                      </div>
                     </div>
                   </div>
 
