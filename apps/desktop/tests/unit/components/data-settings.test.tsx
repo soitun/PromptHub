@@ -6,13 +6,16 @@ import { renderWithI18n } from "../../helpers/i18n";
 import { installWindowMocks } from "../../helpers/window";
 import { restoreFromFile } from "../../../src/renderer/services/database-backup";
 import { previewImportFile } from "../../../src/renderer/services/database-backup";
-import { testSelfHostedConnection } from "../../../src/renderer/services/self-hosted-sync";
 import { downloadSelectiveExport } from "../../../src/renderer/services/database-backup";
 import {
   createUpgradeBackup,
   listUpgradeBackups,
   restoreUpgradeBackup,
 } from "../../../src/renderer/services/upgrade-backup";
+import {
+  runSelfHostedConnectionCheck,
+  runWebDAVConnectionCheck,
+} from "../../../src/renderer/services/backup-orchestrator";
 
 const useSettingsStoreMock = vi.fn();
 const useToastMock = vi.fn();
@@ -57,6 +60,16 @@ vi.mock("../../../src/renderer/services/self-hosted-sync", () => ({
   testSelfHostedConnection: vi.fn(),
   pushToSelfHostedWeb: vi.fn(),
   pullFromSelfHostedWeb: vi.fn(),
+}));
+
+vi.mock("../../../src/renderer/services/backup-orchestrator", () => ({
+  runFullExportBackup: vi.fn(),
+  runSelfHostedConnectionCheck: vi.fn(),
+  runSelfHostedPull: vi.fn(),
+  runSelfHostedPush: vi.fn(),
+  runWebDAVConnectionCheck: vi.fn(),
+  runWebDAVDownload: vi.fn(),
+  runWebDAVUpload: vi.fn(),
 }));
 
 vi.mock("../../../src/renderer/services/upgrade-backup", () => ({
@@ -123,6 +136,36 @@ function createSettingsState() {
     setSelfHostedSyncOnStartup: vi.fn(),
     setSelfHostedSyncOnStartupDelay: vi.fn(),
     setSelfHostedAutoSyncInterval: vi.fn(),
+    s3StorageEnabled: false,
+    setS3StorageEnabled: vi.fn(),
+    s3Endpoint: "",
+    setS3Endpoint: vi.fn(),
+    s3Region: "",
+    setS3Region: vi.fn(),
+    s3Bucket: "",
+    setS3Bucket: vi.fn(),
+    s3AccessKeyId: "",
+    setS3AccessKeyId: vi.fn(),
+    s3SecretAccessKey: "",
+    setS3SecretAccessKey: vi.fn(),
+    s3BackupPrefix: "",
+    setS3BackupPrefix: vi.fn(),
+    s3SyncOnStartup: false,
+    setS3SyncOnStartup: vi.fn(),
+    s3SyncOnStartupDelay: 10,
+    setS3SyncOnStartupDelay: vi.fn(),
+    s3AutoSyncInterval: 0,
+    setS3AutoSyncInterval: vi.fn(),
+    s3SyncOnSave: false,
+    setS3SyncOnSave: vi.fn(),
+    s3IncludeImages: true,
+    setS3IncludeImages: vi.fn(),
+    s3IncrementalSync: true,
+    setS3IncrementalSync: vi.fn(),
+    s3EncryptionEnabled: false,
+    setS3EncryptionEnabled: vi.fn(),
+    s3EncryptionPassword: "",
+    setS3EncryptionPassword: vi.fn(),
   };
 }
 
@@ -591,7 +634,7 @@ describe("DataSettings", { timeout: 15_000 }, () => {
       selfHostedSyncUsername: "owner",
       selfHostedSyncPassword: "secret",
     });
-    vi.mocked(testSelfHostedConnection).mockResolvedValue({
+    vi.mocked(runSelfHostedConnectionCheck).mockResolvedValue({
       prompts: 3,
       folders: 2,
       rules: 4,
@@ -608,7 +651,7 @@ describe("DataSettings", { timeout: 15_000 }, () => {
     fireEvent.click(screen.getByRole("button", { name: "Test Connection" }));
 
     await waitFor(() => {
-      expect(testSelfHostedConnection).toHaveBeenCalledWith({
+      expect(runSelfHostedConnectionCheck).toHaveBeenCalledWith({
         url: "https://backup.example.com",
         username: "owner",
         password: "secret",
@@ -618,6 +661,47 @@ describe("DataSettings", { timeout: 15_000 }, () => {
       "Connection successful. Remote workspace currently stores 3 prompts, 2 folders, 4 rules, and 1 skills.",
       "success",
     );
+  });
+
+  it("keeps WebDAV fields visible but disabled until sync is enabled", async () => {
+    await act(async () => {
+      await renderWithI18n(<DataSettings activeSubsection="webdav" />, {
+        language: "en",
+      });
+    });
+
+    const urlInput = screen.getByPlaceholderText("https://dav.example.com/path");
+    const usernameInput = screen.getByPlaceholderText("Username");
+    const passwordInput = screen.getByPlaceholderText("Password");
+    const testConnectionButton = screen.getByRole("button", {
+      name: "Test Connection",
+    });
+
+    expect(urlInput).toBeDisabled();
+    expect(usernameInput).toBeDisabled();
+    expect(passwordInput).toBeDisabled();
+    expect(testConnectionButton).toBeDisabled();
+
+    fireEvent.click(testConnectionButton);
+    expect(runWebDAVConnectionCheck).not.toHaveBeenCalled();
+  });
+
+  it("keeps S3 fields visible but disabled until storage is enabled", async () => {
+    await act(async () => {
+      await renderWithI18n(<DataSettings activeSubsection="s3" />, {
+        language: "en",
+      });
+    });
+
+    expect(screen.getByPlaceholderText("https://s3.example.com")).toBeDisabled();
+    expect(screen.getByPlaceholderText("us-east-1")).toBeDisabled();
+    expect(screen.getByPlaceholderText("prompthub-backups")).toBeDisabled();
+    expect(screen.getByPlaceholderText("Access Key ID")).toBeDisabled();
+    expect(screen.getByPlaceholderText("Secret Access Key")).toBeDisabled();
+    expect(screen.getByPlaceholderText("/prompthub")).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Test Connection" }),
+    ).toBeDisabled();
   });
 
   it("includes rules in selective export by default", async () => {

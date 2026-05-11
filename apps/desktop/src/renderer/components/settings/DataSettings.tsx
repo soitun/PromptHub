@@ -71,6 +71,7 @@ type ExportScopeKey =
   | "prompts"
   | "folders"
   | "images"
+  | "videos"
   | "aiConfig"
   | "settings"
   | "versions"
@@ -159,6 +160,10 @@ function DataSettingsSection({
   );
 }
 
+function getSyncPanelContentClassName(disabled: boolean): string {
+  return disabled ? "space-y-3 pt-2 border-t border-border opacity-60" : "space-y-3 pt-2 border-t border-border";
+}
+
 /**
  * DataSettings — Data management tab
  * Handles: data path, WebDAV sync, backup/restore, clear data
@@ -224,12 +229,22 @@ export function DataSettings({ activeSubsection = "local" }: DataSettingsProps) 
   const [selfHostedUploading, setSelfHostedUploading] = useState(false);
   const [selfHostedDownloading, setSelfHostedDownloading] = useState(false);
 
+  const selfHostedConfigComplete =
+    settings.selfHostedSyncUrl.trim().length > 0 &&
+    settings.selfHostedSyncUsername.trim().length > 0 &&
+    settings.selfHostedSyncPassword.trim().length > 0;
+  const webdavConfigComplete =
+    settings.webdavUrl.trim().length > 0 &&
+    settings.webdavUsername.trim().length > 0 &&
+    settings.webdavPassword.trim().length > 0;
+
   // Export/backup options
   // 数据导出/备份选项
   const [exportScope, setExportScope] = useState({
     prompts: true,
     folders: true,
     images: true,
+    videos: true,
     aiConfig: true,
     settings: true,
     versions: false,
@@ -787,7 +802,7 @@ export function DataSettings({ activeSubsection = "local" }: DataSettingsProps) 
     },
     {
       key: "images",
-      label: t("settings.exportImages", "Images"),
+      label: t("settings.exportImages", "Media"),
     },
     {
       key: "aiConfig",
@@ -996,8 +1011,8 @@ export function DataSettings({ activeSubsection = "local" }: DataSettingsProps) 
                 />
               </div>
 
-              {settings.selfHostedSyncEnabled ? (
-                <div className="space-y-3 pt-2 border-t border-border">
+              <div className={getSyncPanelContentClassName(!settings.selfHostedSyncEnabled)}>
+                <fieldset disabled={!settings.selfHostedSyncEnabled} className="space-y-3 min-w-0">
                   <div>
                     <label className="text-xs text-muted-foreground mb-1 block">
                       {t(
@@ -1037,6 +1052,7 @@ export function DataSettings({ activeSubsection = "local" }: DataSettingsProps) 
                       placeholder={t("settings.webdavPassword")}
                       value={settings.selfHostedSyncPassword}
                       onChange={settings.setSelfHostedSyncPassword}
+                      disabled={!settings.selfHostedSyncEnabled}
                       className="h-9"
                     />
                   </div>
@@ -1076,8 +1092,8 @@ export function DataSettings({ activeSubsection = "local" }: DataSettingsProps) 
                           setSelfHostedTesting(false);
                         }
                       }}
-                      disabled={selfHostedTesting}
-                      className="h-8 px-4 rounded-lg bg-muted text-sm hover:bg-muted/80 transition-colors flex items-center gap-2 disabled:opacity-50"
+                        disabled={selfHostedTesting || !selfHostedConfigComplete}
+                        className="h-8 px-4 rounded-lg bg-muted text-sm hover:bg-muted/80 transition-colors flex items-center gap-2 disabled:opacity-50"
                     >
                       <RefreshCwIcon
                         className={`w-4 h-4 ${selfHostedTesting ? "animate-spin" : ""}`}
@@ -1119,8 +1135,8 @@ export function DataSettings({ activeSubsection = "local" }: DataSettingsProps) 
                           setSelfHostedUploading(false);
                         }
                       }}
-                      disabled={selfHostedUploading}
-                      className="h-8 px-4 rounded-lg bg-primary text-white text-sm hover:bg-primary/90 transition-colors flex items-center gap-2 disabled:opacity-50"
+                        disabled={selfHostedUploading || !selfHostedConfigComplete}
+                        className="h-8 px-4 rounded-lg bg-primary text-white text-sm hover:bg-primary/90 transition-colors flex items-center gap-2 disabled:opacity-50"
                     >
                       <UploadIcon className="w-4 h-4" />
                       {t("settings.upload")}
@@ -1163,8 +1179,8 @@ export function DataSettings({ activeSubsection = "local" }: DataSettingsProps) 
                           setSelfHostedDownloading(false);
                         }
                       }}
-                      disabled={selfHostedDownloading}
-                      className="h-8 px-4 rounded-lg bg-muted text-sm hover:bg-muted/80 transition-colors flex items-center gap-2 disabled:opacity-50"
+                        disabled={selfHostedDownloading || !selfHostedConfigComplete}
+                        className="h-8 px-4 rounded-lg bg-muted text-sm hover:bg-muted/80 transition-colors flex items-center gap-2 disabled:opacity-50"
                     >
                       <DownloadIcon className="w-4 h-4" />
                       {t("settings.download")}
@@ -1277,8 +1293,8 @@ export function DataSettings({ activeSubsection = "local" }: DataSettingsProps) 
                       />
                     </div>
                   </div>
-                </div>
-              ) : null}
+                </fieldset>
+              </div>
             </div>
           </DataSettingsSection>
         ) : null}
@@ -1301,8 +1317,8 @@ export function DataSettings({ activeSubsection = "local" }: DataSettingsProps) 
                 onChange={settings.setWebdavEnabled}
               />
             </div>
-            {settings.webdavEnabled && (
-              <div className="space-y-3 pt-2 border-t border-border">
+            <div className={getSyncPanelContentClassName(!settings.webdavEnabled)}>
+              <fieldset disabled={!settings.webdavEnabled} className="space-y-3 min-w-0">
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">
                     {t("settings.webdavUrl")}
@@ -1331,12 +1347,13 @@ export function DataSettings({ activeSubsection = "local" }: DataSettingsProps) 
                   <label className="text-xs text-muted-foreground mb-1 block">
                     {t("settings.webdavPassword")}
                   </label>
-                  <PasswordInput
-                    placeholder={t("settings.webdavPassword")}
-                    value={settings.webdavPassword}
-                    onChange={settings.setWebdavPassword}
-                    className="h-9"
-                  />
+                    <PasswordInput
+                      placeholder={t("settings.webdavPassword")}
+                      value={settings.webdavPassword}
+                      onChange={settings.setWebdavPassword}
+                      disabled={!settings.webdavEnabled}
+                      className="h-9"
+                    />
                 </div>
                 <div className="flex flex-wrap gap-2 pt-2">
                   <button
@@ -1365,7 +1382,7 @@ export function DataSettings({ activeSubsection = "local" }: DataSettingsProps) 
                         setWebdavTesting(false);
                       }
                     }}
-                    disabled={webdavTesting}
+                    disabled={webdavTesting || !webdavConfigComplete}
                     className="h-8 px-4 rounded-lg bg-muted text-sm hover:bg-muted/80 transition-colors flex items-center gap-2 disabled:opacity-50"
                   >
                     <RefreshCwIcon
@@ -1408,7 +1425,7 @@ export function DataSettings({ activeSubsection = "local" }: DataSettingsProps) 
                         setWebdavUploading(false);
                       }
                     }}
-                    disabled={webdavUploading}
+                    disabled={webdavUploading || !webdavConfigComplete}
                     className="h-8 px-4 rounded-lg bg-primary text-white text-sm hover:bg-primary/90 transition-colors flex items-center gap-2 disabled:opacity-50"
                   >
                     <UploadIcon className="w-4 h-4" />
@@ -1450,7 +1467,7 @@ export function DataSettings({ activeSubsection = "local" }: DataSettingsProps) 
                         setWebdavDownloading(false);
                       }
                     }}
-                    disabled={webdavDownloading}
+                    disabled={webdavDownloading || !webdavConfigComplete}
                     className="h-8 px-4 rounded-lg bg-muted text-sm hover:bg-muted/80 transition-colors flex items-center gap-2 disabled:opacity-50"
                   >
                     <DownloadIcon className="w-4 h-4" />
@@ -1568,10 +1585,11 @@ export function DataSettings({ activeSubsection = "local" }: DataSettingsProps) 
                       {t("settings.webdavSyncOnSaveDesc")}
                     </p>
                   </div>
-                  <ToggleSwitch
-                    checked={settings.webdavSyncOnSave}
-                    onChange={settings.setWebdavSyncOnSave}
-                  />
+                    <ToggleSwitch
+                      checked={settings.webdavSyncOnSave}
+                      onChange={settings.setWebdavSyncOnSave}
+                      disabled={!settings.webdavEnabled}
+                    />
                 </div>
 
                 {/* 包含图片 */}
@@ -1584,10 +1602,11 @@ export function DataSettings({ activeSubsection = "local" }: DataSettingsProps) 
                       {t("settings.webdavIncludeImagesDesc")}
                     </p>
                   </div>
-                  <ToggleSwitch
-                    checked={settings.webdavIncludeImages}
-                    onChange={settings.setWebdavIncludeImages}
-                  />
+                    <ToggleSwitch
+                      checked={settings.webdavIncludeImages}
+                      onChange={settings.setWebdavIncludeImages}
+                      disabled={!settings.webdavEnabled}
+                    />
                 </div>
 
                 {/* 增量同步 */}
@@ -1600,10 +1619,11 @@ export function DataSettings({ activeSubsection = "local" }: DataSettingsProps) 
                       {t("settings.webdavIncrementalSyncDesc")}
                     </p>
                   </div>
-                  <ToggleSwitch
-                    checked={settings.webdavIncrementalSync}
-                    onChange={settings.setWebdavIncrementalSync}
-                  />
+                    <ToggleSwitch
+                      checked={settings.webdavIncrementalSync}
+                      onChange={settings.setWebdavIncrementalSync}
+                      disabled={!settings.webdavEnabled}
+                    />
                 </div>
 
                 {/* 加密备份（实验性） */}
@@ -1616,13 +1636,14 @@ export function DataSettings({ activeSubsection = "local" }: DataSettingsProps) 
                       {t("settings.webdavEncryptionDesc")}
                     </p>
                   </div>
-                  <ToggleSwitch
-                    checked={settings.webdavEncryptionEnabled}
-                    onChange={settings.setWebdavEncryptionEnabled}
-                  />
-                </div>
+                    <ToggleSwitch
+                      checked={settings.webdavEncryptionEnabled}
+                      onChange={settings.setWebdavEncryptionEnabled}
+                      disabled={!settings.webdavEnabled}
+                    />
+                  </div>
 
-                {/* 加密密码输入框 */}
+                  {/* 加密密码输入框 */}
                 {settings.webdavEncryptionEnabled && (
                   <div className="pt-2">
                     <PasswordInput
@@ -1632,12 +1653,13 @@ export function DataSettings({ activeSubsection = "local" }: DataSettingsProps) 
                       )}
                       value={settings.webdavEncryptionPassword}
                       onChange={settings.setWebdavEncryptionPassword}
+                      disabled={!settings.webdavEnabled}
                       className="h-9"
                     />
                   </div>
                 )}
-              </div>
-            )}
+              </fieldset>
+            </div>
           </div>
         </DataSettingsSection>
         ) : null}
@@ -1663,8 +1685,9 @@ export function DataSettings({ activeSubsection = "local" }: DataSettingsProps) 
               />
             </div>
 
-            <div className="space-y-3 pt-2 border-t border-border">
-              <div>
+            <div className={getSyncPanelContentClassName(!settings.s3StorageEnabled)}>
+              <fieldset disabled={!settings.s3StorageEnabled} className="space-y-3 min-w-0">
+                <div>
                 <label className="text-xs text-muted-foreground mb-1 block">
                   {t("settings.s3Endpoint", "API endpoint")}
                 </label>
@@ -1720,6 +1743,7 @@ export function DataSettings({ activeSubsection = "local" }: DataSettingsProps) 
                   placeholder={t("settings.s3SecretAccessKey", "Secret Access Key")}
                   value={settings.s3SecretAccessKey}
                   onChange={settings.setS3SecretAccessKey}
+                  disabled={!settings.s3StorageEnabled}
                   className="h-9"
                 />
               </div>
@@ -1735,6 +1759,7 @@ export function DataSettings({ activeSubsection = "local" }: DataSettingsProps) 
                   className="w-full h-9 px-3 rounded-lg bg-muted border-0 text-sm placeholder:text-muted-foreground/50"
                 />
               </div>
+              </fieldset>
             </div>
 
             <div className="flex flex-wrap gap-2 pt-2 border-t border-border">
@@ -1761,8 +1786,9 @@ export function DataSettings({ activeSubsection = "local" }: DataSettingsProps) 
               </button>
             </div>
 
-            <div className="space-y-3 pt-2 border-t border-border">
-              <div className="flex items-center justify-between gap-3">
+            <div className={getSyncPanelContentClassName(!settings.s3StorageEnabled)}>
+              <fieldset disabled={!settings.s3StorageEnabled} className="space-y-3 min-w-0">
+                <div className="flex items-center justify-between gap-3">
                 <div className="flex-1 mr-4">
                   <p className="text-sm font-medium">
                     {t("settings.webdavAutoRun", "Automatic sync")}
@@ -1836,6 +1862,7 @@ export function DataSettings({ activeSubsection = "local" }: DataSettingsProps) 
                 <ToggleSwitch
                   checked={settings.s3SyncOnSave}
                   onChange={settings.setS3SyncOnSave}
+                  disabled={!settings.s3StorageEnabled}
                 />
               </div>
 
@@ -1851,6 +1878,7 @@ export function DataSettings({ activeSubsection = "local" }: DataSettingsProps) 
                 <ToggleSwitch
                   checked={settings.s3IncludeImages}
                   onChange={settings.setS3IncludeImages}
+                  disabled={!settings.s3StorageEnabled}
                 />
               </div>
 
@@ -1866,6 +1894,7 @@ export function DataSettings({ activeSubsection = "local" }: DataSettingsProps) 
                 <ToggleSwitch
                   checked={settings.s3IncrementalSync}
                   onChange={settings.setS3IncrementalSync}
+                  disabled={!settings.s3StorageEnabled}
                 />
               </div>
 
@@ -1878,25 +1907,28 @@ export function DataSettings({ activeSubsection = "local" }: DataSettingsProps) 
                     {t("settings.webdavEncryptionDesc")}
                   </p>
                 </div>
-                <ToggleSwitch
-                  checked={settings.s3EncryptionEnabled}
-                  onChange={settings.setS3EncryptionEnabled}
-                />
-              </div>
-
-              {settings.s3EncryptionEnabled ? (
-                <div className="pt-2">
-                  <PasswordInput
-                    placeholder={t(
-                      "settings.webdavEncryptionPasswordPlaceholder",
-                      "Enter encryption password (optional, leave empty to skip)",
-                    )}
-                    value={settings.s3EncryptionPassword}
-                    onChange={settings.setS3EncryptionPassword}
-                    className="h-9"
+                  <ToggleSwitch
+                    checked={settings.s3EncryptionEnabled}
+                    onChange={settings.setS3EncryptionEnabled}
+                    disabled={!settings.s3StorageEnabled}
                   />
                 </div>
-              ) : null}
+
+                {settings.s3EncryptionEnabled ? (
+                  <div className="pt-2">
+                    <PasswordInput
+                      placeholder={t(
+                        "settings.webdavEncryptionPasswordPlaceholder",
+                        "Enter encryption password (optional, leave empty to skip)",
+                      )}
+                      value={settings.s3EncryptionPassword}
+                      onChange={settings.setS3EncryptionPassword}
+                      disabled={!settings.s3StorageEnabled}
+                      className="h-9"
+                    />
+                  </div>
+                ) : null}
+              </fieldset>
             </div>
           </div>
         </DataSettingsSection>
@@ -1938,10 +1970,20 @@ export function DataSettings({ activeSubsection = "local" }: DataSettingsProps) 
                         : "border-border/60 hover:bg-muted/40"
                     }`}
                     onClick={() =>
-                      setExportScope((prev) => ({
-                        ...prev,
-                        [item.key]: !checked,
-                      }))
+                      setExportScope((prev) => {
+                        if (item.key === "images") {
+                          return {
+                            ...prev,
+                            images: !checked,
+                            videos: !checked,
+                          };
+                        }
+
+                        return {
+                          ...prev,
+                          [item.key]: !checked,
+                        };
+                      })
                     }
                   >
                     <div className="pointer-events-none">

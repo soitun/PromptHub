@@ -4,6 +4,7 @@ import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { closeDatabase, SkillDB } from '@prompthub/db';
 import type { SkillVersion } from '@prompthub/shared';
+import { issueSolvedCaptcha } from '../test-helpers/auth-captcha';
 
 const ENV_KEYS = [
   'PORT',
@@ -132,10 +133,18 @@ describe('web skill workspace storage', () => {
         const metadataFile = path.join(skillDir, 'skill.json');
         const skillFile = path.join(skillDir, 'SKILL.md');
         const versionFile = path.join(skillDir, 'versions', '0001.json');
+        const extraFile = path.join(skillDir, 'templates', 'checklist.md');
+
+        fs.mkdirSync(path.join(skillDir, 'templates'), { recursive: true });
+        fs.writeFileSync(extraFile, '# Existing checklist', 'utf8');
+
+        workspaceModule.syncSkillWorkspaceFromDatabase(db, skillDb);
 
         expect(fs.existsSync(metadataFile)).toBe(true);
         expect(fs.existsSync(skillFile)).toBe(true);
         expect(fs.existsSync(versionFile)).toBe(true);
+        expect(fs.existsSync(extraFile)).toBe(true);
+        expect(fs.readFileSync(extraFile, 'utf8')).toBe('# Existing checklist');
 
         const metadata = JSON.parse(fs.readFileSync(metadataFile, 'utf8')) as {
           id: string;
@@ -278,6 +287,7 @@ describe('web skill workspace storage', () => {
             body: JSON.stringify({
               username: 'skillworkspaceadmin',
               password: 'debugpass001',
+              ...(await issueSolvedCaptcha(app)),
             }),
           }),
         );
@@ -411,7 +421,11 @@ describe('web skill workspace storage', () => {
           new Request('http://local/api/auth/register', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username: 'firstadmin', password: 'debugpass001' }),
+            body: JSON.stringify({
+              username: 'firstadmin',
+              password: 'debugpass001',
+              ...(await issueSolvedCaptcha(app)),
+            }),
           }),
         );
         expect(registerResponse.status).toBe(201);

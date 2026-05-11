@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { closeDatabase } from '@prompthub/db';
+import { issueSolvedCaptcha } from '../test-helpers/auth-captcha';
 
 const ENV_KEYS = [
   'PORT',
@@ -33,11 +34,12 @@ async function createTestApp(dataDir: string) {
 }
 
 async function registerUser(app: Awaited<ReturnType<typeof createTestApp>>, username: string, password: string) {
+  const captcha = await issueSolvedCaptcha(app);
   const response = await app.request(
     new Request('http://local/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ username, password, ...captcha }),
     }),
   );
 
@@ -98,6 +100,28 @@ async function createPrompt(
   return { response, payload };
 }
 
+async function uploadMedia(
+  app: Awaited<ReturnType<typeof createTestApp>>,
+  token: string,
+  kind: 'images' | 'videos',
+  fileName: string,
+  content: string,
+) {
+  const response = await app.request(
+    new Request(`http://local/api/media/${kind}/base64`, {
+      method: 'POST',
+      headers: authHeaders(token),
+      body: JSON.stringify({
+        fileName,
+        base64Data: Buffer.from(content, 'utf8').toString('base64'),
+      }),
+    }),
+  );
+
+  const payload = await response.json() as { data: string };
+  return { response, payload };
+}
+
 async function createSkill(
   app: Awaited<ReturnType<typeof createTestApp>>,
   token: string,
@@ -125,18 +149,21 @@ async function exportPayload(app: Awaited<ReturnType<typeof createTestApp>>, tok
     }),
   );
 
-    const payload = JSON.parse(await response.text()) as {
-      version: string;
-      exportedAt: string;
-      prompts: Array<Record<string, unknown>>;
-      promptVersions: Array<Record<string, unknown>>;
-      versions: Array<Record<string, unknown>>;
-      folders: Array<Record<string, unknown>>;
-      rules?: Array<Record<string, unknown>>;
-      skills: Array<Record<string, unknown>>;
-      skillVersions: Array<Record<string, unknown>>;
-      settings: Record<string, unknown>;
-    };
+  const payload = JSON.parse(await response.text()) as {
+    version: string;
+    exportedAt: string;
+    prompts: Array<Record<string, unknown>>;
+    promptVersions: Array<Record<string, unknown>>;
+    versions: Array<Record<string, unknown>>;
+    folders: Array<Record<string, unknown>>;
+    rules?: Array<Record<string, unknown>>;
+    skills: Array<Record<string, unknown>>;
+    skillVersions: Array<Record<string, unknown>>;
+    skillFiles?: Record<string, Array<{ relativePath: string; content: string }>>;
+    images?: Record<string, string>;
+    videos?: Record<string, string>;
+    settings: Record<string, unknown>;
+  };
 
   return { response, payload };
 }
@@ -169,11 +196,18 @@ describe('web import/export routes', () => {
       const token = registerPayload.data.accessToken;
 
       const rootFolder = await createFolder(app, token, { name: 'Export Root' });
+      const uploadedImage = await uploadMedia(app, token, 'images', 'export-image.png', 'image-content');
+      expect(uploadedImage.response.status).toBe(201);
+      const uploadedVideo = await uploadMedia(app, token, 'videos', 'export-video.mp4', 'video-content');
+      expect(uploadedVideo.response.status).toBe(201);
+
       const prompt = await createPrompt(app, token, {
         title: 'Export Prompt',
         userPrompt: 'Export body',
         folderId: rootFolder.payload.data!.id,
         tags: ['exported'],
+        images: [uploadedImage.payload.data],
+        videos: [uploadedVideo.payload.data],
       });
       expect(prompt.response.status).toBe(201);
 
@@ -182,6 +216,14 @@ describe('web import/export routes', () => {
         content: 'echo export',
       });
       expect(skill.response.status).toBe(201);
+      fs.mkdirSync(path.join(dataDir, 'data', 'skills', `export-skill__${skill.payload.data!.id}`, 'templates'), {
+        recursive: true,
+      });
+      fs.writeFileSync(
+        path.join(dataDir, 'data', 'skills', `export-skill__${skill.payload.data!.id}`, 'templates', 'guide.md'),
+        '# Export guide',
+        'utf8',
+      );
 
       const { response, payload } = await exportPayload(app, token);
 
@@ -210,7 +252,21 @@ describe('web import/export routes', () => {
           name: 'export-skill',
         }),
       ]);
+      expect(payload.skillFiles).toEqual(
+        expect.objectContaining({
+          [skill.payload.data!.id]: expect.arrayContaining([
+            expect.objectContaining({ relativePath: 'SKILL.md', content: 'echo export' }),
+            expect.objectContaining({ relativePath: 'templates/guide.md', content: '# Export guide' }),
+          ]),
+        }),
+      );
       expect(payload.rules).toEqual([]);
+      expect(payload.images).toEqual({
+        [uploadedImage.payload.data]: Buffer.from('image-content', 'utf8').toString('base64'),
+      });
+      expect(payload.videos).toEqual({
+        [uploadedVideo.payload.data]: Buffer.from('video-content', 'utf8').toString('base64'),
+      });
       expect(payload.settings).toEqual(expect.objectContaining({
         theme: 'system',
         language: 'zh',
@@ -529,6 +585,119 @@ describe('web import/export routes', () => {
       expect(reExportedPayload.folders[0]?.createdAt).toMatch(ISO_TIMESTAMP);
       expect(reExportedPayload.folders[0]?.updatedAt).toMatch(ISO_TIMESTAMP);
       expect(reExportedPayload.skillVersions[0]?.createdAt).toMatch(ISO_TIMESTAMP);
+    } finally {
+      fs.rmSync(dataDir, { recursive: true, force: true });
+    }
+  }, TEST_TIMEOUT);
+
+  it('imports PromptHub backup/export envelopes and restores embedded media payloads', async () => {
+    const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'prompthub-web-import-export-test-'));
+
+    try {
+      const app = await createTestApp(dataDir);
+      const { payload: registerPayload } = await registerUser(app, 'envelopeimporter', 'debugpass001');
+      const token = registerPayload.data.accessToken;
+
+      const envelopePayload = {
+        kind: 'prompthub-backup',
+        exportedAt: '2026-04-20T00:00:00.000Z',
+        payload: {
+          version: 1,
+          exportedAt: '2026-04-20T00:00:00.000Z',
+          prompts: [
+            {
+              id: 'prompt-envelope-1',
+              title: 'Envelope Prompt',
+              userPrompt: 'Envelope body',
+              variables: [],
+              tags: [],
+              folderId: 'folder-envelope-1',
+              images: ['image-envelope.png'],
+              videos: ['video-envelope.mp4'],
+              isFavorite: false,
+              isPinned: false,
+              version: 1,
+              currentVersion: 1,
+              usageCount: 0,
+              createdAt: '2026-04-20T00:00:00.000Z',
+              updatedAt: '2026-04-20T00:00:00.000Z',
+            },
+          ],
+          folders: [
+            {
+              id: 'folder-envelope-1',
+              name: 'Envelope Folder',
+              order: 0,
+              createdAt: '2026-04-20T00:00:00.000Z',
+              updatedAt: '2026-04-20T00:00:00.000Z',
+            },
+          ],
+          versions: [
+            {
+              id: 'prompt-envelope-v1',
+              promptId: 'prompt-envelope-1',
+              version: 1,
+              userPrompt: 'Envelope body',
+              variables: [],
+              createdAt: '2026-04-20T00:00:00.000Z',
+            },
+          ],
+          images: {
+            'image-envelope.png': Buffer.from('envelope-image', 'utf8').toString('base64'),
+          },
+          videos: {
+            'video-envelope.mp4': Buffer.from('envelope-video', 'utf8').toString('base64'),
+          },
+          skills: [],
+          skillVersions: [],
+          settings: {
+            state: {
+              themeMode: 'dark',
+              language: 'fr',
+              autoSave: false,
+              customPlatformRootPaths: {
+                claude: '/tmp/envelope-root',
+              },
+            },
+          },
+          settingsUpdatedAt: '2026-04-20T00:00:00.000Z',
+        },
+      };
+
+      const importResponse = await app.request(
+        new Request('http://local/api/import', {
+          method: 'POST',
+          headers: authHeaders(token),
+          body: JSON.stringify(envelopePayload),
+        }),
+      );
+
+      expect(importResponse.status).toBe(201);
+
+      const { payload: exportedPayload } = await exportPayload(app, token);
+      expect(exportedPayload.prompts).toEqual([
+        expect.objectContaining({
+          title: 'Envelope Prompt',
+          images: ['image-envelope.png'],
+          videos: ['video-envelope.mp4'],
+        }),
+      ]);
+      expect(exportedPayload.settings).toEqual(
+        expect.objectContaining({
+          theme: 'dark',
+          language: 'fr',
+          autoSave: false,
+          customPlatformRootPaths: {
+            claude: '/tmp/envelope-root',
+          },
+        }),
+      );
+      expect(exportedPayload.images).toEqual({
+        'image-envelope.png': Buffer.from('envelope-image', 'utf8').toString('base64'),
+      });
+      expect(exportedPayload.videos).toEqual({
+        'video-envelope.mp4': Buffer.from('envelope-video', 'utf8').toString('base64'),
+      });
     } finally {
       fs.rmSync(dataDir, { recursive: true, force: true });
     }

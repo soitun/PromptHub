@@ -37,6 +37,15 @@ function jsonResponse(payload: unknown, init?: ResponseInit): Response {
   });
 }
 
+function captchaResponse(prompt = "3 + 4 = ?"): Response {
+  return jsonResponse({
+    data: {
+      captchaId: "550e8400-e29b-41d4-a716-446655440000",
+      prompt,
+    },
+  });
+}
+
 describe("self-hosted-sync", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -59,6 +68,10 @@ describe("self-hosted-sync", () => {
   it("tests the remote self-hosted connection through login and manifest", async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
+
+      if (url.endsWith("/api/auth/captcha")) {
+        return captchaResponse();
+      }
 
       if (url.endsWith("/api/auth/login")) {
         return jsonResponse({
@@ -105,13 +118,26 @@ describe("self-hosted-sync", () => {
 
     expect(fetchMock).toHaveBeenNthCalledWith(
       1,
-      "https://backup.example.com/api/auth/login",
+      "https://backup.example.com/api/auth/captcha",
       expect.objectContaining({
-        method: "POST",
+        cache: "no-store",
       }),
     );
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
+      "https://backup.example.com/api/auth/login",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          username: "owner",
+          password: "secret",
+          captchaId: "550e8400-e29b-41d4-a716-446655440000",
+          captchaAnswer: "7",
+        }),
+      }),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      3,
       "https://backup.example.com/api/devices/heartbeat",
       expect.objectContaining({
         method: "POST",
@@ -121,7 +147,7 @@ describe("self-hosted-sync", () => {
       }),
     );
     expect(fetchMock).toHaveBeenNthCalledWith(
-      3,
+      4,
       "https://backup.example.com/api/sync/manifest",
       expect.objectContaining({
         headers: expect.objectContaining({
@@ -205,12 +231,19 @@ describe("self-hosted-sync", () => {
         },
       ],
       skillVersions: [],
+      skillFiles: {
+        "skill-1": [{ relativePath: "SKILL.md", content: "# Skill One" }],
+      },
     };
 
     exportDatabaseMock.mockResolvedValue(backup);
 
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
+
+      if (url.endsWith("/api/auth/captcha")) {
+        return captchaResponse();
+      }
 
       if (url.endsWith("/api/auth/login")) {
         return jsonResponse({
@@ -237,6 +270,7 @@ describe("self-hosted-sync", () => {
           payload: {
             prompts: Array<{ images?: string[]; videos?: string[] }>;
             rules?: Array<{ id: string; content: string }>;
+            skillFiles?: Record<string, Array<{ relativePath: string; content: string }>>;
             settings: {
               theme: string;
               language: string;
@@ -258,6 +292,9 @@ describe("self-hosted-sync", () => {
             content: "# Docs rules",
           }),
         ]);
+        expect(parsedBody.payload.skillFiles).toEqual({
+          "skill-1": [{ relativePath: "SKILL.md", content: "# Skill One" }],
+        });
         expect(parsedBody.payload.settings).toEqual({
           theme: "dark",
           language: "en",
@@ -323,6 +360,10 @@ describe("self-hosted-sync", () => {
 
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
+
+      if (url.endsWith("/api/auth/captcha")) {
+        return captchaResponse();
+      }
 
       if (url.endsWith("/api/auth/login")) {
         return jsonResponse({
@@ -397,6 +438,12 @@ describe("self-hosted-sync", () => {
               },
             ],
             skillVersions: [],
+            skillFiles: {
+              "skill-remote": [
+                { relativePath: "SKILL.md", content: "# Remote Skill" },
+                { relativePath: "templates/review.md", content: "# Review" },
+              ],
+            },
             settings: {
               theme: "dark",
               language: "en",
@@ -476,6 +523,12 @@ describe("self-hosted-sync", () => {
           }),
         ],
         skills: [expect.objectContaining({ name: "Remote Skill" })],
+        skillFiles: {
+          "skill-remote": [
+            { relativePath: "SKILL.md", content: "# Remote Skill" },
+            { relativePath: "templates/review.md", content: "# Review" },
+          ],
+        },
       }),
     );
   });
@@ -567,10 +620,17 @@ describe("self-hosted-sync", () => {
         },
       ],
       skillVersions: [],
+      skillFiles: {
+        "skill-local": [{ relativePath: "SKILL.md", content: "# Local Skill" }],
+      },
     } satisfies DatabaseBackup);
 
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
+
+      if (url.endsWith("/api/auth/captcha")) {
+        return captchaResponse();
+      }
 
       if (url.endsWith("/api/auth/login")) {
         return jsonResponse({
@@ -692,6 +752,9 @@ describe("self-hosted-sync", () => {
               },
             ],
             skillVersions: [],
+            skillFiles: {
+              "skill-remote": [{ relativePath: "SKILL.md", content: "# Remote Skill" }],
+            },
             settings: {
               theme: "dark",
               language: "en",
@@ -768,6 +831,10 @@ describe("self-hosted-sync", () => {
           expect.objectContaining({ id: "skill-local", name: "Local Skill" }),
           expect.objectContaining({ id: "skill-remote", name: "Remote Skill" }),
         ]),
+        skillFiles: {
+          "skill-local": [{ relativePath: "SKILL.md", content: "# Local Skill" }],
+          "skill-remote": [{ relativePath: "SKILL.md", content: "# Remote Skill" }],
+        },
       }),
     );
   });
@@ -838,10 +905,17 @@ describe("self-hosted-sync", () => {
         },
       ],
       skillVersions: [],
+      skillFiles: {
+        "skill-local": [{ relativePath: "SKILL.md", content: "# Local Skill" }],
+      },
     });
 
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
+
+      if (url.endsWith("/api/auth/captcha")) {
+        return captchaResponse();
+      }
 
       if (url.endsWith("/api/auth/login")) {
         return jsonResponse({
@@ -925,6 +999,9 @@ describe("self-hosted-sync", () => {
               },
             ],
             skillVersions: [],
+            skillFiles: {
+              "skill-remote": [{ relativePath: "SKILL.md", content: "# Remote Skill" }],
+            },
             settings: {
               theme: "dark",
               language: "en",
@@ -1000,6 +1077,9 @@ describe("self-hosted-sync", () => {
         skills: [
           expect.objectContaining({ id: "skill-remote", name: "Remote Skill" }),
         ],
+        skillFiles: {
+          "skill-remote": [{ relativePath: "SKILL.md", content: "# Remote Skill" }],
+        },
       }),
     );
   });

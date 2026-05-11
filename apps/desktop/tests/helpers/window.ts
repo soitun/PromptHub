@@ -163,6 +163,7 @@ export function createWindowElectronMock(overrides?: DeepPartial<MockRecord>) {
       }),
       performRecovery: vi.fn(),
       dismissRecovery: vi.fn(),
+      exportZip: vi.fn().mockResolvedValue({ canceled: false, filePath: "/tmp/prompthub-export.zip" }),
       updater: {
         check: vi.fn(),
         download: vi.fn(),

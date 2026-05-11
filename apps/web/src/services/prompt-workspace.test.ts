@@ -3,6 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { closeDatabase, FolderDB, PromptDB } from '@prompthub/db';
+import { issueSolvedCaptcha } from '../test-helpers/auth-captcha';
 
 const ENV_KEYS = [
   'PORT',
@@ -306,13 +307,17 @@ Check deployment health for {{service}}.
       const [{ createApp }] = await Promise.all([import('../app')]);
       const app = createApp();
 
-      const registerResponse = await app.request(
-        new Request('http://local/api/auth/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: 'workspaceadmin', password: 'debugpass001' }),
-        }),
-      );
+        const registerResponse = await app.request(
+          new Request('http://local/api/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              username: 'workspaceadmin',
+              password: 'debugpass001',
+              ...(await issueSolvedCaptcha(app)),
+            }),
+          }),
+        );
       expect(registerResponse.status).toBe(201);
       const registerPayload = (await registerResponse.json()) as RegisterPayload;
       const token = registerPayload.data.accessToken;
@@ -407,7 +412,11 @@ Recovered body
           new Request('http://local/api/auth/register', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username: 'firstadmin', password: 'debugpass001' }),
+            body: JSON.stringify({
+              username: 'firstadmin',
+              password: 'debugpass001',
+              ...(await issueSolvedCaptcha(app)),
+            }),
           }),
         );
         expect(registerResponse.status).toBe(201);

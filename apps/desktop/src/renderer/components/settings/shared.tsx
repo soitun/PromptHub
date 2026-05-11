@@ -57,18 +57,23 @@ interface ToggleSwitchProps {
   checked?: boolean;
   onChange?: (checked: boolean) => void;
   defaultChecked?: boolean;
+  disabled?: boolean;
 }
 
 export function ToggleSwitch({
   checked,
   onChange,
   defaultChecked = false,
+  disabled = false,
 }: ToggleSwitchProps) {
   const [internalChecked, setInternalChecked] = useState(defaultChecked);
   const isControlled = checked !== undefined;
   const isChecked = isControlled ? checked : internalChecked;
 
   const handleClick = () => {
+    if (disabled) {
+      return;
+    }
     const newValue = !isChecked;
     if (!isControlled) {
       setInternalChecked(newValue);
@@ -79,11 +84,12 @@ export function ToggleSwitch({
   return (
     <button
       onClick={handleClick}
+      disabled={disabled}
       className={`relative w-12 h-7 rounded-full transition-all duration-200 flex-shrink-0 border-2 ${
         isChecked
           ? "bg-primary border-primary"
           : "bg-muted border-border dark:bg-primary/20 dark:border-primary/40"
-      }`}
+      } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
     >
       <span
         className={`absolute top-0.5 w-5 h-5 rounded-full transition-all duration-200 ${
@@ -102,11 +108,13 @@ export const PasswordInput = memo(function PasswordInput({
   onChange,
   placeholder,
   className = "",
+  disabled = false,
 }: {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
+  disabled?: boolean;
 }) {
   const [show, setShow] = useState(false);
   return (
@@ -116,11 +124,13 @@ export const PasswordInput = memo(function PasswordInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
+        disabled={disabled}
         className={`w-full h-10 px-3 pr-10 rounded-lg app-settings-input text-sm placeholder:text-muted-foreground/60 ${className}`}
       />
       <button
         type="button"
         onClick={() => setShow(!show)}
+        disabled={disabled}
         className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
       >
         {show ? (

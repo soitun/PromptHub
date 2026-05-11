@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { closeDatabase } from '@prompthub/db';
+import { issueSolvedCaptcha } from '../test-helpers/auth-captcha';
 
 const ENV_KEYS = [
   'PORT',
@@ -58,11 +59,12 @@ async function createTestApp(
 }
 
 async function registerUser(app: Awaited<ReturnType<typeof createTestApp>>, username: string, password: string) {
+  const captcha = await issueSolvedCaptcha(app);
   const response = await app.request(
     new Request('http://local/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ username, password, ...captcha }),
     }),
   );
 

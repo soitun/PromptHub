@@ -1,23 +1,18 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
-import type {
-  Folder,
-  Prompt,
-  PromptVersion,
-  RuleBackupRecord,
-  Settings,
-  Skill,
-  SkillVersion,
-  SyncProviderKind,
-  SyncSettings,
-} from '@prompthub/shared';
+import type { Settings, SyncProviderKind, SyncSettings, SyncSnapshot } from '@prompthub/shared';
 import { getAuthUser } from '../middleware/auth.js';
 import { BackupService } from '../services/backup.service.js';
 import { SettingsService } from '../services/settings.service.js';
 import {
+  buildImportedSyncSummary,
+  buildSyncSummary,
+  parseSyncSnapshot,
+} from '../services/sync-snapshot.js';
+import { writePulledSyncMedia } from '../services/sync-media.js';
+import {
   pullWebDavSnapshot,
   pushWebDavSnapshot,
-  REMOTE_BACKUP_DATA_FILE,
 } from '../services/sync-orchestrator.js';
 import { error, ErrorCode, success } from '../utils/response.js';
 import { parseJsonBody } from '../utils/validation.js';
@@ -26,226 +21,8 @@ const sync = new Hono();
 const backupService = new BackupService();
 const settingsService = new SettingsService();
 
-interface NormalizedSyncPayload {
-  version: string;
-  exportedAt: string;
-  prompts: Prompt[];
-  promptVersions: PromptVersion[];
-  versions: PromptVersion[];
-  folders: Folder[];
-  rules?: RuleBackupRecord[];
-  skills: Skill[];
-  skillVersions: SkillVersion[];
-  settings: Settings;
-  settingsUpdatedAt?: string;
-}
-
-interface SyncOperationSummary {
-  prompts: number;
-  folders: number;
-  rules: number;
-  skills: number;
-}
-
-const ruleVersionSchema = z.object({
-  id: z.string(),
-  savedAt: z.string(),
-  content: z.string(),
-  source: z.enum(['manual-save', 'ai-rewrite', 'create']),
-});
-
-const ruleSchema = z.object({
-  id: z.string(),
-  platformId: z.string(),
-  platformName: z.string(),
-  platformIcon: z.string(),
-  platformDescription: z.string(),
-  name: z.string(),
-  description: z.string(),
-  path: z.string(),
-  managedPath: z.string().optional(),
-  targetPath: z.string().optional(),
-  projectRootPath: z.string().nullable().optional(),
-  syncStatus: z.enum(['synced', 'target-missing', 'out-of-sync', 'sync-error']).optional(),
-  content: z.string(),
-  versions: z.array(ruleVersionSchema),
-});
-
-const skillSafetyFindingSchema = z.object({
-  code: z.string(),
-  severity: z.enum(['info', 'warn', 'high']),
-  title: z.string(),
-  detail: z.string(),
-  filePath: z.string().optional(),
-  evidence: z.string().optional(),
-});
-
-const skillSafetyReportSchema = z.object({
-  level: z.enum(['safe', 'warn', 'high-risk', 'blocked']),
-  summary: z.string(),
-  findings: z.array(skillSafetyFindingSchema),
-  recommendedAction: z.enum(['allow', 'review', 'block']),
-  scannedAt: z.number().int().nonnegative(),
-  checkedFileCount: z.number().int().nonnegative(),
-  scanMethod: z.enum(['ai', 'static']),
-  score: z.number().min(0).max(100).optional(),
-});
-
-const promptSchema = z.object({
-  id: z.string(),
-  ownerUserId: z.string().nullable().optional(),
-  visibility: z.enum(['private', 'shared']).optional(),
-  title: z.string(),
-  description: z.string().nullable().optional(),
-  promptType: z.enum(['text', 'image', 'video']).optional(),
-  systemPrompt: z.string().nullable().optional(),
-  systemPromptEn: z.string().nullable().optional(),
-  userPrompt: z.string(),
-  userPromptEn: z.string().nullable().optional(),
-  variables: z.array(z.object({
-    name: z.string(),
-    type: z.enum(['text', 'textarea', 'number', 'select']),
-    label: z.string().optional(),
-    defaultValue: z.string().optional(),
-    options: z.array(z.string()).optional(),
-    required: z.boolean(),
-  })),
-  tags: z.array(z.string()),
-  folderId: z.string().nullable().optional(),
-  images: z.array(z.string()).optional(),
-  videos: z.array(z.string()).optional(),
-  isFavorite: z.boolean(),
-  isPinned: z.boolean(),
-  version: z.number().int().nonnegative(),
-  currentVersion: z.number().int().nonnegative(),
-  usageCount: z.number().int().nonnegative(),
-  source: z.string().nullable().optional(),
-  notes: z.string().nullable().optional(),
-  lastAiResponse: z.string().nullable().optional(),
-  createdAt: z.union([z.string(), z.number().int().nonnegative()]),
-  updatedAt: z.union([z.string(), z.number().int().nonnegative()]),
-});
-
-const promptVersionSchema = z.object({
-  id: z.string(),
-  promptId: z.string(),
-  version: z.number().int().nonnegative(),
-  systemPrompt: z.string().nullable().optional(),
-  systemPromptEn: z.string().nullable().optional(),
-  userPrompt: z.string(),
-  userPromptEn: z.string().nullable().optional(),
-  variables: z.array(z.object({
-    name: z.string(),
-    type: z.enum(['text', 'textarea', 'number', 'select']),
-    label: z.string().optional(),
-    defaultValue: z.string().optional(),
-    options: z.array(z.string()).optional(),
-    required: z.boolean(),
-  })),
-  note: z.string().nullable().optional(),
-  aiResponse: z.string().nullable().optional(),
-  createdAt: z.union([z.string(), z.number().int().nonnegative()]),
-});
-
-const folderSchema = z.object({
-  id: z.string(),
-  ownerUserId: z.string().nullable().optional(),
-  visibility: z.enum(['private', 'shared']).optional(),
-  name: z.string(),
-  icon: z.string().nullable().optional(),
-  parentId: z.string().nullable().optional(),
-  order: z.number().int().nonnegative(),
-  isPrivate: z.boolean().optional(),
-  createdAt: z.union([z.string(), z.number().int().nonnegative()]),
-  updatedAt: z.union([z.string(), z.number().int().nonnegative()]),
-});
-
-const skillSchema = z.object({
-  id: z.string(),
-  ownerUserId: z.string().nullable().optional(),
-  visibility: z.enum(['private', 'shared']).optional(),
-  name: z.string(),
-  description: z.string().optional(),
-  instructions: z.string().optional(),
-  content: z.string().optional(),
-  mcp_config: z.string().optional(),
-  protocol_type: z.enum(['skill', 'mcp', 'claude-code']),
-  version: z.string().optional(),
-  author: z.string().optional(),
-  source_url: z.string().optional(),
-  local_repo_path: z.string().optional(),
-  tags: z.array(z.string()).optional(),
-  original_tags: z.array(z.string()).optional(),
-  is_favorite: z.boolean(),
-  currentVersion: z.number().int().nonnegative().optional(),
-  versionTrackingEnabled: z.boolean().optional(),
-  created_at: z.number().int(),
-  updated_at: z.number().int(),
-  icon_url: z.string().optional(),
-  icon_emoji: z.string().optional(),
-  icon_background: z.string().optional(),
-  category: z.enum(['general', 'office', 'dev', 'ai', 'data', 'management', 'deploy', 'design', 'security', 'meta']).optional(),
-  is_builtin: z.boolean().optional(),
-  registry_slug: z.string().optional(),
-  content_url: z.string().optional(),
-  installed_content_hash: z.string().optional(),
-  installed_version: z.string().optional(),
-  installed_at: z.number().int().nonnegative().optional(),
-  updated_from_store_at: z.number().int().nonnegative().optional(),
-  prerequisites: z.array(z.string()).optional(),
-  compatibility: z.array(z.string()).optional(),
-  safetyReport: skillSafetyReportSchema.optional(),
-});
-
-const skillVersionSchema = z.object({
-  id: z.string(),
-  skillId: z.string(),
-  version: z.number().int().nonnegative(),
-  content: z.string().optional(),
-  filesSnapshot: z.array(z.object({
-    relativePath: z.string(),
-    content: z.string(),
-  })).optional(),
-  note: z.string().optional(),
-  createdAt: z.union([z.string(), z.number().int().nonnegative()]),
-});
-
-const importPayloadSchema = z.object({
-  payload: z.object({
-    version: z.string(),
-    exportedAt: z.string(),
-    prompts: z.array(promptSchema),
-    promptVersions: z.array(promptVersionSchema).default([]),
-    versions: z.array(promptVersionSchema).optional(),
-    folders: z.array(folderSchema),
-    rules: z.array(ruleSchema).optional(),
-    skills: z.array(skillSchema),
-    skillVersions: z.array(skillVersionSchema).default([]),
-    settings: z.object({
-      theme: z.enum(['light', 'dark', 'system']),
-      language: z.enum(['en', 'zh', 'zh-TW', 'ja', 'fr', 'de', 'es']),
-      autoSave: z.boolean(),
-      defaultFolderId: z.string().optional(),
-      customPlatformRootPaths: z.record(z.string()).optional(),
-      customSkillPlatformPaths: z.record(z.string()).optional(),
-      sync: z.object({
-        enabled: z.boolean(),
-        provider: z.enum(['manual', 'webdav', 'self-hosted', 's3']),
-        endpoint: z.string().url().optional(),
-        username: z.string().optional(),
-        password: z.string().optional(),
-        remotePath: z.string().optional(),
-        autoSync: z.boolean().optional(),
-        lastSyncAt: z.string().optional(),
-      }).optional(),
-      security: z.object({
-        masterPasswordConfigured: z.boolean(),
-        unlocked: z.boolean(),
-      }).optional(),
-      updateChannel: z.enum(['stable', 'preview']).optional(),
-    }).optional(),
-    settingsUpdatedAt: z.string().optional(),
-  }),
+const syncImportRequestSchema = z.object({
+  payload: z.unknown(),
 });
 
 const syncConfigSchema = z.object({
@@ -257,6 +34,12 @@ const syncConfigSchema = z.object({
   remotePath: z.string().optional(),
   autoSync: z.boolean().optional(),
 });
+
+const DEFAULT_SYNC_IMPORT_SETTINGS: Settings = {
+  theme: 'system',
+  language: 'en',
+  autoSave: true,
+};
 
 function getSyncSettings(userId: string): SyncSettings {
   const settings = settingsService.get(userId);
@@ -321,50 +104,15 @@ function buildSyncStatus(userId: string, payload: { exportedAt: string; prompts:
   };
 }
 
-function buildSummaryFromExport(payload: {
-  prompts: unknown[];
-  folders: unknown[];
-  rules?: unknown[];
-  skills: unknown[];
-}): SyncOperationSummary {
-  return {
-    prompts: payload.prompts.length,
-    folders: payload.folders.length,
-    rules: payload.rules?.length ?? 0,
-    skills: payload.skills.length,
-  };
-}
-
-function buildSummaryFromImport(result: {
-  promptsImported: number;
-  foldersImported: number;
-  rulesImported?: number;
-  skillsImported: number;
-}): SyncOperationSummary {
-  return {
-    prompts: result.promptsImported,
-    folders: result.foldersImported,
-    rules: result.rulesImported ?? 0,
-    skills: result.skillsImported,
-  };
-}
-
-function parseRemoteSyncPayload(body: string): z.infer<typeof importPayloadSchema>['payload'] {
+function parseRemoteSyncSnapshot(body: string): SyncSnapshot {
   let rawPayload: unknown;
   try {
     rawPayload = JSON.parse(body);
   } catch {
-    throw new Error('Remote sync payload is not valid JSON');
+    throw new Error('Invalid JSON in remote sync payload');
   }
 
-  const parsedPayload = importPayloadSchema.shape.payload.safeParse(rawPayload);
-  if (!parsedPayload.success) {
-    throw new Error(
-      `Remote sync payload is invalid: ${parsedPayload.error.issues.map((i) => i.message).join(', ')}`,
-    );
-  }
-
-  return parsedPayload.data;
+  return parseSyncSnapshot(rawPayload);
 }
 
 function toSyncValidationError(c: Parameters<typeof success>[0], routeError: unknown, fallbackMessage: string): Response {
@@ -387,94 +135,10 @@ function updateSyncLastSyncAt(userId: string, syncSettings: SyncSettings, lastSy
   });
 }
 
-function normalizeSyncPayload(payload: z.infer<typeof importPayloadSchema>['payload']): NormalizedSyncPayload {
-  const promptVersions = payload.promptVersions.length > 0 ? payload.promptVersions : (payload.versions ?? []);
-
+function buildSyncImportPayload(snapshot: SyncSnapshot) {
   return {
-    version: payload.version,
-    exportedAt: payload.exportedAt,
-    prompts: payload.prompts.map((prompt): Prompt => ({
-      id: prompt.id,
-      ownerUserId: prompt.ownerUserId,
-      visibility: prompt.visibility,
-      title: prompt.title,
-      description: prompt.description,
-      promptType: prompt.promptType,
-      systemPrompt: prompt.systemPrompt,
-      systemPromptEn: prompt.systemPromptEn,
-      userPrompt: prompt.userPrompt,
-      userPromptEn: prompt.userPromptEn,
-      variables: prompt.variables,
-      tags: prompt.tags,
-      folderId: prompt.folderId,
-      images: prompt.images,
-      videos: prompt.videos,
-      isFavorite: prompt.isFavorite,
-      isPinned: prompt.isPinned,
-      version: prompt.version,
-      currentVersion: prompt.currentVersion,
-      usageCount: prompt.usageCount,
-      source: prompt.source,
-      notes: prompt.notes,
-      lastAiResponse: prompt.lastAiResponse,
-      createdAt: typeof prompt.createdAt === 'number' ? new Date(prompt.createdAt).toISOString() : prompt.createdAt,
-      updatedAt: typeof prompt.updatedAt === 'number' ? new Date(prompt.updatedAt).toISOString() : prompt.updatedAt,
-    })),
-    promptVersions: promptVersions.map((version): PromptVersion => ({
-      id: version.id,
-      promptId: version.promptId,
-      version: version.version,
-      systemPrompt: version.systemPrompt,
-      systemPromptEn: version.systemPromptEn,
-      userPrompt: version.userPrompt,
-      userPromptEn: version.userPromptEn,
-      variables: version.variables,
-      note: version.note,
-      aiResponse: version.aiResponse,
-      createdAt: typeof version.createdAt === 'number' ? new Date(version.createdAt).toISOString() : version.createdAt,
-    })),
-    versions: promptVersions.map((version): PromptVersion => ({
-      id: version.id,
-      promptId: version.promptId,
-      version: version.version,
-      systemPrompt: version.systemPrompt,
-      systemPromptEn: version.systemPromptEn,
-      userPrompt: version.userPrompt,
-      userPromptEn: version.userPromptEn,
-      variables: version.variables,
-      note: version.note,
-      aiResponse: version.aiResponse,
-      createdAt: typeof version.createdAt === 'number' ? new Date(version.createdAt).toISOString() : version.createdAt,
-    })),
-    folders: payload.folders.map((folder): Folder => ({
-      id: folder.id,
-      ownerUserId: folder.ownerUserId,
-      visibility: folder.visibility,
-      name: folder.name,
-      icon: folder.icon ?? undefined,
-      parentId: folder.parentId ?? undefined,
-      order: folder.order,
-      isPrivate: folder.isPrivate,
-      createdAt: typeof folder.createdAt === 'number' ? new Date(folder.createdAt).toISOString() : folder.createdAt,
-      updatedAt: typeof folder.updatedAt === 'number' ? new Date(folder.updatedAt).toISOString() : folder.updatedAt,
-    })),
-    rules: payload.rules,
-    skills: payload.skills,
-    skillVersions: payload.skillVersions.map((version): SkillVersion => ({
-      id: version.id,
-      skillId: version.skillId,
-      version: version.version,
-      content: version.content,
-      filesSnapshot: version.filesSnapshot,
-      note: version.note,
-      createdAt: typeof version.createdAt === 'number' ? new Date(version.createdAt).toISOString() : version.createdAt,
-    })),
-    settings: payload.settings
-      ? {
-          ...payload.settings,
-        }
-      : { theme: 'system', language: 'en', autoSave: true },
-    settingsUpdatedAt: payload.settingsUpdatedAt,
+    ...snapshot,
+    settings: snapshot.settings ?? { ...DEFAULT_SYNC_IMPORT_SETTINGS },
   };
 }
 
@@ -504,18 +168,29 @@ sync.get('/data', async (c) => {
 });
 
 sync.put('/data', async (c) => {
-  const parsed = await parseJsonBody(c, importPayloadSchema);
+  const parsed = await parseJsonBody(c, syncImportRequestSchema);
   if (!parsed.success) {
     return parsed.response;
   }
 
+  let snapshot: SyncSnapshot;
+  try {
+    snapshot = parseSyncSnapshot(parsed.data.payload);
+  } catch (routeError) {
+    return toSyncValidationError(c, routeError, 'Sync payload is invalid');
+  }
+
   const actor = getAuthUser(c);
-  const result = backupService.import(actor, normalizeSyncPayload(parsed.data.payload));
+  writePulledSyncMedia(actor.userId, {
+    images: snapshot.images,
+    videos: snapshot.videos,
+  });
+  const result = backupService.import(actor, buildSyncImportPayload(snapshot));
   updateSyncLastSyncAt(actor.userId, getSyncSettings(actor.userId), new Date().toISOString());
   return success(c, {
     ok: true,
     ...result,
-    summary: buildSummaryFromImport(result),
+    summary: buildImportedSyncSummary(result),
   });
 });
 
@@ -553,11 +228,7 @@ sync.post('/push', async (c) => {
   try {
     assertWebDavConfig(syncSettings);
     const exported = backupService.export(actor);
-    const pushed = await pushWebDavSnapshot(
-      syncSettings,
-      JSON.stringify(exported),
-      exported.exportedAt,
-    );
+    const pushed = await pushWebDavSnapshot(actor.userId, syncSettings, exported);
     updateSyncLastSyncAt(actor.userId, syncSettings, pushed.syncedAt);
 
     return success(c, {
@@ -569,7 +240,7 @@ sync.post('/push', async (c) => {
       foldersExported: exported.folders.length,
       rulesExported: exported.rules?.length ?? 0,
       skillsExported: exported.skills.length,
-      summary: buildSummaryFromExport(exported),
+      summary: buildSyncSummary(exported),
     });
   } catch (routeError) {
     return toSyncValidationError(c, routeError, 'Sync push failed');
@@ -583,10 +254,15 @@ sync.post('/pull', async (c) => {
   try {
     assertWebDavConfig(syncSettings);
     const pulled = await pullWebDavSnapshot(syncSettings);
+    const remoteSnapshot = parseRemoteSyncSnapshot(pulled.body);
+    writePulledSyncMedia(actor.userId, {
+      images: pulled.images ?? remoteSnapshot.images,
+      videos: pulled.videos ?? remoteSnapshot.videos,
+    });
 
     const imported = backupService.import(
       actor,
-      normalizeSyncPayload(parseRemoteSyncPayload(pulled.body)),
+      buildSyncImportPayload(remoteSnapshot),
     );
     updateSyncLastSyncAt(actor.userId, syncSettings, pulled.syncedAt);
 
@@ -596,7 +272,7 @@ sync.post('/pull', async (c) => {
       provider: 'webdav',
       syncedAt: pulled.syncedAt,
       remoteFile: pulled.remoteFile,
-      summary: buildSummaryFromImport(imported),
+      summary: buildImportedSyncSummary(imported),
     });
   } catch (routeError) {
     return toSyncValidationError(c, routeError, 'Sync pull failed');

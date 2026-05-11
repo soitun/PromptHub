@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import type { Database, SkillDB } from '@prompthub/db';
-import type { Skill, SkillVersion } from '@prompthub/shared';
+import type { Skill, SkillFileSnapshot, SkillVersion } from '@prompthub/shared';
 import { getSkillsDir } from '../runtime-paths.js';
 
 const SKILL_FILE_NAME = 'SKILL.md';
@@ -54,6 +54,92 @@ function padVersion(version: number): string {
 
 function getSkillDirectory(skillsDir: string, skill: Skill): string {
   return path.join(skillsDir, `${slugify(skill.name)}__${skill.id}`);
+}
+
+function normalizeWorkspaceRelativePath(relativePath: string): string {
+  const normalized = path.posix.normalize(relativePath.replace(/\\/g, '/'));
+  if (
+    normalized === '' ||
+    normalized === '.' ||
+    path.posix.isAbsolute(normalized) ||
+    normalized.startsWith('../')
+  ) {
+    throw new Error(`Invalid skill file path: ${relativePath}`);
+  }
+
+  return normalized;
+}
+
+function isReservedWorkspaceFile(relativePath: string): boolean {
+  const normalized = normalizeWorkspaceRelativePath(relativePath).toLowerCase();
+  return (
+    normalized === SKILL_META_FILE_NAME.toLowerCase() ||
+    normalized.startsWith(`${VERSIONS_DIR_NAME.toLowerCase()}/`)
+  );
+}
+
+function isPrimarySkillFile(relativePath: string): boolean {
+  return normalizeWorkspaceRelativePath(relativePath).toLowerCase() === SKILL_FILE_NAME.toLowerCase();
+}
+
+function collectAdditionalSkillFiles(
+  skillDir: string,
+  rootDir: string = skillDir,
+): SkillFileSnapshot[] {
+  if (!fs.existsSync(skillDir)) {
+    return [];
+  }
+
+  const snapshots: SkillFileSnapshot[] = [];
+  for (const entry of fs.readdirSync(skillDir, { withFileTypes: true }).sort((left, right) => left.name.localeCompare(right.name))) {
+    const entryPath = path.join(skillDir, entry.name);
+    if (entry.isDirectory()) {
+      if (entry.name === VERSIONS_DIR_NAME) {
+        continue;
+      }
+
+      snapshots.push(...collectAdditionalSkillFiles(entryPath, rootDir));
+      continue;
+    }
+
+    const relativePath = path.relative(rootDir, entryPath).split(path.sep).join('/');
+    if (isReservedWorkspaceFile(relativePath) || isPrimarySkillFile(relativePath)) {
+      continue;
+    }
+
+    snapshots.push({
+      relativePath,
+      content: fs.readFileSync(entryPath, 'utf8'),
+    });
+  }
+
+  return snapshots;
+}
+
+function readAdditionalSkillFileMap(skillsDir: string): Map<string, SkillFileSnapshot[]> {
+  const fileMap = new Map<string, SkillFileSnapshot[]>();
+  for (const skillDir of collectSkillDirectories(skillsDir)) {
+    const metadata = parseSkillMetadata(path.join(skillDir, SKILL_META_FILE_NAME));
+    const files = collectAdditionalSkillFiles(skillDir);
+    if (files.length > 0) {
+      fileMap.set(metadata.id, files);
+    }
+  }
+
+  return fileMap;
+}
+
+function writeSkillFileSnapshots(skillDir: string, files: SkillFileSnapshot[]): void {
+  for (const file of files) {
+    const relativePath = normalizeWorkspaceRelativePath(file.relativePath);
+    if (isReservedWorkspaceFile(relativePath)) {
+      throw new Error(`Reserved skill file path is not allowed: ${file.relativePath}`);
+    }
+
+    const targetPath = path.join(skillDir, relativePath);
+    ensureDir(path.dirname(targetPath));
+    fs.writeFileSync(targetPath, file.content, 'utf8');
+  }
 }
 
 function listAllSkills(
@@ -178,12 +264,38 @@ function updateSkillOwnership(
   );
 }
 
+export function collectSkillWorkspaceFiles(skills: Skill[]): Record<string, SkillFileSnapshot[]> {
+  const skillsDir = getSkillsDir();
+  const existingAdditionalFiles = readAdditionalSkillFileMap(skillsDir);
+  const skillFiles: Record<string, SkillFileSnapshot[]> = {};
+
+  for (const skill of skills) {
+    const files: SkillFileSnapshot[] = [
+      {
+        relativePath: SKILL_FILE_NAME,
+        content: skill.content ?? skill.instructions ?? '',
+      },
+      ...(existingAdditionalFiles.get(skill.id) ?? []),
+    ];
+
+    if (files.length > 0) {
+      skillFiles[skill.id] = files;
+    }
+  }
+
+  return skillFiles;
+}
+
 export function syncSkillWorkspaceFromDatabase(
   db: Database.Database,
   skillDb: SkillDB,
+  skillFilesById?: Record<string, SkillFileSnapshot[]>,
 ): SkillWorkspaceSyncResult {
   const skillsDir = getSkillsDir();
   const skills = listAllSkills(db, skillDb);
+  const existingAdditionalFiles = skillFilesById
+    ? new Map(Object.entries(skillFilesById))
+    : readAdditionalSkillFileMap(skillsDir);
 
   fs.rmSync(skillsDir, { recursive: true, force: true });
   ensureDir(skillsDir);
@@ -220,6 +332,8 @@ export function syncSkillWorkspaceFromDatabase(
       }
       versionCount += versions.length;
     }
+
+    writeSkillFileSnapshots(skillDir, existingAdditionalFiles.get(skill.id) ?? []);
   }
 
   return {

@@ -1,7 +1,11 @@
 import type { RuleBackupRecord, Settings } from "@prompthub/shared/types";
 import type { Folder } from "@prompthub/shared/types/folder";
 import type { Prompt, PromptVersion } from "@prompthub/shared/types/prompt";
-import type { Skill, SkillVersion } from "@prompthub/shared/types/skill";
+import type {
+  Skill,
+  SkillFileSnapshot,
+  SkillVersion,
+} from "@prompthub/shared/types/skill";
 import {
   exportDatabase,
   restoreFromBackup,
@@ -34,6 +38,11 @@ interface LoginPayload {
   accessToken: string;
 }
 
+interface CaptchaPayload {
+  captchaId: string;
+  prompt: string;
+}
+
 interface DeviceHeartbeatPayload {
   id: string;
   type: "desktop";
@@ -59,6 +68,7 @@ interface WebSyncPayload {
   rules?: RuleBackupRecord[];
   skills: Skill[];
   skillVersions: SkillVersion[];
+  skillFiles?: Record<string, SkillFileSnapshot[]>;
   settings: Settings;
   settingsUpdatedAt?: string;
 }
@@ -134,10 +144,38 @@ async function readJsonEnvelope<T>(response: Response): Promise<T> {
   return payload.data;
 }
 
+function solveCaptchaPrompt(prompt: string): string {
+  const match = prompt.match(/^\s*(\d+)\s*([+-])\s*(\d+)\s*=\s*\?\s*$/);
+  if (!match) {
+    throw new Error(`Unsupported self-hosted captcha prompt: ${prompt}`);
+  }
+
+  const left = Number(match[1]);
+  const operator = match[2];
+  const right = Number(match[3]);
+  return String(operator === "+" ? left + right : left - right);
+}
+
+async function issueSelfHostedCaptcha(baseUrl: string): Promise<{
+  captchaId: string;
+  captchaAnswer: string;
+}> {
+  const response = await fetch(`${baseUrl}/api/auth/captcha`, {
+    cache: "no-store",
+  });
+  const payload = await readJsonEnvelope<CaptchaPayload>(response);
+
+  return {
+    captchaId: payload.captchaId,
+    captchaAnswer: solveCaptchaPrompt(payload.prompt),
+  };
+}
+
 async function loginToSelfHostedWeb(
   config: SelfHostedSyncConfig,
 ): Promise<{ baseUrl: string; accessToken: string }> {
   const baseUrl = normalizeBaseUrl(config.url);
+  const captcha = await issueSelfHostedCaptcha(baseUrl);
   const response = await fetch(`${baseUrl}/api/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -145,6 +183,7 @@ async function loginToSelfHostedWeb(
     body: JSON.stringify({
       username: config.username,
       password: config.password,
+      ...captcha,
     }),
   });
   const payload = await readJsonEnvelope<LoginPayload>(response);
@@ -413,6 +452,20 @@ function mergeMediaMaps(
   };
 }
 
+function mergeSkillFileMaps(
+  localFiles: Record<string, SkillFileSnapshot[]> | undefined,
+  remoteFiles: Record<string, SkillFileSnapshot[]> | undefined,
+): Record<string, SkillFileSnapshot[]> | undefined {
+  if (!localFiles && !remoteFiles) {
+    return undefined;
+  }
+
+  return {
+    ...(localFiles || {}),
+    ...(remoteFiles || {}),
+  };
+}
+
 function mergeDesktopBackupWithRemote(
   localBackup: DatabaseBackup,
   payload: WebSyncPayload,
@@ -496,7 +549,7 @@ function mergeDesktopBackupWithRemote(
     ),
     skills: normalizedSkills,
     skillVersions: normalizedSkillVersions,
-    skillFiles: localBackup.skillFiles,
+    skillFiles: mergeSkillFileMaps(localBackup.skillFiles, payload.skillFiles),
   };
 }
 
@@ -549,6 +602,7 @@ function buildDesktopBackupFromRemote(
     rules: payload.rules,
     skills: payload.skills,
     skillVersions: normalizedSkillVersions,
+    skillFiles: payload.skillFiles,
   };
 }
 
@@ -583,6 +637,7 @@ export async function pushToSelfHostedWeb(
     rules: backup.rules || [],
     skills: backup.skills || [],
     skillVersions: backup.skillVersions || [],
+    skillFiles: backup.skillFiles,
     settings: toWebSettings(backup),
     settingsUpdatedAt: backup.settingsUpdatedAt,
   };

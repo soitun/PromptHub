@@ -13,7 +13,7 @@ import {
 import { initDatabase, migrateLegacyIndexedDbToMainProcess } from "./services/database";
 import { ImportedPromptData } from "./components/prompt/ImportPromptModal";
 import {
-  runSelfHostedAutoSync,
+  runSelfHostedAutoSync as executeSelfHostedAutoSync,
   runWebDAVAutoSync,
 } from "./services/backup-orchestrator";
 import {
@@ -698,7 +698,7 @@ function App() {
       isSelfHostedSyncInFlightRef.current = true;
 
       try {
-        const result = await runSelfHostedAutoSync(reason, {
+        const result = await executeSelfHostedAutoSync(reason, {
           url: settings.selfHostedSyncUrl,
           username: settings.selfHostedSyncUsername,
           password: settings.selfHostedSyncPassword,

@@ -1110,6 +1110,7 @@ interface ExportZipScope {
   prompts: boolean;
   versions: boolean;
   images: boolean;
+  videos?: boolean;
   skills: boolean;
   rules?: boolean;
   config: boolean;
@@ -1166,6 +1167,9 @@ ipcMain.handle(
       }
       if (scope.images) {
         collectDirFiles(getImagesDir(), "images/");
+      }
+      if (scope.videos) {
+        collectDirFiles(getVideosDir(), "videos/");
       }
       if (scope.config) {
         collectDirFiles(getConfigDir(), "config/");

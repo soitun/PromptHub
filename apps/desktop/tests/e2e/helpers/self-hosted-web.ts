@@ -17,6 +17,45 @@ interface LoginEnvelope {
   };
 }
 
+interface CaptchaEnvelope {
+  data: {
+    captchaId: string;
+    prompt: string;
+  };
+}
+
+function solveCaptchaPrompt(prompt: string): string {
+  const match = prompt.match(/^\s*(\d+)\s*([+-])\s*(\d+)\s*=\s*\?\s*$/);
+  if (!match) {
+    throw new Error(`Unsupported captcha prompt: ${prompt}`);
+  }
+
+  const left = Number(match[1]);
+  const operator = match[2];
+  const right = Number(match[3]);
+  return String(operator === "+" ? left + right : left - right);
+}
+
+async function issueSolvedCaptcha(baseUrl: string): Promise<{
+  captchaId: string;
+  captchaAnswer: string;
+}> {
+  const response = await fetch(`${baseUrl}/api/auth/captcha`, {
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Failed to issue self-hosted captcha: ${response.status} ${text}`);
+  }
+
+  const payload = (await response.json()) as CaptchaEnvelope;
+  return {
+    captchaId: payload.data.captchaId,
+    captchaAnswer: solveCaptchaPrompt(payload.data.prompt),
+  };
+}
+
 async function getFreePort(): Promise<number> {
   return await new Promise((resolve, reject) => {
     const server = net.createServer();
@@ -72,12 +111,13 @@ async function bootstrapUser(
   username: string,
   password: string,
 ): Promise<void> {
+  const captcha = await issueSolvedCaptcha(baseUrl);
   const response = await fetch(`${baseUrl}/api/auth/register`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ username, password }),
+    body: JSON.stringify({ username, password, ...captcha }),
   });
 
   if (!response.ok) {
@@ -91,12 +131,13 @@ export async function loginSelfHosted(
   username: string,
   password: string,
 ): Promise<string> {
+  const captcha = await issueSolvedCaptcha(baseUrl);
   const response = await fetch(`${baseUrl}/api/auth/login`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ username, password }),
+    body: JSON.stringify({ username, password, ...captcha }),
     cache: "no-store",
   });
 

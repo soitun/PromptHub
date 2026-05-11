@@ -39,6 +39,7 @@ export type ExportScope = {
   folders?: boolean;
   versions?: boolean;
   images?: boolean;
+  videos?: boolean;
   aiConfig?: boolean;
   settings?: boolean;
   rules?: boolean;

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   downloadBackup,
+  downloadSelectiveExport,
   exportDatabase,
   restoreFromBackup,
   restoreFromFile,
@@ -688,6 +689,150 @@ describe("database-backup restore", () => {
       }),
     );
     expect(clearDatabaseMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("embeds a full re-importable snapshot into selective ZIP exports and includes video scope", async () => {
+    getAllPromptsMock.mockResolvedValue([
+      {
+        id: "prompt-zip-1",
+        title: "ZIP Prompt",
+        description: "Prompt with media",
+        systemPrompt: "System",
+        userPrompt: "User",
+        variables: [],
+        tags: [],
+        folderId: "folder-zip-1",
+        createdAt: "2026-04-21T00:00:00.000Z",
+        updatedAt: "2026-04-21T00:00:00.000Z",
+        version: 1,
+        currentVersion: 1,
+        usageCount: 0,
+        isFavorite: false,
+        isPinned: false,
+        promptType: "text",
+        images: ["image-zip.png"],
+        videos: ["video-zip.mp4"],
+      },
+    ]);
+    getAllFoldersMock.mockResolvedValue([
+      {
+        id: "folder-zip-1",
+        name: "ZIP Folder",
+        parentId: null,
+        order: 0,
+        createdAt: "2026-04-21T00:00:00.000Z",
+        updatedAt: "2026-04-21T00:00:00.000Z",
+      },
+    ]);
+    installWindowMocks({
+      electron: {
+        getImageSize: vi.fn().mockResolvedValue(12),
+        readImageBase64: vi.fn().mockResolvedValue("image-base64"),
+        getVideoSize: vi.fn().mockResolvedValue(24),
+        readVideoBase64: vi.fn().mockResolvedValue("video-base64"),
+      },
+      api: {
+        version: {
+          getAll: vi.fn().mockResolvedValue([
+            {
+              id: "version-zip-1",
+              promptId: "prompt-zip-1",
+              version: 1,
+              userPrompt: "User",
+              variables: [],
+              createdAt: "2026-04-21T00:00:00.000Z",
+            },
+          ]),
+        },
+        skill: {
+          getAll: vi.fn().mockResolvedValue([
+            {
+              id: "skill-zip-1",
+              name: "writer",
+              protocol_type: "skill",
+              is_favorite: false,
+              created_at: 1,
+              updated_at: 1,
+            },
+          ]),
+          versionGetAll: vi.fn().mockResolvedValue([]),
+          readLocalFiles: vi.fn().mockResolvedValue([
+            {
+              path: "SKILL.md",
+              content: "# Writer",
+              isDirectory: false,
+            },
+          ]),
+        },
+        rules: {
+          list: vi.fn().mockResolvedValue([]),
+          read: vi.fn(),
+        },
+      },
+    });
+    getAiConfigSnapshotMock.mockReturnValue({ aiProvider: "openai" });
+    getSettingsStateSnapshotMock.mockReturnValue({
+      state: { language: "zh" },
+      settingsUpdatedAt: "2026-04-21T00:00:00.000Z",
+    });
+
+    await downloadSelectiveExport({
+      prompts: true,
+      folders: true,
+      versions: true,
+      images: true,
+      videos: true,
+      aiConfig: true,
+      settings: true,
+      rules: false,
+      skills: true,
+    });
+
+    expect(window.electron.exportZip).toHaveBeenCalledTimes(1);
+    const exportZipArg = window.electron.exportZip.mock.calls[0]?.[0] as {
+      scope: {
+        videos?: boolean;
+        exportJson?: string;
+      };
+    };
+    expect(exportZipArg.scope.videos).toBe(true);
+    const embedded = JSON.parse(String(exportZipArg.scope.exportJson)) as {
+      kind: string;
+      payload: {
+        prompts: Array<{ title: string; images?: string[]; videos?: string[] }>;
+        folders: Array<{ name: string }>;
+        versions: Array<{ promptId: string }>;
+        images?: Record<string, string>;
+        videos?: Record<string, string>;
+        skills?: Array<{ name: string }>;
+        skillFiles?: Record<string, Array<{ relativePath: string; content: string }>>;
+        settingsUpdatedAt?: string;
+      };
+    };
+
+    expect(embedded.kind).toBe("prompthub-export");
+    expect(embedded.payload.prompts).toEqual([
+      expect.objectContaining({
+        title: "ZIP Prompt",
+        images: ["image-zip.png"],
+        videos: ["video-zip.mp4"],
+      }),
+    ]);
+    expect(embedded.payload.folders).toEqual([
+      expect.objectContaining({ name: "ZIP Folder" }),
+    ]);
+    expect(embedded.payload.versions).toEqual([
+      expect.objectContaining({ promptId: "prompt-zip-1" }),
+    ]);
+    expect(embedded.payload.images).toEqual({ "image-zip.png": "image-base64" });
+    expect(embedded.payload.videos).toEqual({ "video-zip.mp4": "video-base64" });
+    expect(embedded.payload.skills).toEqual([
+      expect.objectContaining({ name: "writer" }),
+    ]);
+    expect(embedded.payload.skillFiles).toEqual({
+      "skill-zip-1": [{ relativePath: "SKILL.md", content: "# Writer" }],
+    });
+    expect(embedded.payload.settingsUpdatedAt).toBe("2026-04-21T00:00:00.000Z");
   });
 
   it("rejects arbitrary JSON files without clearing existing data", async () => {

@@ -1,5 +1,9 @@
 import Database from "./adapter";
-import type { RuleRecord, RuleVersionRecord } from "@prompthub/shared/types";
+import {
+  isRuleFileId,
+  isRulePlatformId,
+} from "@prompthub/shared";
+import type { RuleRecord, RuleVersionRecord } from "@prompthub/shared";
 
 interface RuleRow {
   id: string;
@@ -117,6 +121,14 @@ export class RuleDB {
   }
 
   private rowToRule(row: RuleRow): RuleRecord {
+    if (!isRuleFileId(row.id)) {
+      throw new Error(`Invalid rule id in database: ${row.id}`);
+    }
+
+    if (!isRulePlatformId(row.platform_id)) {
+      throw new Error(`Invalid rule platform id in database: ${row.platform_id}`);
+    }
+
     return {
       id: row.id,
       scope: row.scope,
@@ -138,6 +150,10 @@ export class RuleDB {
   }
 
   private rowToRuleVersion(row: RuleVersionRow): RuleVersionRecord {
+    if (!isRuleFileId(row.rule_id)) {
+      throw new Error(`Invalid rule version rule id in database: ${row.rule_id}`);
+    }
+
     return {
       id: row.id,
       ruleId: row.rule_id,

@@ -41,6 +41,13 @@ export interface SyncConfig {
   lastSyncAt?: string;
 }
 
+export interface SyncOperationSummary {
+  prompts: number;
+  folders: number;
+  rules: number;
+  skills: number;
+}
+
 export interface SyncManifest {
   version: string;
   exportedAt: string;
@@ -59,8 +66,10 @@ export interface SyncPushResult {
   ok: boolean;
   promptsImported: number;
   foldersImported: number;
+  rulesImported: number;
   skillsImported: number;
   settingsUpdated: boolean;
+  summary: SyncOperationSummary;
 }
 
 export interface SyncProviderResult {
@@ -68,6 +77,16 @@ export interface SyncProviderResult {
   provider: 'webdav';
   syncedAt: string;
   remoteFile: string;
+  summary: SyncOperationSummary;
+  promptsExported?: number;
+  foldersExported?: number;
+  rulesExported?: number;
+  skillsExported?: number;
+  promptsImported?: number;
+  foldersImported?: number;
+  rulesImported?: number;
+  skillsImported?: number;
+  settingsUpdated?: boolean;
 }
 
 export interface AIRequestPayload {

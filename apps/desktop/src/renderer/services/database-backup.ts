@@ -787,38 +787,33 @@ export async function downloadSelectiveExport(
     folders: !!scope.folders,
     versions: !!scope.versions,
     images: !!scope.images,
+    videos: !!scope.videos,
     aiConfig: !!scope.aiConfig,
     settings: !!scope.settings,
     rules: !!scope.rules,
     skills: !!scope.skills,
   };
 
-  // Build the PromptHub JSON payload (used both as fallback download and embedded in ZIP for re-import)
+  const fullBackup = await exportDatabase({
+    skipVideoContent: !normalized.videos,
+  });
+
   const payload: Partial<DatabaseBackup> = {
     version: DB_VERSION,
-    exportedAt: new Date().toISOString(),
+    exportedAt: fullBackup.exportedAt,
+    prompts: normalized.prompts ? fullBackup.prompts : [],
+    folders: normalized.folders ? fullBackup.folders : [],
+    versions: normalized.versions ? fullBackup.versions : [],
+    images: normalized.images ? fullBackup.images : undefined,
+    videos: normalized.videos ? fullBackup.videos : undefined,
+    aiConfig: normalized.aiConfig ? fullBackup.aiConfig : undefined,
+    settings: normalized.settings ? fullBackup.settings : undefined,
+    settingsUpdatedAt: normalized.settings ? fullBackup.settingsUpdatedAt : undefined,
+    rules: normalized.rules ? fullBackup.rules : undefined,
+    skills: normalized.skills ? fullBackup.skills : undefined,
+    skillVersions: normalized.skills ? fullBackup.skillVersions : undefined,
+    skillFiles: normalized.skills ? fullBackup.skillFiles : undefined,
   };
-
-  if (normalized.prompts) payload.prompts = await getAllPrompts();
-  if (normalized.folders) payload.folders = await getAllFolders();
-  if (normalized.versions) payload.versions = await getAllPromptVersions();
-  if (normalized.aiConfig) {
-    payload.aiConfig = getAiConfigSnapshot({ includeRootApiKey: true });
-  }
-  if (normalized.settings) {
-    const snap = getSettingsStateSnapshot({
-      updatedAt: new Date().toISOString(),
-    });
-    if (snap) {
-      payload.settings = { state: snap.state };
-      payload.settingsUpdatedAt = snap.settingsUpdatedAt;
-    }
-  }
-  if (normalized.rules) {
-    payload.rules = await collectRuleData();
-  }
-  // Note: images and skills are included as files in the ZIP; omit bulky base64 blobs from the JSON
-  // 注意：图片和 Skill 文件以文件形式包含在 ZIP 中，JSON 里不重复存储 base64
 
   const exportFile: PromptHubFile = {
     kind: "prompthub-export",
@@ -849,6 +844,7 @@ export async function downloadSelectiveExport(
         prompts: normalized.prompts || normalized.folders,
         versions: normalized.versions,
         images: normalized.images,
+        videos: normalized.videos,
         skills: normalized.skills,
         rules: normalized.rules,
         config: false,

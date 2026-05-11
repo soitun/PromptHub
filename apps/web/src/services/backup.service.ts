@@ -6,6 +6,7 @@ import type {
   RuleBackupRecord,
   Settings,
   Skill,
+  SkillFileSnapshot,
   SkillSafetyReport,
   SkillVersion,
 } from '@prompthub/shared';
@@ -16,7 +17,10 @@ import {
   exportRuleBackupRecords,
   importRuleBackupRecords,
 } from './rule-workspace.js';
-import { syncSkillWorkspaceFromDatabase } from './skill-workspace.js';
+import {
+  collectSkillWorkspaceFiles,
+  syncSkillWorkspaceFromDatabase,
+} from './skill-workspace.js';
 
 export interface BackupActor {
   userId: string;
@@ -33,6 +37,7 @@ export interface WebBackupPayload {
   rules?: RuleBackupRecord[];
   skills: Skill[];
   skillVersions: SkillVersion[];
+  skillFiles?: Record<string, SkillFileSnapshot[]>;
   settings: Settings;
   settingsUpdatedAt?: string;
 }
@@ -43,6 +48,10 @@ export interface BackupImportResult {
   rulesImported: number;
   skillsImported: number;
   settingsUpdated: boolean;
+}
+
+export interface BackupImportOptions {
+  forceSettingsImport?: boolean;
 }
 
 interface PromptRecordRow {
@@ -82,6 +91,7 @@ export class BackupService {
       ...version,
       createdAt: this.normalizeIsoTimestamp(version.createdAt),
     }));
+    const skillFiles = collectSkillWorkspaceFiles(skills);
     const settings = this.settingsService.get(actor.userId);
 
     return {
@@ -94,12 +104,13 @@ export class BackupService {
       rules: exportRuleBackupRecords(actor.userId),
       skills,
       skillVersions,
+      skillFiles,
       settings,
       settingsUpdatedAt: this.settingsService.getUpdatedAt(actor.userId),
     };
   }
 
-  import(actor: BackupActor, payload: WebBackupPayload): BackupImportResult {
+  import(actor: BackupActor, payload: WebBackupPayload, options?: BackupImportOptions): BackupImportResult {
     let promptsImported = 0;
     let foldersImported = 0;
     const rulesImported = payload.rules?.length ?? 0;
@@ -132,13 +143,14 @@ export class BackupService {
     }
 
     this.mergeSkillVersions(payload);
+    this.applyImportedSkillFileContent(payload);
 
     importRuleBackupRecords(actor.userId, payload.rules ?? []);
 
-    const settingsUpdated = this.mergeSettings(actor, payload);
+    const settingsUpdated = this.mergeSettings(actor, payload, options);
 
     syncPromptWorkspaceFromDatabase(this.db, this.promptDb, this.folderDb);
-    syncSkillWorkspaceFromDatabase(this.db, this.skillDb);
+    syncSkillWorkspaceFromDatabase(this.db, this.skillDb, payload.skillFiles);
 
     return {
       promptsImported,
@@ -410,9 +422,14 @@ export class BackupService {
     }
   }
 
-  private mergeSettings(actor: BackupActor, payload: WebBackupPayload): boolean {
+  private mergeSettings(
+    actor: BackupActor,
+    payload: WebBackupPayload,
+    options?: BackupImportOptions,
+  ): boolean {
     const localUpdatedAt = this.settingsService.getUpdatedAt(actor.userId);
     if (
+      !options?.forceSettingsImport &&
       localUpdatedAt &&
       payload.settingsUpdatedAt &&
       !this.shouldReplaceByTimestamp(localUpdatedAt, payload.settingsUpdatedAt)
@@ -427,6 +444,34 @@ export class BackupService {
         : undefined,
     });
     return true;
+  }
+
+  private applyImportedSkillFileContent(payload: WebBackupPayload): void {
+    if (!payload.skillFiles) {
+      return;
+    }
+
+    const skillMap = new Map(payload.skills.map((skill) => [skill.id, skill]));
+    for (const [skillId, files] of Object.entries(payload.skillFiles)) {
+      const sourceSkill = skillMap.get(skillId);
+      if (!sourceSkill) {
+        continue;
+      }
+
+      const resolvedSkillId = this.resolveSkillId(sourceSkill);
+      const resolvedSkill = this.skillDb.getById(resolvedSkillId);
+      if (!resolvedSkill) {
+        continue;
+      }
+
+      const primarySkillFile = files.find((file) => file.relativePath.toLowerCase() === 'skill.md');
+      if (primarySkillFile) {
+        this.skillDb.update(resolvedSkillId, {
+          content: primarySkillFile.content,
+          instructions: primarySkillFile.content,
+        });
+      }
+    }
   }
 
   private cloneSafetyReport(report: SkillSafetyReport): SkillSafetyReport {

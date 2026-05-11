@@ -211,6 +211,7 @@ contextBridge.exposeInMainWorld("electron", {
       prompts: boolean;
       versions: boolean;
       images: boolean;
+      videos?: boolean;
       skills: boolean;
       rules?: boolean;
       config: boolean;

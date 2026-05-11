@@ -117,3 +117,15 @@ export interface RuleRewriteResult {
   content: string;
   summary: string;
 }
+
+export function isRuleFileId(value: string): value is RuleFileId {
+  return value.startsWith('project:') || value in KNOWN_RULE_FILE_TEMPLATES;
+}
+
+export function isRulePlatformId(value: string): value is RulePlatformId {
+  if (value === 'workspace') {
+    return true;
+  }
+
+  return Object.values(KNOWN_RULE_FILE_TEMPLATES).some((template) => template.platformId === value);
+}

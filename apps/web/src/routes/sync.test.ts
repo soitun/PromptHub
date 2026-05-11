@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { closeDatabase } from '@prompthub/db';
+import { issueSolvedCaptcha } from '../test-helpers/auth-captcha';
 
 const ENV_KEYS = [
   'PORT',
@@ -28,6 +29,12 @@ function getMockCall(mockFn: ReturnType<typeof vi.fn>, index: number): unknown[]
   return ((mockFn.mock.calls as unknown[][])[index] ?? []);
 }
 
+function ensureTestMediaDir(dataDir: string, userId: string, kind: 'images' | 'videos'): string {
+  const dirPath = path.join(dataDir, 'data', 'assets', userId, kind);
+  fs.mkdirSync(dirPath, { recursive: true });
+  return dirPath;
+}
+
 async function createTestApp(dataDir: string, webDavMocks?: WebDavMockSet) {
   process.env.PORT = '3991';
   process.env.HOST = '127.0.0.1';
@@ -50,11 +57,12 @@ async function createTestApp(dataDir: string, webDavMocks?: WebDavMockSet) {
 }
 
 async function registerUser(app: Awaited<ReturnType<typeof createTestApp>>, username: string, password: string) {
+  const captcha = await issueSolvedCaptcha(app);
   const response = await app.request(
     new Request('http://local/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ username, password, ...captcha }),
     }),
   );
 
@@ -129,6 +137,8 @@ function buildRemotePayload() {
         variables: [],
         tags: ['remote'],
         folderId: 'remote-folder-child',
+        images: ['remote-image.png'],
+        videos: ['remote-video.mp4'],
         isFavorite: false,
         isPinned: false,
         version: 2,
@@ -203,6 +213,18 @@ function buildRemotePayload() {
         createdAt: '2026-04-10T00:00:00.000Z',
       },
     ],
+    skillFiles: {
+      'remote-skill-1': [
+        {
+          relativePath: 'SKILL.md',
+          content: 'echo remote',
+        },
+        {
+          relativePath: 'templates/review.md',
+          content: '# Remote review checklist',
+        },
+      ],
+    },
     settings: {
       theme: 'dark',
       language: 'en',
@@ -614,6 +636,143 @@ describe('web sync routes', () => {
     }
   }, TEST_TIMEOUT);
 
+  it('writes media files when importing sync data directly', async () => {
+    const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'prompthub-web-sync-direct-media-'));
+
+    try {
+      const app = await createTestApp(dataDir);
+      const { payload: registerPayload } = await registerUser(app, 'mediasync', 'debugpass001');
+      const token = registerPayload.data.accessToken;
+
+      const importResponse = await app.request(
+        new Request('http://local/api/sync/data', {
+          method: 'PUT',
+          headers: authHeaders(token),
+          body: JSON.stringify({
+            payload: {
+              ...buildRemotePayload(),
+              images: {
+                'remote-image.png': Buffer.from('direct-image-binary').toString('base64'),
+              },
+              videos: {
+                'remote-video.mp4': Buffer.from('direct-video-binary').toString('base64'),
+              },
+            },
+          }),
+        }),
+      );
+
+      expect(importResponse.status).toBe(200);
+      expect(fs.existsSync(path.join(ensureTestMediaDir(dataDir, registerPayload.data.user.id, 'images'), 'remote-image.png'))).toBe(true);
+      expect(fs.existsSync(path.join(ensureTestMediaDir(dataDir, registerPayload.data.user.id, 'videos'), 'remote-video.mp4'))).toBe(true);
+    } finally {
+      fs.rmSync(dataDir, { recursive: true, force: true });
+    }
+  }, TEST_TIMEOUT);
+
+  it('accepts PromptHub envelopes on sync data import and normalizes desktop settings snapshots', async () => {
+    const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'prompthub-web-sync-envelope-'));
+
+    try {
+      const app = await createTestApp(dataDir);
+      const { payload: registerPayload } = await registerUser(app, 'envelopesync', 'debugpass001');
+      const token = registerPayload.data.accessToken;
+
+      const importResponse = await app.request(
+        new Request('http://local/api/sync/data', {
+          method: 'PUT',
+          headers: authHeaders(token),
+          body: JSON.stringify({
+            payload: {
+              kind: 'prompthub-export',
+              exportedAt: '2099-01-01T00:00:00.000Z',
+              payload: {
+                ...buildRemotePayload(),
+                version: 1,
+                settings: {
+                  state: {
+                    themeMode: 'dark',
+                    language: 'fr',
+                    autoSave: false,
+                    customPlatformRootPaths: {
+                      claude: '/tmp/envelope-sync-root',
+                    },
+                  },
+                },
+                settingsUpdatedAt: '2099-01-01T00:00:00.000Z',
+                images: {
+                  'remote-image.png': Buffer.from('envelope-sync-image').toString('base64'),
+                },
+                videos: {
+                  'remote-video.mp4': Buffer.from('envelope-sync-video').toString('base64'),
+                },
+              },
+            },
+          }),
+        }),
+      );
+
+      expect(importResponse.status).toBe(200);
+      const importBody = await importResponse.json() as {
+        data: {
+          ok: boolean;
+          promptsImported: number;
+          foldersImported: number;
+          skillsImported: number;
+          settingsUpdated: boolean;
+        };
+      };
+      expect(importBody.data.ok).toBe(true);
+      expect(importBody.data.promptsImported).toBe(1);
+      expect(importBody.data.foldersImported).toBe(2);
+      expect(importBody.data.skillsImported).toBe(1);
+      expect(importBody.data.settingsUpdated).toBe(true);
+
+      const dataResponse = await app.request(
+        new Request('http://local/api/sync/data', {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      );
+      expect(dataResponse.status).toBe(200);
+
+      const dataBody = await dataResponse.json() as {
+        data: {
+          prompts: Array<{ title: string; images?: string[]; videos?: string[] }>;
+          settings: {
+            theme: string;
+            language: string;
+            autoSave: boolean;
+            customPlatformRootPaths?: Record<string, string>;
+          };
+        };
+      };
+
+      expect(dataBody.data.prompts).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            title: 'Remote Prompt',
+            images: ['remote-image.png'],
+            videos: ['remote-video.mp4'],
+          }),
+        ]),
+      );
+      expect(dataBody.data.settings).toEqual(
+        expect.objectContaining({
+          theme: 'dark',
+          language: 'fr',
+          autoSave: false,
+          customPlatformRootPaths: {
+            claude: '/tmp/envelope-sync-root',
+          },
+        }),
+      );
+      expect(fs.existsSync(path.join(ensureTestMediaDir(dataDir, registerPayload.data.user.id, 'images'), 'remote-image.png'))).toBe(true);
+      expect(fs.existsSync(path.join(ensureTestMediaDir(dataDir, registerPayload.data.user.id, 'videos'), 'remote-video.mp4'))).toBe(true);
+    } finally {
+      fs.rmSync(dataDir, { recursive: true, force: true });
+    }
+  }, TEST_TIMEOUT);
+
   it('pushes backup data to WebDAV using only mocked server functions', async () => {
     const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'prompthub-web-sync-test-'));
     const testWebDavConnection = vi.fn(async () => ({ ok: true, status: 207 }));
@@ -623,9 +782,24 @@ describe('web sync routes', () => {
       const app = await createTestApp(dataDir, { testWebDavConnection, pushWebDavFile });
       const { payload: registerPayload } = await registerUser(app, 'pushowner', 'debugpass001');
       const token = registerPayload.data.accessToken;
+      const userId = registerPayload.data.user.id;
+
+      fs.writeFileSync(
+        path.join(ensureTestMediaDir(dataDir, userId, 'images'), 'push-image.png'),
+        Buffer.from('push-image-binary'),
+      );
+      fs.writeFileSync(
+        path.join(ensureTestMediaDir(dataDir, userId, 'videos'), 'push-video.mp4'),
+        Buffer.from('push-video-binary'),
+      );
 
       await createFolder(app, token, { name: 'Push Folder' });
-      await createPrompt(app, token, { title: 'Push Prompt', userPrompt: 'Push body' });
+      await createPrompt(app, token, {
+        title: 'Push Prompt',
+        userPrompt: 'Push body',
+        images: ['push-image.png'],
+        videos: ['push-video.mp4'],
+      });
 
       const configResponse = await app.request(
         new Request('http://local/api/sync/config', {
@@ -685,7 +859,7 @@ describe('web sync routes', () => {
         skills: 0,
       });
       expect(testWebDavConnection).toHaveBeenCalledTimes(1);
-      expect(pushWebDavFile).toHaveBeenCalledTimes(2); // data.json + manifest.json
+      expect(pushWebDavFile).toHaveBeenCalledTimes(4); // data.json + image + video + manifest.json
       const pushCall = getMockCall(pushWebDavFile, 0);
       expect(pushCall).toBeTruthy();
       expect(pushCall[1]).toBe('prompthub-backup/data.json');
@@ -696,6 +870,9 @@ describe('web sync routes', () => {
       };
       expect(pushedPayload.prompts).toEqual([expect.objectContaining({ title: 'Push Prompt' })]);
       expect(pushedPayload.folders).toEqual([expect.objectContaining({ name: 'Push Folder' })]);
+      expect(getMockCall(pushWebDavFile, 1)[1]).toBe('prompthub-backup/images/push-image.png.base64');
+      expect(getMockCall(pushWebDavFile, 2)[1]).toBe('prompthub-backup/videos/push-video.mp4.base64');
+      expect(getMockCall(pushWebDavFile, 3)[1]).toBe('prompthub-backup/manifest.json');
 
       const statusResponse = await app.request(
         new Request('http://local/api/sync/status', {
@@ -712,11 +889,35 @@ describe('web sync routes', () => {
   it('pulls backup data from WebDAV and replaces local visible data', async () => {
     const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'prompthub-web-sync-test-'));
     const remotePayload = buildRemotePayload();
-    const pullWebDavFile = vi.fn(async () => ({
-      ok: true,
-      status: 200,
-      body: JSON.stringify(remotePayload),
-    }));
+    const pullWebDavFile = vi.fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, body: JSON.stringify(remotePayload) })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        body: JSON.stringify({
+          version: '4.0',
+          createdAt: remotePayload.exportedAt,
+          updatedAt: remotePayload.exportedAt,
+          dataHash: 'remote-hash',
+          encrypted: false,
+          images: {
+            'remote-image.png': {
+              hash: 'img-hash',
+              size: 12,
+              uploadedAt: remotePayload.exportedAt,
+            },
+          },
+          videos: {
+            'remote-video.mp4': {
+              hash: 'vid-hash',
+              size: 12,
+              uploadedAt: remotePayload.exportedAt,
+            },
+          },
+        }),
+      })
+      .mockResolvedValueOnce({ ok: true, status: 200, body: Buffer.from('remote-image-binary').toString('base64') })
+      .mockResolvedValueOnce({ ok: true, status: 200, body: Buffer.from('remote-video-binary').toString('base64') });
 
     try {
       const app = await createTestApp(dataDir, { pullWebDavFile });
@@ -782,10 +983,13 @@ describe('web sync routes', () => {
       });
       expect(pullBody.data.provider).toBe('webdav');
       expect(pullBody.data.remoteFile).toBe('prompthub-backup/data.json');
-      expect(pullWebDavFile).toHaveBeenCalledTimes(1);
+      expect(pullWebDavFile).toHaveBeenCalledTimes(4);
       const pullCall = getMockCall(pullWebDavFile, 0);
       expect(pullCall).toBeTruthy();
       expect(pullCall[1]).toBe('prompthub-backup/data.json');
+      expect(getMockCall(pullWebDavFile, 1)[1]).toBe('prompthub-backup/manifest.json');
+      expect(getMockCall(pullWebDavFile, 2)[1]).toBe('prompthub-backup/images/remote-image.png.base64');
+      expect(getMockCall(pullWebDavFile, 3)[1]).toBe('prompthub-backup/videos/remote-video.mp4.base64');
 
       const dataResponse = await app.request(
         new Request('http://local/api/sync/data', {
@@ -795,9 +999,10 @@ describe('web sync routes', () => {
       expect(dataResponse.status).toBe(200);
       const dataBody = await dataResponse.json() as {
         data: {
-          prompts: Array<{ title: string; folderId?: string }>;
+          prompts: Array<{ title: string; folderId?: string; images?: string[]; videos?: string[] }>;
           folders: Array<{ id: string; name: string; parentId?: string }>;
           skills: Array<{ name: string }>;
+          skillFiles?: Record<string, Array<{ relativePath: string; content: string }>>;
           rules?: Array<{ id: string; content: string }>;
           settings: {
             theme: string;
@@ -821,6 +1026,14 @@ describe('web sync routes', () => {
           expect.objectContaining({ name: 'stale-skill' }),
         ]),
       );
+      expect(dataBody.data.skillFiles).toEqual(
+        expect.objectContaining({
+          'remote-skill-1': expect.arrayContaining([
+            expect.objectContaining({ relativePath: 'SKILL.md', content: 'echo remote' }),
+            expect.objectContaining({ relativePath: 'templates/review.md', content: '# Remote review checklist' }),
+          ]),
+        }),
+      );
       expect(dataBody.data.rules).toEqual([
         expect.objectContaining({
           id: 'project:remote-site',
@@ -834,6 +1047,13 @@ describe('web sync routes', () => {
       expect(rootFolder).toBeTruthy();
       expect(childFolder?.parentId).toBe(rootFolder?.id);
       expect(remotePrompt?.folderId).toBe(childFolder?.id);
+      expect(remotePrompt).toEqual(
+        expect.objectContaining({
+          title: 'Remote Prompt',
+          images: ['remote-image.png'],
+          videos: ['remote-video.mp4'],
+        }),
+      );
 
       expect(dataBody.data.settings.theme).toBe('dark');
       expect(dataBody.data.settings.language).toBe('en');
@@ -841,6 +1061,105 @@ describe('web sync routes', () => {
       expect(dataBody.data.settings.customPlatformRootPaths).toEqual({ claude: '/tmp/remote-root' });
       expect(dataBody.data.settings.sync?.endpoint).toBe('https://dav.example.com/remote.php/dav/files/pull');
       expect(dataBody.data.settings.sync?.lastSyncAt).toBe(pullBody.data.syncedAt);
+      expect(fs.existsSync(path.join(ensureTestMediaDir(dataDir, registerPayload.data.user.id, 'images'), 'remote-image.png'))).toBe(true);
+      expect(fs.existsSync(path.join(ensureTestMediaDir(dataDir, registerPayload.data.user.id, 'videos'), 'remote-video.mp4'))).toBe(true);
+      expect(
+        fs.readFileSync(
+          path.join(
+            dataDir,
+            'data',
+            'skills',
+            'remote-skill__remote-skill-1',
+            'templates',
+            'review.md',
+          ),
+          'utf8',
+        ),
+      ).toBe('# Remote review checklist');
+    } finally {
+      fs.rmSync(dataDir, { recursive: true, force: true });
+    }
+  }, TEST_TIMEOUT);
+
+  it('surfaces WebDAV auth failures on pull instead of masking them as missing backups', async () => {
+    const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'prompthub-web-sync-auth-'));
+    const pullWebDavFile = vi.fn().mockResolvedValueOnce({ ok: false, status: 401, body: '' });
+
+    try {
+      const app = await createTestApp(dataDir, { pullWebDavFile });
+      const { payload: registerPayload } = await registerUser(app, 'pullauth', 'debugpass001');
+      const token = registerPayload.data.accessToken;
+
+      const configResponse = await app.request(
+        new Request('http://local/api/sync/config', {
+          method: 'PUT',
+          headers: authHeaders(token),
+          body: JSON.stringify({
+            enabled: true,
+            provider: 'webdav',
+            endpoint: 'https://dav.example.com/remote.php/dav/files/pull',
+            username: 'pull-user',
+            password: 'pull-pass',
+            remotePath: '/restore',
+            autoSync: false,
+          }),
+        }),
+      );
+      expect(configResponse.status).toBe(200);
+
+      const pullResponse = await app.request(
+        new Request('http://local/api/sync/pull', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      );
+
+      expect(pullResponse.status).toBe(422);
+      const errorBody = await pullResponse.json() as { error: { message: string } };
+      expect(errorBody.error.message).toContain('WebDAV download failed with HTTP 401');
+    } finally {
+      fs.rmSync(dataDir, { recursive: true, force: true });
+    }
+  }, TEST_TIMEOUT);
+
+  it('falls back to desktop legacy WebDAV backup filename on pull', async () => {
+    const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'prompthub-web-sync-legacy-'));
+    const pullWebDavFile = vi.fn()
+      .mockResolvedValueOnce({ ok: false, status: 404, body: '' })
+      .mockResolvedValueOnce({ ok: true, status: 200, body: JSON.stringify(buildRemotePayload()) });
+
+    try {
+      const app = await createTestApp(dataDir, { pullWebDavFile });
+      const { payload: registerPayload } = await registerUser(app, 'pulllegacy', 'debugpass001');
+      const token = registerPayload.data.accessToken;
+
+      const configResponse = await app.request(
+        new Request('http://local/api/sync/config', {
+          method: 'PUT',
+          headers: authHeaders(token),
+          body: JSON.stringify({
+            enabled: true,
+            provider: 'webdav',
+            endpoint: 'https://dav.example.com/remote.php/dav/files/pull',
+            username: 'pull-user',
+            password: 'pull-pass',
+            remotePath: '/restore',
+            autoSync: false,
+          }),
+        }),
+      );
+      expect(configResponse.status).toBe(200);
+
+      const pullResponse = await app.request(
+        new Request('http://local/api/sync/pull', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      );
+
+      expect(pullResponse.status).toBe(200);
+      expect(getMockCall(pullWebDavFile, 0)[1]).toBe('prompthub-backup/data.json');
+      expect(getMockCall(pullWebDavFile, 1)[1]).toBe('prompthub-backup.json');
     } finally {
       fs.rmSync(dataDir, { recursive: true, force: true });
     }

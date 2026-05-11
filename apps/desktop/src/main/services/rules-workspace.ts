@@ -53,6 +53,10 @@ interface ImportRuleBackupRecordsOptions {
   replace?: boolean;
 }
 
+function isProjectRuleFileId(ruleId: RuleFileId): ruleId is `project:${string}` {
+  return ruleId.startsWith("project:");
+}
+
 function ensureDir(targetPath: string): void {
   fs.mkdirSync(targetPath, { recursive: true });
 }
@@ -400,7 +404,7 @@ async function syncRuleIndex(meta: StoredRuleMeta): Promise<void> {
 }
 
 function ruleGroupForKnownId(ruleId: RuleFileId): RuleFileGroup {
-  if (ruleId.startsWith("project:")) {
+  if (isProjectRuleFileId(ruleId)) {
     return "workspace";
   }
   return KNOWN_RULE_FILE_TEMPLATES[ruleId].group;
@@ -516,7 +520,7 @@ export async function getProjectMetaById(ruleId: `project:${string}`): Promise<S
 }
 
 export async function resolveRuleMeta(ruleId: RuleFileId): Promise<StoredRuleMeta> {
-  if (ruleId.startsWith("project:")) {
+  if (isProjectRuleFileId(ruleId)) {
     const projectMeta = await getProjectMetaById(ruleId);
     if (!projectMeta) {
       throw new Error(`Unknown rule file id: ${ruleId}`);
@@ -661,13 +665,13 @@ export async function createProjectRule(
 
 async function removeMissingProjectRules(importedRecords: RuleBackupRecord[]): Promise<void> {
   const importedProjectIds = new Set(
-    importedRecords.filter((record) => record.id.startsWith("project:")).map((record) => record.id),
+    importedRecords.map((record) => record.id).filter(isProjectRuleFileId),
   );
 
   const metaPaths = await listProjectMetaPaths();
   for (const metaPath of metaPaths) {
     const meta = await readStoredMeta(metaPath);
-    if (!meta || !meta.id.startsWith("project:")) {
+    if (!meta || !isProjectRuleFileId(meta.id)) {
       continue;
     }
 
@@ -684,7 +688,8 @@ export async function bootstrapRuleWorkspace(): Promise<void> {
 }
 
 export async function removeProjectRule(projectId: string): Promise<void> {
-  const meta = await getProjectMetaById(`project:${projectId}` as RuleFileId);
+  const ruleId: `project:${string}` = `project:${projectId}`;
+  const meta = await getProjectMetaById(ruleId);
   if (!meta) {
     return;
   }
@@ -729,7 +734,7 @@ export async function importRuleBackupRecords(
   }
 
   for (const record of records) {
-    if (record.id.startsWith("project:")) {
+    if (isProjectRuleFileId(record.id)) {
       const projectId = record.id.slice("project:".length);
       const existing = await getProjectMetaById(record.id);
       if (!existing) {
