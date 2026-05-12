@@ -93,6 +93,8 @@ describe("TopBar", () => {
     expect(screen.getByRole("menu")).toBeInTheDocument();
     expect(screen.getByText("手动填写 Prompt 详细信息")).toBeInTheDocument();
     expect(screen.getByText("粘贴内容由 AI 智能分析并分类")).toBeInTheDocument();
+    expect(screen.getByText("AI 生成")).toBeInTheDocument();
+    expect(screen.getByText("描述你的目标，让 AI 直接起草 Prompt")).toBeInTheDocument();
   });
 
   it("closes the create mode dropdown when clicking outside", async () => {
@@ -223,6 +225,48 @@ describe("TopBar", () => {
     }
   });
 
+  it("does not auto-select a skill when the search box is empty", async () => {
+    const selectSkill = vi.fn();
+
+    useUIStore.setState({
+      appModule: "skill",
+      viewMode: "skill",
+      isSidebarCollapsed: false,
+    });
+    useSkillStore.setState({
+      skills: [
+        {
+          id: "skill-1",
+          name: "writer",
+          description: "Write better",
+          instructions: "# Writer",
+          content: "# Writer",
+          protocol_type: "skill",
+          is_favorite: false,
+          tags: [],
+          created_at: 1,
+          updated_at: 1,
+        },
+      ],
+      searchQuery: "",
+      selectedSkillId: null,
+      filterType: "all",
+      filterTags: [],
+      deployedSkillNames: new Set<string>(),
+      storeView: "my-skills",
+      selectSkill,
+    } as Partial<ReturnType<typeof useSkillStore.getState>>);
+
+    await act(async () => {
+      await renderWithI18n(
+        <TopBar onOpenSettings={vi.fn()} updateAvailable={null} />,
+        { language: "en" },
+      );
+    });
+
+    expect(selectSkill).not.toHaveBeenCalled();
+  });
+
   it("keeps rules mode search read-only and does not mutate prompt search state", async () => {
     usePromptStore.setState({
       searchQuery: "existing prompt search",
@@ -240,7 +284,7 @@ describe("TopBar", () => {
       );
     });
 
-    const searchInput = screen.getByPlaceholderText("Browse global rules...");
+    const searchInput = screen.getByPlaceholderText("Browse rules...");
 
     expect(searchInput).toHaveAttribute("readonly");
     expect(

@@ -7,6 +7,7 @@ import type {
 } from "@prompthub/shared/types";
 import type { SkillPlatform } from "@prompthub/shared/constants/platforms";
 import type { AIModelConfig } from "../../stores/settings.store";
+import { scheduleAllSaveSync } from "../../services/webdav-save-sync";
 
 export const SKILL_NAME_REGEX = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
@@ -426,6 +427,7 @@ export async function restoreSkillVersion(
   reloadSkills: () => Promise<void>,
 ): Promise<void> {
   await window.api.skill.versionRollback(skillId, version.version);
+  scheduleAllSaveSync("skill:restore-version");
   await reloadSkills();
 }
 

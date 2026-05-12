@@ -11,7 +11,9 @@ const getManualBackupStatusMock = vi.fn();
 const recordManualBackupMock = vi.fn();
 
 vi.mock("../../../src/renderer/stores/settings.store", () => ({
-  useSettingsStore: (selector: (state: { useUpdateMirror: boolean }) => boolean) =>
+  useSettingsStore: (
+    selector: (state: { useUpdateMirror: boolean; updateChannel: string }) => unknown,
+  ) =>
     selector(useSettingsStoreMock()),
 }));
 
@@ -42,7 +44,10 @@ describe("UpdateDialog", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    useSettingsStoreMock.mockReturnValue({ useUpdateMirror: false });
+    useSettingsStoreMock.mockReturnValue({
+      useUpdateMirror: false,
+      updateChannel: "stable",
+    });
     getManualBackupStatusMock.mockResolvedValue({
       lastManualBackupAt: null,
       lastManualBackupVersion: null,
@@ -235,14 +240,22 @@ describe("UpdateDialog", () => {
       },
     });
 
-    const { rerender } = await renderWithI18n(
-      <UpdateDialog
-        isOpen={true}
-        onClose={vi.fn()}
-        initialStatus={{ status: "checking" }}
-      />,
-      { language: "en" },
-    );
+    let renderResult: Awaited<ReturnType<typeof renderWithI18n>> | null = null;
+    await act(async () => {
+      renderResult = await renderWithI18n(
+        <UpdateDialog
+          isOpen={true}
+          onClose={vi.fn()}
+          initialStatus={{ status: "checking" }}
+        />,
+        { language: "en" },
+      );
+    });
+    if (!renderResult) {
+      throw new Error("expected UpdateDialog render result");
+    }
+
+    const { rerender } = renderResult;
 
     // First open triggers exactly one check.
     await waitFor(() => {

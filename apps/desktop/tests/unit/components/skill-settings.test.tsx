@@ -31,6 +31,8 @@ function createSettingsState() {
     autoScanStoreSkillsBeforeInstall: false,
     setAutoScanInstalledSkills: vi.fn(),
     setAutoScanStoreSkillsBeforeInstall: vi.fn(),
+    githubToken: "",
+    setGithubToken: vi.fn(),
   };
 }
 

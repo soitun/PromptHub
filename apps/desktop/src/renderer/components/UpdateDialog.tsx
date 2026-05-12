@@ -249,6 +249,12 @@ export function UpdateDialog({ isOpen, onClose, initialStatus }: UpdateDialogPro
       const status = await runPreUpgradeBackup(currentVersion);
       setLastManualBackupAt(status.lastManualBackupAt);
       setLastManualBackupVersion(status.lastManualBackupVersion);
+    } catch (error) {
+      setUpdateStatus({
+        status: 'error',
+        error:
+          error instanceof Error ? error.message : t('common.error', 'Error'),
+      });
     } finally {
       setIsCreatingBackup(false);
     }

@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { UnsavedChangesDialog } from "../ui/UnsavedChangesDialog";
 import { useToast } from "../ui/Toast";
+import { scheduleAllSaveSync } from "../../services/webdav-save-sync";
 import "./SkillFileEditor.css";
 
 // ─── Types ──────────────────────────────────────────────
@@ -225,7 +226,9 @@ export function SkillFileEditor({
   >(null);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const activeSourceKeyRef = useRef<string | null>(null);
   const isPathMode = Boolean(localPath);
+  const sourceKey = localPath ? `path:${localPath}` : `skill:${skillId}`;
 
   const listFiles = useCallback(async () => {
     if (localPath) {
@@ -348,11 +351,22 @@ export function SkillFileEditor({
   );
 
   useEffect(() => {
-    if (isOpen) {
-      loadFiles();
-      setModifiedFiles({});
+    if (!isOpen) {
+      activeSourceKeyRef.current = null;
+      return;
     }
-  }, [isOpen, loadFiles]);
+
+    // Re-run file bootstrap only when the editor opens or switches to a
+    // different skill/path source. Callback identity changes (for example from
+    // i18n updates) must not wipe in-progress edits.
+    if (activeSourceKeyRef.current === sourceKey) {
+      return;
+    }
+
+    activeSourceKeyRef.current = sourceKey;
+    void loadFiles();
+    setModifiedFiles({});
+  }, [isOpen, loadFiles, sourceKey]);
 
   useEffect(() => {
     onUnsavedChange?.(hasAnyUnsaved);
@@ -525,6 +539,9 @@ export function SkillFileEditor({
         delete next[selectedFile];
         return next;
       });
+      if (!isPathMode) {
+        scheduleAllSaveSync("skill:file-save");
+      }
       showToast(t("skill.fileSaved", "File saved"), "success");
       if (onSave) {
         await onSave();
@@ -614,6 +631,9 @@ export function SkillFileEditor({
         ...prev,
         [name]: { path: name, content: "", isDirectory: false },
       }));
+      if (!isPathMode) {
+        scheduleAllSaveSync("skill:file-create");
+      }
     } catch (error) {
       console.error("Failed to create file:", error);
       showToast(`Failed to create file: ${String(error)}`, "error");
@@ -633,6 +653,9 @@ export function SkillFileEditor({
       setExpandedDirs((prev) => new Set([...prev, name]));
       setNewFolderDialogOpen(false);
       setDialogInput("");
+      if (!isPathMode) {
+        scheduleAllSaveSync("skill:dir-create");
+      }
     } catch (error) {
       console.error("Failed to create folder:", error);
       showToast(`Failed to create folder: ${String(error)}`, "error");
@@ -675,6 +698,9 @@ export function SkillFileEditor({
       await loadFiles();
       setRenameDialogPath(null);
       setDialogInput("");
+      if (!isPathMode) {
+        scheduleAllSaveSync("skill:path-rename");
+      }
       showToast(t("skill.fileSaved", "File saved"), "success");
     } catch (error) {
       console.error("Failed to rename path:", error);
@@ -711,6 +737,9 @@ export function SkillFileEditor({
         delete next[deleteDialogFile];
         return next;
       });
+      if (!isPathMode) {
+        scheduleAllSaveSync("skill:file-delete");
+      }
     } catch (error) {
       console.error("Failed to delete file:", error);
       showToast(`Failed to delete file: ${String(error)}`, "error");

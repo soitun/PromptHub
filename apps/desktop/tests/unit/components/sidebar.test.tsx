@@ -24,6 +24,10 @@ vi.mock("../../../src/renderer/components/layout/tree/SortableTree", () => ({
   SortableTree: () => null,
 }));
 
+vi.mock("../../../src/renderer/components/ui/Toast", () => ({
+  useToast: () => ({ showToast: vi.fn() }),
+}));
+
 describe("Sidebar", () => {
   beforeEach(() => {
     installWindowMocks();
@@ -149,6 +153,7 @@ describe("Sidebar", () => {
       filterTags: [],
       deployedSkillNames: new Set<string>(),
       storeView: "my-skills",
+      selectedSkillId: null,
       registrySkills: [],
       selectedStoreSourceId: "official",
       customStoreSources: [],
@@ -160,7 +165,7 @@ describe("Sidebar", () => {
     delete (window as Window & { __PROMPTHUB_WEB__?: boolean }).__PROMPTHUB_WEB__;
   });
 
-  it("shows Projects as a first-level skill navigation entry on desktop", async () => {
+  it("shows Project Skills as a first-level skill navigation entry on desktop", async () => {
     await act(async () => {
       await renderWithI18n(
         <Sidebar currentPage="home" onNavigate={vi.fn()} />,
@@ -168,10 +173,29 @@ describe("Sidebar", () => {
       );
     });
 
-    fireEvent.click(screen.getByRole("button", { name: /Projects/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Project Skills/i }));
 
     expect(useSkillStore.getState().storeView).toBe("projects");
-    expect(screen.getByText("Projects")).toBeInTheDocument();
+    expect(screen.getByText("Project Skills")).toBeInTheDocument();
+  });
+
+  it("clears the selected skill when returning to my skills", async () => {
+    useSkillStore.setState({
+      selectedSkillId: "skill-1",
+      storeView: "projects",
+    } as Partial<ReturnType<typeof useSkillStore.getState>>);
+
+    await act(async () => {
+      await renderWithI18n(
+        <Sidebar currentPage="home" onNavigate={vi.fn()} />,
+        { language: "en" },
+      );
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /My Skills/i }));
+
+    expect(useSkillStore.getState().storeView).toBe("my-skills");
+    expect(useSkillStore.getState().selectedSkillId).toBeNull();
   });
 
   it("hides Projects in web runtime where local skill scanning is unavailable", async () => {

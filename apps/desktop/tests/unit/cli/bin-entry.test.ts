@@ -34,7 +34,8 @@ describe("CLI npm entry", () => {
       "LICENSE",
     ]);
     expect(packageJson.engines?.node).toBe(">=22.0.0");
-    expect(packageJson.dependencies).toEqual({
+    expect(packageJson.dependencies).toMatchObject({
+      "@aws-sdk/client-s3": expect.any(String),
       "node-sqlite3-wasm": expect.any(String),
     });
     expect(packageJson.devDependencies).toMatchObject({

@@ -68,7 +68,7 @@ export function SkillPlatformPanel({
         <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-[0.2em] flex items-center justify-between">
           <span>
             {showPlatformIntegration
-              ? t("skill.platformIntegration")
+              ? t("skill.platformIntegration", "Platform Integration")
               : t("skill.webSkillLibrary", "Skill Workspace")}
           </span>
           <span className="text-[10px]">SKILL.md</span>

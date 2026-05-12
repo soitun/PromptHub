@@ -16,6 +16,7 @@ declare global {
 // Cleanup DOM after each test
 afterEach(() => {
     cleanup();
+    vi.useRealTimers();
 });
 
 // 模拟 window.electron API

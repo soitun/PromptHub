@@ -423,6 +423,70 @@ describe("skill i18n smoke", () => {
     expect(screen.queryByText("批量管理")).not.toBeInTheDocument();
   });
 
+  it("renders project skill preview without leaking raw SKILL.md into the preview sidebar", async () => {
+    const projectSkill = {
+      ...baseSkill,
+      id: "project:/tmp/demo/project-skill",
+      name: "project-skill",
+      local_repo_path: "/tmp/demo/project-skill",
+      source_url: "/tmp/demo/project-skill",
+      instructions: "---\ndescription: Project helper\n---\n\n# Project Helper\n\nDo project work.",
+      content: "---\ndescription: Project helper\n---\n\n# Project Helper\n\nDo project work.",
+      description: "Project helper",
+    };
+    const onImport = vi.fn();
+    const skillStoreState = createSkillStoreState({
+      selectedSkillId: null,
+    });
+    const settingsState = createSettingsState();
+
+    useSkillStoreMock.mockImplementation((selector) => selector(skillStoreState));
+    useSettingsStoreMock.mockImplementation((selector) => selector(settingsState));
+
+    installWindowMocks({
+      api: {
+        skill: {
+          readLocalFileByPath: vi.fn().mockResolvedValue({
+            content: projectSkill.instructions,
+          }),
+        },
+      },
+      electron: {
+        openPath: vi.fn(),
+      },
+    });
+
+    await act(async () => {
+      render(
+        <SkillFullDetailPage
+          overrideSkill={projectSkill}
+          projectContext={{
+            projectName: "Demo Project",
+            scannedSkill: {
+              name: "project-skill",
+              description: "Project helper",
+              author: "Demo Project",
+              tags: [],
+              instructions: projectSkill.instructions,
+              filePath: "/tmp/demo/project-skill/SKILL.md",
+              localPath: "/tmp/demo/project-skill",
+              platforms: [],
+            }}
+          }
+          projectActions={{ onImport }}
+        />,
+      );
+    });
+
+    expect(screen.getByRole("button", { name: "Import to My Skills" })).toBeInTheDocument();
+    expect(screen.getByText("Project helper")).toBeInTheDocument();
+    expect(screen.queryByText("SKILL.md Content")).not.toBeInTheDocument();
+    expect(screen.queryByText("Metadata")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Import to My Skills" }));
+    expect(onImport).toHaveBeenCalledTimes(1);
+  });
+
   it("defaults to saved translation and toggles back to original content", async () => {
     const syncedSkill = {
       ...baseSkill,

@@ -106,6 +106,11 @@
 - Google / Gemini 的原生 Gemini API（例如 `/v1beta/models`、`models/...:generateContent`）应使用 `x-goog-api-key`。
 - Google / Gemini 的 OpenAI 兼容 API（例如 `/v1beta/openai/chat/completions`）应使用 `Authorization: Bearer <apiKey>`。
 
+### 13. AI Rewrite Result Contract
+
+- `rules:rewrite` IPC 成功返回时，必须同时包含重写后的 `content` 与非空的可读 `summary` 字段。
+- renderer 侧 Rules 工作台会把该 `summary` 作为当前 AI 草稿状态文案展示；成功路径不应依赖 `null`/空字符串回退值来补齐摘要。
+
 ## Stable Source Files
 
 - `packages/shared/constants/rules.ts`

@@ -1,7 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("../../../src/renderer/services/webdav-save-sync", () => ({
+  scheduleAllSaveSync: vi.fn(),
+}));
+
 import { useRulesStore } from "../../../src/renderer/stores/rules.store";
 import { useSettingsStore } from "../../../src/renderer/stores/settings.store";
+import { scheduleAllSaveSync } from "../../../src/renderer/services/webdav-save-sync";
 import { installWindowMocks } from "../../helpers/window";
 
 describe("rules store", () => {
@@ -154,5 +159,51 @@ describe("rules store", () => {
         isRewriting: false,
       }),
     );
+  });
+
+  it("schedules WebDAV save-sync after saving a rule", async () => {
+    installWindowMocks({
+      api: {
+        rules: {
+          save: vi.fn().mockResolvedValue({
+            id: "claude-global",
+            platformId: "claude",
+            platformName: "Claude Code",
+            platformIcon: "Bot",
+            platformDescription: "Claude rules",
+            name: "CLAUDE.md",
+            description: "Claude rules",
+            path: "/Users/test/.claude/CLAUDE.md",
+            exists: true,
+            group: "assistant",
+            content: "# Saved",
+            versions: [],
+          }),
+        },
+      },
+    });
+
+    useRulesStore.setState({
+      files: [
+        {
+          id: "claude-global",
+          platformId: "claude",
+          platformName: "Claude Code",
+          platformIcon: "Bot",
+          platformDescription: "Claude rules",
+          name: "CLAUDE.md",
+          description: "Claude rules",
+          path: "/Users/test/.claude/CLAUDE.md",
+          exists: true,
+          group: "assistant",
+        },
+      ],
+      selectedRuleId: "claude-global",
+      draftContent: "# Saved",
+    });
+
+    await useRulesStore.getState().saveCurrentRule();
+
+    expect(scheduleAllSaveSync).toHaveBeenCalledWith("rules:save");
   });
 });

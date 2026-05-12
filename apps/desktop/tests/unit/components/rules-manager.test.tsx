@@ -27,6 +27,7 @@ describe("RulesManager", () => {
       isSaving: false,
       isRewriting: false,
       error: null,
+      hasLoadedFiles: false,
     });
     useSettingsStore.setState({
       aiProvider: "openai",
@@ -156,13 +157,13 @@ describe("RulesManager", () => {
     });
 
     const instruction = await screen.findByPlaceholderText(
-      "Example: tighten coding standards, add testing requirements, and keep the existing markdown headings.",
+      /add testing requirements, reorganize sections/i,
     );
 
     fireEvent.change(instruction, {
       target: { value: "Add a new policy section" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Rewrite with AI" }));
+    fireEvent.click(screen.getByRole("button", { name: "Improve with AI" }));
 
     await waitFor(() => {
       expect(api.rules.rewrite).toHaveBeenCalledWith(
@@ -175,9 +176,11 @@ describe("RulesManager", () => {
     });
 
     expect(screen.getAllByAltText("claude icon").length).toBeGreaterThan(0);
-    expect(screen.getByText("AI rewrite generated a new draft.")).toBeInTheDocument();
+    expect(
+      screen.getByText("AI has generated a new draft. Review it and save when ready."),
+    ).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save and overwrite file" }));
 
     await waitFor(() => {
       expect(api.rules.save).toHaveBeenCalledWith(
@@ -247,12 +250,10 @@ describe("RulesManager", () => {
       expect(screen.getByRole("button", { name: "Restore to Draft" })).toBeInTheDocument();
     });
 
-    const editor = screen.getAllByRole("textbox").find((node) => {
-      return (node as HTMLTextAreaElement).value.includes("Historical snapshot");
-    }) as HTMLTextAreaElement | undefined;
-
-    expect(editor).toBeDefined();
-    expect(editor).toHaveAttribute("readonly");
+    expect(
+      screen.getByText("Snapshot vs Current Draft"),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText(/Historical snapshot/).length).toBeGreaterThan(0);
 
     fireEvent.click(screen.getByRole("button", { name: "Restore to Draft" }));
 

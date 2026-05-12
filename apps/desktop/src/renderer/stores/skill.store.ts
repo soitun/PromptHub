@@ -38,6 +38,7 @@ import {
   getRegistrySkillUpdateStatus,
   type RegistrySkillUpdateCheck,
 } from "../services/skill-store-update";
+import { scheduleAllSaveSync } from "../services/webdav-save-sync";
 import { useSettingsStore } from "./settings.store";
 
 export type SkillFilterType =
@@ -96,6 +97,32 @@ export interface ProjectSkillScanState {
   isScanning: boolean;
   scannedAt?: number;
   error?: string | null;
+}
+
+function sanitizePersistedProjectScanState(
+  projectScanState: Record<string, ProjectSkillScanState>,
+): Record<string, ProjectSkillScanState> {
+  const nextState: Record<string, ProjectSkillScanState> = {};
+
+  for (const [projectId, state] of Object.entries(projectScanState)) {
+    if (!state) {
+      continue;
+    }
+
+    nextState[projectId] = {
+      scannedSkills: Array.isArray(state.scannedSkills)
+        ? state.scannedSkills.map((skill) => ({
+            ...skill,
+            instructions: "",
+          }))
+        : [],
+      isScanning: false,
+      scannedAt: state.scannedAt,
+      error: state.error ?? null,
+    };
+  }
+
+  return nextState;
 }
 
 export type RegistrySkillUpdateResult =
@@ -670,6 +697,7 @@ export const useSkillStore = create<SkillState>()(
               selectedSkillId: storedSkill.id,
               isLoading: false,
             }));
+            scheduleAllSaveSync("skill:create");
             return storedSkill;
           }
           return null;
@@ -715,6 +743,7 @@ export const useSkillStore = create<SkillState>()(
             set((state) => ({
               skills: state.skills.map((s) => (s.id === id ? storedSkill : s)),
             }));
+            scheduleAllSaveSync("skill:update");
             return storedSkill;
           }
           return null;
@@ -753,6 +782,7 @@ export const useSkillStore = create<SkillState>()(
               selectedSkillId:
                 state.selectedSkillId === id ? null : state.selectedSkillId,
             }));
+            scheduleAllSaveSync("skill:delete");
             return true;
           }
           return false;
@@ -942,6 +972,7 @@ export const useSkillStore = create<SkillState>()(
                 s.id === skill.id ? { ...s, safetyReport: scored } : s,
               ),
             }));
+            scheduleAllSaveSync("skill:safety-report");
           } catch (err) {
             console.warn(
               `Failed to persist safety report for skill "${skill.name}":`,
@@ -964,6 +995,7 @@ export const useSkillStore = create<SkillState>()(
             s.id === skillId ? { ...s, safetyReport: scored } : s,
           ),
         }));
+        scheduleAllSaveSync("skill:save-safety-report");
       },
 
       installToPlatform: async (platform, name, mcpConfig) => {
@@ -1059,7 +1091,11 @@ export const useSkillStore = create<SkillState>()(
       // ─── Skill Store Actions / 技能商店操作 ───
 
       setStoreView: (view) => {
-        set({ storeView: view, selectedRegistrySlug: null });
+        set({
+          storeView: view,
+          selectedRegistrySlug: null,
+          selectedSkillId: null,
+        });
       },
 
       selectProject: (projectId) => {
@@ -1190,6 +1226,7 @@ export const useSkillStore = create<SkillState>()(
           installedSkill.id,
           `Store update: ${installedSkill.version || "unknown"} -> ${regSkill.version}`,
         );
+        scheduleAllSaveSync("skill:create-version");
 
         const now = Date.now();
         const updatedSkill = await get().updateSkill(installedSkill.id, {
@@ -1622,6 +1659,9 @@ Rules:
           filterType: state.filterType,
           storeView: state.storeView,
           selectedProjectId: state.selectedProjectId,
+          projectScanState: sanitizePersistedProjectScanState(
+            state.projectScanState,
+          ),
           customStoreSources: state.customStoreSources,
           selectedStoreSourceId: state.selectedStoreSourceId,
           remoteStoreEntries: filteredEntries,

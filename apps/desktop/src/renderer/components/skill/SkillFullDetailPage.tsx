@@ -23,6 +23,7 @@ import { SkillIcon } from "./SkillIcon";
 import { SkillCodePane } from "./SkillCodePane";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { SkillPlatformPanel } from "./SkillPlatformPanel";
+import { ProjectSkillPreviewSidebar } from "./ProjectSkillPreviewSidebar";
 import { SkillPreviewPane } from "./SkillPreviewPane";
 import { useSkillStore } from "../../stores/skill.store";
 import { useSettingsStore } from "../../stores/settings.store";
@@ -50,6 +51,7 @@ import {
   writeSkillTranslationSidecar,
   type SkillTranslationSidecar,
 } from "../../services/skill-translation-sidecar";
+import { scheduleAllSaveSync } from "../../services/webdav-save-sync";
 import { useSkillPlatform } from "./use-skill-platform";
 import { SkillVersionHistoryModal } from "./SkillVersionHistoryModal";
 import type { SkillSafetyReport } from "@prompthub/shared/types";
@@ -71,12 +73,17 @@ export type InstallMode = "copy" | "symlink";
 interface SkillFullDetailPageProps {
   overrideSkill?: Skill;
   projectContext?: ProjectDetailSkillContext | null;
+  projectActions?: {
+    isImporting?: boolean;
+    onImport?: () => void | Promise<void>;
+  } | null;
   onBack?: () => void;
 }
 
 export function SkillFullDetailPage({
   overrideSkill,
   projectContext,
+  projectActions,
   onBack,
 }: SkillFullDetailPageProps = {}) {
   const { t, i18n } = useTranslation();
@@ -667,6 +674,7 @@ export function SkillFullDetailPage({
         selectedSkill.id,
         snapshotNote.trim() || buildDefaultSnapshotNote(),
       );
+      scheduleAllSaveSync("skill:create-snapshot");
       await loadSkills();
       setIsSnapshotModalOpen(false);
       showToast(t("skill.snapshotCreated"), "success");
@@ -911,7 +919,7 @@ export function SkillFullDetailPage({
                   translationMode={translationMode}
                 />
 
-                {!isProjectDetail ? (
+                {!isProjectDetail || projectContext?.importedSkill ? (
                   <SkillPlatformPanel
                     availablePlatforms={availablePlatforms}
                     handleExport={handleExport}
@@ -931,11 +939,11 @@ export function SkillFullDetailPage({
                     uninstalledPlatforms={uninstalledPlatforms}
                   />
                 ) : (
-                  <SkillCodePane
-                    copyStatus={copyStatus}
-                    handleCopy={handleCopy}
-                    selectedSkill={selectedSkill}
-                    skillContent={effectiveSkillMdContent}
+                  <ProjectSkillPreviewSidebar
+                    isImporting={Boolean(projectActions?.isImporting)}
+                    isImportAvailable={typeof projectActions?.onImport === "function"}
+                    onImport={projectActions?.onImport ?? (() => undefined)}
+                    sourcePath={selectedSkill.local_repo_path || selectedSkill.source_url || ""}
                     t={t}
                   />
                 )}

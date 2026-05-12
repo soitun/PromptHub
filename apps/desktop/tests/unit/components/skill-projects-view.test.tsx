@@ -164,6 +164,9 @@ describe("SkillProjectsView", () => {
     expect(screen.getByText("Source / Content")).toBeInTheDocument();
     expect(screen.getByText("Preview")).toBeInTheDocument();
     expect(screen.getByText("Files")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Import to My Skills" })).toBeInTheDocument();
+    expect(screen.queryByText("SKILL.md Content")).not.toBeInTheDocument();
+    expect(screen.queryByText("SKILL.md")).not.toBeInTheDocument();
     expect(screen.queryByText("Register project directories and manage their local skills.")).not.toBeInTheDocument();
     expect(screen.queryByText("Build story arcs and chapter beats")).not.toBeInTheDocument();
 
@@ -281,5 +284,102 @@ describe("SkillProjectsView", () => {
         rootPath: "/tmp/story-world",
       }),
     );
+  });
+
+  it("shows imported card shortcuts and switches detail back to distribute mode", async () => {
+    const selectSkill = vi.fn();
+    const setStoreView = vi.fn();
+
+    useSkillStore.setState({
+      skills: [
+        {
+          id: "skill-1",
+          name: "novel-auditor",
+          description: "Audit long-form fiction structure",
+          instructions: "# novel-auditor\n\nHelp audit fiction.",
+          content: "# novel-auditor\n\nHelp audit fiction.",
+          protocol_type: "skill",
+          author: "PromptHub",
+          local_repo_path: "/tmp/novel/.claude/skills/novel-auditor",
+          source_url: "/tmp/novel/.claude/skills/novel-auditor",
+          tags: ["writing"],
+          is_favorite: false,
+          currentVersion: 0,
+          created_at: 1,
+          updated_at: 1,
+        },
+      ],
+      selectSkill,
+      setStoreView,
+      selectedProjectId: "project-1",
+    } as Partial<ReturnType<typeof useSkillStore.getState>>);
+
+    await act(async () => {
+      render(<SkillProjectsView />);
+    });
+
+    const openInLibraryButton = screen.getByRole("button", {
+      name: "Open in My Skills",
+    });
+
+    expect(screen.getByRole("button", { name: "Distribute" })).toBeInTheDocument();
+
+    fireEvent.click(openInLibraryButton);
+
+    expect(setStoreView).toHaveBeenCalledWith("my-skills");
+    expect(selectSkill).toHaveBeenCalledWith("skill-1");
+
+    fireEvent.click(screen.getByRole("button", { name: /novel-auditor/i }));
+
+    expect(screen.queryByRole("button", { name: "Import to My Skills" })).not.toBeInTheDocument();
+    expect(await screen.findByText("Platform Integration")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Open in My Skills" })).not.toBeInTheDocument();
+  });
+
+  it("auto scans the selected project when no cached scan state exists", async () => {
+    const scanProjectSkills = vi.fn().mockResolvedValue([]);
+
+    useSkillStore.setState({
+      skills: [],
+      selectedSkillId: null,
+      searchQuery: "",
+      selectedProjectId: "project-1",
+      projectScanState: {},
+      scanProjectSkills,
+      selectProject: vi.fn(),
+      importScannedSkills: vi.fn().mockResolvedValue({
+        importedCount: 0,
+        importedSkills: [],
+        failed: [],
+        skipped: [],
+      }),
+      loadDeployedStatus: vi.fn().mockResolvedValue(undefined),
+      translateContent: vi.fn().mockResolvedValue("# translated"),
+      getTranslationState: vi.fn().mockReturnValue({
+        value: null,
+        hasTranslation: false,
+        isStale: false,
+      }),
+      clearTranslation: vi.fn(),
+      toggleFavorite: vi.fn(),
+      deleteSkill: vi.fn(),
+      loadSkills: vi.fn().mockResolvedValue(undefined),
+      syncSkillFromRepo: vi.fn().mockResolvedValue(null),
+      saveSafetyReport: vi.fn().mockResolvedValue(undefined),
+      selectSkill: vi.fn(),
+    } as Partial<ReturnType<typeof useSkillStore.getState>>);
+
+    await act(async () => {
+      render(<SkillProjectsView />);
+    });
+
+    await waitFor(() => {
+      expect(scanProjectSkills).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: "project-1",
+          rootPath: "/tmp/novel",
+        }),
+      );
+    });
   });
 });

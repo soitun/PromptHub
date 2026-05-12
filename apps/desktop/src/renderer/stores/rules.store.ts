@@ -1,6 +1,7 @@
 import { useSettingsStore } from "./settings.store";
 import { create } from "zustand";
 import { RULE_PLATFORM_ORDER } from "@prompthub/shared/constants/rules";
+import { scheduleAllSaveSync } from "../services/webdav-save-sync";
 import type {
   CreateRuleProjectInput,
   RuleFileContent,
@@ -151,6 +152,7 @@ export const useRulesStore = create<RulesState>((set, get) => ({
         draftContent: updated.content,
         isSaving: false,
       });
+      scheduleAllSaveSync("rules:save");
     } catch (error) {
       set({ isSaving: false, error: getErrorMessage(error) });
       throw error;
@@ -194,7 +196,7 @@ export const useRulesStore = create<RulesState>((set, get) => ({
       });
       set({
         draftContent: result.content,
-        aiSummary: "done",
+        aiSummary: result.summary || "done",
         isRewriting: false,
       });
     } catch (error) {
@@ -223,6 +225,7 @@ export const useRulesStore = create<RulesState>((set, get) => ({
       if (created) {
         await get().selectRule(created.id);
       }
+      scheduleAllSaveSync("rules:add-project");
     } catch (error) {
       set({ isLoading: false, error: getErrorMessage(error) });
       throw error;
@@ -245,6 +248,7 @@ export const useRulesStore = create<RulesState>((set, get) => ({
       } else {
         set({ currentFile: null, draftContent: "" });
       }
+      scheduleAllSaveSync("rules:remove-project");
     } catch (error) {
       set({ isLoading: false, error: getErrorMessage(error) });
       throw error;
@@ -258,6 +262,7 @@ export const useRulesStore = create<RulesState>((set, get) => ({
       if (currentFile?.id === ruleId) {
         set({ currentFile: { ...currentFile, versions: updatedVersions } });
       }
+      scheduleAllSaveSync("rules:delete-version");
     } catch (error) {
       throw error;
     }

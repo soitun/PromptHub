@@ -10,6 +10,7 @@ import {
   ChevronUpIcon,
   ChevronDownIcon,
   SparklesIcon,
+  Wand2Icon,
   GlobeIcon,
   LogOutIcon,
 } from "lucide-react";
@@ -106,6 +107,9 @@ export function TopBar({
   const setSidebarCollapsed = useUIStore((state) => state.setSidebarCollapsed);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isQuickAddModalOpen, setIsQuickAddModalOpen] = useState(false);
+  const [quickAddInitialMode, setQuickAddInitialMode] = useState<
+    "analyze" | "generate"
+  >("analyze");
   const [isCreateSkillModalOpen, setIsCreateSkillModalOpen] = useState(false);
   const [isCreateMenuOpen, setIsCreateMenuOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -326,9 +330,10 @@ export function TopBar({
   // 当搜索查询变化时重置索引并选中第一个结果
   useEffect(() => {
     setCurrentResultIndex(0);
-    if (isRulesView) {
+    if (isRulesView || searchQuery.trim().length === 0) {
       return;
     }
+
     if (isSkillView) {
       if (isProjectSkillView) {
         return;
@@ -336,10 +341,11 @@ export function TopBar({
       if (skillSearchResults.length > 0) {
         selectSkill(skillSearchResults[0].id);
       }
-    } else {
-      if (promptSearchResults.length > 0) {
-        selectPrompt(promptSearchResults[0].id);
-      }
+      return;
+    }
+
+    if (promptSearchResults.length > 0) {
+      selectPrompt(promptSearchResults[0].id);
     }
   }, [
     isRulesView,
@@ -675,7 +681,10 @@ export function TopBar({
                   } else {
                     const mode = useSettingsStore.getState().creationMode;
                     if (mode === "manual") setIsCreateModalOpen(true);
-                    else setIsQuickAddModalOpen(true);
+                    else {
+                      setQuickAddInitialMode("analyze");
+                      setIsQuickAddModalOpen(true);
+                    }
                   }
                 }}
                 className={`flex items-center gap-1.5 h-full text-sm font-medium active:scale-95 transition-transform ${
@@ -780,6 +789,26 @@ export function TopBar({
                           <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />
                         )}
                       </button>
+                      <div className="h-px bg-border my-1 mx-2 opacity-50" />
+                      <button
+                        onClick={() => {
+                          useSettingsStore.getState().setCreationMode("quick");
+                          setQuickAddInitialMode("generate");
+                          setIsQuickAddModalOpen(true);
+                          setIsCreateMenuOpen(false);
+                        }}
+                        className="flex items-center gap-2 w-full px-3 py-2 text-sm text-foreground hover:bg-accent text-left transition-colors rounded-md"
+                      >
+                        <Wand2Icon className="w-4 h-4 text-primary" />
+                        <div className="flex flex-col items-start gap-0.5">
+                          <span className="font-medium">
+                            {t("quickAdd.generateEntry")}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground leading-none">
+                            {t("quickAdd.generateEntryDesc")}
+                          </span>
+                        </div>
+                      </button>
                     </div>,
                     document.body,
                   )}
@@ -831,6 +860,7 @@ export function TopBar({
           onClose={() => setIsQuickAddModalOpen(false)}
           onCreate={handleCreatePrompt}
           defaultPromptType={promptTypeFilter === "image" ? "image" : "text"}
+          initialMode={quickAddInitialMode}
         />
 
         {/* 新建 Skill 弹窗 */}

@@ -4,7 +4,12 @@ vi.mock("../../../src/renderer/services/ai", () => ({
   chatCompletion: vi.fn(),
 }));
 
+vi.mock("../../../src/renderer/services/webdav-save-sync", () => ({
+  scheduleAllSaveSync: vi.fn(),
+}));
+
 import { chatCompletion } from "../../../src/renderer/services/ai";
+import { scheduleAllSaveSync } from "../../../src/renderer/services/webdav-save-sync";
 import {
   getProjectScanPaths,
   useSkillStore,
@@ -207,6 +212,18 @@ describe("skill store", () => {
     ]);
   });
 
+  it("clears selected skill when switching store views", () => {
+    useSkillStore.setState({
+      selectedSkillId: "skill-1",
+      storeView: "projects",
+    } as Partial<ReturnType<typeof useSkillStore.getState>>);
+
+    useSkillStore.getState().setStoreView("my-skills");
+
+    expect(useSkillStore.getState().storeView).toBe("my-skills");
+    expect(useSkillStore.getState().selectedSkillId).toBeNull();
+  });
+
   it("does not duplicate the project root when extra scan paths already include it", () => {
     expect(
       getProjectScanPaths({
@@ -268,6 +285,7 @@ describe("skill store", () => {
     expect(useSkillStore.getState().skills[0]?.local_repo_path).toBe(
       "/tmp/skills/alpha",
     );
+    expect(scheduleAllSaveSync).toHaveBeenCalledWith("skill:update");
   });
 
   it("does not rewrite SKILL.md when updating metadata only", async () => {

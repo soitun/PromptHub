@@ -149,6 +149,7 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
   const skills = useSkillStore((state) => state.skills);
   const skillFilterType = useSkillStore((state) => state.filterType);
   const setSkillFilterType = useSkillStore((state) => state.setFilterType);
+  const selectSkill = useSkillStore((state) => state.selectSkill);
   const deployedSkillNames = useSkillStore((state) => state.deployedSkillNames);
   const storeView = useSkillStore((state) => state.storeView);
   const setStoreView = useSkillStore((state) => state.setStoreView);
@@ -931,6 +932,7 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
                 if (!confirmLeaveDirtySkillEditor()) return;
                 setSkillFilterType('all');
                 setStoreView('my-skills');
+                selectSkill(null);
                 if (currentPage !== 'home') onNavigate('home');
               }}
             />
@@ -944,6 +946,7 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
                 onClick={() => {
                   if (!confirmLeaveDirtySkillEditor()) return;
                   setStoreView('projects');
+                  selectSkill(null);
                   if (currentPage !== 'home') onNavigate('home');
                 }}
               />
@@ -958,6 +961,7 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
                 if (!confirmLeaveDirtySkillEditor()) return;
                 setSkillFilterType('favorites');
                 setStoreView('my-skills');
+                selectSkill(null);
                 if (currentPage !== 'home') onNavigate('home');
               }}
             />
@@ -972,6 +976,7 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
                   onClick={() => {
                     if (!confirmLeaveDirtySkillEditor()) return;
                     setStoreView('distribution');
+                    selectSkill(null);
                     if (currentPage !== 'home') onNavigate('home');
                   }}
                 />
@@ -981,13 +986,14 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
                   count={skillStats.pendingCount}
                   active={skillFilterType === 'pending' && storeView === 'my-skills' && currentPage === 'home'}
                   collapsed={isCollapsed}
-                  onClick={() => {
-                    if (!confirmLeaveDirtySkillEditor()) return;
-                    setSkillFilterType('pending');
-                    setStoreView('my-skills');
-                    if (currentPage !== 'home') onNavigate('home');
-                  }}
-                />
+                    onClick={() => {
+                      if (!confirmLeaveDirtySkillEditor()) return;
+                      setSkillFilterType('pending');
+                      setStoreView('my-skills');
+                      selectSkill(null);
+                      if (currentPage !== 'home') onNavigate('home');
+                    }}
+                  />
               </>
             )}
             {runtimeCapabilities.skillStore && (
@@ -998,12 +1004,13 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
                   label={t('nav.skillStore', 'Skill 商店')}
                   active={storeView === 'store' && currentPage === 'home'}
                   collapsed={isCollapsed}
-                  onClick={() => {
-                    if (!confirmLeaveDirtySkillEditor()) return;
-                    setStoreView('store');
-                    selectStoreSource(selectedStoreSourceId || 'official');
-                    if (currentPage !== 'home') onNavigate('home');
-                  }}
+                   onClick={() => {
+                     if (!confirmLeaveDirtySkillEditor()) return;
+                     setStoreView('store');
+                     selectSkill(null);
+                     selectStoreSource(selectedStoreSourceId || 'official');
+                     if (currentPage !== 'home') onNavigate('home');
+                   }}
                 />
               </>
             )}
@@ -1355,7 +1362,7 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
                             className="w-full text-left"
                           >
                             <div className="flex items-center gap-3">
-                              <div className="rounded-xl bg-muted p-2 text-muted-foreground">
+                              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground">
                                 {item.type === 'project' ? (
                                   <FolderPlusIcon className="h-5 w-5" />
                                 ) : (
@@ -1399,7 +1406,7 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
                             className="w-full rounded-2xl border border-dashed border-border px-3 py-4 text-left transition-colors hover:bg-muted/40"
                           >
                             <div className="flex items-center gap-3">
-                              <div className="rounded-xl bg-muted p-2 text-muted-foreground">
+                              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground">
                                 <FolderPlusIcon className="h-5 w-5" />
                               </div>
                               <div className="min-w-0 flex-1">
@@ -1421,7 +1428,7 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
                         className="w-full rounded-2xl border border-dashed border-border px-3 py-3 text-left transition-colors hover:bg-muted/40"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="rounded-xl bg-muted p-2 text-muted-foreground">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground">
                             <PlusIcon className="h-4 w-4" />
                           </div>
                           <div className="min-w-0 flex-1 text-sm font-medium text-foreground">

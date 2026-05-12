@@ -5,3 +5,4 @@
 - [x] 更新桌面端相关单元测试
 - [x] 运行桌面端 lint / typecheck / 定向测试
 - [x] 更新 implementation.md
+- [x] 调整项目级 Skill 详情页的预览右栏与收录动作

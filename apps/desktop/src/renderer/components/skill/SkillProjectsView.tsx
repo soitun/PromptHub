@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
+  BookOpenIcon,
   FolderOpenIcon,
   FolderPlusIcon,
   Loader2Icon,
@@ -27,6 +28,8 @@ import { SkillFullDetailPage } from "./SkillFullDetailPage";
 import { buildProjectDetailSkill } from "./project-detail-adapter";
 
 const OPEN_CREATE_SKILL_PROJECT_MODAL_EVENT = "open-create-skill-project-modal";
+const PROJECT_SECTION_HEADER_CLASS =
+  "h-[152px] border-b border-border app-wallpaper-panel-strong";
 
 function normalizePathForComparison(value: string): string {
   return value.replace(/\\/g, "/").replace(/\/+$/, "").toLowerCase();
@@ -331,8 +334,10 @@ export function SkillProjectsView() {
   const projectScanState = useSkillStore((state) => state.projectScanState);
   const selectedProjectId = useSkillStore((state) => state.selectedProjectId);
   const selectProject = useSkillStore((state) => state.selectProject);
+  const selectSkill = useSkillStore((state) => state.selectSkill);
   const importScannedSkills = useSkillStore((state) => state.importScannedSkills);
   const loadDeployedStatus = useSkillStore((state) => state.loadDeployedStatus);
+  const setStoreView = useSkillStore((state) => state.setStoreView);
   const skillProjects = useSettingsStore((state) => state.skillProjects);
   const addSkillProject = useSettingsStore((state) => state.addSkillProject);
   const updateSkillProject = useSettingsStore((state) => state.updateSkillProject);
@@ -342,6 +347,7 @@ export function SkillProjectsView() {
   const [quickInstallSkill, setQuickInstallSkill] = useState<Skill | null>(null);
   const [isImportingPath, setIsImportingPath] = useState<string | null>(null);
   const [selectedProjectSkillPath, setSelectedProjectSkillPath] = useState<string | null>(null);
+  const autoScannedProjectIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (skillProjects.length === 0) {
@@ -465,38 +471,57 @@ export function SkillProjectsView() {
     }
   };
 
-  const handleScanProject = async (
-    project: SkillProject,
-    options?: { suppressToast?: boolean },
-  ) => {
-    try {
-      const scanned = await scanProjectSkills(project);
-      updateSkillProject(project.id, { lastScannedAt: Date.now() });
-      if (!options?.suppressToast) {
+  const handleScanProject = useCallback(
+    async (project: SkillProject, options?: { suppressToast?: boolean }) => {
+      try {
+        const scanned = await scanProjectSkills(project);
+        updateSkillProject(project.id, { lastScannedAt: Date.now() });
+        if (!options?.suppressToast) {
+          showToast(
+            t("skill.projectScanComplete", {
+              count: scanned.length,
+              defaultValue: `Scanned ${scanned.length} skills`,
+            }),
+            "success",
+          );
+        }
+        return scanned;
+      } catch (error) {
         showToast(
-          t("skill.projectScanComplete", {
-            count: scanned.length,
-            defaultValue: `Scanned ${scanned.length} skills`,
-          }),
-          "success",
+          error instanceof Error
+            ? error.message
+            : t("skill.projectScanFailed", "Failed to scan project skills"),
+          "error",
         );
+        throw error;
       }
-      return scanned;
-    } catch (error) {
-      showToast(
-        error instanceof Error
-          ? error.message
-          : t("skill.projectScanFailed", "Failed to scan project skills"),
-        "error",
-      );
-      throw error;
-    }
-  };
+    },
+    [scanProjectSkills, showToast, t, updateSkillProject],
+  );
 
   const handleImportProjectSkill = async (scannedSkill: ScannedSkill) => {
     setIsImportingPath(scannedSkill.localPath);
     try {
-      const result = await importScannedSkills([scannedSkill]);
+      let repoSkillMd: { content?: string } | null = null;
+      if (!scannedSkill.instructions.trim()) {
+        try {
+          repoSkillMd =
+            (await window.api.skill.readLocalFileByPath?.(
+              scannedSkill.localPath,
+              "SKILL.md",
+            )) ?? null;
+        } catch {
+          repoSkillMd = null;
+        }
+      }
+      const hydratedScannedSkill =
+        repoSkillMd?.content && repoSkillMd.content.trim().length > 0
+          ? {
+              ...scannedSkill,
+              instructions: repoSkillMd.content,
+            }
+          : scannedSkill;
+      const result = await importScannedSkills([hydratedScannedSkill]);
       if (result.importedCount === 0) {
         throw new Error(
           result.failed[0]?.reason ||
@@ -518,6 +543,26 @@ export function SkillProjectsView() {
       setIsImportingPath(null);
     }
   };
+
+  useEffect(() => {
+    if (!selectedProject) {
+      return;
+    }
+
+    const scanState = projectScanState[selectedProject.id];
+    if (scanState?.isScanning || scanState?.scannedAt || scanState?.error) {
+      return;
+    }
+
+    if (autoScannedProjectIdsRef.current.has(selectedProject.id)) {
+      return;
+    }
+
+    autoScannedProjectIdsRef.current.add(selectedProject.id);
+    void handleScanProject(selectedProject, { suppressToast: true }).catch(() => {
+      return undefined;
+    });
+  }, [handleScanProject, projectScanState, selectedProject]);
 
   const importedLibrarySkillByPath = useMemo(() => {
     const pathMap = new Map<string, Skill>();
@@ -575,31 +620,41 @@ export function SkillProjectsView() {
                 }
               : null
           }
+          projectActions={
+            selectedScannedSkill && !selectedImportedSkill
+              ? {
+                  isImporting: isImportingPath === selectedScannedSkill.localPath,
+                  onImport: () => handleImportProjectSkill(selectedScannedSkill),
+                }
+              : null
+          }
           onBack={() => setSelectedProjectSkillPath(null)}
         />
       ) : (
         <>
       <div className="w-80 shrink-0 border-r border-border app-wallpaper-panel-strong">
-        <div className="flex min-h-[112px] items-center justify-between border-b border-border px-4 py-5">
-          <div>
+        <div className={PROJECT_SECTION_HEADER_CLASS}>
+          <div className="flex h-full items-start justify-between gap-4 px-4 py-5">
+            <div className="min-w-0">
             <h2 className="text-lg font-semibold text-foreground">
               {t("nav.projects", "Projects")}
             </h2>
-            <p className="mt-1 text-xs text-muted-foreground">
+              <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
               {t(
                 "skill.projectsSidebarHint",
                 "Register project directories and manage their local skills.",
               )}
             </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleOpenCreate}
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-white transition-colors hover:bg-primary/90"
+              title={t("skill.addProject", "Add Project")}
+            >
+              <FolderPlusIcon className="h-4 w-4" />
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={handleOpenCreate}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white transition-colors hover:bg-primary/90"
-            title={t("skill.addProject", "Add Project")}
-          >
-            <FolderPlusIcon className="h-4 w-4" />
-          </button>
         </div>
 
         <div className="space-y-2 overflow-y-auto p-3">
@@ -668,8 +723,8 @@ export function SkillProjectsView() {
         {selectedProject ? (
           <div className="min-w-0 flex-1 overflow-hidden">
             <div className="flex h-full min-h-0 flex-col overflow-hidden">
-              <div className="min-h-[112px] border-b border-border px-6 py-5 app-wallpaper-panel-strong">
-                <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className={PROJECT_SECTION_HEADER_CLASS}>
+                <div className="flex h-full items-start justify-between gap-4 px-6 py-5">
                   <div className="min-w-0">
                     <div className="flex items-center gap-3">
                       <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-base font-semibold text-primary">
@@ -680,7 +735,7 @@ export function SkillProjectsView() {
                       </h2>
                     </div>
                     <div className="mt-2 space-y-1 text-sm text-muted-foreground">
-                      <div className="truncate">{selectedProject.rootPath}</div>
+                      <div className="line-clamp-2 break-all">{selectedProject.rootPath}</div>
                       <div>
                         {t("skill.projectSkillCount", {
                           count: currentProjectState?.scannedSkills.length || 0,
@@ -690,7 +745,7 @@ export function SkillProjectsView() {
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex shrink-0 flex-wrap gap-2 self-end">
                     <button
                       type="button"
                       onClick={() => void handleScanProject(selectedProject)}
@@ -717,13 +772,13 @@ export function SkillProjectsView() {
                     </button>
                   </div>
                 </div>
-
-                {currentProjectState?.error ? (
-                  <div className="mt-4 rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                    {currentProjectState.error}
-                  </div>
-                ) : null}
               </div>
+
+              {currentProjectState?.error ? (
+                <div className="mx-6 mt-4 rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                  {currentProjectState.error}
+                </div>
+              ) : null}
 
               <div className="min-h-0 flex-1 overflow-y-auto p-6">
                 {(currentProjectState?.scannedSkills.length || 0) === 0 ? (
@@ -757,12 +812,12 @@ export function SkillProjectsView() {
                       return (
                         <article
                           key={scannedSkill.filePath}
-                          className="rounded-3xl border border-border app-wallpaper-surface p-5 transition-colors hover:bg-accent/40"
+                          className="flex h-full flex-col rounded-3xl border border-border app-wallpaper-surface p-5 transition-colors hover:bg-accent/40"
                         >
                           <button
                             type="button"
                             onClick={() => setSelectedProjectSkillPath(scannedSkill.localPath)}
-                            className="block w-full text-left"
+                            className="block w-full flex-1 text-left"
                           >
                             <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0 flex-1">
@@ -792,7 +847,7 @@ export function SkillProjectsView() {
                             </div>
                           </button>
 
-                          <div className="mt-4 flex flex-wrap gap-2">
+                          <div className="mt-4 flex flex-wrap gap-2 border-t border-border/60 pt-4">
                             <button
                               type="button"
                               onClick={() => void window.electron?.openPath?.(scannedSkill.localPath)}
@@ -802,14 +857,27 @@ export function SkillProjectsView() {
                               {t("skill.openSkillFolder", "Open Folder")}
                             </button>
                             {isImported && importedSkill ? (
-                              <button
-                                type="button"
-                                onClick={() => setQuickInstallSkill(importedSkill)}
-                                className="inline-flex items-center gap-1 rounded-lg bg-primary px-2.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-primary/90"
-                              >
-                                <SendIcon className="h-3.5 w-3.5" />
-                                {t("skill.importAndDistribute", "Distribute")}
-                              </button>
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setStoreView("my-skills");
+                                    selectSkill(importedSkill.id);
+                                  }}
+                                  className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs text-foreground transition-colors hover:bg-accent"
+                                >
+                                  <BookOpenIcon className="h-3.5 w-3.5" />
+                                  {t("skill.openInMySkills", "Open in My Skills")}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setQuickInstallSkill(importedSkill)}
+                                  className="inline-flex items-center gap-1 rounded-lg bg-primary px-2.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-primary/90"
+                                >
+                                  <SendIcon className="h-3.5 w-3.5" />
+                                  {t("skill.importAndDistribute", "Distribute")}
+                                </button>
+                              </>
                             ) : (
                               <button
                                 type="button"
