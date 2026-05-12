@@ -8,6 +8,7 @@ import {
   buildImportedSyncSummary,
   buildSyncSummary,
   parseSyncSnapshot,
+  withDefaultImportedSettings,
 } from '../services/sync-snapshot.js';
 import { writePulledSyncMedia } from '../services/sync-media.js';
 import {
@@ -34,12 +35,6 @@ const syncConfigSchema = z.object({
   remotePath: z.string().optional(),
   autoSync: z.boolean().optional(),
 });
-
-const DEFAULT_SYNC_IMPORT_SETTINGS: Settings = {
-  theme: 'system',
-  language: 'en',
-  autoSave: true,
-};
 
 function getSyncSettings(userId: string): SyncSettings {
   const settings = settingsService.get(userId);
@@ -136,10 +131,7 @@ function updateSyncLastSyncAt(userId: string, syncSettings: SyncSettings, lastSy
 }
 
 function buildSyncImportPayload(snapshot: SyncSnapshot) {
-  return {
-    ...snapshot,
-    settings: snapshot.settings ?? { ...DEFAULT_SYNC_IMPORT_SETTINGS },
-  };
+  return withDefaultImportedSettings(snapshot);
 }
 
 sync.get('/manifest', async (c) => {

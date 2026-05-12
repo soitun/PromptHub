@@ -143,6 +143,12 @@ export const IPC_CHANNELS = {
   UPGRADE_BACKUP_RESTORE: "upgradeBackup:restore",
   UPGRADE_BACKUP_DELETE: "upgradeBackup:delete",
 
+  // S3-compatible storage
+  S3_TEST_CONNECTION: "s3:testConnection",
+  S3_UPLOAD: "s3:upload",
+  S3_DOWNLOAD: "s3:download",
+  S3_STAT: "s3:stat",
+
   // Image
   DIALOG_SELECT_IMAGE: "dialog:selectImage",
   IMAGE_SAVE: "image:save",

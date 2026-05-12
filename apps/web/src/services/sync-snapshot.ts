@@ -11,7 +11,7 @@ import type {
   SyncOperationSummary,
   SyncSnapshot,
 } from '@prompthub/shared';
-import { isRuleFileId, isRulePlatformId } from '@prompthub/shared';
+import { DEFAULT_SETTINGS, isRuleFileId, isRulePlatformId } from '@prompthub/shared';
 
 const ruleVersionSchema = z.object({
   id: z.string(),
@@ -520,6 +520,15 @@ export function normalizeSyncSnapshot(
 
 export function parseSyncSnapshot(rawPayload: unknown): SyncSnapshot {
   return normalizeSyncSnapshot(normalizeImportedSnapshot(rawPayload));
+}
+
+export function withDefaultImportedSettings(
+  snapshot: SyncSnapshot,
+): SyncSnapshot & { settings: Settings } {
+  return {
+    ...snapshot,
+    settings: snapshot.settings ?? { ...DEFAULT_SETTINGS },
+  };
 }
 
 export function buildSyncSummary(payload: {

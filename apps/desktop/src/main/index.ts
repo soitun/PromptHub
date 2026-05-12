@@ -32,6 +32,7 @@ import {
   toggleWindowForShowApp,
 } from "./shortcuts";
 import { initUpdater, registerUpdaterIPC } from "./updater";
+import { registerS3IPC } from "./s3";
 import { registerWebDAVIPC } from "./webdav";
 import {
   applyE2ESeed,
@@ -1908,6 +1909,7 @@ app.whenReady().then(async () => {
     // Register WebDAV IPC (bypass CORS)
     // 注册 WebDAV IPC（绕过 CORS）
     registerWebDAVIPC();
+    registerS3IPC();
     registerE2EIPC();
 
     // Register shortcuts IPC

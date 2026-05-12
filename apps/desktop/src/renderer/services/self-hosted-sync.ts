@@ -11,6 +11,7 @@ import {
   restoreFromBackup,
 } from "./database-backup";
 import type { DatabaseBackup } from "./database-backup-format";
+import { issueSolvedPromptHubCaptcha } from "./self-hosted-auth";
 import { useSettingsStore } from "../stores/settings.store";
 
 export interface SelfHostedSyncConfig {
@@ -36,11 +37,6 @@ interface ApiEnvelope<T> {
 
 interface LoginPayload {
   accessToken: string;
-}
-
-interface CaptchaPayload {
-  captchaId: string;
-  prompt: string;
 }
 
 interface DeviceHeartbeatPayload {
@@ -144,38 +140,11 @@ async function readJsonEnvelope<T>(response: Response): Promise<T> {
   return payload.data;
 }
 
-function solveCaptchaPrompt(prompt: string): string {
-  const match = prompt.match(/^\s*(\d+)\s*([+-])\s*(\d+)\s*=\s*\?\s*$/);
-  if (!match) {
-    throw new Error(`Unsupported self-hosted captcha prompt: ${prompt}`);
-  }
-
-  const left = Number(match[1]);
-  const operator = match[2];
-  const right = Number(match[3]);
-  return String(operator === "+" ? left + right : left - right);
-}
-
-async function issueSelfHostedCaptcha(baseUrl: string): Promise<{
-  captchaId: string;
-  captchaAnswer: string;
-}> {
-  const response = await fetch(`${baseUrl}/api/auth/captcha`, {
-    cache: "no-store",
-  });
-  const payload = await readJsonEnvelope<CaptchaPayload>(response);
-
-  return {
-    captchaId: payload.captchaId,
-    captchaAnswer: solveCaptchaPrompt(payload.prompt),
-  };
-}
-
 async function loginToSelfHostedWeb(
   config: SelfHostedSyncConfig,
 ): Promise<{ baseUrl: string; accessToken: string }> {
   const baseUrl = normalizeBaseUrl(config.url);
-  const captcha = await issueSelfHostedCaptcha(baseUrl);
+  const captcha = await issueSolvedPromptHubCaptcha(baseUrl);
   const response = await fetch(`${baseUrl}/api/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

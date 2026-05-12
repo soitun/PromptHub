@@ -26,8 +26,16 @@ vi.mock("../../../src/renderer/services/self-hosted-sync", () => ({
   testSelfHostedConnection: vi.fn(),
 }));
 
+vi.mock("../../../src/renderer/services/s3-sync", () => ({
+  autoSync: vi.fn(),
+  downloadFromS3: vi.fn(),
+  testConnection: vi.fn(),
+  uploadToS3: vi.fn(),
+}));
+
 import {
   runFullExportBackup,
+  runS3AutoSync,
   runPreUpgradeBackup,
   runSelfHostedAutoSync,
   runWebDAVAutoSync,
@@ -44,6 +52,7 @@ import {
   pullFromSelfHostedWeb,
   pushToSelfHostedWeb,
 } from "../../../src/renderer/services/self-hosted-sync";
+import { autoSync as autoSyncS3 } from "../../../src/renderer/services/s3-sync";
 
 describe("backup-orchestrator", () => {
   beforeEach(() => {
@@ -116,6 +125,31 @@ describe("backup-orchestrator", () => {
     });
 
     expect(autoSync).toHaveBeenCalledTimes(1);
+    expect(result.success).toBe(true);
+    expect(result.message).toBe("ok");
+  });
+
+  it("delegates s3 auto sync call", async () => {
+    vi.mocked(autoSyncS3).mockResolvedValue({
+      success: true,
+      message: "ok",
+      localChanged: false,
+    });
+
+    const result = await runS3AutoSync({
+      config: {
+        endpoint: "https://s3.example.com",
+        region: "us-east-1",
+        bucket: "prompthub-backups",
+        accessKeyId: "access",
+        secretAccessKey: "secret",
+      },
+      options: {
+        incrementalSync: true,
+      },
+    });
+
+    expect(autoSyncS3).toHaveBeenCalledTimes(1);
     expect(result.success).toBe(true);
     expect(result.message).toBe("ok");
   });

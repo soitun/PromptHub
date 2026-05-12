@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { closeDatabase } from '@prompthub/db';
+import { DEFAULT_SETTINGS } from '@prompthub/shared';
 import { issueSolvedCaptcha } from '../test-helpers/auth-captcha';
 
 const ENV_KEYS = [
@@ -698,6 +699,45 @@ describe('web import/export routes', () => {
       expect(exportedPayload.videos).toEqual({
         'video-envelope.mp4': Buffer.from('envelope-video', 'utf8').toString('base64'),
       });
+    } finally {
+      fs.rmSync(dataDir, { recursive: true, force: true });
+    }
+  }, TEST_TIMEOUT);
+
+  it('fills missing settings with shared defaults during import', async () => {
+    const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'prompthub-web-import-default-settings-'));
+
+    try {
+      const app = await createTestApp(dataDir);
+      const { payload: registerPayload } = await registerUser(app, 'defaultsettingsimporter', 'debugpass001');
+      const token = registerPayload.data.accessToken;
+
+      const importResponse = await app.request(
+        new Request('http://local/api/import', {
+          method: 'POST',
+          headers: authHeaders(token),
+          body: JSON.stringify({
+            version: 'web-backup-v2',
+            exportedAt: '2026-04-21T00:00:00.000Z',
+            prompts: [],
+            promptVersions: [],
+            folders: [],
+            skills: [],
+            skillVersions: [],
+          }),
+        }),
+      );
+
+      expect(importResponse.status).toBe(201);
+
+      const { payload: exportedPayload } = await exportPayload(app, token);
+      expect(exportedPayload.settings).toEqual(
+        expect.objectContaining({
+          theme: DEFAULT_SETTINGS.theme,
+          language: DEFAULT_SETTINGS.language,
+          autoSave: DEFAULT_SETTINGS.autoSave,
+        }),
+      );
     } finally {
       fs.rmSync(dataDir, { recursive: true, force: true });
     }

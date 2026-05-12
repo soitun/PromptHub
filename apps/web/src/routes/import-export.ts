@@ -3,7 +3,10 @@ import type { Context } from 'hono';
 import { getAuthUser } from '../middleware/auth.js';
 import { BackupService } from '../services/backup.service.js';
 import { getMediaBase64Map, writePulledSyncMedia } from '../services/sync-media.js';
-import { parseSyncSnapshot } from '../services/sync-snapshot.js';
+import {
+  parseSyncSnapshot,
+  withDefaultImportedSettings,
+} from '../services/sync-snapshot.js';
 import { error, ErrorCode, success } from '../utils/response.js';
 import { unzipSync, strFromU8 } from 'fflate';
 
@@ -67,10 +70,11 @@ importExport.post('/import', async (c) => {
         images: snapshot.images,
         videos: snapshot.videos,
       });
-      const result = backupService.import(actor, {
-        ...snapshot,
-        settings: snapshot.settings ?? { theme: 'system', language: 'zh', autoSave: true },
-      }, { forceSettingsImport: true });
+      const result = backupService.import(
+        actor,
+        withDefaultImportedSettings(snapshot),
+        { forceSettingsImport: true },
+      );
       return success(c, result, 201);
     } catch (routeError) {
       return toRouteErrorResponse(c, routeError);
@@ -91,10 +95,11 @@ importExport.post('/import', async (c) => {
       images: snapshot.images,
       videos: snapshot.videos,
     });
-    const result = backupService.import(actor, {
-      ...snapshot,
-      settings: snapshot.settings ?? { theme: 'system', language: 'zh', autoSave: true },
-    }, { forceSettingsImport: true });
+    const result = backupService.import(
+      actor,
+      withDefaultImportedSettings(snapshot),
+      { forceSettingsImport: true },
+    );
     return success(c, result, 201);
   } catch (routeError) {
     return toRouteErrorResponse(c, routeError);

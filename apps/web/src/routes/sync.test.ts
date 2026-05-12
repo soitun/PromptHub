@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { closeDatabase } from '@prompthub/db';
+import { DEFAULT_SETTINGS } from '@prompthub/shared';
 import { issueSolvedCaptcha } from '../test-helpers/auth-captcha';
 
 const ENV_KEYS = [
@@ -768,6 +769,63 @@ describe('web sync routes', () => {
       );
       expect(fs.existsSync(path.join(ensureTestMediaDir(dataDir, registerPayload.data.user.id, 'images'), 'remote-image.png'))).toBe(true);
       expect(fs.existsSync(path.join(ensureTestMediaDir(dataDir, registerPayload.data.user.id, 'videos'), 'remote-video.mp4'))).toBe(true);
+    } finally {
+      fs.rmSync(dataDir, { recursive: true, force: true });
+    }
+  }, TEST_TIMEOUT);
+
+  it('fills missing settings with shared defaults during sync import', async () => {
+    const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'prompthub-web-sync-default-settings-'));
+
+    try {
+      const app = await createTestApp(dataDir);
+      const { payload: registerPayload } = await registerUser(app, 'syncdefaultowner', 'debugpass001');
+      const token = registerPayload.data.accessToken;
+
+      const importResponse = await app.request(
+        new Request('http://local/api/sync/data', {
+          method: 'PUT',
+          headers: authHeaders(token),
+          body: JSON.stringify({
+            payload: {
+              version: 'web-backup-v2',
+              exportedAt: '2026-04-21T00:00:00.000Z',
+              prompts: [],
+              promptVersions: [],
+              folders: [],
+              skills: [],
+              skillVersions: [],
+            },
+          }),
+        }),
+      );
+
+      expect(importResponse.status).toBe(200);
+
+      const dataResponse = await app.request(
+        new Request('http://local/api/sync/data', {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      );
+      expect(dataResponse.status).toBe(200);
+
+      const dataBody = await dataResponse.json() as {
+        data: {
+          settings: {
+            theme: string;
+            language: string;
+            autoSave: boolean;
+          };
+        };
+      };
+
+      expect(dataBody.data.settings).toEqual(
+        expect.objectContaining({
+          theme: DEFAULT_SETTINGS.theme,
+          language: DEFAULT_SETTINGS.language,
+          autoSave: DEFAULT_SETTINGS.autoSave,
+        }),
+      );
     } finally {
       fs.rmSync(dataDir, { recursive: true, force: true });
     }

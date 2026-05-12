@@ -5,13 +5,20 @@ import {
   incrementalDownload,
   downloadFromWebDAV,
   uploadToWebDAV,
+  autoSync,
 } from "../../../src/renderer/services/webdav";
 import * as backup from "../../../src/renderer/services/database-backup";
+import * as database from "../../../src/renderer/services/database";
 
 // Mock backup workflow service
 vi.mock("../../../src/renderer/services/database-backup", () => ({
   exportDatabase: vi.fn(),
   restoreFromBackup: vi.fn(),
+}));
+
+vi.mock("../../../src/renderer/services/database", () => ({
+  getAllPrompts: vi.fn(),
+  getAllFolders: vi.fn(),
 }));
 
 describe("WebDAV Service", () => {
@@ -26,6 +33,8 @@ describe("WebDAV Service", () => {
 
     global.fetch = vi.fn();
     window.api.skill.create.mockReset();
+    vi.mocked(database.getAllPrompts).mockResolvedValue([]);
+    vi.mocked(database.getAllFolders).mockResolvedValue([]);
 
     Object.defineProperty(global, "crypto", {
       value: {
@@ -408,6 +417,74 @@ describe("WebDAV Service", () => {
         }),
       );
       expect(window.api.skill.create).not.toHaveBeenCalled();
+    });
+
+    it("prefers manifest timestamps during auto sync when incremental backup exists", async () => {
+      const manifest = JSON.stringify({
+        version: "4.0",
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-02T00:00:00.000Z",
+        dataHash: "deadbeef",
+        images: {},
+        videos: {},
+        encrypted: false,
+      });
+      const data = JSON.stringify({
+        version: "4.0",
+        exportedAt: "2026-01-02T00:00:00.000Z",
+        prompts: [],
+        folders: [],
+        versions: [],
+      });
+
+      const mockDownload = vi.fn(async (url: string) => {
+        if (url.includes("manifest.json")) {
+          return { success: true, data: manifest };
+        }
+        if (url.includes("data.json")) {
+          return { success: true, data };
+        }
+        return { success: false, notFound: true };
+      });
+      const mockStat = vi.fn(async (url: string) => {
+        if (url.includes("manifest.json")) {
+          return {
+            success: true,
+            lastModified: "2026-01-02T00:00:00.000Z",
+          };
+        }
+
+        return { success: false, notFound: true };
+      });
+
+      window.electron = {
+        ...window.electron,
+        webdav: {
+          ensureDirectory: vi.fn().mockResolvedValue(undefined),
+          download: mockDownload,
+          upload: vi.fn(),
+          stat: mockStat,
+        },
+      } as any;
+
+      const result = await autoSync(mockConfig);
+
+      expect(mockStat).toHaveBeenCalledTimes(1);
+      expect(mockStat).toHaveBeenCalledWith(
+        expect.stringContaining("manifest.json"),
+        mockConfig,
+      );
+      expect(mockDownload).toHaveBeenCalledWith(
+        expect.stringContaining("manifest.json"),
+        mockConfig,
+      );
+      expect(mockDownload).toHaveBeenCalledWith(
+        expect.stringContaining("data.json"),
+        mockConfig,
+      );
+      expect(backup.restoreFromBackup).toHaveBeenCalled();
+      expect(result.success).toBe(true);
+      expect(result.localChanged).toBe(true);
     });
   });
 });

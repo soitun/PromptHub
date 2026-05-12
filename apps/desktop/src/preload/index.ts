@@ -307,6 +307,46 @@ contextBridge.exposeInMainWorld("electron", {
       config: { url: string; username: string; password: string },
     ) => ipcRenderer.invoke("webdav:stat", fileUrl, config),
   },
+  s3: {
+    testConnection: (config: {
+      endpoint: string;
+      region: string;
+      bucket: string;
+      accessKeyId: string;
+      secretAccessKey: string;
+    }) => ipcRenderer.invoke(IPC_CHANNELS.S3_TEST_CONNECTION, config),
+    upload: (
+      key: string,
+      config: {
+        endpoint: string;
+        region: string;
+        bucket: string;
+        accessKeyId: string;
+        secretAccessKey: string;
+      },
+      data: string,
+    ) => ipcRenderer.invoke(IPC_CHANNELS.S3_UPLOAD, key, config, data),
+    download: (
+      key: string,
+      config: {
+        endpoint: string;
+        region: string;
+        bucket: string;
+        accessKeyId: string;
+        secretAccessKey: string;
+      },
+    ) => ipcRenderer.invoke(IPC_CHANNELS.S3_DOWNLOAD, key, config),
+    stat: (
+      key: string,
+      config: {
+        endpoint: string;
+        region: string;
+        bucket: string;
+        accessKeyId: string;
+        secretAccessKey: string;
+      },
+    ) => ipcRenderer.invoke(IPC_CHANNELS.S3_STAT, key, config),
+  },
   e2e: {
     getStats: () => ipcRenderer.invoke("e2e:getStats"),
     resetStats: () => ipcRenderer.invoke("e2e:resetStats"),
@@ -433,6 +473,7 @@ declare global {
           prompts: boolean;
           versions: boolean;
           images: boolean;
+          videos?: boolean;
           skills: boolean;
           rules?: boolean;
           config: boolean;
@@ -511,6 +552,56 @@ declare global {
         stat: (
           fileUrl: string,
           config: { url: string; username: string; password: string },
+        ) => Promise<{
+          success: boolean;
+          lastModified?: string;
+          notFound?: boolean;
+          error?: string;
+        }>;
+      };
+      s3?: {
+        testConnection: (config: {
+          endpoint: string;
+          region: string;
+          bucket: string;
+          accessKeyId: string;
+          secretAccessKey: string;
+        }) => Promise<{ success: boolean; message: string }>;
+        upload: (
+          key: string,
+          config: {
+            endpoint: string;
+            region: string;
+            bucket: string;
+            accessKeyId: string;
+            secretAccessKey: string;
+          },
+          data: string,
+        ) => Promise<{ success: boolean; error?: string }>;
+        download: (
+          key: string,
+          config: {
+            endpoint: string;
+            region: string;
+            bucket: string;
+            accessKeyId: string;
+            secretAccessKey: string;
+          },
+        ) => Promise<{
+          success: boolean;
+          data?: string;
+          notFound?: boolean;
+          error?: string;
+        }>;
+        stat: (
+          key: string,
+          config: {
+            endpoint: string;
+            region: string;
+            bucket: string;
+            accessKeyId: string;
+            secretAccessKey: string;
+          },
         ) => Promise<{
           success: boolean;
           lastModified?: string;

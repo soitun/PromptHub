@@ -23,6 +23,14 @@ import {
   type SelfHostedSyncConfig,
   type SelfHostedSyncSummary,
 } from "./self-hosted-sync";
+import {
+  autoSync as autoSyncS3,
+  downloadFromS3,
+  testConnection as testS3Connection,
+  uploadToS3,
+  type S3SyncConfig,
+  type S3SyncOptions,
+} from "./s3-sync";
 
 export interface FullExportBackupOptions {
   currentVersion?: string;
@@ -44,6 +52,11 @@ export interface WebDAVManualSyncOptions {
 export interface SelfHostedPullOptions {
   config: SelfHostedSyncConfig;
   options?: PullFromSelfHostedOptions;
+}
+
+export interface S3ManualSyncOptions {
+  config: S3SyncConfig;
+  options?: S3SyncOptions;
 }
 
 export type AutoSyncReason = "startup" | "startup-resume" | "interval";
@@ -162,4 +175,28 @@ export async function runSelfHostedAutoSync(
           : "self-hosted auto sync failed",
     };
   }
+}
+
+export async function runS3ConnectionCheck(
+  config: S3SyncConfig,
+): Promise<SyncResult> {
+  return testS3Connection(config);
+}
+
+export async function runS3Upload(
+  input: S3ManualSyncOptions,
+): Promise<SyncResult> {
+  return uploadToS3(input.config, input.options);
+}
+
+export async function runS3Download(
+  input: S3ManualSyncOptions,
+): Promise<SyncResult> {
+  return downloadFromS3(input.config, input.options);
+}
+
+export async function runS3AutoSync(
+  input: S3ManualSyncOptions,
+): Promise<SyncResult> {
+  return autoSyncS3(input.config, input.options);
 }

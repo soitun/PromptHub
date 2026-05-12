@@ -72,7 +72,7 @@ async function rewriteRuleWithAi(payload: RuleRewriteRequest): Promise<RuleRewri
 
   return {
     content,
-    summary: null,
+    summary: "AI rewrite generated a new draft.",
   };
 }
 

@@ -13,8 +13,10 @@ This creates a real risk that data exported from one entry point cannot be faith
 ## Scope
 
 - Unify web import/export parsing around the same snapshot normalization used by sync.
+- Align missing imported settings fallback with the shared web `DEFAULT_SETTINGS` contract across import and sync entry points.
 - Ensure desktop ZIP export embeds a re-importable full PromptHub snapshot in `import-with-prompthub.json`.
 - Preserve compatibility with existing PromptHub backup/export envelopes and legacy prompt version fields.
+- Make desktop data settings clearly mark unavailable sync capabilities instead of implying that unimplemented S3 or save-triggered sync actions already work.
 - Add regression coverage for JSON export/import, ZIP export/import, and self-hosted/web sync payload consistency.
 
 ## Risks
@@ -33,3 +35,4 @@ This creates a real risk that data exported from one entry point cannot be faith
 - Desktop selective ZIP export and later restore/import.
 - Desktop self-hosted push/pull.
 - Web `/api/import`, `/api/export`, and `/api/sync/*` data interchange.
+- Desktop data settings for WebDAV and S3 availability disclosure.
