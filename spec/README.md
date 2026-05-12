@@ -47,7 +47,9 @@ spec/
 ├── logic/
 ├── assets/
 ├── issues/
-│   └── active/
+│   ├── README.md
+│   ├── active/
+│   └── archive/
 ├── changes/
 │   ├── _templates/
 │   ├── active/
@@ -61,7 +63,8 @@ spec/
 - `spec/architecture/`：长期有效的内部架构约束、设计事实与工程规则
 - `spec/logic/`：长期稳定、需要反复查阅的业务逻辑语义与推导规则
 - `spec/assets/`：平台矩阵、canonical 文件约定、资源清单等固定资产
-- `spec/issues/active/`：尚未收敛为具体实现变更的问题、质量风险与跟踪项
+- `spec/issues/active/`：尚未收敛为具体实现变更的问题、质量风险、当前 open issue 快照
+- `spec/issues/archive/`：已关闭 issue 与历史问题记录归档
 - `spec/changes/active/`：正在实施的提案、delta specs、设计、任务与实施记录
 - `spec/changes/archive/`：已完成或已放弃的变更归档
 - `spec/changes/legacy/`：历史平铺内部文档保留区；内容已从旧 `docs/` 原文恢复
@@ -92,6 +95,7 @@ spec/
 - Prompt 工作区：`spec/domains/prompt-workspace/spec.md`
 - Agent 平台固定资产：`spec/assets/agent-platforms.md`
 - Rules 稳定逻辑：`spec/logic/rules-workspace.md`
+- Issue 跟踪入口：`spec/issues/README.md`
 - 当前这次恢复工作：`spec/changes/active/restore-spec-lowercase/`
 
 ## 内容恢复说明

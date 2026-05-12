@@ -19,6 +19,7 @@
 - 变更完成后必须进入 `spec/changes/archive/`，而不是直接删除。
 - 历史内部文档若暂不适合改写为稳定规格，必须保存在 `spec/changes/legacy/`。
 - 稳定逻辑应存放在 `spec/logic/`，固定资产应存放在 `spec/assets/`。
+- `spec/issues/active/` 必须保存当前仍在跟踪的问题记录，`spec/issues/archive/` 必须保存已关闭或仅保留历史参考价值的问题记录。
 
 ### 3. Internal Workflow
 
@@ -42,6 +43,7 @@ When a contributor needs current internal behavior or workflow guidance:
 - they inspect `spec/changes/active/` for work in progress
 - they inspect `spec/architecture/` for long-lived technical constraints
 - they inspect `spec/logic/` and `spec/assets/` when they need durable rules, matrices, or canonical source mappings
+- they inspect `spec/issues/active/` and `spec/issues/archive/` when they need current issue context or historical issue records
 
 ### Scenario: External reader needs public docs
 
