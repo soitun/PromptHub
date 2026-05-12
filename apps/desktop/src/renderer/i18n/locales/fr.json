@@ -182,6 +182,7 @@
     "systemPromptOptional": "System Prompt (optionnel)",
     "systemPromptPlaceholder": "Définir le rôle et le comportement de l'IA...",
     "userPromptLabel": "User Prompt",
+    "inlineEditSystemPromptAria": "Double-cliquez pour modifier le prompt système",
     "inlineEditUserPromptAria": "Double-cliquez pour modifier le prompt utilisateur",
     "userPromptPlaceholder": "Entrez votre Prompt, utilisez {{nomVariable}} ou {{nomVariable:exemple}} pour les variables...",
     "variableTip": "Astuce variables",

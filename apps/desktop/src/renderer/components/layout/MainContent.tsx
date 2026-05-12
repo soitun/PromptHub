@@ -204,6 +204,7 @@ const PromptCard = memo(function PromptCard({
 
 type DetailInlineEditDraft = {
   title: string;
+  systemPrompt: string;
   userPrompt: string;
 };
 
@@ -213,8 +214,16 @@ function createDetailInlineEditDraft(
 ): DetailInlineEditDraft {
   return {
     title: prompt.title,
+    systemPrompt: showEnglish ? (prompt.systemPromptEn || prompt.systemPrompt || '') : (prompt.systemPrompt || ''),
     userPrompt: showEnglish ? (prompt.userPromptEn || prompt.userPrompt) : prompt.userPrompt,
   };
+}
+
+function getDetailInlineSystemPromptField(
+  prompt: Prompt,
+  showEnglish: boolean,
+): 'systemPrompt' | 'systemPromptEn' {
+  return showEnglish && !!prompt.systemPromptEn ? 'systemPromptEn' : 'systemPrompt';
 }
 
 function getDetailInlineUserPromptField(
@@ -1152,6 +1161,7 @@ function PromptSkillMainContent() {
   const [isDetailInlineSaving, setIsDetailInlineSaving] = useState(false);
   const [detailInlineDraft, setDetailInlineDraft] = useState<DetailInlineEditDraft>({
     title: '',
+    systemPrompt: '',
     userPrompt: '',
   });
   const detailTitleInputRef = useRef<HTMLInputElement>(null);
@@ -1179,6 +1189,13 @@ function PromptSkillMainContent() {
       return 'userPrompt';
     }
     return getDetailInlineUserPromptField(selectedPrompt, showEnglish);
+  }, [selectedPrompt, showEnglish]);
+
+  const detailInlineSystemPromptField = useMemo<'systemPrompt' | 'systemPromptEn'>(() => {
+    if (!selectedPrompt) {
+      return 'systemPrompt';
+    }
+    return getDetailInlineSystemPromptField(selectedPrompt, showEnglish);
   }, [selectedPrompt, showEnglish]);
 
   useEffect(() => {
@@ -1238,9 +1255,10 @@ function PromptSkillMainContent() {
 
     return (
       detailInlineDraft.title.trim() !== detailInlineCurrentValues.title.trim() ||
+      detailInlineDraft.systemPrompt !== detailInlineCurrentValues.systemPrompt ||
       detailInlineDraft.userPrompt !== detailInlineCurrentValues.userPrompt
     );
-  }, [detailInlineCurrentValues, detailInlineDraft.title, detailInlineDraft.userPrompt]);
+  }, [detailInlineCurrentValues, detailInlineDraft.title, detailInlineDraft.systemPrompt, detailInlineDraft.userPrompt]);
 
   const canSaveDetailInlineEdit = useMemo(() => {
     return (
@@ -1264,10 +1282,12 @@ function PromptSkillMainContent() {
     }
 
     const nextTitle = detailInlineDraft.title.trim();
+    const nextSystemPrompt = detailInlineDraft.systemPrompt;
     const nextUserPrompt = detailInlineDraft.userPrompt;
     const updateData: UpdatePromptDTO = {
       title: nextTitle,
     };
+    updateData[detailInlineSystemPromptField] = nextSystemPrompt;
     updateData[detailInlineUserPromptField] = nextUserPrompt;
 
     setIsDetailInlineSaving(true);
@@ -1284,7 +1304,9 @@ function PromptSkillMainContent() {
   }, [
     canSaveDetailInlineEdit,
     detailInlineDraft.title,
+    detailInlineDraft.systemPrompt,
     detailInlineDraft.userPrompt,
+    detailInlineSystemPromptField,
     detailInlineUserPromptField,
     selectedPrompt,
     showToast,
@@ -1731,7 +1753,7 @@ function PromptSkillMainContent() {
                           }}
                           onKeyDown={handleDetailInlineEditKeyDown}
                           placeholder={t('prompt.titlePlaceholder')}
-                          className="h-12 text-xl font-bold"
+                          className="h-12 bg-white/95 dark:bg-white text-xl font-bold shadow-sm"
                         />
                       ) : (
                         <h2
@@ -1921,7 +1943,7 @@ function PromptSkillMainContent() {
                   )}
 
                   {/* System Prompt */}
-                  {(showEnglish ? selectedPrompt.systemPromptEn : selectedPrompt.systemPrompt) && (
+                  {((showEnglish ? selectedPrompt.systemPromptEn : selectedPrompt.systemPrompt) || isDetailInlineEditing) && (
                     <div className="mb-4">
                       <div className="flex items-center justify-between gap-2 mb-2">
                         <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
@@ -1929,7 +1951,39 @@ function PromptSkillMainContent() {
                           {showEnglish && <span className="px-1 py-0.5 rounded bg-primary/10 text-primary text-[10px]">EN</span>}
                         </span>
                       </div>
-                      {renderPromptContent(showEnglish ? (selectedPrompt.systemPromptEn || '') : (selectedPrompt.systemPrompt || ''))}
+                      {isDetailInlineEditing ? (
+                        <Textarea
+                          aria-label={t('prompt.systemPromptLabel', 'System Prompt')}
+                          value={detailInlineDraft.systemPrompt}
+                          onChange={(event) => {
+                            const nextSystemPrompt = event.target.value;
+                            setDetailInlineDraft((prev) => ({
+                              ...prev,
+                              systemPrompt: nextSystemPrompt,
+                            }));
+                          }}
+                          onKeyDown={handleDetailInlineEditKeyDown}
+                          className="min-h-[120px] bg-white/95 dark:bg-white text-[14px] leading-relaxed font-mono shadow-sm"
+                          rows={4}
+                          enableMarkdownList
+                        />
+                      ) : (
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          aria-label={t('prompt.inlineEditSystemPromptAria', 'Double-click to edit system prompt')}
+                          onDoubleClick={openDetailInlineEdit}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault();
+                              openDetailInlineEdit();
+                            }
+                          }}
+                          className="cursor-text rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                        >
+                          {renderPromptContent(showEnglish ? (selectedPrompt.systemPromptEn || '') : (selectedPrompt.systemPrompt || ''))}
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -1962,7 +2016,7 @@ function PromptSkillMainContent() {
                           }));
                         }}
                         onKeyDown={handleDetailInlineEditKeyDown}
-                        className="min-h-[280px] text-[14px] leading-relaxed font-mono"
+                        className="min-h-[280px] bg-white/95 dark:bg-white text-[14px] leading-relaxed font-mono shadow-sm"
                         rows={12}
                         enableMarkdownList
                       />

@@ -182,6 +182,7 @@
     "systemPromptOptional": "System Prompt（選填）",
     "systemPromptPlaceholder": "設定 AI 的角色和行為...",
     "userPromptLabel": "User Prompt",
+    "inlineEditSystemPromptAria": "雙擊編輯系統提示詞",
     "inlineEditUserPromptAria": "雙擊編輯使用者提示詞",
     "userPromptPlaceholder": "輸入你的 Prompt 內容，可以使用 {{變數名}} 或 {{變數名:範例值}} 定義變數...",
     "variableTip": "變數提示",

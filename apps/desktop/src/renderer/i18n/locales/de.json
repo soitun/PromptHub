@@ -182,6 +182,7 @@
     "systemPromptOptional": "System Prompt (optional)",
     "systemPromptPlaceholder": "Rolle und Verhalten der KI festlegen...",
     "userPromptLabel": "User Prompt",
+    "inlineEditSystemPromptAria": "Doppelklicken, um den System-Prompt zu bearbeiten",
     "inlineEditUserPromptAria": "Doppelklicken, um den Benutzer-Prompt zu bearbeiten",
     "userPromptPlaceholder": "Geben Sie Ihren Prompt ein, verwenden Sie {{variablenName}} oder {{variablenName:Beispiel}} für Variablen...",
     "variableTip": "Variablen-Tipp",
