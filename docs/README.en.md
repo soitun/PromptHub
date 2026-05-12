@@ -1,8 +1,8 @@
 <div align="center">
   <img src="./imgs/icon.png" alt="PromptHub Logo" width="120" height="120" />
   <h1>PromptHub</h1>
-  <p><strong>🚀 Open-Source, Local-First AI Prompt & Skill Manager</strong></p>
-  <p>Prompt Management · Skill Store · Multi-Platform Install · Version Control · Variable Templates · Multi-Model Testing — All-in-one AI Workspace</p>
+  <p><strong>🚀 An all-in-one AI toolbox for prompts, skills, and agent assets</strong></p>
+  <p>Reuse prompts · Distribute skills in one click · Manage agent assets · Cloud sync · Backup · Version control</p>
   
   <p>
     <a href="https://github.com/legeling/PromptHub/stargazers"><img src="https://img.shields.io/github/stars/legeling/PromptHub?style=flat-square&color=yellow" alt="GitHub Stars"/></a>
@@ -32,59 +32,33 @@
 
 <br/>
 
-> 💡 **Why PromptHub?**
->
-> PromptHub is more than a prompt manager — it's an **AI Skill Distribution Center**. Manage your prompts and SKILL.md skills, install them to Claude Code, Cursor, Windsurf, Codex and 15+ AI coding tools with one click. Version control, variable templates, multi-model testing, all data stored locally, privacy-first.
-
----
-
-## 📥 Download
-
 <div align="center">
   <a href="https://github.com/legeling/PromptHub/releases">
-    <img src="https://img.shields.io/badge/📥_Download-Releases_Page-blue?style=for-the-badge" alt="Download"/>
+    <img src="https://img.shields.io/badge/📥_Download_now-Releases-blue?style=for-the-badge&logo=github" alt="Download"/>
   </a>
 </div>
 
-| Platform |                                                                                                                                                                                                                Download                                                                                                                                                                                                                 |
-| :------: | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-| Windows  | [![Windows x64](https://img.shields.io/badge/Windows_x64-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-Setup-0.5.5-x64.exe) [![Windows arm64](https://img.shields.io/badge/Windows_arm64-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-Setup-0.5.5-arm64.exe) |
-|  macOS   |   [![macOS Apple Silicon](https://img.shields.io/badge/macOS_Apple_Silicon-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.5.5-arm64.dmg) [![macOS Intel](https://img.shields.io/badge/macOS_Intel-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.5.5-x64.dmg)   |
-|  Linux   |       [![Linux AppImage](https://img.shields.io/badge/Linux_AppImage-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.5.5-x64.AppImage) [![Linux deb](https://img.shields.io/badge/Linux_deb-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/legeling/PromptHub/releases/latest/download/prompthub_0.5.5_amd64.deb)        |
+<br/>
+
+> 💡 **Why PromptHub?**
+>
+> PromptHub is more than a prompt manager. It is a local-first workspace for prompts, SKILL.md skills, and agent assets. Organize prompts, scan and distribute skills to Claude Code, Cursor, Windsurf, Codex, and 15+ AI tools, then keep personal and project AI assets portable with cloud sync, backup, version control, and privacy-first local storage.
 
 ---
 
-## ✨ Features
+## How to Use PromptHub
 
-### 📝 Prompt Management
+| Format | Best for | Core value |
+| ------ | -------- | ---------- |
+| Desktop App | Most individual users, heavy prompt users, AI coding workflows | A local-first primary workspace for prompts, skills, and project-level AI assets |
+| Self-Hosted Web | Browser access, personal self-hosting, using Web as a backup/restore target | A lightweight browser workspace that can act as a desktop sync target |
+| CLI | Batch workflows, scripts, automation, pipelines | Direct access to local PromptHub data and managed skill repositories |
 
-- Create, edit, delete with folder and tag organization
-- Auto-save version history with view, compare and rollback
-- Template variables `{{variable}}` with dynamic replacement on copy
-- Full-text search, favorites, multi-media attachments
+If you are new to PromptHub, the recommended path is:
 
-### 🧩 Skill Management 🆕
-
-- **Skill Store**: 20+ curated AI agent skills from Anthropic, OpenAI, etc.
-- **Multi-Platform Install**: One-click install to Claude Code, Cursor, Windsurf, Codex, Kiro, Gemini CLI, Qoder, QoderWork, CodeBuddy and 15+ platforms
-- **Local Scan**: Auto-discover local SKILL.md files, preview and selectively import
-- **Symlink/Copy Mode**: Symlink for auto-sync edits or independent copy
-- **AI Translation**: Immersive (interleaved) or full translation of skill content
-- **Tag Filtering**: Filter skills by tags in sidebar
-
-### 🤖 AI Capabilities
-
-- Built-in multi-model testing for mainstream providers
-- Parallel comparison testing across models
-- Image generation model testing
-- AI skill content generation and polishing
-
-### 💾 Data & Sync
-
-- All data stored locally, privacy-first
-- Full backup/restore (`.phub.gz` compressed)
-- WebDAV sync (Nutstore, Nextcloud, etc.)
-- Dark/Light/System themes, custom theme colors, local background images, 7 languages, cross-platform (macOS/Windows/Linux)
+1. Start with the desktop app to organize prompts and skills.
+2. Add WebDAV or self-hosted PromptHub Web when you need browser access or cross-device backup.
+3. Add the CLI when you need automation.
 
 ## 📸 Screenshots
 
@@ -92,11 +66,14 @@
   <p><strong>Main Interface</strong></p>
   <img src="./imgs/1-index.png" width="80%" alt="Main Interface"/>
   <br/><br/>
-  <p><strong>Gallery View</strong></p>
-  <img src="./imgs/2-gallery-view.png" width="80%" alt="Gallery View"/>
+  <p><strong>Skill Store</strong></p>
+  <img src="./imgs/10-skill-store.png" width="80%" alt="Skill Store"/>
   <br/><br/>
-  <p><strong>List View</strong></p>
-  <img src="./imgs/3-list-view.png" width="80%" alt="List View"/>
+  <p><strong>Skill Detail and Platform Install</strong></p>
+  <img src="./imgs/11-skill-platform-install.png" width="80%" alt="Skill Detail and Platform Install"/>
+  <br/><br/>
+  <p><strong>Skill File Editing and Version Diff</strong></p>
+  <img src="./imgs/12-skill-files-version-diff.png" width="80%" alt="Skill File Editing and Version Diff"/>
   <br/><br/>
   <p><strong>Data Backup</strong></p>
   <img src="./imgs/4-backup.png" width="80%" alt="Data Backup"/>
@@ -104,24 +81,66 @@
   <p><strong>Theme & Background Settings</strong></p>
   <img src="./imgs/5-theme.png" width="80%" alt="Theme & Background Settings"/>
   <br/><br/>
-  <p><strong>Bilingual Mode</strong></p>
-  <img src="./imgs/6-double-language.png" width="80%" alt="Bilingual Mode"/>
-  <br/><br/>
-  <p><strong>Variable Filling</strong></p>
-  <img src="./imgs/7-variable.png" width="80%" alt="Variable Filling"/>
-  <br/><br/>
   <p><strong>Version Compare</strong></p>
   <img src="./imgs/8-version-compare.png" width="80%" alt="Version Compare"/>
-  <br/><br/>
-  <p><strong>Multi-language Support</strong></p>
-  <img src="./imgs/9-i18n.png" width="80%" alt="Multi-language Support"/>
 </div>
 
-## 📦 Installation
+## ✨ Features
+
+### 📝 Prompt Management
+
+- Create, edit, and delete with folders and tags
+- Auto-save version history with compare and rollback
+- Template variables `{{variable}}` for copy, testing, and distribution flows
+- Favorites, full-text search, attachments, and media previews
+
+### 🧩 Skill Distribution & Management
+
+- **Skill Store**: 20+ curated skills from Anthropic, OpenAI, and more
+- **Multi-Platform Install**: One-click install to Claude Code, Cursor, Windsurf, Codex, Kiro, Gemini CLI, Qoder, QoderWork, CodeBuddy, and 15+ platforms
+- **Local Scan**: Discover local `SKILL.md` files, preview them, and import selectively
+- **Symlink/Copy Mode**: Keep edits synced via symlink or copy independently
+- **Platform Target Directories**: Override skill directories per platform while keeping scan and distribution aligned
+- **AI Translation & Polishing**: Translate or refine full skill content from inside PromptHub
+- **Tag Filtering**: Filter skills quickly from the sidebar
+
+### 🤖 Project and Agent Assets
+
+- Scan common project folders such as `.claude/skills`, `.agents/skills`, `skills`, and `.gemini`
+- Manage personal libraries, local repos, and project-level AI assets from one place
+- Keep prompts, skills, and project assets portable with local-first storage, sync, and backup
+
+### 🧪 AI Testing & Generation
+
+- Built-in AI testing for mainstream providers
+- Parallel prompt comparison across multiple models
+- Image generation model testing
+- AI-assisted skill generation and polishing
+
+### 💾 Data & Sync
+
+- All data stored locally, privacy-first
+- Full backup and restore with `.phub.gz`
+- WebDAV sync (Nutstore, Nextcloud, and more)
+- Use self-hosted PromptHub Web as a desktop backup and restore target
+- Startup sync and scheduled sync
+
+### 🎨 UI & Security
+
+- Card, gallery, and list views
+- Dark, light, and system themes with custom colors
+- Custom background images
+- 7 languages, markdown rendering, code highlight, and cross-platform support
+- Master password protection
+- Private folders (beta)
+
+## 📥 Desktop Download & Installation
+
+If you are getting started, begin with the desktop app.
 
 ### Download
 
-Download the latest version v0.5.5 from [Releases](https://github.com/legeling/PromptHub/releases):
+Download the latest version `v0.5.5` from [Releases](https://github.com/legeling/PromptHub/releases):
 
 | Platform |                                                                                                                                                                                                                Download                                                                                                                                                                                                                 |
 | :------: | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
@@ -130,9 +149,12 @@ Download the latest version v0.5.5 from [Releases](https://github.com/legeling/P
 |  Linux   |       [![Linux AppImage](https://img.shields.io/badge/Linux_AppImage-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.5.5-x64.AppImage) [![Linux deb](https://img.shields.io/badge/Linux_deb-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/legeling/PromptHub/releases/latest/download/prompthub_0.5.5_amd64.deb)        |
 | Preview  | [![Preview Prereleases](https://img.shields.io/badge/Preview_Prereleases-8B5CF6?style=for-the-badge&logo=github&logoColor=white)](https://github.com/legeling/PromptHub/releases?q=prerelease%3Atrue) |
 
-> Preview builds are published as GitHub `Prereleases`. Enabling the preview update channel in Settings makes PromptHub check prerelease builds.
+> 💡 **Install tips**
 >
-> To return to stable update checks, turn the preview channel off first. PromptHub never auto-downgrades from a newer preview build to an older stable release.
+> - **macOS**: Apple Silicon (M1/M2/M3/M4) should use `arm64`; Intel Macs should use `x64`
+> - **Windows**: Most devices should use `x64`; only Windows on ARM devices should use `arm64`
+> - **Preview channel**: Preview builds are published as GitHub `Prereleases`; enabling the preview channel in Settings checks prerelease builds only
+> - **Back to stable**: Turn the preview channel off before returning to stable checks; PromptHub never auto-downgrades from a newer preview build to an older stable release
 
 ### macOS Install via Homebrew
 
@@ -143,14 +165,14 @@ brew install --cask prompthub
 
 ### Homebrew Upgrade Path
 
-If you installed PromptHub via Homebrew, use Homebrew for all future upgrades and do not mix it with the in-app DMG update flow:
+If you installed PromptHub via Homebrew, use Homebrew for future upgrades and do not mix it with the in-app DMG flow:
 
 ```bash
 brew update
 brew upgrade --cask prompthub
 ```
 
-If the local Homebrew state looks inconsistent after the tap has already been updated, reinstall the current cask:
+If the local Homebrew state looks inconsistent, reinstall the current cask:
 
 ```bash
 brew reinstall --cask prompthub
@@ -172,32 +194,70 @@ sudo xattr -rd com.apple.quarantine /Applications/PromptHub.app
 
 > 💡 **Tip**: If the app is installed elsewhere, replace the path with the actual installation path.
 
-**Or**: Open "System Settings" → "Privacy & Security" → scroll down to Security section → click "Open Anyway".
+**Or**: Open "System Settings" → "Privacy & Security" → scroll down to the Security section → click "Open Anyway".
 
 <div align="center">
   <img src="./imgs/install.png" width="60%" alt="macOS Installation"/>
 </div>
 
-### Build from Source
+### Run Desktop from Source
 
 ```bash
-# Clone repository
 git clone https://github.com/legeling/PromptHub.git
 cd PromptHub
-
-# Install dependencies
 pnpm install
 
-# Development mode
-pnpm dev
+# Start desktop development
+pnpm electron:dev
 
-# Build application
+# Build desktop
 pnpm build
+
+# Build self-hosted web when needed
+pnpm build:web
 ```
+
+> `pnpm build` at the repository root only builds the desktop app. Run `pnpm build:web` explicitly when you need the web build.
+
+## 🚀 Quick Start
+
+### 1. Create your first Prompt
+
+Click the "New" button and fill in the title, description, `System Prompt`, `User Prompt`, and tags.
+
+### 2. Use template variables
+
+Use `{{variable_name}}` syntax in your prompts:
+
+```text
+Please translate the following {{source_lang}} text to {{target_lang}}:
+
+{{text}}
+```
+
+### 3. Bring skills into your workspace
+
+- Add curated skills from the Skill Store
+- Scan local or project `SKILL.md` files
+- Continue editing, translating, diffing, and distributing them from My Skills
+
+### 4. Distribute to AI tools
+
+- Choose target platforms such as Claude Code, Cursor, Windsurf, Codex, or Gemini CLI
+- PromptHub installs skills into each platform directory for you
+
+> 🖥️ **Supported Platforms**: Claude Code, GitHub Copilot, Cursor, Windsurf, Kiro, Gemini CLI, Trae, OpenCode, Codex CLI, Roo Code, Amp, OpenClaw, Qoder, QoderWork, CodeBuddy
+
+### 5. Set up sync and backup
+
+- Configure WebDAV for multi-device sync
+- Or connect PromptHub Web in `Settings -> Data` as a backup and restore target
 
 ## Command Line CLI
 
-PromptHub includes both a GUI and a CLI.
+PromptHub includes both a GUI and a CLI. The CLI is useful for scripts, batch operations, imports, scans, and automation.
+
+### Use it directly after installing the desktop app
 
 > ⚠️ **Current behavior**
 >
@@ -205,12 +265,11 @@ PromptHub includes both a GUI and a CLI.
 > - After reopening your terminal, you can run `prompthub --args` directly
 > - Source runs and built CLI bundles are still available for development and debugging
 
-### Use it directly after installing the desktop app
-
 ```bash
 prompthub --help
 prompthub prompt list
 prompthub skill list
+prompthub skill scan
 prompthub --output table prompt search SEO --favorite
 ```
 
@@ -222,20 +281,20 @@ prompthub --output table prompt search SEO --favorite
 ### Run from source
 
 ```bash
-pnpm install
-pnpm cli:dev -- --help
-pnpm cli:dev -- prompt list
-pnpm cli:dev -- skill list
-pnpm cli:dev -- skill install ~/.claude/skills/my-skill
+pnpm --filter @prompthub/desktop cli:dev -- --help
+pnpm --filter @prompthub/desktop cli:dev -- prompt list
+pnpm --filter @prompthub/desktop cli:dev -- skill list
+pnpm --filter @prompthub/desktop cli:dev -- skill scan
+pnpm --filter @prompthub/desktop cli:dev -- skill install ~/.claude/skills/my-skill
 ```
 
 ### Run the built CLI bundle
 
 ```bash
 pnpm build
-node out/cli/prompthub.cjs --help
-node out/cli/prompthub.cjs prompt list
-node out/cli/prompthub.cjs skill list
+node apps/desktop/out/cli/prompthub.cjs --help
+node apps/desktop/out/cli/prompthub.cjs prompt list
+node apps/desktop/out/cli/prompthub.cjs skill list
 ```
 
 ### Common options
@@ -252,76 +311,78 @@ node out/cli/prompthub.cjs skill list
 ### Notes
 
 - The CLI reads and writes PromptHub's local database and managed skill repository directly
-- It is suitable for scripts, batch operations, imports, scans, and automation
 - The desktop app installs the shell command wrapper on first launch
 - If you move the app later, launching PromptHub again refreshes the wrapper target
 
-## 🚀 Quick Start
+## 🌐 Self-Hosted Web
 
-### 1. Create a Prompt
+PromptHub Web is a lightweight self-hosted browser workspace, not the official SaaS cloud product. It is a good fit if you want to:
 
-Click the "New" button and fill in:
+- access your PromptHub data from a browser
+- use PromptHub Web as a desktop backup and restore target
+- avoid relying only on WebDAV and prefer a more direct self-hosted workspace
 
-- **Title** - Prompt name
-- **Description** - Brief usage description
-- **System Prompt** - Set AI role (optional)
-- **User Prompt** - The actual prompt content
-- **Tags** - For categorization and search
+### Docker Compose Quick Start
 
-### 2. Use Variables
+Run this from the repository root:
 
-Use `{{variable_name}}` syntax in your prompts:
-
-```
-Please translate the following {{source_lang}} text to {{target_lang}}:
-
-{{text}}
+```bash
+cd apps/web
+cp .env.example .env
+docker compose up -d --build
 ```
 
-### 3. Copy and Use
+Important variables:
 
-Select a prompt and click "Copy" to copy the content to clipboard.
+- `JWT_SECRET`: at least 32 random characters for authentication
+- `ALLOW_REGISTRATION=false`: recommended after bootstrap so public registration stays off
+- `DATA_ROOT`: root directory used for `data/`, `config/`, `logs/`, and `backups/`
 
-### 4. Version Management
+Default access URL: `http://localhost:3871`
 
-Edit history is automatically saved. Click "History" to view and restore previous versions.
+### First Boot
 
-### 5. Skill Management
+- A fresh instance opens `/setup` instead of the login page
+- The first user becomes the administrator
+- Public registration stays off after the first admin account is created
 
-1. **Add from Store**: Browse the Skill Store and click "Add to Library"
-2. **Install to Platforms**: After adding, a platform selection dialog appears automatically
-3. **Scan Local**: Auto-discover existing SKILL.md files, preview and selectively import
-4. **Edit & Polish**: Edit skill content in your library, with AI generation and polishing support
+### Connect Desktop to PromptHub Web
 
-> 🖥️ **Supported Platforms**: Claude Code, GitHub Copilot, Cursor, Windsurf, Kiro, Gemini CLI, Trae, OpenCode, Codex CLI, Roo Code, Amp, OpenClaw, Qoder, QoderWork, CodeBuddy
+In desktop `Settings -> Data`, configure:
 
-## 🛠️ Tech Stack
+- self-hosted PromptHub URL
+- username
+- password
 
-| Category         | Technology              |
-| ---------------- | ----------------------- |
-| Framework        | Electron 33             |
-| Frontend         | React 18 + TypeScript 5 |
-| Styling          | TailwindCSS             |
-| State Management | Zustand                 |
-| Local Storage    | SQLite                  |
-| Build Tools      | Vite + electron-builder |
+Then desktop can:
 
-## 📁 Project Structure
+- test the connection
+- upload its current local workspace to PromptHub Web
+- download and restore from PromptHub Web
+- pull once on startup
+- push updates on a schedule
 
+### Data & Backup
+
+Back up the entire data root, not only the SQLite file. Typical persisted paths include:
+
+```bash
+apps/web/data
+apps/web/config
+apps/web/logs
 ```
-PromptHub/
-├── src/
-│   ├── main/           # Electron main process
-│   ├── preload/        # Preload scripts
-│   ├── renderer/       # React renderer process
-│   │   ├── components/ # UI components
-│   │   ├── stores/     # Zustand state management
-│   │   ├── services/   # Database services
-│   │   └── styles/     # Global styles
-│   └── shared/         # Shared types
-├── resources/          # Static assets
-└── package.json
-```
+
+These directories can contain:
+
+- `data/prompthub.db`
+- `data/prompts/...`
+- `data/skills/...`
+- `data/assets/...`
+- `config/settings/...`
+- `backups/...`
+- `logs/...`
+
+For full deployment, upgrade, backup, GHCR image, and development notes, see [`web-self-hosted.md`](./web-self-hosted.md).
 
 ## 📈 Star History
 
@@ -392,15 +453,70 @@ See full changelog: **[CHANGELOG.md](../CHANGELOG.md)**
 
 > 📋 [View full changelog](../CHANGELOG.md)
 
-## 🤝 Contribution
+## 🤝 Contribution & Development
 
-Contributions are welcome! Please follow these steps:
+### Entry points
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+- Root `CONTRIBUTING.md`: GitHub-discoverable contribution entry
+- `docs/contributing.md`: current canonical contribution guide
+- `docs/README.md`: public docs index
+- `spec/README.md`: internal SSD / spec index
+
+### 🛠️ Tech Stack
+
+| Category | Technology |
+| -------- | ---------- |
+| Desktop Runtime | Electron 33 |
+| Desktop Frontend | React 18 + TypeScript 5 + Vite 6 |
+| Self-Hosted Web | Hono + React + Vite |
+| Styling | Tailwind CSS 3 |
+| State Management | Zustand |
+| Data Layer | SQLite, `better-sqlite3`, `node-sqlite3-wasm` |
+| Monorepo Packages | `packages/shared`, `packages/db` |
+
+### 📁 Repository Structure
+
+```text
+PromptHub/
+├── apps/
+│   ├── desktop/   # Electron desktop app + CLI
+│   └── web/       # self-hosted web app
+├── packages/
+│   ├── db/        # shared data layer
+│   └── shared/    # shared types, constants, contracts
+├── docs/          # public-facing docs
+├── spec/          # internal SSD / spec system
+├── website/       # website resources
+├── README.md
+├── CONTRIBUTING.md
+└── package.json
+```
+
+### Common Commands
+
+| Task | Command |
+| ---- | ------- |
+| Desktop development | `pnpm electron:dev` |
+| Web development | `pnpm dev:web` |
+| Desktop build | `pnpm build` |
+| Web build | `pnpm build:web` |
+| Desktop lint | `pnpm lint` |
+| Web lint | `pnpm lint:web` |
+| Desktop full tests | `pnpm test -- --run` |
+| Web full verification | `pnpm verify:web` |
+| CLI from source | `pnpm --filter @prompthub/desktop cli:dev -- --help` |
+| E2E | `pnpm test:e2e` |
+| Desktop release gate | `pnpm test:release` |
+
+### Docs and SSD Workflow
+
+- `docs/` is for users, deployers, and contributors
+- `spec/` is for internal SSD, stable domain docs, logic, assets, architecture, and active changes
+- Non-trivial work should start with `spec/changes/active/<change-key>/`
+- Each important change should include `proposal.md`, `specs/<domain>/spec.md`, `design.md`, `tasks.md`, and `implementation.md`
+- Sync durable internal truth back into `spec/` and public-facing contract changes back into `docs/` or `README.md`
+
+Full contribution rules, testing gates, and submission expectations live in [`contributing.md`](./contributing.md).
 
 ## 📄 License
 

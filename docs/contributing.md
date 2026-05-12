@@ -1,45 +1,85 @@
 # 贡献指南
 
-感谢你对 PromptHub 的关注。我们欢迎任何形式的贡献。
+仓库根目录的 `CONTRIBUTING.md` 是 GitHub 自动发现的入口文件；本文件是 PromptHub 当前有效的 canonical 贡献指南。
 
-## 快速开始
+感谢你对 PromptHub 的关注。我们欢迎代码、测试、文档、设计、部署说明和问题复现等各种形式的贡献。
 
-### 环境要求
+## 先判断你要改哪里
+
+| 区域 | 路径 | 说明 |
+| ---- | ---- | ---- |
+| 桌面端 | `apps/desktop` | Electron 桌面应用、Renderer、Main Process、CLI |
+| 自部署 Web | `apps/web` | 轻量自托管浏览器工作区 |
+| 共享包 | `packages/shared`、`packages/db` | 共享类型、协议、数据层 |
+| 对外文档 | `docs/`、根 `README.md`、根 `CONTRIBUTING.md` | 用户、部署者、贡献者可读文档 |
+| 内部 SSD | `spec/` | 稳定 spec、设计约束、活跃变更、实施记录 |
+
+如果你在开发自部署 Web，请优先阅读 [docs/web-self-hosted.md](./web-self-hosted.md)。
+
+## 环境要求
 
 - Node.js 22+
 - pnpm 9+
 - Git
 
-### 本地开发
+## 快速启动
+
+### 桌面端
 
 ```bash
-# 1. Fork 并克隆仓库
 git clone https://github.com/YOUR_USERNAME/PromptHub.git
 cd PromptHub
-
-# 2. 安装依赖
 pnpm install
-
-# 3. 启动桌面开发环境
 pnpm electron:dev
-
-# 4. 运行测试
-pnpm test -- --run
 ```
 
-如果你在开发 Web 自部署版本，请优先阅读 [docs/web-self-hosted.md](./web-self-hosted.md)。
+### 自部署 Web
 
-## DOS / SSD 工作流
+```bash
+pnpm install
+pnpm dev:web
+```
 
-PromptHub 对非 trivial 改动采用 DOS（Documentation Operating System）工作流，内部结构参考 OpenSpec：稳定领域文档进入 `spec/domains/`，活跃增量进入 `spec/changes/active/`，完成后归档到 `spec/changes/archive/`。
+### CLI
 
-当你要做以下工作时，请先在 `spec/changes/active/<change-key>/` 建变更目录：
+```bash
+pnpm --filter @prompthub/desktop cli:dev -- --help
+```
+
+## 常用命令
+
+| 场景 | 命令 |
+| ---- | ---- |
+| 桌面端开发 | `pnpm electron:dev` |
+| Web 开发 | `pnpm dev:web` |
+| 桌面端构建 | `pnpm build` |
+| Web 构建 | `pnpm build:web` |
+| 桌面端 lint | `pnpm lint` |
+| Web lint | `pnpm lint:web` |
+| 桌面端 typecheck | `pnpm typecheck` |
+| Web typecheck | `pnpm typecheck:web` |
+| 桌面端全量测试 | `pnpm test -- --run` |
+| Web 全量验证 | `pnpm verify:web` |
+| E2E | `pnpm test:e2e` |
+| 发布前桌面门禁 | `pnpm test:release` |
+
+> `pnpm build` 在仓库根默认只构建桌面版；如果改动了 Web，请显式执行 `pnpm build:web` 或 `pnpm verify:web`。
+
+## 文档与 SSD 工作流
+
+PromptHub 对非 trivial 改动采用 SSD（Specification / Design / Delivery）工作流：
+
+- `docs/`：对外文档，面向用户、部署者、贡献者
+- `spec/`：内部 SSD、稳定领域文档、稳定逻辑、固定资产、活跃变更与归档
+
+以下改动通常都应先建立或更新 `spec/changes/active/<change-key>/`：
 
 - 新功能
-- 大型 bug 修复
+- 多文件 bug 修复
 - 重构
 - 迁移
-- 跨 desktop / web / packages 的联动修改
+- 跨 `desktop / web / packages` 的联动修改
+- 重要文档结构重构
 
 每个重要变更至少包含：
 
@@ -49,76 +89,42 @@ PromptHub 对非 trivial 改动采用 DOS（Documentation Operating System）工
 - `tasks.md`
 - `implementation.md`
 
-完整规则见：
+实施完成后需要同步：
+
+- 稳定行为到 `spec/domains/`
+- 稳定逻辑到 `spec/logic/`
+- 固定资产到 `spec/assets/`
+- 长期工程约束到 `spec/architecture/`
+- 对外契约到 `docs/` 或根 `README.md`
+
+更多入口见：
 
 - [docs/README.md](./README.md)
 - [spec/README.md](../spec/README.md)
 
-这次结构也比旧版更完整：补齐了 stable domains、delta specs、stable logic、assets、archive、legacy 和模板目录，历史内部文档已恢复到 `spec/`，不再散落在 `docs/`。
+## 代码与文档约束
 
-## 贡献类型
+- 使用 TypeScript，遵循 ESLint / Prettier 规则
+- 不使用 `any`、`@ts-ignore`、空 `catch` 来掩盖问题
+- 行为变化必须补测试，文档变化必须同步相关入口文档
+- 桌面端新增用户可见文案时，需要同步 i18n locale 文件
+- 不提交密钥、密码、token 或其他敏感信息
 
-### Bug 修复
+## Commit 与分支建议
 
-1. 先在 Issues 中搜索是否已有相关问题
-2. 如果没有，创建新的 Issue 或 Discussion
-3. 对于小修复，可以直接提交 PR
-4. 对于跨模块或高风险修复，先建立变更目录
-
-### 新功能
-
-1. 先在 Issues 或 Discussions 中讨论方向
-2. 对非 trivial 功能先建立变更目录
-3. 遵循现有的代码风格、类型规则、测试标准与文档同步规则
-4. 提交 PR 前完成文档与测试同步
-
-### 文档改进
-
-- 修复错别字
-- 补充说明
-- 添加示例
-- 同步代码与文档不一致的地方
-- 改善 DOS / architecture / deployment 文档结构
-
-## 开发规范
-
-### 代码风格
-
-- 使用 TypeScript
-- 遵循 ESLint 规则
-- 使用 Prettier 格式化
-- 不用 `any` / `@ts-ignore` 逃避问题
-
-```bash
-pnpm lint
-pnpm format
-pnpm typecheck
-```
-
-### Commit 规范
-
-使用 [Conventional Commits](https://www.conventionalcommits.org/):
+使用 [Conventional Commits](https://www.conventionalcommits.org/)：
 
 ```text
 feat: 添加新功能
 fix: 修复 Bug
 docs: 更新文档
-style: 代码格式调整
 refactor: 代码重构
 test: 添加测试
 chore: 构建/工具变更
 perf: 性能优化
 ```
 
-示例：
-
-```text
-feat(skill): add update conflict protection
-fix(sync): prevent web visibility regression
-docs: refine DOS workflow and templates
-```
-
-### 分支命名
+分支命名建议：
 
 ```text
 feature/xxx
@@ -127,35 +133,13 @@ docs/xxx
 refactor/xxx
 ```
 
-## 测试
+## PR 检查清单
 
-```bash
-# 全量桌面测试
-pnpm test -- --run
-
-# 单文件测试
-pnpm test -- <path> --run
-
-# Web 验证
-pnpm verify:web
-
-# E2E
-pnpm test:e2e
-```
-
-发布相关改动建议执行：
-
-```bash
-pnpm --filter @prompthub/desktop test:release
-```
-
-## PR 流程
-
-1. 确保相关测试通过
-2. 更新相关文档
-3. 对非 trivial 改动同步 `implementation.md`
-4. 创建 Pull Request
-5. 根据 review 反馈修正
+1. 按改动范围运行对应的 lint、测试、构建或验证命令。
+2. 如果是非 trivial 改动，更新或新建 `spec/changes/active/<change-key>/`。
+3. 同步用户文档、开发文档和 `implementation.md`。
+4. 在 PR 描述中说明变更动机、影响范围、验证方式和残留风险。
+5. 根据 review 反馈继续修正。
 
 ## 交流
 

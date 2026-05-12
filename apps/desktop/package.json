@@ -64,6 +64,7 @@
     "perf:budget:ci": "node --experimental-strip-types scripts/profile-large-datasets.mts --prompts=5000 --skills=2000 --iterations=20"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1045.0",
     "node-sqlite3-wasm": "^0.8.0"
   },
   "devDependencies": {
@@ -94,6 +95,7 @@
     "eslint": "^9.0.0",
     "eslint-plugin-react": "^7.37.0",
     "eslint-plugin-react-hooks": "^5.0.0",
+    "fflate": "^0.8.2",
     "framer-motion": "^12.26.1",
     "hast-util-sanitize": "^5.0.0",
     "highlight.js": "^11.8.0",
@@ -121,7 +123,6 @@
     "vite-plugin-electron-renderer": "^0.14.6",
     "vitest": "^2.0.0",
     "wait-on": "^8.0.0",
-    "zustand": "^5.0.0",
-    "fflate": "^0.8.2"
+    "zustand": "^5.0.0"
   }
 }
