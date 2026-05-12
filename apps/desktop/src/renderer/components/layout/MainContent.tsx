@@ -10,14 +10,27 @@ import {
   PROMPT_LIST_PANE_WIDTH_MIN,
 } from '../../stores/ui.store';
 import { resolveScenarioModel } from '../../services/ai-defaults';
-import { RulesManager } from '../rules/RulesManager';
+import { PromptListHeader } from '../prompt/PromptListHeader';
+import type { OutputFormatConfig, VariableInputImageAttachment } from '../prompt/VariableInputModal';
 
 // Lazy load SkillManager for better initial load performance
 // 懒加载 SkillManager 以提升初始加载性能
 const SkillManager = lazy(() => import('../skill/SkillManager').then(m => ({ default: m.SkillManager })));
+const RulesManager = lazy(() => import('../rules/RulesManager').then(m => ({ default: m.RulesManager })));
+const EditPromptModal = lazy(() => import('../prompt/EditPromptModal').then(m => ({ default: m.EditPromptModal })));
+const PromptTableView = lazy(() => import('../prompt/PromptTableView').then(m => ({ default: m.PromptTableView })));
+const PromptGalleryView = lazy(() => import('../prompt/PromptGalleryView').then(m => ({ default: m.PromptGalleryView })));
+const PromptKanbanView = lazy(() => import('../prompt/PromptKanbanView').then(m => ({ default: m.PromptKanbanView })));
+const AiTestModal = lazy(() => import('../prompt/AiTestModal').then(m => ({ default: m.AiTestModal })));
+const PromptDetailModal = lazy(() => import('../prompt/PromptDetailModal').then(m => ({ default: m.PromptDetailModal })));
+const VariableInputModal = lazy(() => import('../prompt/VariableInputModal').then(m => ({ default: m.VariableInputModal })));
+const VersionHistoryModal = lazy(() => import('../prompt/VersionHistoryModal').then(m => ({ default: m.VersionHistoryModal })));
+const loadingFallback = (
+  <div className="flex-1 flex items-center justify-center">
+    <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+  </div>
+);
 import { StarIcon, CopyIcon, HistoryIcon, HashIcon, SparklesIcon, EditIcon, TrashIcon, CheckIcon, PlayIcon, LoaderIcon, XIcon, GitCompareIcon, ClockIcon, GlobeIcon, PinIcon, MessageSquareTextIcon, ImageIcon, DownloadIcon, SaveIcon, ZoomInIcon, Share2Icon, PaperclipIcon } from 'lucide-react';
-import { EditPromptModal, VersionHistoryModal, VariableInputModal, PromptListHeader, PromptTableView, AiTestModal, PromptDetailModal, PromptGalleryView, PromptKanbanView } from '../prompt';
-import type { OutputFormatConfig, VariableInputImageAttachment } from '../prompt/VariableInputModal';
 import { ContextMenu, ContextMenuItem } from '../ui/ContextMenu';
 import { ImagePreviewModal } from '../ui/ImagePreviewModal';
 import { LocalImage } from '../ui/LocalImage';
@@ -215,7 +228,7 @@ export function MainContent() {
   const appModule = useUIStore((state) => state.appModule);
 
   if (appModule === 'rules') {
-    return <RulesManager />;
+    return <Suspense fallback={loadingFallback}><RulesManager /></Suspense>;
   }
 
   return <PromptSkillMainContent />;
@@ -769,7 +782,7 @@ function PromptSkillMainContent() {
       // 根据 promptType 决定调用哪个 API
       if (currentPromptType === 'image') {
          if (!defaultImageModel) {
-             throw new Error(t('mismatchImage') || 'Prompt type is Media but no Image Model configured');
+             throw new Error(t('prompt.mismatchImage') || 'Prompt type is Image but no Image Model configured');
          }
 
          console.log('[MainContent] Image Prompt. Using model:', defaultImageModel.name || defaultImageModel.model);
@@ -1548,7 +1561,7 @@ function PromptSkillMainContent() {
     <main className="flex-1 relative overflow-hidden app-wallpaper-section">
       {/* Skill Mode */}
       {uiViewMode === 'skill' ? (
-        <Suspense fallback={<div className="flex-1 flex items-center justify-center"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>}>
+        <Suspense fallback={loadingFallback}>
           <SkillManager />
         </Suspense>
       ) : (
@@ -1567,23 +1580,25 @@ function PromptSkillMainContent() {
         {/* Table view */}
         {/* 表格视图 */}
         <div className="flex-1 overflow-hidden">
-          <PromptTableView
-            prompts={sortedPrompts}
-            highlightTerms={highlightTerms}
-            onSelect={(id) => selectPrompt(id)}
-            onToggleFavorite={toggleFavorite}
-            onCopy={handleCopyPrompt}
-            onEdit={(prompt) => setEditingPrompt(prompt)}
-            onDelete={handleDeletePrompt}
-            onAiTest={handleAiTestFromTable}
-            onVersionHistory={handleVersionHistory}
-            onViewDetail={handleViewDetail}
-            aiResults={aiResponseCache}
-            onBatchFavorite={handleBatchFavorite}
-            onBatchMove={handleBatchMove}
-            onBatchDelete={handleBatchDelete}
-            onContextMenu={handleContextMenu}
-          />
+          <Suspense fallback={loadingFallback}>
+            <PromptTableView
+              prompts={sortedPrompts}
+              highlightTerms={highlightTerms}
+              onSelect={(id) => selectPrompt(id)}
+              onToggleFavorite={toggleFavorite}
+              onCopy={handleCopyPrompt}
+              onEdit={(prompt) => setEditingPrompt(prompt)}
+              onDelete={handleDeletePrompt}
+              onAiTest={handleAiTestFromTable}
+              onVersionHistory={handleVersionHistory}
+              onViewDetail={handleViewDetail}
+              aiResults={aiResponseCache}
+              onBatchFavorite={handleBatchFavorite}
+              onBatchMove={handleBatchMove}
+              onBatchDelete={handleBatchDelete}
+              onContextMenu={handleContextMenu}
+            />
+          </Suspense>
         </div>
       </div>
 
@@ -1593,19 +1608,23 @@ function PromptSkillMainContent() {
         className={getViewClass('gallery')}
       >
         <PromptListHeader count={sortedPrompts.length} />
-        <PromptGalleryView
-          prompts={visiblePrompts}
-          highlightTerms={highlightTerms}
-          onSelect={(id) => selectPrompt(id)}
-          onToggleFavorite={toggleFavorite}
-          onCopy={handleCopyPrompt}
-          onEdit={(prompt) => setEditingPrompt(prompt)}
-          onDelete={handleDeletePrompt}
-          onAiTest={handleAiTestFromTable}
-          onVersionHistory={handleVersionHistory}
-          onViewDetail={handleViewDetail}
-          onContextMenu={handleContextMenu}
-        />
+        {viewMode === 'gallery' && (
+          <Suspense fallback={loadingFallback}>
+            <PromptGalleryView
+              prompts={visiblePrompts}
+              highlightTerms={highlightTerms}
+              onSelect={(id) => selectPrompt(id)}
+              onToggleFavorite={toggleFavorite}
+              onCopy={handleCopyPrompt}
+              onEdit={(prompt) => setEditingPrompt(prompt)}
+              onDelete={handleDeletePrompt}
+              onAiTest={handleAiTestFromTable}
+              onVersionHistory={handleVersionHistory}
+              onViewDetail={handleViewDetail}
+              onContextMenu={handleContextMenu}
+            />
+          </Suspense>
+        )}
       </div>
 
       {/* Kanban view */}
@@ -1614,19 +1633,23 @@ function PromptSkillMainContent() {
         className={getViewClass('kanban')}
       >
         <PromptListHeader count={sortedPrompts.length} />
-        <PromptKanbanView
-          prompts={visiblePrompts}
-          highlightTerms={highlightTerms}
-          onSelect={(id) => selectPrompt(id)}
-          onToggleFavorite={toggleFavorite}
-          onCopy={handleCopyPrompt}
-          onEdit={(prompt) => setEditingPrompt(prompt)}
-          onDelete={handleDeletePrompt}
-          onAiTest={handleAiTestFromTable}
-          onVersionHistory={handleVersionHistory}
-          onViewDetail={handleViewDetail}
-          onContextMenu={handleContextMenu}
-        />
+        {viewMode === 'kanban' && (
+          <Suspense fallback={loadingFallback}>
+            <PromptKanbanView
+              prompts={visiblePrompts}
+              highlightTerms={highlightTerms}
+              onSelect={(id) => selectPrompt(id)}
+              onToggleFavorite={toggleFavorite}
+              onCopy={handleCopyPrompt}
+              onEdit={(prompt) => setEditingPrompt(prompt)}
+              onDelete={handleDeletePrompt}
+              onAiTest={handleAiTestFromTable}
+              onVersionHistory={handleVersionHistory}
+              onViewDetail={handleViewDetail}
+              onContextMenu={handleContextMenu}
+            />
+          </Suspense>
+        )}
       </div>
 
       {/* Card view mode: two-column layout */}
@@ -1826,7 +1849,7 @@ function PromptSkillMainContent() {
                         : <MessageSquareTextIcon className="w-3 h-3" />
                       }
                       {(selectedPrompt.promptType || 'text') === 'image' 
-                        ? t('prompt.typeImage', '媒体')
+                        ? t('prompt.typeImage', '绘图')
                         : t('prompt.typeText', '文本')
                       }
                     </span>
@@ -1944,7 +1967,21 @@ function PromptSkillMainContent() {
                         enableMarkdownList
                       />
                     ) : (
-                      renderPromptContent(showEnglish ? (selectedPrompt.userPromptEn || selectedPrompt.userPrompt) : selectedPrompt.userPrompt)
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        aria-label={t('prompt.inlineEditUserPromptAria', 'Double-click to edit user prompt')}
+                        onDoubleClick={openDetailInlineEdit}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            openDetailInlineEdit();
+                          }
+                        }}
+                        className="cursor-text rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                      >
+                        {renderPromptContent(showEnglish ? (selectedPrompt.userPromptEn || selectedPrompt.userPrompt) : selectedPrompt.userPrompt)}
+                      </div>
                     )}
                   </div>
 
@@ -2157,144 +2194,164 @@ function PromptSkillMainContent() {
       {/* Edit modal */}
       {/* 编辑弹窗 */}
       {editingPrompt && (
-        <EditPromptModal
-          isOpen={!!editingPrompt}
-          onClose={() => setEditingPrompt(null)}
-          prompt={editingPrompt}
-        />
+        <Suspense fallback={null}>
+          <EditPromptModal
+            isOpen={!!editingPrompt}
+            onClose={() => setEditingPrompt(null)}
+            prompt={editingPrompt}
+          />
+        </Suspense>
       )}
 
       {/* AI test modal (for List/Gallery view) */}
       {/* AI 测试弹窗 (用于 List/Gallery 视图) */}
-      <AiTestModal
-        isOpen={isAiTestModalOpen}
-        onClose={() => {
-          setIsAiTestModalOpen(false);
-          setAiTestPrompt(null);
-        }}
-        prompt={aiTestPrompt}
-        initialMode={aiTestInitialMode}
-        onUsageIncrement={handleAiUsageIncrement}
-        onSaveResponse={handleSaveAiResponse}
-        onAddImage={async (fileName) => {
-          // Add generated image to the currently tested prompt
-          // 将生成的图片添加到当前测试的 Prompt
-          if (aiTestPrompt) {
-            const newImages = [...(aiTestPrompt.images || []), fileName];
-            await updatePrompt(aiTestPrompt.id, { images: newImages });
-            setAiTestPrompt({
-              ...aiTestPrompt,
-              images: newImages,
-            });
-          }
-        }}
-      />
+      {isAiTestModalOpen && (
+        <Suspense fallback={null}>
+          <AiTestModal
+            isOpen={isAiTestModalOpen}
+            onClose={() => {
+              setIsAiTestModalOpen(false);
+              setAiTestPrompt(null);
+            }}
+            prompt={aiTestPrompt}
+            initialMode={aiTestInitialMode}
+            onUsageIncrement={handleAiUsageIncrement}
+            onSaveResponse={handleSaveAiResponse}
+            onAddImage={async (fileName) => {
+              // Add generated image to the currently tested prompt
+              // 将生成的图片添加到当前测试的 Prompt
+              if (aiTestPrompt) {
+                const newImages = [...(aiTestPrompt.images || []), fileName];
+                await updatePrompt(aiTestPrompt.id, { images: newImages });
+                setAiTestPrompt({
+                  ...aiTestPrompt,
+                  images: newImages,
+                });
+              }
+            }}
+          />
+        </Suspense>
+      )}
 
       {/* Detail modal (for List/Gallery view) */}
       {/* 查看详情弹窗 (用于 List/Gallery 视图) */}
-      <PromptDetailModal
-        isOpen={isDetailModalOpen}
-        onClose={() => {
-          setIsDetailModalOpen(false);
-          setDetailPrompt(null);
-        }}
-        prompt={detailPrompt}
-        onCopy={handleCopyPrompt}
-        onEdit={(prompt) => setEditingPrompt(prompt)}
-      />
+      {isDetailModalOpen && (
+        <Suspense fallback={null}>
+          <PromptDetailModal
+            isOpen={isDetailModalOpen}
+            onClose={() => {
+              setIsDetailModalOpen(false);
+              setDetailPrompt(null);
+            }}
+            prompt={detailPrompt}
+            onCopy={handleCopyPrompt}
+            onEdit={(prompt) => setEditingPrompt(prompt)}
+          />
+        </Suspense>
+      )}
 
       {/* Variable input modal (copy) - choose content by language mode */}
       {/* 变量输入弹窗（用于复制） - 根据语言模式选择内容 */}
       {selectedPrompt && (
-        <VariableInputModal
-          isOpen={isVariableModalOpen}
-          onClose={() => setIsVariableModalOpen(false)}
-          promptId={selectedPrompt.id}
-          systemPrompt={showEnglish ? (selectedPrompt.systemPromptEn || selectedPrompt.systemPrompt) : selectedPrompt.systemPrompt}
-          userPrompt={showEnglish ? (selectedPrompt.userPromptEn || selectedPrompt.userPrompt) : selectedPrompt.userPrompt}
-          mode="copy"
-          onCopy={async (text) => {
-            await navigator.clipboard.writeText(text);
-            await incrementUsageCount(selectedPrompt.id);
-            setCopied(true);
-            showToast(t('toast.copied'), 'success', showCopyNotification);
-            setTimeout(() => setCopied(false), 2000);
-            setIsVariableModalOpen(false);
-          }}
-        />
+        <Suspense fallback={null}>
+          <VariableInputModal
+            isOpen={isVariableModalOpen}
+            onClose={() => setIsVariableModalOpen(false)}
+            promptId={selectedPrompt.id}
+            systemPrompt={showEnglish ? (selectedPrompt.systemPromptEn || selectedPrompt.systemPrompt) : selectedPrompt.systemPrompt}
+            userPrompt={showEnglish ? (selectedPrompt.userPromptEn || selectedPrompt.userPrompt) : selectedPrompt.userPrompt}
+            mode="copy"
+            onCopy={async (text) => {
+              await navigator.clipboard.writeText(text);
+              await incrementUsageCount(selectedPrompt.id);
+              setCopied(true);
+              showToast(t('toast.copied'), 'success', showCopyNotification);
+              setTimeout(() => setCopied(false), 2000);
+              setIsVariableModalOpen(false);
+            }}
+          />
+        </Suspense>
       )}
 
       {/* Variable input modal (AI test) - choose content by language mode */}
       {/* 变量输入弹窗（用于 AI 测试） - 根据语言模式选择内容 */}
       {selectedPrompt && (
-        <VariableInputModal
-          isOpen={isAiTestVariableModalOpen}
-          onClose={() => setIsAiTestVariableModalOpen(false)}
-          promptId={selectedPrompt.id}
-          systemPrompt={showEnglish ? (selectedPrompt.systemPromptEn || selectedPrompt.systemPrompt) : selectedPrompt.systemPrompt}
-          userPrompt={showEnglish ? (selectedPrompt.userPromptEn || selectedPrompt.userPrompt) : selectedPrompt.userPrompt}
-          mode="aiTest"
-          onAiTest={(filledSystemPrompt, filledUserPrompt, outputFormat, imageAttachments) => {
-            runAiTest(filledSystemPrompt, filledUserPrompt, undefined, outputFormat, imageAttachments);
-          }}
-          isAiTesting={isTestingAI}
-        />
+        <Suspense fallback={null}>
+          <VariableInputModal
+            isOpen={isAiTestVariableModalOpen}
+            onClose={() => setIsAiTestVariableModalOpen(false)}
+            promptId={selectedPrompt.id}
+            systemPrompt={showEnglish ? (selectedPrompt.systemPromptEn || selectedPrompt.systemPrompt) : selectedPrompt.systemPrompt}
+            userPrompt={showEnglish ? (selectedPrompt.userPromptEn || selectedPrompt.userPrompt) : selectedPrompt.userPrompt}
+            mode="aiTest"
+            onAiTest={(filledSystemPrompt, filledUserPrompt, outputFormat, imageAttachments) => {
+              runAiTest(filledSystemPrompt, filledUserPrompt, undefined, outputFormat, imageAttachments);
+            }}
+            isAiTesting={isTestingAI}
+          />
+        </Suspense>
       )}
 
       {/* Variable input modal (multi-model compare) - choose content by language mode */}
       {/* 变量输入弹窗（用于多模型对比） - 根据语言模式选择内容 */}
       {selectedPrompt && (
-        <VariableInputModal
-          isOpen={isCompareVariableModalOpen}
-          onClose={() => setIsCompareVariableModalOpen(false)}
-          promptId={selectedPrompt.id}
-          systemPrompt={showEnglish ? (selectedPrompt.systemPromptEn || selectedPrompt.systemPrompt) : selectedPrompt.systemPrompt}
-          userPrompt={showEnglish ? (selectedPrompt.userPromptEn || selectedPrompt.userPrompt) : selectedPrompt.userPrompt}
-          mode="aiTest"
-          onAiTest={(filledSystemPrompt, filledUserPrompt, _outputFormat, imageAttachments) => {
-            runModelCompare(filledSystemPrompt, filledUserPrompt, imageAttachments);
-          }}
-          isAiTesting={isComparingModels}
-        />
+        <Suspense fallback={null}>
+          <VariableInputModal
+            isOpen={isCompareVariableModalOpen}
+            onClose={() => setIsCompareVariableModalOpen(false)}
+            promptId={selectedPrompt.id}
+            systemPrompt={showEnglish ? (selectedPrompt.systemPromptEn || selectedPrompt.systemPrompt) : selectedPrompt.systemPrompt}
+            userPrompt={showEnglish ? (selectedPrompt.userPromptEn || selectedPrompt.userPrompt) : selectedPrompt.userPrompt}
+            mode="aiTest"
+            onAiTest={(filledSystemPrompt, filledUserPrompt, _outputFormat, imageAttachments) => {
+              runModelCompare(filledSystemPrompt, filledUserPrompt, imageAttachments);
+            }}
+            isAiTesting={isComparingModels}
+          />
+        </Suspense>
       )}
 
       {/* Variable input modal (copy from list/gallery view) */}
       {/* 变量输入弹窗（列表/画廊视图复制用） */}
       {copyPrompt && (
-        <VariableInputModal
-          isOpen={isCopyVariableModalOpen}
-          onClose={() => {
-            setIsCopyVariableModalOpen(false);
-            setCopyPrompt(null);
-          }}
-          promptId={copyPrompt.id}
-          systemPrompt={resolvePromptContentByLanguage(copyPrompt, showEnglish).systemPrompt}
-          userPrompt={resolvePromptContentByLanguage(copyPrompt, showEnglish).userPrompt}
-          mode="copy"
-          onCopy={async (text) => {
-            await navigator.clipboard.writeText(text);
-            await incrementUsageCount(copyPrompt.id);
-            setCopied(true);
-            showToast(t('toast.copied'), 'success', showCopyNotification);
-            setTimeout(() => setCopied(false), 2000);
-            setIsCopyVariableModalOpen(false);
-            setCopyPrompt(null);
-          }}
-        />
+        <Suspense fallback={null}>
+          <VariableInputModal
+            isOpen={isCopyVariableModalOpen}
+            onClose={() => {
+              setIsCopyVariableModalOpen(false);
+              setCopyPrompt(null);
+            }}
+            promptId={copyPrompt.id}
+            systemPrompt={resolvePromptContentByLanguage(copyPrompt, showEnglish).systemPrompt}
+            userPrompt={resolvePromptContentByLanguage(copyPrompt, showEnglish).userPrompt}
+            mode="copy"
+            onCopy={async (text) => {
+              await navigator.clipboard.writeText(text);
+              await incrementUsageCount(copyPrompt.id);
+              setCopied(true);
+              showToast(t('toast.copied'), 'success', showCopyNotification);
+              setTimeout(() => setCopied(false), 2000);
+              setIsCopyVariableModalOpen(false);
+              setCopyPrompt(null);
+            }}
+          />
+        </Suspense>
       )}
 
       {/* Version history modal (unified) */}
       {/* 版本历史弹窗 (Unified) */}
       {versionHistoryPrompt && (
-        <VersionHistoryModal
-          isOpen={isVersionModalOpenTable}
-          onClose={() => {
-            setIsVersionModalOpenTable(false);
-            setVersionHistoryPrompt(null);
-          }}
-          prompt={versionHistoryPrompt}
-          onRestore={handleRestoreVersionFromTable}
-        />
+        <Suspense fallback={null}>
+          <VersionHistoryModal
+            isOpen={isVersionModalOpenTable}
+            onClose={() => {
+              setIsVersionModalOpenTable(false);
+              setVersionHistoryPrompt(null);
+            }}
+            prompt={versionHistoryPrompt}
+            onRestore={handleRestoreVersionFromTable}
+          />
+        </Suspense>
       )}
 
       {/* Image preview modal */}

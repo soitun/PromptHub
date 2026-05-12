@@ -54,6 +54,7 @@ const GalleryCard = memo(({
     folderName,
     highlightTerms,
     videoLabel,
+    titleClassName,
 }: {
     prompt: Prompt;
     onSelect: () => void;
@@ -61,6 +62,7 @@ const GalleryCard = memo(({
     folderName?: string;
     highlightTerms: string[];
     videoLabel: string;
+    titleClassName: string;
 }) => {
     const [imageError, setImageError] = useState(false);
     const [videoError, setVideoError] = useState(false);
@@ -140,7 +142,7 @@ const GalleryCard = memo(({
             {/* 内容区域 */}
             <div className="flex-1 p-3 flex flex-col gap-2">
                 <h3
-                    className="font-semibold text-sm leading-snug break-words line-clamp-2"
+                    className={titleClassName}
                     title={prompt.title}
                 >
                     {renderHighlightedText(prompt.title, highlightTerms, highlightClassName)}
@@ -190,11 +192,18 @@ export function PromptGalleryView({
     const folders = useFolderStore(state => state.folders);
     const galleryImageSize = usePromptStore(state => state.galleryImageSize);
     const uncategorizedLabel = t('folder.uncategorized');
-    const videoLabel = t('prompt.typeImage');
+    const videoLabel = t('prompt.videoLabel', 'Video');
     const folderNameMap = useMemo(
         () => new Map(folders.map((folder) => [folder.id, folder.name])),
         [folders],
     );
+    const titleClassName = useMemo(() => {
+        if (galleryImageSize === 'large') {
+            return 'font-semibold text-sm leading-snug break-words line-clamp-2';
+        }
+
+        return 'font-semibold text-sm leading-snug break-words whitespace-pre-wrap';
+    }, [galleryImageSize]);
 
     if (prompts.length === 0) {
         return (
@@ -230,6 +239,7 @@ export function PromptGalleryView({
                             folderName={prompt.folderId ? (folderNameMap.get(prompt.folderId) || uncategorizedLabel) : uncategorizedLabel}
                             highlightTerms={highlightTerms}
                             videoLabel={videoLabel}
+                            titleClassName={titleClassName}
                         />
                     </div>
                 ))}

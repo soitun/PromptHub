@@ -30,6 +30,9 @@ vi.mock("../../../src/renderer/stores/settings.store", () => ({
 vi.mock("../../../src/renderer/stores/ui.store", () => ({
   useUIStore: (selector: (state: Record<string, unknown>) => unknown) =>
     useUIStoreMock(selector),
+  PROMPT_LIST_PANE_WIDTH_DEFAULT: 320,
+  PROMPT_LIST_PANE_WIDTH_MIN: 240,
+  PROMPT_LIST_PANE_WIDTH_MAX: 720,
 }));
 
 vi.mock("../../../src/renderer/components/ui/Toast", () => ({
@@ -136,7 +139,11 @@ describe("MainContent inline edit integration", () => {
       selector(createSettingsState()),
     );
     useUIStoreMock.mockImplementation((selector) =>
-      selector({ viewMode: "prompt" }),
+      selector({
+        viewMode: "prompt",
+        promptListPaneWidth: 320,
+        setPromptListPaneWidth: vi.fn(),
+      }),
     );
   });
 
@@ -207,5 +214,22 @@ describe("MainContent inline edit integration", () => {
     expect(screen.getAllByText("Original Title").length).toBeGreaterThan(0);
     expect(screen.getByText("Original user prompt")).toBeInTheDocument();
     expect(promptState.updatePrompt).not.toHaveBeenCalled();
+  });
+
+  it("opens inline edit when the user prompt content is double-clicked", async () => {
+    const promptState = createPromptState(createPrompt());
+
+    usePromptStoreMock.mockImplementation((selector) => selector(promptState));
+
+    await act(async () => {
+      await renderWithI18n(<MainContent />, { language: "en" });
+    });
+
+    fireEvent.doubleClick(screen.getByText("Original user prompt"));
+
+    expect(screen.getByRole("textbox", { name: "Title" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("textbox", { name: "User Prompt" }),
+    ).toBeInTheDocument();
   });
 });
