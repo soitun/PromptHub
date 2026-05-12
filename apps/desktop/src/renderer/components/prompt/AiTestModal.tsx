@@ -88,6 +88,7 @@ export function AiTestModal({
   const rehypePlugins = useMemo(() => [rehypeSanitize, rehypeHighlight], []);
   const [testImageAttachments, setTestImageAttachments] = useState<AiTestImageAttachment[]>([]);
   const [selectedReferenceImages, setSelectedReferenceImages] = useState<string[]>([]);
+  const isImagePrompt = prompt?.promptType === 'image';
 
   // AI settings
   // AI 设置
@@ -123,12 +124,11 @@ export function AiTestModal({
   }, [aiModels]);
 
   const compareModels = useMemo(() => {
-    const isImagePrompt = prompt?.promptType === 'image';
     if (isImagePrompt) {
       return [];
     }
     return aiModels.filter((model) => (model.type ?? 'chat') === 'chat');
-  }, [aiModels, prompt?.promptType]);
+  }, [aiModels, isImagePrompt]);
 
   useEffect(() => {
     setSelectedModelIds((prev) =>
@@ -138,8 +138,13 @@ export function AiTestModal({
 
   useEffect(() => {
     if (!isOpen || !prompt) return;
-    setMode(prompt.promptType === 'image' ? 'image' : initialMode ?? 'single');
-  }, [initialMode, isOpen, prompt]);
+    const nextMode = isImagePrompt
+      ? 'image'
+      : initialMode === 'compare'
+        ? 'compare'
+        : 'single';
+    setMode(nextMode);
+  }, [initialMode, isImagePrompt, isOpen, prompt]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -424,6 +429,18 @@ export function AiTestModal({
     ];
   }, [selectedReferenceImages, testImageAttachments]);
 
+  const buildChatAttachments = useCallback(async (): Promise<ChatImageAttachment[]> => {
+    if (isImagePrompt) {
+      return buildImageReferenceAttachments();
+    }
+
+    return testImageAttachments.map((attachment) => ({
+      name: attachment.name,
+      mimeType: attachment.mimeType,
+      base64: attachment.base64,
+    }));
+  }, [buildImageReferenceAttachments, isImagePrompt, testImageAttachments]);
+
   // 重置状态
   useEffect(() => {
     if (isOpen && prompt) {
@@ -434,7 +451,7 @@ export function AiTestModal({
       setCompareResults(null);
       setGeneratedImages([]);
       setTestImageAttachments([]);
-      setSelectedReferenceImages(prompt.promptType === 'image' ? (prompt.images || []) : []);
+      setSelectedReferenceImages(isImagePrompt ? (prompt.images || []) : []);
       setIsSingleLoading(false);
       setIsCompareLoading(false);
       setIsImageLoading(false);
@@ -445,7 +462,7 @@ export function AiTestModal({
       });
       setVariableValues(initialValues);
     }
-  }, [isOpen, prompt?.id, allVariables, resetCompareBuffers, resetSingleStreamBuffers]);
+  }, [allVariables, isImagePrompt, isOpen, prompt?.id, resetCompareBuffers, resetSingleStreamBuffers]);
 
   useEffect(() => {
     return () => {
@@ -473,7 +490,13 @@ export function AiTestModal({
     }
 
     try {
-      const messages = buildMessagesFromPrompt(systemPrompt, userPrompt);
+      const imageAttachments = await buildChatAttachments();
+      const messages = buildMessagesFromPrompt(
+        systemPrompt,
+        userPrompt,
+        undefined,
+        imageAttachments,
+      );
       const useStream = !!config.chatParams?.stream;
       const useThinking = !!config.chatParams?.enableThinking;
 
@@ -571,9 +594,15 @@ export function AiTestModal({
         imageParams: m.imageParams,
       }));
 
-    const messages = buildMessagesFromPrompt(systemPrompt, userPrompt);
-
     try {
+      const imageAttachments = await buildChatAttachments();
+      const messages = buildMessagesFromPrompt(
+        systemPrompt,
+        userPrompt,
+        undefined,
+        imageAttachments,
+      );
+
       resetCompareBuffers();
       compareBuffersRef.current = Object.fromEntries(
         selectedConfigs.map((config) => [
@@ -800,7 +829,7 @@ export function AiTestModal({
           <div className="space-y-4">
         {/* 模式切换 */}
         <div className="flex items-center gap-2 border-b border-border pb-4 flex-wrap">
-          {prompt.promptType !== 'image' && (
+          {!isImagePrompt && (
             <>
               <button
                 onClick={() => setMode('single')}
@@ -824,16 +853,18 @@ export function AiTestModal({
               </button>
             </>
           )}
-          <button
-            onClick={() => setMode('image')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${mode === 'image'
-              ? 'bg-primary text-white'
-              : 'bg-muted text-muted-foreground hover:bg-accent'
-              }`}
-          >
-            <ImageIcon className="w-4 h-4" />
-            {t('settings.testImage')}
-          </button>
+          {isImagePrompt && (
+            <button
+              onClick={() => setMode('image')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${mode === 'image'
+                ? 'bg-primary text-white'
+                : 'bg-muted text-muted-foreground hover:bg-accent'
+                }`}
+            >
+              <ImageIcon className="w-4 h-4" />
+              {t('settings.testImage')}
+            </button>
+          )}
         </div>
 
         {/* 变量填充 */}
@@ -862,88 +893,93 @@ export function AiTestModal({
 
         {/* Prompt 预览 */}
         <div className="space-y-2">
-          <h4 className="text-sm font-medium text-muted-foreground">{t('prompt.userPrompt')}</h4>
+          <h4 className="text-sm font-medium text-muted-foreground">{t('prompt.userPromptLabel')}</h4>
           <div className="bg-muted/50 rounded-lg p-3 max-h-32 overflow-y-auto">
             <p className="text-sm whitespace-pre-wrap">{userPrompt}</p>
           </div>
         </div>
 
-        {prompt.promptType === 'image' && (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <div className="space-y-1">
-                <h4 className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
-                  <PaperclipIcon className="w-4 h-4" />
-                  {t('prompt.referenceImages')}
-                </h4>
-                <p className="text-xs text-muted-foreground">
-                  {t('prompt.aiTestAttachmentHint', {
-                    count: MAX_AI_TEST_IMAGES,
-                    size: formatImageSize(MAX_AI_TEST_IMAGE_BYTES),
-                  })}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => imageInputRef.current?.click()}
-                disabled={testImageAttachments.length >= MAX_AI_TEST_IMAGES}
-                className="flex shrink-0 items-center gap-2 px-3 py-2 rounded-lg border border-border bg-background text-sm font-medium hover:bg-accent disabled:opacity-50 transition-colors"
-              >
-                <ImageIcon className="w-4 h-4" />
-                {t('prompt.aiTestAddImages')}
-              </button>
-              <input
-                ref={imageInputRef}
-                type="file"
-                accept="image/png,image/jpeg,image/webp,image/gif"
-                multiple
-                className="hidden"
-                onChange={(event) => {
-                  void handleTestImageSelection(event.currentTarget.files);
-                  event.currentTarget.value = '';
-                }}
-              />
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="space-y-1">
+              <h4 className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
+                <PaperclipIcon className="w-4 h-4" />
+                {isImagePrompt
+                  ? t('prompt.referenceImages')
+                  : t('prompt.aiTestAttachments', '测试附件')}
+              </h4>
+              <p className="text-xs text-muted-foreground">
+                {isImagePrompt
+                  ? t('prompt.typeImageDesc')
+                  : t('prompt.aiTestAttachmentHint', {
+                      count: MAX_AI_TEST_IMAGES,
+                      size: formatImageSize(MAX_AI_TEST_IMAGE_BYTES),
+                    })}
+              </p>
             </div>
+            <button
+              type="button"
+              onClick={() => imageInputRef.current?.click()}
+              disabled={testImageAttachments.length >= MAX_AI_TEST_IMAGES}
+              className="flex shrink-0 items-center gap-2 px-3 py-2 rounded-lg border border-border bg-background text-sm font-medium hover:bg-accent disabled:opacity-50 transition-colors"
+            >
+              <ImageIcon className="w-4 h-4" />
+              {t('prompt.aiTestAddImages')}
+            </button>
+            <input
+              ref={imageInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              multiple
+              className="hidden"
+              onChange={(event) => {
+                void handleTestImageSelection(event.currentTarget.files);
+                event.currentTarget.value = '';
+              }}
+            />
+          </div>
 
-            {prompt.images && prompt.images.length > 0 && (
-              <div className="space-y-2">
-                <div className="text-xs font-medium text-muted-foreground">
-                  {t('prompt.aiTestSelectReferenceImages', 'Select existing reference images')}
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {prompt.images.map((imageName) => {
-                    const selected = selectedReferenceImages.includes(imageName);
-                    return (
-                      <button
-                        type="button"
-                        key={imageName}
-                        onClick={() => toggleReferenceImage(imageName)}
-                        className={`relative overflow-hidden rounded-lg border text-left transition-colors ${selected
-                          ? 'border-primary ring-2 ring-primary/30'
-                          : 'border-border hover:border-primary/50'
-                          }`}
-                      >
-                        <LocalImage
-                          src={imageName}
-                          alt={imageName}
-                          className="h-24 w-full object-cover"
-                          fallbackClassName="h-24 w-full"
-                        />
-                        <div className="absolute left-1.5 top-1.5 rounded-md bg-background/90 px-1.5 py-0.5 text-[10px] font-medium">
-                          {selected ? t('common.selected', 'Selected') : t('common.select', 'Select')}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
+          {isImagePrompt && prompt.images && prompt.images.length > 0 && (
+            <div className="space-y-2">
+              <div className="text-xs font-medium text-muted-foreground">
+                {t('prompt.aiTestSelectReferenceImages', 'Select existing reference images')}
               </div>
-            )}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {prompt.images.map((imageName) => {
+                  const selected = selectedReferenceImages.includes(imageName);
+                  return (
+                    <button
+                      type="button"
+                      key={imageName}
+                      onClick={() => toggleReferenceImage(imageName)}
+                      className={`relative overflow-hidden rounded-lg border text-left transition-colors ${selected
+                        ? 'border-primary ring-2 ring-primary/30'
+                        : 'border-border hover:border-primary/50'
+                        }`}
+                    >
+                      <LocalImage
+                        src={imageName}
+                        alt={imageName}
+                        className="h-24 w-full object-cover"
+                        fallbackClassName="h-24 w-full"
+                      />
+                      <div className="absolute left-1.5 top-1.5 rounded-md bg-background/90 px-1.5 py-0.5 text-[10px] font-medium">
+                        {selected ? t('common.selected', 'Selected') : t('common.select', 'Select')}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
-            {testImageAttachments.length > 0 && (
-              <div className="space-y-2">
-                <div className="text-xs font-medium text-muted-foreground">
-                  {t('prompt.aiTestUploadedReferenceImages', 'Uploaded reference images')}
-                </div>
+          {testImageAttachments.length > 0 && (
+            <div className="space-y-2">
+              <div className="text-xs font-medium text-muted-foreground">
+                {isImagePrompt
+                  ? t('prompt.aiTestUploadedReferenceImages', 'Uploaded reference images')
+                  : t('prompt.aiTestUploadedReferenceImages', 'Uploaded reference images')}
+              </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {testImageAttachments.map((attachment) => (
                   <div
@@ -974,10 +1010,9 @@ export function AiTestModal({
                   </div>
                 ))}
               </div>
-              </div>
-            )}
-          </div>
-        )}
+            </div>
+          )}
+        </div>
 
         {/* 单模型测试 */}
         {mode === 'single' && (
@@ -1162,7 +1197,7 @@ export function AiTestModal({
         )}
 
         {/* 生图测试 */}
-        {mode === 'image' && (
+        {isImagePrompt && mode === 'image' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="space-y-1">

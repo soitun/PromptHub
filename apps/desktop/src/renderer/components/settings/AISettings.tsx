@@ -31,6 +31,7 @@ import {
   ImageTestResult,
   ModelInfo,
   StreamCallbacks,
+  type AIConfig,
 } from "../../services/ai";
 import { useSettingsStore } from "../../stores/settings.store";
 import { useToast } from "../ui/Toast";
@@ -212,6 +213,13 @@ const AI_IMAGE_PROVIDERS = [
   },
 ];
 
+type ModelDraft = Pick<
+  AIConfig,
+  "provider" | "apiProtocol" | "apiKey" | "apiUrl" | "model"
+> & {
+  name: string;
+};
+
 type ImageSize =
   | "256x256"
   | "512x512"
@@ -387,10 +395,10 @@ export function AISettings() {
   const [editingModelType, setEditingModelType] = useState<"chat" | "image">(
     "chat",
   );
-  const [newModel, setNewModel] = useState({
+  const [newModel, setNewModel] = useState<ModelDraft>({
     name: "",
     provider: "openai",
-    apiProtocol: "openai" as const,
+    apiProtocol: "openai",
     apiKey: "",
     apiUrl: "",
     model: "",
@@ -709,6 +717,7 @@ export function AISettings() {
     const result = await testAIConnection(
       {
         provider: model.provider,
+        apiProtocol: model.apiProtocol,
         apiKey: model.apiKey,
         apiUrl: model.apiUrl,
         model: model.model,
@@ -751,6 +760,7 @@ export function AISettings() {
     const result = await testImageGeneration(
       {
         provider: model.provider,
+        apiProtocol: model.apiProtocol,
         apiKey: model.apiKey,
         apiUrl: model.apiUrl,
         model: model.model,
@@ -1724,6 +1734,7 @@ export function AISettings() {
                     setNewModel({
                       name: "",
                       provider: "openai",
+                      apiProtocol: "openai",
                       apiKey: "",
                       apiUrl: "",
                       model: "",
@@ -2124,6 +2135,7 @@ export function AISettings() {
                     setNewModel({
                       name: "",
                       provider: "openai",
+                      apiProtocol: "openai",
                       apiKey: "",
                       apiUrl: "",
                       model: "",

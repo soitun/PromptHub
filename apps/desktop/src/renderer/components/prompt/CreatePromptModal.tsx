@@ -298,6 +298,129 @@ export function CreatePromptModal({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, handleSubmit, isNativeFullscreen, exitNativeFullscreen]);
 
+  const renderReferenceMediaSection = () => (
+    <div className="space-y-2">
+      <label className="block text-sm font-medium text-foreground">
+        {t("prompt.referenceMedia")}
+      </label>
+      <div className="flex flex-wrap gap-3">
+        {images.map((img, index) => (
+          <div
+            key={`img-${index}`}
+            className="relative group w-24 h-24 rounded-lg overflow-hidden border border-border"
+          >
+            <img
+              src={resolveLocalImageSrc(img)}
+              alt={`preview-${index}`}
+              className="w-full h-full object-cover"
+            />
+            <button
+              onClick={() => handleRemoveImage(index)}
+              className="absolute top-1 right-1 p-1 rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <XIcon className="w-3 h-3" />
+            </button>
+          </div>
+        ))}
+        {videos.map((video, index) => (
+          <div
+            key={`vid-${index}`}
+            className="relative group w-24 h-24 rounded-lg overflow-hidden border border-border bg-black"
+          >
+            <video
+              src={resolveLocalVideoSrc(video)}
+              className="w-full h-full object-cover opacity-70"
+            />
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <PlayIcon className="w-6 h-6 text-white/80" />
+            </div>
+            <button
+              onClick={() => handleRemoveVideo(index)}
+              className="absolute top-1 right-1 p-1 rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <XIcon className="w-3 h-3" />
+            </button>
+          </div>
+        ))}
+        <button
+          onClick={handleSelectImage}
+          className="w-24 h-24 rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 flex flex-col items-center justify-center text-muted-foreground hover:text-primary transition-colors text-center p-2"
+        >
+          <ImageIcon className="w-6 h-6 mb-1" />
+          <span className="text-[10px] leading-tight">
+            {t("prompt.uploadImage", "Upload/Add Link")}
+          </span>
+        </button>
+        <button
+          onClick={handleSelectVideo}
+          className="w-24 h-24 rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 flex flex-col items-center justify-center text-muted-foreground hover:text-primary transition-colors text-center p-2"
+        >
+          <VideoIcon className="w-6 h-6 mb-1" />
+          <span className="text-[10px] leading-tight">
+            {t("prompt.uploadVideo", "Upload Video")}
+          </span>
+        </button>
+      </div>
+      <p className="text-[11px] text-muted-foreground/70">
+        {t("prompt.mediaUploadHint")}
+      </p>
+      {!showUrlInput ? (
+        <button
+          onClick={() => setShowUrlInput(true)}
+          className="text-xs text-primary hover:underline"
+        >
+          {t("prompt.addImageByUrl", "Add by URL")}
+        </button>
+      ) : (
+        <div className="flex gap-2 mt-2">
+          <input
+            type="text"
+            placeholder={t("prompt.enterImageUrl")}
+            value={imageUrl}
+            onChange={(e) => setImageUrl(e.target.value)}
+            className="flex-1 h-8 px-3 rounded-lg bg-muted/50 border-0 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && imageUrl && !isDownloadingImage) {
+                handleUrlUpload(imageUrl);
+                setImageUrl("");
+                setShowUrlInput(false);
+              }
+              if (e.key === "Escape") {
+                setShowUrlInput(false);
+                setImageUrl("");
+              }
+            }}
+          />
+          <button
+            onClick={() => {
+              if (imageUrl && !isDownloadingImage) {
+                handleUrlUpload(imageUrl);
+                setImageUrl("");
+                setShowUrlInput(false);
+              }
+            }}
+            disabled={isDownloadingImage || !imageUrl}
+            className="h-8 px-3 rounded-lg bg-primary text-white text-sm hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isDownloadingImage
+              ? t("common.loading", "Loading...")
+              : t("common.confirm", "Confirm")}
+          </button>
+          <button
+            onClick={() => {
+              setShowUrlInput(false);
+              setImageUrl("");
+            }}
+            disabled={isDownloadingImage}
+            className="h-8 px-3 rounded-lg bg-muted text-sm hover:bg-muted/80 disabled:opacity-50"
+          >
+            {t("common.cancel", "Cancel")}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+
   // 如果是真正的全屏模式，渲染全屏编辑器
   if (isNativeFullscreen) {
     return (
@@ -387,7 +510,33 @@ export function CreatePromptModal({
             />
           </div>
 
-          {/* 可折叠的属性面板 */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-foreground">
+              {t("prompt.type", "Prompt Type")}
+            </label>
+            <div className="flex gap-2">
+              {(["text", "image"] as const).map((type) => (
+                <button
+                  key={type}
+                  onClick={() => setPromptType(type)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                    promptType === type
+                      ? "bg-primary text-white shadow-sm"
+                      : "bg-muted/70 hover:bg-muted text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {type === "text" && (
+                    <MessageSquareTextIcon className="w-4 h-4" />
+                  )}
+                  {type === "image" && <ImageIcon className="w-4 h-4" />}
+                  {type === "text" && t("prompt.typeText", "Text")}
+                  {type === "image" && t("prompt.typeImage", "Image")}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 可折叠的更多设置面板 */}
           <div className="border border-border/50 rounded-xl bg-muted/20 overflow-hidden">
             <button
               onClick={() => setShowAttributes(!showAttributes)}
@@ -397,11 +546,13 @@ export function CreatePromptModal({
                 <ChevronDownIcon className="w-4 h-4 text-muted-foreground" />
               ) : (
                 <ChevronRightIcon className="w-4 h-4 text-muted-foreground" />
-              )}
-              <span>{t("prompt.properties", "Properties")}</span>
+                )}
+              <span>{t("prompt.moreSettings", "More Settings")}</span>
               {!showAttributes && (
                 <span className="text-xs text-muted-foreground ml-2 font-normal truncate max-w-[400px]">
                   {[
+                    description ? t("prompt.description") : null,
+                    systemPrompt ? t("prompt.systemPrompt") : null,
                     folders.find((f) => f.id === folderId)?.name,
                     tags.length > 0
                       ? `${tags.length} ${t("prompt.tags", "tags")}`
@@ -418,180 +569,12 @@ export function CreatePromptModal({
 
             {showAttributes && (
               <div className="px-4 pb-4 space-y-4 animate-in fade-in slide-in-from-top-1">
-                {/* 描述 */}
                 <Input
                   label={t("prompt.descriptionOptional")}
                   placeholder={t("prompt.descriptionPlaceholder")}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                 />
-
-                {/* Prompt 类型 */}
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-foreground">
-                    {t("prompt.type", "Prompt Type")}
-                  </label>
-                  <div className="flex gap-2">
-                    {(["text", "image"] as const).map((type) => (
-                      <button
-                        key={type}
-                        onClick={() => setPromptType(type)}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                          promptType === type
-                            ? "bg-primary text-white shadow-sm"
-                            : "bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground"
-                        }`}
-                      >
-                        {type === "text" && (
-                          <MessageSquareTextIcon className="w-4 h-4" />
-                        )}
-                        {type === "image" && <ImageIcon className="w-4 h-4" />}
-                        {type === "text" && t("prompt.typeText", "Text")}
-                        {type === "image" && t("prompt.typeImage", "Media")}
-                      </button>
-                    ))}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {promptType === "text" &&
-                      t(
-                        "prompt.typeTextDesc",
-                        "Test with chat models (e.g. GPT-4)",
-                      )}
-                    {promptType === "image" &&
-                      t(
-                        "prompt.typeImageDesc",
-                        "Test with image models (e.g. DALL-E)",
-                      )}
-                  </p>
-                </div>
-
-                {/* 参考媒体 — 仅在非 image 类型时显示在属性面板内（image 类型时提升到面板外） */}
-                {promptType !== "image" && (
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-foreground">
-                      {t("prompt.referenceMedia")}
-                    </label>
-                    <div className="flex flex-wrap gap-3">
-                      {images.map((img, index) => (
-                        <div
-                          key={`img-${index}`}
-                          className="relative group w-24 h-24 rounded-lg overflow-hidden border border-border"
-                        >
-                          <img
-                            src={resolveLocalImageSrc(img)}
-                            alt={`preview-${index}`}
-                            className="w-full h-full object-cover"
-                          />
-                          <button
-                            onClick={() => handleRemoveImage(index)}
-                            className="absolute top-1 right-1 p-1 rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <XIcon className="w-3 h-3" />
-                          </button>
-                        </div>
-                      ))}
-                      {videos.map((video, index) => (
-                        <div
-                          key={`vid-${index}`}
-                          className="relative group w-24 h-24 rounded-lg overflow-hidden border border-border bg-black"
-                        >
-                          <video
-                            src={resolveLocalVideoSrc(video)}
-                            className="w-full h-full object-cover opacity-70"
-                          />
-                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <PlayIcon className="w-6 h-6 text-white/80" />
-                          </div>
-                          <button
-                            onClick={() => handleRemoveVideo(index)}
-                            className="absolute top-1 right-1 p-1 rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <XIcon className="w-3 h-3" />
-                          </button>
-                        </div>
-                      ))}
-                      <button
-                        onClick={handleSelectImage}
-                        className="w-24 h-24 rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 flex flex-col items-center justify-center text-muted-foreground hover:text-primary transition-colors text-center p-2"
-                      >
-                        <ImageIcon className="w-6 h-6 mb-1" />
-                        <span className="text-[10px] leading-tight">
-                          {t("prompt.uploadImage", "Upload/Add Link")}
-                        </span>
-                      </button>
-                      <button
-                        onClick={handleSelectVideo}
-                        className="w-24 h-24 rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 flex flex-col items-center justify-center text-muted-foreground hover:text-primary transition-colors text-center p-2"
-                      >
-                        <VideoIcon className="w-6 h-6 mb-1" />
-                        <span className="text-[10px] leading-tight">
-                          {t("prompt.uploadVideo", "Upload Video")}
-                        </span>
-                      </button>
-                    </div>
-                    <p className="text-[11px] text-muted-foreground/70">
-                      {t("prompt.mediaUploadHint")}
-                    </p>
-                    {!showUrlInput ? (
-                      <button
-                        onClick={() => setShowUrlInput(true)}
-                        className="text-xs text-primary hover:underline"
-                      >
-                        {t("prompt.addImageByUrl", "Add by URL")}
-                      </button>
-                    ) : (
-                      <div className="flex gap-2 mt-2">
-                        <input
-                          type="text"
-                          placeholder="https://example.com/image.jpg"
-                          value={imageUrl}
-                          onChange={(e) => setImageUrl(e.target.value)}
-                          className="flex-1 h-8 px-3 rounded-lg bg-muted/50 border-0 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-                          onKeyDown={(e) => {
-                            if (
-                              e.key === "Enter" &&
-                              imageUrl &&
-                              !isDownloadingImage
-                            ) {
-                              handleUrlUpload(imageUrl);
-                              setImageUrl("");
-                              setShowUrlInput(false);
-                            }
-                            if (e.key === "Escape") {
-                              setShowUrlInput(false);
-                              setImageUrl("");
-                            }
-                          }}
-                        />
-                        <button
-                          onClick={() => {
-                            if (imageUrl && !isDownloadingImage) {
-                              handleUrlUpload(imageUrl);
-                              setImageUrl("");
-                              setShowUrlInput(false);
-                            }
-                          }}
-                          disabled={isDownloadingImage || !imageUrl}
-                          className="h-8 px-3 rounded-lg bg-primary text-white text-sm hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {isDownloadingImage
-                            ? t("common.loading", "Loading...")
-                            : t("common.confirm", "Confirm")}
-                        </button>
-                        <button
-                          onClick={() => {
-                            setShowUrlInput(false);
-                            setImageUrl("");
-                          }}
-                          disabled={isDownloadingImage}
-                          className="h-8 px-3 rounded-lg bg-muted text-sm hover:bg-muted/80 disabled:opacity-50"
-                        >
-                          {t("common.cancel", "Cancel")}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
 
                 {/* 文件夹 */}
                 <div className="space-y-1.5">
@@ -618,6 +601,119 @@ export function CreatePromptModal({
                     ]}
                   />
                 </div>
+
+                {!i18n.language.startsWith("en") && (
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-accent/30 border border-border">
+                    <div className="flex items-center gap-2">
+                      <GlobeIcon className="w-4 h-4 text-primary" />
+                      <div className="text-sm font-medium">
+                        {t("prompt.bilingualHint")}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setShowEnglishVersion(!showEnglishVersion)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                        showEnglishVersion
+                          ? "bg-primary text-white"
+                          : "bg-muted hover:bg-accent text-foreground"
+                      }`}
+                    >
+                      {showEnglishVersion ? (
+                        <>
+                          <XIcon className="w-3.5 h-3.5" />
+                          {t("prompt.removeEnglishVersion")}
+                        </>
+                      ) : (
+                        <>
+                          <PlusIcon className="w-3.5 h-3.5" />
+                          {t("prompt.addEnglishVersion")}
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-sm font-medium text-foreground">
+                      {t("prompt.systemPromptOptional")}
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1 rounded-lg border border-border bg-muted/50 p-1">
+                        <button
+                          onClick={() => setSystemTab("edit")}
+                          className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                            systemTab === "edit"
+                              ? "bg-background text-foreground shadow-sm"
+                              : "text-muted-foreground hover:text-foreground"
+                          }`}
+                        >
+                          {t("prompt.edit", "Edit")}
+                        </button>
+                        <button
+                          onClick={() => setSystemTab("preview")}
+                          className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                            systemTab === "preview"
+                              ? "bg-background text-foreground shadow-sm"
+                              : "text-muted-foreground hover:text-foreground"
+                          }`}
+                        >
+                          {t("prompt.preview", "Preview")}
+                        </button>
+                      </div>
+                      <button
+                        onClick={() => enterNativeFullscreen("system")}
+                        className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors border border-border"
+                        title={t("prompt.fullscreen", "Fullscreen Edit")}
+                      >
+                        <Maximize2Icon className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                  {systemTab === "edit" ? (
+                    <Textarea
+                      placeholder={t("prompt.systemPromptPlaceholder")}
+                      value={systemPrompt}
+                      onChange={(e) => setSystemPrompt(e.target.value)}
+                      className="min-h-[120px]"
+                    />
+                  ) : (
+                    <div className="p-4 rounded-xl app-wallpaper-panel border border-border text-sm break-words min-h-[120px] whitespace-pre-wrap">
+                      {systemPrompt || (
+                        <span className="text-muted-foreground italic">
+                          {t("prompt.noContent")}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {showEnglishVersion && (
+                    <div className="mt-2 pl-4 border-l-2 border-primary/20 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                          <span className="bg-primary/10 text-primary px-1 rounded text-[10px]">
+                            EN
+                          </span>
+                          {t("prompt.systemPromptEn")}
+                        </label>
+                        <button
+                          onClick={() => enterNativeFullscreen("systemEn")}
+                          className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                          title={t("prompt.fullscreen")}
+                        >
+                          <Maximize2Icon className="w-3 h-3" />
+                        </button>
+                      </div>
+                      <Textarea
+                        placeholder={t("prompt.enterEnglishSystemPrompt")}
+                        value={systemPromptEn}
+                        onChange={(e) => setSystemPromptEn(e.target.value)}
+                        className="min-h-[80px]"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {renderReferenceMediaSection()}
 
                 {/* 标签 */}
                 <div className="space-y-1.5">
@@ -743,247 +839,7 @@ export function CreatePromptModal({
                     className="w-full min-h-[80px] px-4 py-3 rounded-xl bg-muted/50 border-0 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:bg-background transition-all duration-200 resize-none"
                   />
                 </div>
-              </div>
-            )}
-          </div>
 
-          {/* 参考媒体 — image 类型时提升到属性面板外，作为一级 UI 元素 */}
-          {promptType === "image" && (
-            <div className="space-y-2 border border-border/50 rounded-xl bg-muted/20 p-4">
-              <label className="block text-sm font-medium text-foreground">
-                {t("prompt.referenceMedia")}
-              </label>
-              <div className="flex flex-wrap gap-3">
-                {images.map((img, index) => (
-                  <div
-                    key={`img-${index}`}
-                    className="relative group w-24 h-24 rounded-lg overflow-hidden border border-border"
-                  >
-                    <img
-                      src={resolveLocalImageSrc(img)}
-                      alt={`preview-${index}`}
-                      className="w-full h-full object-cover"
-                    />
-                    <button
-                      onClick={() => handleRemoveImage(index)}
-                      className="absolute top-1 right-1 p-1 rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <XIcon className="w-3 h-3" />
-                    </button>
-                  </div>
-                ))}
-                {videos.map((video, index) => (
-                  <div
-                    key={`vid-${index}`}
-                    className="relative group w-24 h-24 rounded-lg overflow-hidden border border-border bg-black"
-                  >
-                    <video
-                      src={resolveLocalVideoSrc(video)}
-                      className="w-full h-full object-cover opacity-70"
-                    />
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                      <PlayIcon className="w-6 h-6 text-white/80" />
-                    </div>
-                    <button
-                      onClick={() => handleRemoveVideo(index)}
-                      className="absolute top-1 right-1 p-1 rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <XIcon className="w-3 h-3" />
-                    </button>
-                  </div>
-                ))}
-                <button
-                  onClick={handleSelectImage}
-                  className="w-24 h-24 rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 flex flex-col items-center justify-center text-muted-foreground hover:text-primary transition-colors text-center p-2"
-                >
-                  <ImageIcon className="w-6 h-6 mb-1" />
-                  <span className="text-[10px] leading-tight">
-                    {t("prompt.uploadImage", "Upload/Add Link")}
-                  </span>
-                </button>
-                <button
-                  onClick={handleSelectVideo}
-                  className="w-24 h-24 rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 flex flex-col items-center justify-center text-muted-foreground hover:text-primary transition-colors text-center p-2"
-                >
-                  <VideoIcon className="w-6 h-6 mb-1" />
-                  <span className="text-[10px] leading-tight">
-                    {t("prompt.uploadVideo", "Upload Video")}
-                  </span>
-                </button>
-              </div>
-              <p className="text-[11px] text-muted-foreground/70">
-                {t("prompt.mediaUploadHint")}
-              </p>
-              {!showUrlInput ? (
-                <button
-                  onClick={() => setShowUrlInput(true)}
-                  className="text-xs text-primary hover:underline"
-                >
-                  {t("prompt.addImageByUrl", "Add by URL")}
-                </button>
-              ) : (
-                <div className="flex gap-2 mt-2">
-                  <input
-                    type="text"
-                    placeholder="https://example.com/image.jpg"
-                    value={imageUrl}
-                    onChange={(e) => setImageUrl(e.target.value)}
-                    className="flex-1 h-8 px-3 rounded-lg bg-muted/50 border-0 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-                    onKeyDown={(e) => {
-                      if (
-                        e.key === "Enter" &&
-                        imageUrl &&
-                        !isDownloadingImage
-                      ) {
-                        handleUrlUpload(imageUrl);
-                        setImageUrl("");
-                        setShowUrlInput(false);
-                      }
-                      if (e.key === "Escape") {
-                        setShowUrlInput(false);
-                        setImageUrl("");
-                      }
-                    }}
-                  />
-                  <button
-                    onClick={() => {
-                      if (imageUrl && !isDownloadingImage) {
-                        handleUrlUpload(imageUrl);
-                        setImageUrl("");
-                        setShowUrlInput(false);
-                      }
-                    }}
-                    disabled={isDownloadingImage || !imageUrl}
-                    className="h-8 px-3 rounded-lg bg-primary text-white text-sm hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isDownloadingImage
-                      ? t("common.loading", "Loading...")
-                      : t("common.confirm", "Confirm")}
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowUrlInput(false);
-                      setImageUrl("");
-                    }}
-                    disabled={isDownloadingImage}
-                    className="h-8 px-3 rounded-lg bg-muted text-sm hover:bg-muted/80 disabled:opacity-50"
-                  >
-                    {t("common.cancel", "Cancel")}
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* 英文版本切换 / Toggle English Version (Hide if language is English) */}
-          {!i18n.language.startsWith("en") && (
-            <div className="flex items-center justify-between p-3 rounded-xl bg-accent/30 border border-border">
-              <div className="flex items-center gap-2">
-                <GlobeIcon className="w-4 h-4 text-primary" />
-                <div className="text-sm font-medium">
-                  {t("prompt.bilingualHint")}
-                </div>
-              </div>
-              <button
-                onClick={() => setShowEnglishVersion(!showEnglishVersion)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                  showEnglishVersion
-                    ? "bg-primary text-white"
-                    : "bg-muted hover:bg-accent text-foreground"
-                }`}
-              >
-                {showEnglishVersion ? (
-                  <>
-                    <XIcon className="w-3.5 h-3.5" />
-                    {t("prompt.removeEnglishVersion")}
-                  </>
-                ) : (
-                  <>
-                    <PlusIcon className="w-3.5 h-3.5" />
-                    {t("prompt.addEnglishVersion")}
-                  </>
-                )}
-              </button>
-            </div>
-          )}
-
-          {/* System Prompt */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="block text-sm font-medium text-foreground">
-                {t("prompt.systemPromptOptional")}
-              </label>
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1 rounded-lg border border-border bg-muted/50 p-1">
-                  <button
-                    onClick={() => setSystemTab("edit")}
-                    className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
-                      systemTab === "edit"
-                        ? "bg-background text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {t("prompt.edit", "Edit")}
-                  </button>
-                  <button
-                    onClick={() => setSystemTab("preview")}
-                    className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
-                      systemTab === "preview"
-                        ? "bg-background text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {t("prompt.preview", "Preview")}
-                  </button>
-                </div>
-                <button
-                  onClick={() => enterNativeFullscreen("system")}
-                  className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors border border-border"
-                  title={t("prompt.fullscreen", "Fullscreen Edit")}
-                >
-                  <Maximize2Icon className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-            {systemTab === "edit" ? (
-              <Textarea
-                placeholder={t("prompt.systemPromptPlaceholder")}
-                value={systemPrompt}
-                onChange={(e) => setSystemPrompt(e.target.value)}
-                className="min-h-[120px]"
-              />
-            ) : (
-              <div className="p-4 rounded-xl app-wallpaper-panel border border-border text-sm break-words min-h-[120px] whitespace-pre-wrap">
-                {systemPrompt || (
-                  <span className="text-muted-foreground italic">
-                    {t("prompt.noContent")}
-                  </span>
-                )}
-              </div>
-            )}
-            {showEnglishVersion && (
-              <div className="mt-2 pl-4 border-l-2 border-primary/20 space-y-2">
-                <div className="flex items-center gap-2">
-                  <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-                    <span className="bg-primary/10 text-primary px-1 rounded text-[10px]">
-                      EN
-                    </span>
-                    {t("prompt.systemPromptEn")}
-                  </label>
-                  <button
-                    onClick={() => enterNativeFullscreen("systemEn")}
-                    className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                    title={t("prompt.fullscreen")}
-                  >
-                    <Maximize2Icon className="w-3 h-3" />
-                  </button>
-                </div>
-                <Textarea
-                  placeholder={t("prompt.enterEnglishSystemPrompt")}
-                  value={systemPromptEn}
-                  onChange={(e) => setSystemPromptEn(e.target.value)}
-                  className="min-h-[80px]"
-                />
               </div>
             )}
           </div>
@@ -991,10 +847,15 @@ export function CreatePromptModal({
           {/* User Prompt */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="block text-sm font-medium text-foreground">
-                {t("prompt.userPromptLabel")}
-                <span className="ml-2 text-xs text-destructive">*</span>
-              </label>
+              <div className="space-y-1">
+                <label className="block text-sm font-medium text-foreground">
+                  {t("prompt.userPromptLabel")}
+                  <span className="ml-2 text-xs text-destructive">*</span>
+                </label>
+                <p className="text-xs text-muted-foreground">
+                  {t("prompt.variableTipContent")}
+                </p>
+              </div>
               <div className="flex items-center gap-2">
                 <div className="flex items-center gap-1 rounded-lg border border-border bg-muted/50 p-1">
                   <button
@@ -1070,15 +931,6 @@ export function CreatePromptModal({
             )}
           </div>
 
-          {/* 变量提示 */}
-          <div className="p-4 rounded-xl bg-accent/50 text-sm">
-            <p className="font-medium text-accent-foreground mb-1">
-              💡 {t("prompt.variableTip")}
-            </p>
-            <p className="text-muted-foreground">
-              {t("prompt.variableTipContent")}
-            </p>
-          </div>
         </div>
       </Modal>
       <UnsavedChangesDialog

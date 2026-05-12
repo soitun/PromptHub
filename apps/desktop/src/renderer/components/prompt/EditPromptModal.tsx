@@ -649,6 +649,129 @@ export function EditPromptModal({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, handleSubmit, isNativeFullscreen, exitNativeFullscreen]);
 
+  const renderReferenceMediaSection = () => (
+    <div className="space-y-2">
+      <label className="block text-sm font-medium text-foreground">
+        {t("prompt.referenceMedia")}
+      </label>
+      <div className="flex flex-wrap gap-3">
+        {images.map((img, index) => (
+          <div
+            key={`img-${index}`}
+            className="relative group w-24 h-24 rounded-lg overflow-hidden border border-border"
+          >
+            <img
+              src={resolveLocalImageSrc(img)}
+              alt={`preview-${index}`}
+              className="w-full h-full object-cover"
+            />
+            <button
+              onClick={() => handleRemoveImage(index)}
+              className="absolute top-1 right-1 p-1 rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <XIcon className="w-3 h-3" />
+            </button>
+          </div>
+        ))}
+        {videos.map((video, index) => (
+          <div
+            key={`vid-${index}`}
+            className="relative group w-24 h-24 rounded-lg overflow-hidden border border-border bg-black"
+          >
+            <video
+              src={resolveLocalVideoSrc(video)}
+              className="w-full h-full object-cover opacity-70"
+            />
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <PlayIcon className="w-6 h-6 text-white/80" />
+            </div>
+            <button
+              onClick={() => handleRemoveVideo(index)}
+              className="absolute top-1 right-1 p-1 rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <XIcon className="w-3 h-3" />
+            </button>
+          </div>
+        ))}
+        <button
+          onClick={handleSelectImage}
+          className="w-24 h-24 rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 flex flex-col items-center justify-center text-muted-foreground hover:text-primary transition-colors text-center p-2"
+        >
+          <ImageIcon className="w-6 h-6 mb-1" />
+          <span className="text-[10px] leading-tight">
+            {t("prompt.uploadImage", "Upload/Add Link")}
+          </span>
+        </button>
+        <button
+          onClick={handleSelectVideo}
+          className="w-24 h-24 rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 flex flex-col items-center justify-center text-muted-foreground hover:text-primary transition-colors text-center p-2"
+        >
+          <VideoIcon className="w-6 h-6 mb-1" />
+          <span className="text-[10px] leading-tight">
+            {t("prompt.uploadVideo", "Upload Video")}
+          </span>
+        </button>
+      </div>
+      <p className="text-[11px] text-muted-foreground/70">
+        {t("prompt.mediaUploadHint")}
+      </p>
+      {!showUrlInput ? (
+        <button
+          onClick={() => setShowUrlInput(true)}
+          className="text-xs text-primary hover:underline"
+        >
+          {t("prompt.addImageByUrl", "Add by URL")}
+        </button>
+      ) : (
+        <div className="flex gap-2 mt-2">
+          <input
+            type="text"
+            placeholder={t("prompt.enterImageUrl")}
+            value={imageUrl}
+            onChange={(e) => setImageUrl(e.target.value)}
+            className="flex-1 h-8 px-3 rounded-lg bg-muted/50 border-0 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && imageUrl && !isDownloadingImage) {
+                handleUrlUpload(imageUrl);
+                setImageUrl("");
+                setShowUrlInput(false);
+              }
+              if (e.key === "Escape") {
+                setShowUrlInput(false);
+                setImageUrl("");
+              }
+            }}
+          />
+          <button
+            onClick={() => {
+              if (imageUrl && !isDownloadingImage) {
+                handleUrlUpload(imageUrl);
+                setImageUrl("");
+                setShowUrlInput(false);
+              }
+            }}
+            disabled={isDownloadingImage || !imageUrl}
+            className="h-8 px-3 rounded-lg bg-primary text-white text-sm hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isDownloadingImage
+              ? t("common.loading", "Loading...")
+              : t("common.confirm", "Confirm")}
+          </button>
+          <button
+            onClick={() => {
+              setShowUrlInput(false);
+              setImageUrl("");
+            }}
+            disabled={isDownloadingImage}
+            className="h-8 px-3 rounded-lg bg-muted text-sm hover:bg-muted/80 disabled:opacity-50"
+          >
+            {t("common.cancel", "Cancel")}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+
   // 全屏编辑器的 Markdown 列表续行处理
   const handleFullscreenKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -793,7 +916,62 @@ export function EditPromptModal({
           />
         </div>
 
-        {/* 可折叠的属性面板 */}
+        <div className="space-y-4 border border-border/50 rounded-xl bg-muted/20 p-4">
+          <div className="space-y-1">
+            <h3 className="text-sm font-medium text-foreground">
+              {t("prompt.basicInfo", "Basic Info")}
+            </h3>
+          </div>
+
+          <Input
+            label={t("prompt.descriptionOptional")}
+            placeholder={t("prompt.descriptionPlaceholder")}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+          />
+
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-foreground">
+              {t("prompt.type", "Prompt Type")}
+            </label>
+            <div className="flex gap-2">
+              {(["text", "image"] as const).map((type) => (
+                <button
+                  key={type}
+                  onClick={() => setPromptType(type)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    promptType === type
+                      ? "bg-primary text-white shadow-sm"
+                      : "bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {type === "text" && (
+                    <MessageSquareTextIcon className="w-4 h-4" />
+                  )}
+                  {type === "image" && <ImageIcon className="w-4 h-4" />}
+                  {type === "text" && t("prompt.typeText", "Text")}
+                  {type === "image" && t("prompt.typeImage", "Image")}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {promptType === "text" &&
+                t(
+                  "prompt.typeTextDesc",
+                  "Test with chat models (e.g. GPT-4)",
+                )}
+              {promptType === "image" &&
+                t(
+                  "prompt.typeImageDesc",
+                  "Test with image models (e.g. DALL-E)",
+                )}
+            </p>
+          </div>
+
+          {promptType === "image" && renderReferenceMediaSection()}
+        </div>
+
+        {/* 可折叠的更多设置面板 */}
         <div className="border border-border/50 rounded-xl bg-muted/20 overflow-hidden">
           <button
             onClick={() => setShowAttributes(!showAttributes)}
@@ -803,8 +981,8 @@ export function EditPromptModal({
               <ChevronDownIcon className="w-4 h-4 text-muted-foreground" />
             ) : (
               <ChevronRightIcon className="w-4 h-4 text-muted-foreground" />
-            )}
-            <span>{t("prompt.properties", "Properties")}</span>
+                )}
+            <span>{t("prompt.moreSettings", "More Settings")}</span>
             {!showAttributes && (
               <span className="text-xs text-muted-foreground ml-2 font-normal truncate max-w-[400px]">
                 {[
@@ -812,7 +990,7 @@ export function EditPromptModal({
                   tags.length > 0
                     ? `${tags.length} ${t("prompt.tags", "tags")}`
                     : null,
-                  images.length + videos.length > 0
+                  promptType !== "image" && images.length + videos.length > 0
                     ? `${images.length + videos.length} ${t("prompt.media", "media")}`
                     : null,
                 ]
@@ -824,182 +1002,6 @@ export function EditPromptModal({
 
           {showAttributes && (
             <div className="px-4 pb-4 space-y-4 animate-in fade-in slide-in-from-top-1">
-              {/* 描述 */}
-              <Input
-                label={t("prompt.descriptionOptional")}
-                placeholder={t("prompt.descriptionPlaceholder")}
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-              />
-
-              {/* Prompt 类型 */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-foreground">
-                  {t("prompt.type", "Prompt Type")}
-                </label>
-                <div className="flex gap-2">
-                  {(["text", "image"] as const).map((type) => (
-                    <button
-                      key={type}
-                      onClick={() => setPromptType(type)}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                        promptType === type
-                          ? "bg-primary text-white shadow-sm"
-                          : "bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      {type === "text" && (
-                        <MessageSquareTextIcon className="w-4 h-4" />
-                      )}
-                      {type === "image" && <ImageIcon className="w-4 h-4" />}
-                      {type === "text" && t("prompt.typeText", "Text")}
-                      {type === "image" && t("prompt.typeImage", "Media")}
-                    </button>
-                  ))}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {promptType === "text" &&
-                    t(
-                      "prompt.typeTextDesc",
-                      "Test with chat models (e.g. GPT-4)",
-                    )}
-                  {promptType === "image" &&
-                    t(
-                      "prompt.typeImageDesc",
-                      "Test with image models (e.g. DALL-E)",
-                    )}
-                </p>
-              </div>
-
-              {/* 参考媒体 — 仅在非 image 类型时显示在属性面板内（image 类型时提升到面板外） */}
-              {promptType !== "image" && (
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-foreground">
-                    {t("prompt.referenceMedia")}
-                  </label>
-                  <div className="flex flex-wrap gap-3">
-                    {images.map((img, index) => (
-                      <div
-                        key={`img-${index}`}
-                        className="relative group w-24 h-24 rounded-lg overflow-hidden border border-border"
-                      >
-                        <img
-                          src={resolveLocalImageSrc(img)}
-                          alt={`preview-${index}`}
-                          className="w-full h-full object-cover"
-                        />
-                        <button
-                          onClick={() => handleRemoveImage(index)}
-                          className="absolute top-1 right-1 p-1 rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <XIcon className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ))}
-                    {videos.map((video, index) => (
-                      <div
-                        key={`vid-${index}`}
-                        className="relative group w-24 h-24 rounded-lg overflow-hidden border border-border bg-black"
-                      >
-                        <video
-                          src={resolveLocalVideoSrc(video)}
-                          className="w-full h-full object-cover opacity-70"
-                        />
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                          <PlayIcon className="w-6 h-6 text-white/80" />
-                        </div>
-                        <button
-                          onClick={() => handleRemoveVideo(index)}
-                          className="absolute top-1 right-1 p-1 rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <XIcon className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ))}
-                    <button
-                      onClick={handleSelectImage}
-                      className="w-24 h-24 rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 flex flex-col items-center justify-center text-muted-foreground hover:text-primary transition-colors text-center p-2"
-                    >
-                      <ImageIcon className="w-6 h-6 mb-1" />
-                      <span className="text-[10px] leading-tight">
-                        {t("prompt.uploadImage", "Upload/Add Link")}
-                      </span>
-                    </button>
-                    <button
-                      onClick={handleSelectVideo}
-                      className="w-24 h-24 rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 flex flex-col items-center justify-center text-muted-foreground hover:text-primary transition-colors text-center p-2"
-                    >
-                      <VideoIcon className="w-6 h-6 mb-1" />
-                      <span className="text-[10px] leading-tight">
-                        {t("prompt.uploadVideo", "Upload Video")}
-                      </span>
-                    </button>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground/70">
-                    {t("prompt.mediaUploadHint")}
-                  </p>
-                  {/* 通过链接添加 */}
-                  {!showUrlInput ? (
-                    <button
-                      onClick={() => setShowUrlInput(true)}
-                      className="text-xs text-primary hover:underline"
-                    >
-                      {t("prompt.addImageByUrl", "Add by URL")}
-                    </button>
-                  ) : (
-                    <div className="flex gap-2 mt-2">
-                      <input
-                        type="text"
-                        placeholder="https://example.com/image.jpg"
-                        value={imageUrl}
-                        onChange={(e) => setImageUrl(e.target.value)}
-                        className="flex-1 h-8 px-3 rounded-lg bg-muted/50 border-0 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-                        onKeyDown={(e) => {
-                          if (
-                            e.key === "Enter" &&
-                            imageUrl &&
-                            !isDownloadingImage
-                          ) {
-                            handleUrlUpload(imageUrl);
-                            setImageUrl("");
-                            setShowUrlInput(false);
-                          }
-                          if (e.key === "Escape") {
-                            setShowUrlInput(false);
-                            setImageUrl("");
-                          }
-                        }}
-                      />
-                      <button
-                        onClick={() => {
-                          if (imageUrl && !isDownloadingImage) {
-                            handleUrlUpload(imageUrl);
-                            setImageUrl("");
-                            setShowUrlInput(false);
-                          }
-                        }}
-                        disabled={isDownloadingImage || !imageUrl}
-                        className="h-8 px-3 rounded-lg bg-primary text-white text-sm hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {isDownloadingImage
-                          ? t("common.loading", "Loading...")
-                          : t("common.confirm", "Confirm")}
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowUrlInput(false);
-                          setImageUrl("");
-                        }}
-                        disabled={isDownloadingImage}
-                        className="h-8 px-3 rounded-lg bg-muted text-sm hover:bg-muted/80 disabled:opacity-50"
-                      >
-                        {t("common.cancel", "Cancel")}
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-
               {/* 文件夹 */}
               <div className="space-y-1.5">
                 <label className="block text-sm font-medium text-foreground">
@@ -1149,133 +1151,11 @@ export function EditPromptModal({
                   className="w-full min-h-[80px] px-4 py-3 rounded-xl bg-muted/50 border-0 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:bg-background transition-all duration-200 resize-none"
                 />
               </div>
+
+              {promptType !== "image" && renderReferenceMediaSection()}
             </div>
           )}
         </div>
-
-        {/* 参考媒体 — image 类型时提升到属性面板外，作为一级 UI 元素 */}
-        {promptType === "image" && (
-          <div className="space-y-2 border border-border/50 rounded-xl bg-muted/20 p-4">
-            <label className="block text-sm font-medium text-foreground">
-              {t("prompt.referenceMedia")}
-            </label>
-            <div className="flex flex-wrap gap-3">
-              {images.map((img, index) => (
-                <div
-                  key={`img-${index}`}
-                  className="relative group w-24 h-24 rounded-lg overflow-hidden border border-border"
-                >
-                  <img
-                    src={resolveLocalImageSrc(img)}
-                    alt={`preview-${index}`}
-                    className="w-full h-full object-cover"
-                  />
-                  <button
-                    onClick={() => handleRemoveImage(index)}
-                    className="absolute top-1 right-1 p-1 rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <XIcon className="w-3 h-3" />
-                  </button>
-                </div>
-              ))}
-              {videos.map((video, index) => (
-                <div
-                  key={`vid-${index}`}
-                  className="relative group w-24 h-24 rounded-lg overflow-hidden border border-border bg-black"
-                >
-                  <video
-                    src={resolveLocalVideoSrc(video)}
-                    className="w-full h-full object-cover opacity-70"
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <PlayIcon className="w-6 h-6 text-white/80" />
-                  </div>
-                  <button
-                    onClick={() => handleRemoveVideo(index)}
-                    className="absolute top-1 right-1 p-1 rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <XIcon className="w-3 h-3" />
-                  </button>
-                </div>
-              ))}
-              <button
-                onClick={handleSelectImage}
-                className="w-24 h-24 rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 flex flex-col items-center justify-center text-muted-foreground hover:text-primary transition-colors text-center p-2"
-              >
-                <ImageIcon className="w-6 h-6 mb-1" />
-                <span className="text-[10px] leading-tight">
-                  {t("prompt.uploadImage", "Upload/Add Link")}
-                </span>
-              </button>
-              <button
-                onClick={handleSelectVideo}
-                className="w-24 h-24 rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 flex flex-col items-center justify-center text-muted-foreground hover:text-primary transition-colors text-center p-2"
-              >
-                <VideoIcon className="w-6 h-6 mb-1" />
-                <span className="text-[10px] leading-tight">
-                  {t("prompt.uploadVideo", "Upload Video")}
-                </span>
-              </button>
-            </div>
-            <p className="text-[11px] text-muted-foreground/70">
-              {t("prompt.mediaUploadHint")}
-            </p>
-            {!showUrlInput ? (
-              <button
-                onClick={() => setShowUrlInput(true)}
-                className="text-xs text-primary hover:underline"
-              >
-                {t("prompt.addImageByUrl", "Add by URL")}
-              </button>
-            ) : (
-              <div className="flex gap-2 mt-2">
-                <input
-                  type="text"
-                  placeholder="https://example.com/image.jpg"
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  className="flex-1 h-8 px-3 rounded-lg bg-muted/50 border-0 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && imageUrl && !isDownloadingImage) {
-                      handleUrlUpload(imageUrl);
-                      setImageUrl("");
-                      setShowUrlInput(false);
-                    }
-                    if (e.key === "Escape") {
-                      setShowUrlInput(false);
-                      setImageUrl("");
-                    }
-                  }}
-                />
-                <button
-                  onClick={() => {
-                    if (imageUrl && !isDownloadingImage) {
-                      handleUrlUpload(imageUrl);
-                      setImageUrl("");
-                      setShowUrlInput(false);
-                    }
-                  }}
-                  disabled={isDownloadingImage || !imageUrl}
-                  className="h-8 px-3 rounded-lg bg-primary text-white text-sm hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isDownloadingImage
-                    ? t("common.loading", "Loading...")
-                    : t("common.confirm", "Confirm")}
-                </button>
-                <button
-                  onClick={() => {
-                    setShowUrlInput(false);
-                    setImageUrl("");
-                  }}
-                  disabled={isDownloadingImage}
-                  className="h-8 px-3 rounded-lg bg-muted text-sm hover:bg-muted/80 disabled:opacity-50"
-                >
-                  {t("common.cancel", "Cancel")}
-                </button>
-              </div>
-            )}
-          </div>
-        )}
 
         {/* 英文版本切换 */}
         {/* 英文版本切换 / Toggle English Version (Hide if language is English) */}

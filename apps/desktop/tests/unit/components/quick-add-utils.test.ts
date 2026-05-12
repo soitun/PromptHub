@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  buildQuickAddGeneratePrompt,
   getQuickAddFallbackTitle,
+  parseQuickAddAnalysisResult,
+  parseQuickAddGeneratedDraft,
   resolveQuickAddAnalysisConfig,
 } from "../../../src/renderer/components/prompt/quick-add-utils";
 
@@ -146,5 +149,74 @@ describe("quick-add-utils", () => {
       model: "claude-sonnet",
       type: "chat",
     });
+  });
+
+  it("builds an AI generation prompt with the user request and preferred type", () => {
+    const prompt = buildQuickAddGeneratePrompt(
+      "Write a prompt for podcast show notes",
+      {
+        folderNames: "Writing, Marketing",
+        tagsString: "writing, podcast",
+      },
+      "text",
+    );
+
+    expect(prompt).toContain("Write a prompt for podcast show notes");
+    expect(prompt).toContain("Writing, Marketing");
+    expect(prompt).toContain("text（文本）");
+    expect(prompt).toContain('"userPrompt"');
+  });
+
+  it("parses AI quick-add analysis results from JSON content", () => {
+    const result = parseQuickAddAnalysisResult(`before\n{
+      "title": "SEO Writer",
+      "systemPrompt": "You are an SEO expert.",
+      "description": "Generate SEO blog outlines",
+      "suggestedFolder": "Marketing",
+      "tags": ["seo", "blog"]
+    }\nafter`);
+
+    expect(result).toEqual({
+      title: "SEO Writer",
+      systemPrompt: "You are an SEO expert.",
+      description: "Generate SEO blog outlines",
+      suggestedFolder: "Marketing",
+      tags: ["seo", "blog"],
+    });
+  });
+
+  it("parses AI generated prompt drafts and falls back missing title", () => {
+    const result = parseQuickAddGeneratedDraft(
+      `{
+        "promptType": "image",
+        "systemPrompt": "",
+        "userPrompt": "cinematic portrait lighting, shallow depth of field",
+        "description": "Portrait image prompt",
+        "suggestedFolder": null,
+        "tags": ["portrait", "image"]
+      }`,
+      "text",
+      "New Prompt",
+    );
+
+    expect(result).toEqual({
+      title: "cinematic portrait lighting, s",
+      promptType: "image",
+      systemPrompt: undefined,
+      userPrompt: "cinematic portrait lighting, shallow depth of field",
+      description: "Portrait image prompt",
+      suggestedFolder: null,
+      tags: ["portrait", "image"],
+    });
+  });
+
+  it("returns null when generated draft is missing userPrompt", () => {
+    expect(
+      parseQuickAddGeneratedDraft(
+        '{"title":"Oops","promptType":"text"}',
+        "text",
+        "New Prompt",
+      ),
+    ).toBeNull();
   });
 });

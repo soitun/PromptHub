@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { ChevronDownIcon, CheckIcon } from 'lucide-react';
 
@@ -28,14 +29,63 @@ export function Select({
 }: SelectProps) {
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
+  const [dropdownStyle, setDropdownStyle] = useState<{
+    top: number;
+    left: number;
+    width: number;
+    maxHeight: number;
+  } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    if (!isOpen || !containerRef.current) {
+      return;
+    }
+
+    const updatePosition = () => {
+      const rect = containerRef.current?.getBoundingClientRect();
+
+      if (!rect) {
+        return;
+      }
+
+      const viewportHeight = window.innerHeight;
+      const spaceBelow = viewportHeight - rect.bottom - 12;
+      const spaceAbove = rect.top - 12;
+      const dropdownHeight = Math.min(280, Math.max(spaceBelow, spaceAbove, 160));
+      const shouldOpenUpwards = spaceBelow < 160 && spaceAbove > spaceBelow;
+
+      setDropdownStyle({
+        top: shouldOpenUpwards
+          ? Math.max(12, rect.top - dropdownHeight - 4)
+          : Math.min(viewportHeight - dropdownHeight - 12, rect.bottom + 4),
+        left: rect.left,
+        width: rect.width,
+        maxHeight: dropdownHeight,
+      });
+    };
+
+    updatePosition();
+
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
+  }, [isOpen]);
 
   // Close when clicking outside
   // 点击外部关闭
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      const targetNode = event.target as Node;
+      const clickedTrigger = containerRef.current?.contains(targetNode);
+      const clickedDropdown = listRef.current?.contains(targetNode);
+
+      if (!clickedTrigger && !clickedDropdown) {
         setIsOpen(false);
       }
     };
@@ -102,44 +152,27 @@ export function Select({
 
       {/* Dropdown menu */}
       {/* 下拉菜单 */}
-      {isOpen && (
-        <div
-          ref={listRef}
-          className="
-            absolute mt-1 w-full min-w-[180px]
-            bg-popover border border-border rounded-lg shadow-lg
-            overflow-hidden animate-in fade-in-0 zoom-in-95 duration-150
-          "
-          style={{ maxHeight: '280px', overflowY: 'auto', zIndex: 9999 }}
-        >
-          {groupNames.length === 1 && groupNames[0] === '' ? (
-            // No grouping
-            // 无分组
-            <div className="py-1">
-              {options.map((opt) => (
-                <OptionItem
-                  key={opt.value}
-                  option={opt}
-                  isSelected={opt.value === value}
-                  onSelect={() => {
-                    onChange(opt.value);
-                    setIsOpen(false);
-                  }}
-                />
-              ))}
-            </div>
-          ) : (
-            // With grouping
-            // 有分组
-            groupNames.map((groupName, idx) => (
-              <div key={groupName || 'default'}>
-                {groupName && (
-                  <div className="px-3 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider bg-muted/30">
-                    {groupName}
-                  </div>
-                )}
+      {isOpen && dropdownStyle && typeof document !== 'undefined'
+        ? createPortal(
+            <div
+              ref={listRef}
+              className="
+                fixed min-w-[180px]
+                bg-popover border border-border rounded-lg shadow-lg
+                overflow-hidden animate-in fade-in-0 zoom-in-95 duration-150
+              "
+              style={{
+                top: dropdownStyle.top,
+                left: dropdownStyle.left,
+                width: dropdownStyle.width,
+                maxHeight: dropdownStyle.maxHeight,
+                overflowY: 'auto',
+                zIndex: 9999,
+              }}
+            >
+              {groupNames.length === 1 && groupNames[0] === '' ? (
                 <div className="py-1">
-                  {groups[groupName].map((opt) => (
+                  {options.map((opt) => (
                     <OptionItem
                       key={opt.value}
                       option={opt}
@@ -151,12 +184,35 @@ export function Select({
                     />
                   ))}
                 </div>
-                {idx < groupNames.length - 1 && <div className="border-t border-border" />}
-              </div>
-            ))
-          )}
-        </div>
-      )}
+              ) : (
+                groupNames.map((groupName, idx) => (
+                  <div key={groupName || 'default'}>
+                    {groupName && (
+                      <div className="px-3 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider bg-muted/30">
+                        {groupName}
+                      </div>
+                    )}
+                    <div className="py-1">
+                      {groups[groupName].map((opt) => (
+                        <OptionItem
+                          key={opt.value}
+                          option={opt}
+                          isSelected={opt.value === value}
+                          onSelect={() => {
+                            onChange(opt.value);
+                            setIsOpen(false);
+                          }}
+                        />
+                      ))}
+                    </div>
+                    {idx < groupNames.length - 1 && <div className="border-t border-border" />}
+                  </div>
+                ))
+              )}
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }
