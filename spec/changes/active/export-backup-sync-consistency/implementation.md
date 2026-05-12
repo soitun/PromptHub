@@ -22,6 +22,7 @@
 - Desktop data submenu labels now use provider-oriented names (`Self-Hosted PromptHub`, `WebDAV`, `S3 Compatible Storage`) and show `common.enabled` state directly in the submenu. The submenu buttons now also expose a space-separated accessible label so screen readers and tests report `WebDAV Enabled` instead of concatenated text.
 - Desktop locale coverage for the sync-source chooser and renamed provider menu labels is now present in all 7 locales.
 - Desktop regression coverage now also guards two provider-switch hazards that would have produced real user-facing sync conflicts: disabling the active provider must force `syncProvider` back to `manual`, and switching the active provider must cancel stale save-sync timers from the previous provider before they can upload.
+- Desktop full backup UI no longer exports the legacy `.phub.gz` envelope from the primary Settings action. The `Full backup` button now reuses the same full ZIP export contract as selective export (all scopes enabled), while restore remains compatible with `.json`, `.zip`, and legacy `.phub.gz` files.
 
 ## Verification
 
@@ -59,6 +60,7 @@
 - `pnpm --filter @prompthub/desktop test -- tests/unit/services/sync-backup-core.test.ts --run`
 - `pnpm --filter @prompthub/desktop test -- tests/unit/stores/settings-sync-provider.test.ts tests/unit/services/webdav-save-sync.test.ts tests/unit/services/app-background.test.ts tests/unit/components/data-settings.test.tsx tests/unit/components/settings-page.test.tsx --run`
 - `pnpm --filter @prompthub/desktop exec vitest run tests/unit/stores/settings-sync-provider.test.ts tests/unit/services/webdav-save-sync.test.ts tests/unit/services/app-background.test.ts --coverage --coverage.include=src/renderer/stores/settings.store.ts --coverage.include=src/renderer/services/webdav-save-sync.ts --coverage.include=src/renderer/services/app-background.ts`
+- `pnpm --filter @prompthub/desktop test -- tests/unit/services/backup-orchestrator.test.ts tests/unit/services/database-backup.test.ts tests/unit/components/data-settings.test.tsx --run`
 - `pnpm --filter @prompthub/web lint`
 - `pnpm --filter @prompthub/desktop lint`
 - `pnpm --filter @prompthub/desktop exec tsc --noEmit`

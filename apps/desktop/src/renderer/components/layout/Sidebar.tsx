@@ -24,6 +24,7 @@ import { useRulesStore } from '../../stores/rules.store';
 import { PlatformIcon } from '../ui/PlatformIcon';
 import { useToast } from '../ui/Toast';
 import { RULE_PLATFORM_ORDER } from '@prompthub/shared/constants/rules';
+import { TagManagerModal } from '../prompt/TagManagerModal';
 
 type PageType = 'home' | 'settings';
 type SidebarLayout = 'combined' | 'rail' | 'panel';
@@ -95,6 +96,7 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
   const [isMac, setIsMac] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isFolderModalOpen, setIsFolderModalOpen] = useState(false);
+  const [isTagManagerOpen, setIsTagManagerOpen] = useState(false);
   const [editingFolder, setEditingFolder] = useState<Folder | null>(null);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [passwordFolder, setPasswordFolder] = useState<Folder | null>(null);
@@ -130,6 +132,7 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
   const addRuleProject = useRulesStore((state) => state.addProjectRule);
   const removeRuleProject = useRulesStore((state) => state.removeProjectRule);
   const ruleFiles = useRulesStore((state) => state.files);
+  const rulesSearchQuery = useRulesStore((state) => state.searchQuery);
   const selectedRuleId = useRulesStore((state) => state.selectedRuleId);
   const selectRule = useRulesStore((state) => state.selectRule);
   const loadRuleFiles = useRulesStore((state) => state.loadFiles);
@@ -182,12 +185,32 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
   const webRuntime = isWebRuntime();
   const activeModule = appModule === 'rules' ? 'rules' : viewMode;
   const ruleSidebarSections = useMemo(() => {
+    const normalizedQuery = rulesSearchQuery.trim().toLowerCase();
+    const matchesRuleSearch = (file: typeof ruleFiles[number]) => {
+      if (!normalizedQuery) {
+        return true;
+      }
+
+      const haystack = [
+        file.platformName,
+        file.platformDescription,
+        file.name,
+        file.description,
+        file.path,
+        file.projectRootPath || '',
+      ]
+        .join(' ')
+        .toLowerCase();
+
+      return haystack.includes(normalizedQuery);
+    };
+
     const globalItems = RULE_PLATFORM_ORDER
       .map((platformId) => {
         const file = ruleFiles.find(
           (candidate) => candidate.platformId === platformId && !candidate.id.startsWith('project:'),
         );
-        if (!file) {
+        if (!file || !matchesRuleSearch(file)) {
           return null;
         }
         return {
@@ -209,7 +232,7 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
       .filter((item): item is NonNullable<typeof item> => item !== null);
 
     const projectItems = ruleFiles
-      .filter((file) => file.id.startsWith('project:'))
+      .filter((file) => file.id.startsWith('project:') && matchesRuleSearch(file))
       .map((file) => ({
         id: file.id,
         type: 'project' as const,
@@ -238,7 +261,7 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
         items: projectItems,
       },
     ];
-  }, [ruleFiles, selectedRuleId]);
+  }, [ruleFiles, rulesSearchQuery, selectedRuleId]);
 
   const handleAddRuleProject = useCallback(async () => {
     const selectedPath = await window.electron?.selectFolder?.();
@@ -786,13 +809,24 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
                   {isTagsCollapsed ? <ChevronUpIcon className="w-3 h-3" /> : <ChevronDownIcon className="w-3 h-3" />}
                   {t('nav.tags')}
                 </button>
-                {!isTagsCollapsed && uniqueTags.length > 8 && (
-                  <button
-                    onClick={() => setShowAllTags(!showAllTags)}
-                    className="text-xs text-primary hover:underline"
-                  >
-                    {showAllTags ? t('common.collapse') : `${t('common.showAll')} ${uniqueTags.length}`}
-                  </button>
+                {!isTagsCollapsed && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setIsTagManagerOpen(true)}
+                      className="text-sidebar-foreground/50 hover:text-sidebar-foreground/80 transition-colors"
+                      title={t('common.edit', 'Edit')}
+                    >
+                      <SettingsIcon className="w-3.5 h-3.5" />
+                    </button>
+                    {uniqueTags.length > 8 && (
+                      <button
+                        onClick={() => setShowAllTags(!showAllTags)}
+                        className="text-xs text-primary hover:underline"
+                      >
+                        {showAllTags ? t('common.collapse') : `${t('common.showAll')} ${uniqueTags.length}`}
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             )}
@@ -1443,6 +1477,11 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
             </div>
           </>
       )}
+
+      <TagManagerModal
+        isOpen={isTagManagerOpen}
+        onClose={() => setIsTagManagerOpen(false)}
+      />
 
       <FolderModal
         isOpen={isFolderModalOpen}

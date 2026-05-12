@@ -574,6 +574,66 @@ describe("SkillStore remote loading", () => {
     );
   });
 
+  it("binds the catalog search box to storeSearchQuery", async () => {
+    installWindowMocks({
+      api: {
+        skill: {
+          fetchRemoteContent: vi.fn().mockResolvedValue("{}"),
+          scanLocalPreview: vi.fn().mockResolvedValue([]),
+          scanSafety: vi.fn().mockResolvedValue({
+            level: "safe",
+            summary: "safe",
+            findings: [],
+            recommendedAction: "allow",
+            scannedAt: Date.now(),
+            checkedFileCount: 1,
+            scanMethod: "static",
+          }),
+        },
+      },
+    });
+
+    useSkillStore.setState({
+      selectedStoreSourceId: "official",
+      registrySkills: [
+        {
+          slug: "pdf-skill",
+          name: "PDF Skill",
+          description: "Use this whenever you work with PDFs",
+          category: "office",
+          author: "PromptHub",
+          source_url: "https://example.com/pdf-skill",
+          tags: ["pdf"],
+          version: "1.0.0",
+          content: "# PDF Skill",
+        },
+        {
+          slug: "canvas-design",
+          name: "Canvas Design",
+          description: "Create beautiful visual layouts",
+          category: "design",
+          author: "PromptHub",
+          source_url: "https://example.com/canvas-design",
+          tags: ["design"],
+          version: "1.0.0",
+          content: "# Canvas Design",
+        },
+      ],
+      storeSearchQuery: "pdf",
+      storeCategory: "all",
+    });
+
+    await act(async () => {
+      await renderWithI18n(<SkillStore />, { language: "en" });
+    });
+
+    const searchInput = screen.getByPlaceholderText("Search skills...");
+    expect(searchInput).toHaveValue("pdf");
+
+    fireEvent.change(searchInput, { target: { value: "canvas" } });
+    expect(useSkillStore.getState().storeSearchQuery).toBe("canvas");
+  });
+
   it("does not block install when only static scan reports high risk", async () => {
     const installFromRegistry = vi.fn().mockResolvedValue({
       id: "installed",

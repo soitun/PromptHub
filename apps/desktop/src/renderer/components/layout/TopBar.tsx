@@ -33,11 +33,13 @@ import {
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { useUIStore } from "../../stores/ui.store";
+import { useRulesStore } from "../../stores/rules.store";
 import { collectPrivateFolderScopeIds } from "../../services/prompt-filter";
 import {
   filterVisibleScannedSkills,
   filterVisibleSkills,
 } from "../../services/skill-filter";
+import { filterRegistrySkills } from "../../services/skill-store-search";
 import {
   getRuntimeCapabilities,
   getWebContext,
@@ -85,14 +87,25 @@ export function TopBar({
   // Skill store
   const skillSearchQuery = useSkillStore((state) => state.searchQuery);
   const setSkillSearchQuery = useSkillStore((state) => state.setSearchQuery);
+  const skillStoreSearchQuery = useSkillStore((state) => state.storeSearchQuery);
+  const setSkillStoreSearchQuery = useSkillStore(
+    (state) => state.setStoreSearchQuery,
+  );
   const skills = useSkillStore((state) => state.skills);
   const skillFilterType = useSkillStore((state) => state.filterType);
   const skillFilterTags = useSkillStore((state) => state.filterTags);
   const deployedSkillNames = useSkillStore((state) => state.deployedSkillNames);
   const skillStoreView = useSkillStore((state) => state.storeView);
+  const skillStoreCategory = useSkillStore((state) => state.storeCategory);
+  const registrySkills = useSkillStore((state) => state.registrySkills);
+  const selectedStoreSourceId = useSkillStore(
+    (state) => state.selectedStoreSourceId,
+  );
+  const remoteStoreEntries = useSkillStore((state) => state.remoteStoreEntries);
   const selectedProjectId = useSkillStore((state) => state.selectedProjectId);
   const projectScanState = useSkillStore((state) => state.projectScanState);
   const selectSkill = useSkillStore((state) => state.selectSkill);
+  const selectRegistrySkill = useSkillStore((state) => state.selectRegistrySkill);
 
   const isDarkMode = useSettingsStore((state) => state.isDarkMode);
   const setDarkMode = useSettingsStore((state) => state.setDarkMode);
@@ -103,6 +116,10 @@ export function TopBar({
   const folders = useFolderStore((state) => state.folders);
   const promptTypeFilter = usePromptStore((state) => state.promptTypeFilter);
   const appModule = useUIStore((state) => state.appModule);
+  const rulesSearchQuery = useRulesStore((state) => state.searchQuery);
+  const setRulesSearchQuery = useRulesStore((state) => state.setSearchQuery);
+  const ruleFiles = useRulesStore((state) => state.files);
+  const selectRule = useRulesStore((state) => state.selectRule);
   const isSidebarCollapsed = useUIStore((state) => state.isSidebarCollapsed);
   const setSidebarCollapsed = useUIStore((state) => state.setSidebarCollapsed);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -127,22 +144,34 @@ export function TopBar({
   const runtimeCapabilities = getRuntimeCapabilities();
   const isProjectSkillView =
     appModule === "skill" && skillStoreView === "projects";
+  const isSkillStoreCatalogView =
+    appModule === "skill" && skillStoreView === "store";
   const isRulesView = appModule === "rules";
   const isSkillView = appModule === "skill";
   const isPromptView = appModule === "prompt";
 
   // Unified search query based on mode
   const searchQuery = isSkillView
-    ? skillSearchQuery
+    ? isSkillStoreCatalogView
+      ? skillStoreSearchQuery
+      : skillSearchQuery
     : isPromptView
       ? promptSearchQuery
-      : "";
-  const deferredSkillSearchQuery = useDeferredValue(skillSearchQuery);
+      : isRulesView
+        ? rulesSearchQuery
+        : "";
+  const deferredSkillSearchQuery = useDeferredValue(
+    isSkillStoreCatalogView ? skillStoreSearchQuery : skillSearchQuery,
+  );
   const setSearchQuery = isSkillView
-    ? setSkillSearchQuery
+    ? isSkillStoreCatalogView
+      ? setSkillStoreSearchQuery
+      : setSkillSearchQuery
     : isPromptView
       ? setPromptSearchQuery
-      : () => undefined;
+      : isRulesView
+        ? setRulesSearchQuery
+        : () => undefined;
 
   // Check if AI is configured
   const hasAiConfig =
@@ -245,8 +274,8 @@ export function TopBar({
     skillFilterType,
     skillStoreView,
     skills,
-      isSkillView,
-    ]);
+    isSkillView,
+  ]);
 
   const projectSearchResults = useMemo(() => {
     if (!isProjectSkillView) return [];
@@ -263,15 +292,64 @@ export function TopBar({
     selectedProjectId,
   ]);
 
+  const storeSearchResults = useMemo(() => {
+    if (!isSkillStoreCatalogView) return [];
+
+    const sourceSkills =
+      selectedStoreSourceId === "official"
+        ? registrySkills
+        : remoteStoreEntries[selectedStoreSourceId]?.skills || [];
+
+    return filterRegistrySkills(sourceSkills, {
+      category: skillStoreCategory,
+      searchQuery: deferredSkillSearchQuery,
+    });
+  }, [
+    deferredSkillSearchQuery,
+    isSkillStoreCatalogView,
+    registrySkills,
+    remoteStoreEntries,
+    selectedStoreSourceId,
+    skillStoreCategory,
+  ]);
+
+  const ruleSearchResults = useMemo(() => {
+    if (!isRulesView) return [];
+
+    const query = rulesSearchQuery.trim().toLowerCase();
+    if (!query) {
+      return ruleFiles;
+    }
+
+    return ruleFiles.filter((file) => {
+      const haystack = [
+        file.platformName,
+        file.platformDescription,
+        file.name,
+        file.description,
+        file.path,
+        file.projectRootPath || "",
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      return haystack.includes(query);
+    });
+  }, [isRulesView, ruleFiles, rulesSearchQuery]);
+
   // 根据模式选择搜索结果
   const searchResults =
-    isSkillView
-      ? isProjectSkillView
-        ? projectSearchResults
-        : skillSearchResults
+    isRulesView
+      ? ruleSearchResults
+      : isSkillView
+        ? isProjectSkillView
+          ? projectSearchResults
+          : isSkillStoreCatalogView
+            ? storeSearchResults
+            : skillSearchResults
       : promptSearchResults;
   const searchResultCount = searchResults.length;
-  const showSearchNavigation = !isProjectSkillView && !isRulesView;
+  const showSearchNavigation = !isProjectSkillView;
 
   const updateCreateMenuPosition = useCallback(() => {
     if (!createMenuRef.current) {
@@ -288,7 +366,7 @@ export function TopBar({
   // 导航到上一个/下一个结果
   const navigateResult = useCallback(
     (direction: "prev" | "next") => {
-      if (searchResultCount === 0 || isRulesView) return;
+      if (searchResultCount === 0) return;
 
       let newIndex = currentResultIndex;
       if (direction === "next") {
@@ -303,9 +381,21 @@ export function TopBar({
         if (isProjectSkillView) {
           return;
         }
+        if (isSkillStoreCatalogView) {
+          const registryResults = storeSearchResults;
+          if (registryResults[newIndex]) {
+            selectRegistrySkill(registryResults[newIndex].slug);
+          }
+          return;
+        }
         const skillResults = skillSearchResults;
         if (skillResults[newIndex]) {
           selectSkill(skillResults[newIndex].id);
+        }
+      } else if (isRulesView) {
+        const ruleResults = ruleSearchResults;
+        if (ruleResults[newIndex]) {
+          void selectRule(ruleResults[newIndex].id);
         }
       } else {
         const promptResults = promptSearchResults;
@@ -319,28 +409,38 @@ export function TopBar({
         currentResultIndex,
         isRulesView,
         isProjectSkillView,
+        isSkillStoreCatalogView,
         isSkillView,
+        selectRule,
         selectPrompt,
+        selectRegistrySkill,
         selectSkill,
+        ruleSearchResults,
+        storeSearchResults,
         skillSearchResults,
         promptSearchResults,
       ],
   );
 
-  // 当搜索查询变化时重置索引并选中第一个结果
+  // 当搜索查询变化时重置索引。
+  // Prompt / Rules 继续自动定位首个结果，Skills 只更新结果计数，不强制改选中项。
   useEffect(() => {
     setCurrentResultIndex(0);
-    if (isRulesView || searchQuery.trim().length === 0) {
+    if (searchQuery.trim().length === 0) {
+      if (isRulesView && ruleSearchResults.length > 0) {
+        void selectRule(ruleSearchResults[0].id);
+      }
+      return;
+    }
+
+    if (isRulesView) {
+      if (ruleSearchResults.length > 0) {
+        void selectRule(ruleSearchResults[0].id);
+      }
       return;
     }
 
     if (isSkillView) {
-      if (isProjectSkillView) {
-        return;
-      }
-      if (skillSearchResults.length > 0) {
-        selectSkill(skillSearchResults[0].id);
-      }
       return;
     }
 
@@ -352,7 +452,9 @@ export function TopBar({
     isProjectSkillView,
     isSkillView,
     promptSearchResults,
+    ruleSearchResults,
     searchQuery,
+    selectRule,
     selectPrompt,
     selectSkill,
     skillSearchResults,
@@ -360,9 +462,6 @@ export function TopBar({
 
   // 处理键盘事件
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (isRulesView) {
-      return;
-    }
     if (e.key === "Tab" && searchQuery && searchResultCount > 0) {
       if (!showSearchNavigation) {
         return;
@@ -379,8 +478,16 @@ export function TopBar({
       }
       // Enter 确认选择当前结果
       if (isSkillView) {
-        if (skillSearchResults[currentResultIndex]) {
+        if (isSkillStoreCatalogView) {
+          if (storeSearchResults[currentResultIndex]) {
+            selectRegistrySkill(storeSearchResults[currentResultIndex].slug);
+          }
+        } else if (skillSearchResults[currentResultIndex]) {
           selectSkill(skillSearchResults[currentResultIndex].id);
+        }
+      } else if (isRulesView) {
+        if (ruleSearchResults[currentResultIndex]) {
+          void selectRule(ruleSearchResults[currentResultIndex].id);
         }
       } else {
         if (promptSearchResults[currentResultIndex]) {
@@ -572,24 +679,22 @@ export function TopBar({
                   appModule === "skill"
                     ? isProjectSkillView
                       ? t("header.searchProjectSkills", "Search project skills...")
+                      : isSkillStoreCatalogView
+                        ? t("skill.searchStore", "Search skills...")
                       : t("header.searchSkill", "Search skills...")
                     : isRulesView
-                      ? t("rules.searchPlaceholder", "Browse global rules...")
+                      ? t("rules.searchPlaceholder", "Search rule files...")
                       : t("header.search")
                 }
                 value={searchQuery}
-                onChange={(e) => {
-                  if (!isRulesView) {
-                    setSearchQuery(e.target.value);
-                  }
-                }}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={handleKeyDown}
-                readOnly={isRulesView}
+                readOnly={false}
                 className="relative z-10 w-full h-9 pl-9 pr-32 rounded-lg border border-transparent bg-transparent text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all"
                 style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
               />
             {/* 右侧控件：结果计数 + 导航按钮 + 清除按钮 */}
-            {searchQuery && !isRulesView && (
+            {searchQuery && (
               <div
                 className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1"
                 style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}

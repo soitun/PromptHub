@@ -5,6 +5,7 @@ import { TopBar } from "../../../src/renderer/components/layout/TopBar";
 import { usePromptStore } from "../../../src/renderer/stores/prompt.store";
 import { useSettingsStore } from "../../../src/renderer/stores/settings.store";
 import { useFolderStore } from "../../../src/renderer/stores/folder.store";
+import { useRulesStore } from "../../../src/renderer/stores/rules.store";
 import { useSkillStore } from "../../../src/renderer/stores/skill.store";
 import { useUIStore } from "../../../src/renderer/stores/ui.store";
 import { renderWithI18n } from "../../helpers/i18n";
@@ -57,11 +58,17 @@ describe("TopBar", () => {
     useSkillStore.setState({
       skills: [],
       searchQuery: "",
+      storeSearchQuery: "",
       filterType: "all",
       filterTags: [],
       deployedSkillNames: new Set<string>(),
       storeView: "store",
       selectedSkillId: null,
+      selectedRegistrySlug: null,
+      storeCategory: "all",
+      registrySkills: [],
+      selectedStoreSourceId: "official",
+      remoteStoreEntries: {},
       selectedProjectId: null,
       projectScanState: {},
     } as Partial<ReturnType<typeof useSkillStore.getState>>);
@@ -267,10 +274,56 @@ describe("TopBar", () => {
     expect(selectSkill).not.toHaveBeenCalled();
   });
 
-  it("keeps rules mode search read-only and does not mutate prompt search state", async () => {
+  it("does not auto-select a skill when a my-skills search query is present", async () => {
+    const selectSkill = vi.fn();
+
+    useUIStore.setState({
+      appModule: "skill",
+      viewMode: "skill",
+      isSidebarCollapsed: false,
+    });
+    useSkillStore.setState({
+      skills: [
+        {
+          id: "skill-1",
+          name: "writer",
+          description: "Write better",
+          instructions: "# Writer",
+          content: "# Writer",
+          protocol_type: "skill",
+          is_favorite: false,
+          tags: [],
+          created_at: 1,
+          updated_at: 1,
+        },
+      ],
+      searchQuery: "writer",
+      selectedSkillId: null,
+      filterType: "all",
+      filterTags: [],
+      deployedSkillNames: new Set<string>(),
+      storeView: "my-skills",
+      selectSkill,
+    } as Partial<ReturnType<typeof useSkillStore.getState>>);
+
+    await act(async () => {
+      await renderWithI18n(
+        <TopBar onOpenSettings={vi.fn()} updateAvailable={null} />,
+        { language: "en" },
+      );
+    });
+
+    expect(selectSkill).not.toHaveBeenCalled();
+    expect(screen.getByText("1/1")).toBeInTheDocument();
+  });
+
+  it("filters rules via the top bar search without mutating prompt search state", async () => {
     usePromptStore.setState({
       searchQuery: "existing prompt search",
     } as Partial<ReturnType<typeof usePromptStore.getState>>);
+    useRulesStore.setState({
+      searchQuery: "",
+    } as Partial<ReturnType<typeof useRulesStore.getState>>);
     useUIStore.setState({
       appModule: "rules",
       viewMode: "prompt",
@@ -284,16 +337,244 @@ describe("TopBar", () => {
       );
     });
 
-    const searchInput = screen.getByPlaceholderText("Browse rules...");
+    const searchInput = screen.getByPlaceholderText(
+      "Search rule files, platforms, or paths...",
+    );
 
-    expect(searchInput).toHaveAttribute("readonly");
     expect(
       screen.queryByRole("button", { name: "New" }),
     ).not.toBeInTheDocument();
 
-    fireEvent.change(searchInput, { target: { value: "should not change" } });
+    fireEvent.change(searchInput, { target: { value: "codex" } });
 
     expect(usePromptStore.getState().searchQuery).toBe("existing prompt search");
+    expect(useRulesStore.getState().searchQuery).toBe("codex");
+  });
+
+  it("uses the store search query when searching in the skill store catalog", async () => {
+    useUIStore.setState({
+      appModule: "skill",
+      viewMode: "skill",
+      isSidebarCollapsed: false,
+    });
+    useSkillStore.setState({
+      storeView: "store",
+      searchQuery: "",
+      storeSearchQuery: "",
+      storeCategory: "all",
+      selectedStoreSourceId: "official",
+      registrySkills: [
+        {
+          slug: "pdf-skill",
+          name: "PDF Skill",
+          description: "Use this skill whenever you need PDF help",
+          category: "office",
+          author: "PromptHub",
+          source_url: "https://example.com/pdf-skill",
+          tags: ["pdf"],
+          version: "1.0.0",
+          content: "# PDF Skill",
+        },
+      ],
+      remoteStoreEntries: {},
+      selectedRegistrySlug: null,
+    } as Partial<ReturnType<typeof useSkillStore.getState>>);
+
+    await act(async () => {
+      await renderWithI18n(
+        <TopBar onOpenSettings={vi.fn()} updateAvailable={null} />,
+        { language: "en" },
+      );
+    });
+
+    const searchInput = screen.getByPlaceholderText("Search skills...");
+    fireEvent.change(searchInput, { target: { value: "pdf" } });
+
+    expect(useSkillStore.getState().storeSearchQuery).toBe("pdf");
+    expect(useSkillStore.getState().searchQuery).toBe("");
+
+    expect(screen.getByText("1/1")).toBeInTheDocument();
+  });
+
+  it("uses the regular skill search query in the distribution view", async () => {
+    useUIStore.setState({
+      appModule: "skill",
+      viewMode: "skill",
+      isSidebarCollapsed: false,
+    });
+    useSkillStore.setState({
+      storeView: "distribution",
+      searchQuery: "",
+      storeSearchQuery: "",
+      filterType: "all",
+      filterTags: [],
+      deployedSkillNames: new Set(["pdf-writer"]),
+      skills: [
+        {
+          id: "skill-1",
+          name: "pdf-writer",
+          description: "Write PDFs",
+          instructions: "# PDF Writer",
+          content: "# PDF Writer",
+          protocol_type: "skill",
+          is_favorite: false,
+          tags: ["pdf"],
+          created_at: 1,
+          updated_at: 1,
+        },
+      ],
+    } as Partial<ReturnType<typeof useSkillStore.getState>>);
+
+    await act(async () => {
+      await renderWithI18n(
+        <TopBar onOpenSettings={vi.fn()} updateAvailable={null} />,
+        { language: "en" },
+      );
+    });
+
+    const searchInput = screen.getByPlaceholderText("Search skills...");
+    fireEvent.change(searchInput, { target: { value: "pdf" } });
+
+    expect(useSkillStore.getState().searchQuery).toBe("pdf");
+    expect(useSkillStore.getState().storeSearchQuery).toBe("");
+    expect(screen.getByText("1/1")).toBeInTheDocument();
+  });
+
+  it("navigates prompt search results with Tab and confirms selection with Enter", async () => {
+    const selectPrompt = vi.fn();
+
+    useUIStore.setState({
+      appModule: "prompt",
+      viewMode: "prompt",
+      isSidebarCollapsed: false,
+    });
+    usePromptStore.setState({
+      prompts: [
+        {
+          id: "prompt-1",
+          title: "PDF Writer",
+          description: "Write PDFs",
+          userPrompt: "PDF prompt",
+          systemPrompt: "System",
+          promptType: "text",
+          isFavorite: false,
+          tags: [],
+          createdAt: 1,
+          updatedAt: 1,
+          currentVersion: 1,
+        },
+        {
+          id: "prompt-2",
+          title: "PDF Reader",
+          description: "Read PDFs",
+          userPrompt: "PDF reader prompt",
+          systemPrompt: "System",
+          promptType: "text",
+          isFavorite: false,
+          tags: [],
+          createdAt: 2,
+          updatedAt: 2,
+          currentVersion: 1,
+        },
+      ],
+      searchQuery: "pdf",
+      selectedId: null,
+      selectPrompt,
+      filterTags: [],
+      promptTypeFilter: "all",
+    } as Partial<ReturnType<typeof usePromptStore.getState>>);
+
+    await act(async () => {
+      await renderWithI18n(
+        <TopBar onOpenSettings={vi.fn()} updateAvailable={null} />,
+        { language: "en" },
+      );
+    });
+
+    const searchInput = screen.getByPlaceholderText("Search Prompt...");
+    expect(screen.getByText("1/2")).toBeInTheDocument();
+
+    fireEvent.keyDown(searchInput, { key: "Tab" });
+    expect(screen.getByText("2/2")).toBeInTheDocument();
+    expect(selectPrompt).toHaveBeenLastCalledWith("prompt-2");
+
+    fireEvent.keyDown(searchInput, { key: "Enter" });
+    expect(selectPrompt).toHaveBeenLastCalledWith("prompt-2");
+  });
+
+  it("navigates rules search results with Tab and Enter", async () => {
+    const selectRule = vi.fn(async () => undefined);
+
+    useUIStore.setState({
+      appModule: "rules",
+      viewMode: "prompt",
+      isSidebarCollapsed: false,
+    });
+    useRulesStore.setState({
+      files: [
+        {
+          id: "claude-global",
+          platformId: "claude",
+          platformName: "Claude Code",
+          platformIcon: "claude",
+          platformDescription: "Claude rules",
+          name: "CLAUDE.md",
+          description: "Claude global rule file",
+          path: "/Users/test/.claude/CLAUDE.md",
+          exists: true,
+          group: "assistant",
+        },
+        {
+          id: "codex-global",
+          platformId: "codex",
+          platformName: "Codex CLI",
+          platformIcon: "codex",
+          platformDescription: "Codex rules",
+          name: "AGENTS.md",
+          description: "Codex global rule file",
+          path: "/Users/test/.codex/AGENTS.md",
+          exists: true,
+          group: "assistant",
+        },
+        {
+          id: "openai-codex-global",
+          platformId: "codex",
+          platformName: "OpenAI Codex",
+          platformIcon: "codex",
+          platformDescription: "OpenAI Codex rules",
+          name: "AGENTS.md",
+          description: "OpenAI Codex rule file",
+          path: "/Users/test/.openai-codex/AGENTS.md",
+          exists: true,
+          group: "assistant",
+        },
+      ],
+      searchQuery: "codex",
+      selectRule,
+    } as Partial<ReturnType<typeof useRulesStore.getState>>);
+
+    await act(async () => {
+      await renderWithI18n(
+        <TopBar onOpenSettings={vi.fn()} updateAvailable={null} />,
+        { language: "en" },
+      );
+    });
+
+    const searchInput = screen.getByPlaceholderText(
+      "Search rule files, platforms, or paths...",
+    );
+    expect(screen.getByText("1/2")).toBeInTheDocument();
+
+    fireEvent.keyDown(searchInput, { key: "Tab" });
+    await waitFor(() => {
+      expect(screen.getByText("2/2")).toBeInTheDocument();
+    });
+    expect(selectRule).toHaveBeenLastCalledWith("openai-codex-global");
+
+    fireEvent.keyDown(searchInput, { key: "Enter" });
+    await waitFor(() => {
+      expect(selectRule).toHaveBeenLastCalledWith("openai-codex-global");
+    });
   });
 
   it("toggles the secondary menu visibility from the top bar", async () => {

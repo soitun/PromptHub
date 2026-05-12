@@ -1,5 +1,53 @@
 ## [Unreleased]
 
+## [0.5.6-beta.1] - 2026-05-12
+
+### 预览 / Preview
+
+- 🔬 **0.5.6 首个 beta 预览发布**：基于当前 `0.5.6` 变更集合发布首个公开 beta，提前开放 Rules 管理工作台、项目级 Skill 工作区、Quick Add AI 生成、全局 Prompt 标签管理，以及备份 / 导出 / 自托管同步一致性修复，供预览通道验证
+  - **First `0.5.6` Beta Preview**: This first public beta ships the current `0.5.6` change set early for preview-channel validation, including the Rules workspace, project-scoped Skill workspace, Quick Add AI generation, global Prompt tag management, and the backup / export / self-hosted sync consistency fixes
+
+## [0.5.6] - 2026-05-12
+
+### 新增 / Added
+
+- 🧭 **Rules 集中管理工作台**：桌面端新增完整的 `Rules` 管理能力，统一管理全局规则与手动添加的项目规则；规则正文与历史快照现在保存在 `userData/data/rules/` 托管工作区，支持真实搜索、历史快照只读预览，以及“返回草稿 / 恢复到草稿”操作，并已进入 ZIP 导出、WebDAV、自托管同步与 Web 端导入导出链路
+  - **Rules Management Workspace**: Desktop now ships a dedicated `Rules` management workspace for both global rules and manually added project rules. Rule content and history snapshots are stored in the managed `userData/data/rules/` workspace, with real search, read-only historical preview, draft restore actions, and inclusion in ZIP export, WebDAV, self-hosted sync, and web import/export flows
+- 📁 **项目级 Skill 工作区**：桌面端新增 `Projects` 一级视图，可为本地项目建立独立 Skill 工作区，自动扫描项目根目录、`.claude/skills`、`.agents/skills`、`skills`、`.gemini` 等常见目录，并在项目上下文内预览、导入和分发 Skill
+  - **Project Skill Workspace v1**: Desktop now adds a top-level `Projects` view for project-scoped Skill workspaces, automatically scanning common project locations such as the repo root, `.claude/skills`, `.agents/skills`, `skills`, and `.gemini`, then letting users preview, import, and distribute Skills within that project context
+- 🤖 **Quick Add 支持 AI 直接生成 Prompt**：`Quick Add` 现支持双模式，除了分析已有 Prompt，也可以直接根据用户目标与约束让 AI 生成结构化 Prompt 草稿，并从顶部创建菜单直接以 `AI 生成` 模式打开
+  - **Quick Add Can Now Generate Prompts with AI**: `Quick Add` now supports two modes. In addition to analyzing an existing prompt, it can generate a structured prompt draft directly from the user's goal and constraints, and the top creation menu can open it straight into `AI Generate` mode
+- 🏷️ **全局 Prompt 标签管理**：侧栏标签区域新增统一管理入口，可集中搜索、重命名、合并和删除 Prompt 标签，变更会同步更新数据库与 Prompt 工作区文件
+  - **Global Prompt Tag Management**: The sidebar tag area now exposes a centralized manager for searching, renaming, merging, and deleting Prompt tags, with changes synced to both the database and the Prompt workspace files
+- 🔐 **Skill 商店支持 GitHub Token 提升配额**：Skill 设置页新增 GitHub Access Token，可让商店和仓库拉取请求使用认证后的 GitHub 额度，缓解匿名限流导致的导入失败
+  - **GitHub Token Support for the Skill Store**: Skill settings now include a GitHub Access Token option so store and repository requests can use authenticated GitHub rate limits instead of the anonymous quota, reducing rate-limit-related import failures
+
+### 修复 / Fixed
+
+- ✍️ **卡片详情内联编辑继续扩展**：桌面端卡片详情面板中的用户提示词和系统提示词现在都支持双击进入现有 inline edit 流程，同时保持原有阅读表面，不再强迫用户进入完整编辑弹窗
+  - **Card Detail Inline Editing Expanded**: In the desktop card detail panel, both the user prompt and system prompt now support double-click entry into the existing inline edit flow while preserving the reading surface, so small edits no longer require opening the full edit modal
+- 🪟 **更新对话框闪烁与按钮不可点修复**：后台 `checking` 状态不再覆盖前台已显示的 `available` / `downloaded` 状态，修复检查更新弹窗反复闪烁、下载按钮无法稳定点击的问题
+  - **Update Dialog Flicker and Disabled Actions Fixed**: Background `checking` events no longer override visible `available` / `downloaded` states, fixing the repeated flicker and unstable download-button behavior in the update dialog
+- 🚀 **开机自启最小化启动修复**：桌面端现在会正确遵守 `minimizeOnLaunch`，避免启用开机自启后仍错误弹出主窗口
+  - **Minimize-on-Launch Auto-Start Fix**: Desktop now honors `minimizeOnLaunch` correctly during auto-start, preventing the main window from showing unexpectedly when launch-at-login is enabled
+- ↔️ **三栏布局拖拽与搜索交互补强**：修复 Skills 页面列宽调节、双击重置、标题换行、商店搜索和本地 Skill 搜索中的一组易用性回归，避免搜索把页面强制带进详情页或因路径/slug 规则导致搜索失真
+  - **Three-Column Resizing and Search UX Hardened**: Fixed a group of usability regressions around resizable Skill columns, double-click reset, title wrapping, store search, and local Skill search, preventing cases where search unexpectedly jumps into a detail view or misses results because of path/slug handling
+- 🔁 **同步源收敛与自动同步边界修复**：桌面端现在显式区分当前自动同步来源，只允许一个活动同步源驱动启动同步、定时同步和保存后同步，同时保留其他已启用源用于手动备份/恢复，避免多源同时写入造成冲突
+  - **Single Active Sync Source Enforcement**: Desktop now tracks a single explicit automatic sync source for startup, scheduled, and save-triggered sync, while keeping other enabled providers available for manual backup/restore, avoiding multi-provider conflicts and duplicate uploads
+- 💾 **备份 / 导出 / 规则工作区链路一致性修复**：Rules、Skill 附加文件和托管副本现统一进入桌面 ZIP 导出、WebDAV、自托管同步与 Web 端导入导出链路，恢复时也会正确回写托管副本与真实目标文件
+  - **Backup / Export / Rules Workspace Consistency Fixes**: Rules, Skill extra files, and managed copies now travel consistently through desktop ZIP export, WebDAV, self-hosted sync, and web import/export flows, and restores correctly write back both managed copies and real target files
+- 🧠 **Prompt 创建流与 AI 测试边界修复**：`CreatePromptModal` 首屏改为更聚焦的 create-only 写作流，`AiTestModal` 重新收敛文本/绘图 Prompt 的测试模式边界，并恢复多模态聊天测试的图片附件入口
+  - **Prompt Creation and AI Test Boundary Fixes**: `CreatePromptModal` now uses a more focused create-only writing flow, `AiTestModal` tightens the mode boundary between text and image prompts, and multimodal chat prompt testing restores real image attachments
+- 🖼️ **Web 登录验证码改为图形验证码**：自托管 Web 的登录与初始化流程改为一次性图形验证码，修复原文本 challenge 过于脆弱的问题；登录页说明文案也已与 setup 场景分离
+  - **Web Login Captcha Upgraded to Image Challenges**: The self-hosted web login and bootstrap flows now use one-time image captcha challenges instead of the older plain-text challenge, and the login-page explanatory copy is now separated from the setup flow
+
+### 维护 / Maintenance
+
+- 🧪 **桌面端全量单测回归加固**：补齐 `UpdateDialog`、Rules 工作台、Skill 文件编辑器、Skill 设置和 CLI 打包入口的回归覆盖，修复全量 unit suite 暴露的状态重置、契约漂移和测试环境 timer 污染问题
+  - **Desktop Full-Suite Regression Hardening**: Expanded regression coverage for `UpdateDialog`, the Rules workspace, the Skill file editor, Skill settings, and the CLI packaging entry, fixing state-reset bugs, contract drift, and fake-timer leakage exposed by the full desktop unit suite
+- 🧾 **GitHub Issue 快照与版本标签流程补强**：仓库内部 `spec/issues/` 现在会维护 open/closed issue 快照，同时 issue form 会自动同步单个 `version: x.y.z` 标签，减少 triage 成本
+  - **GitHub Issue Snapshots and Version Label Automation**: Internal `spec/issues/` now tracks open/closed issue snapshots, and the issue forms automatically synchronize a single `version: x.y.z` label to reduce triage overhead
+
 ## [0.5.5] - 2026-05-05
 
 ### 新增 / Added

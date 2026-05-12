@@ -35,7 +35,7 @@ import { ContextMenu, ContextMenuItem } from '../ui/ContextMenu';
 import { ImagePreviewModal } from '../ui/ImagePreviewModal';
 import { LocalImage } from '../ui/LocalImage';
 import { Input } from '../ui/Input';
-import { Textarea } from '../ui/Textarea';
+import { handleMarkdownListKeyDown } from '../ui/Textarea';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { CollapsibleThinking } from '../ui/CollapsibleThinking';
 import { ColumnResizer } from '../ui/ColumnResizer';
@@ -1165,6 +1165,8 @@ function PromptSkillMainContent() {
     userPrompt: '',
   });
   const detailTitleInputRef = useRef<HTMLInputElement>(null);
+  const detailSystemPromptTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const detailUserPromptTextareaRef = useRef<HTMLTextAreaElement>(null);
   // AI test modal state
   // AI 测试弹窗状态
   const [isAiTestModalOpen, setIsAiTestModalOpen] = useState(false);
@@ -1206,7 +1208,7 @@ function PromptSkillMainContent() {
 
   useEffect(() => {
     if (!selectedPrompt) {
-      setDetailInlineDraft({ title: '', userPrompt: '' });
+      setDetailInlineDraft({ title: '', systemPrompt: '', userPrompt: '' });
       return;
     }
     if (isDetailInlineEditing) {
@@ -1242,7 +1244,7 @@ function PromptSkillMainContent() {
     if (selectedPrompt) {
       setDetailInlineDraft(createDetailInlineEditDraft(selectedPrompt, showEnglish));
     } else {
-      setDetailInlineDraft({ title: '', userPrompt: '' });
+      setDetailInlineDraft({ title: '', systemPrompt: '', userPrompt: '' });
     }
     setIsDetailInlineEditing(false);
     setIsDetailInlineSaving(false);
@@ -1740,7 +1742,7 @@ function PromptSkillMainContent() {
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
                       {isDetailInlineEditing ? (
-                        <Input
+                        <input
                           ref={detailTitleInputRef}
                           aria-label={t('prompt.titleLabel')}
                           value={detailInlineDraft.title}
@@ -1753,7 +1755,7 @@ function PromptSkillMainContent() {
                           }}
                           onKeyDown={handleDetailInlineEditKeyDown}
                           placeholder={t('prompt.titlePlaceholder')}
-                          className="h-12 bg-white/95 dark:bg-white text-xl font-bold shadow-sm"
+                          className="h-12 w-full bg-transparent border-0 p-0 text-xl font-bold text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
                         />
                       ) : (
                         <h2
@@ -1952,21 +1954,42 @@ function PromptSkillMainContent() {
                         </span>
                       </div>
                       {isDetailInlineEditing ? (
-                        <Textarea
-                          aria-label={t('prompt.systemPromptLabel', 'System Prompt')}
-                          value={detailInlineDraft.systemPrompt}
-                          onChange={(event) => {
-                            const nextSystemPrompt = event.target.value;
-                            setDetailInlineDraft((prev) => ({
-                              ...prev,
-                              systemPrompt: nextSystemPrompt,
-                            }));
-                          }}
-                          onKeyDown={handleDetailInlineEditKeyDown}
-                          className="min-h-[120px] bg-white/95 dark:bg-white text-[14px] leading-relaxed font-mono shadow-sm"
-                          rows={4}
-                          enableMarkdownList
-                        />
+                        <div className="p-4 rounded-xl app-wallpaper-surface border border-border">
+                          <textarea
+                            ref={detailSystemPromptTextareaRef}
+                            aria-label={t('prompt.systemPromptLabel', 'System Prompt')}
+                            value={detailInlineDraft.systemPrompt}
+                            onChange={(event) => {
+                              const nextSystemPrompt = event.target.value;
+                              setDetailInlineDraft((prev) => ({
+                                ...prev,
+                                systemPrompt: nextSystemPrompt,
+                              }));
+                            }}
+                            onKeyDown={(event) => {
+                              const handled = handleMarkdownListKeyDown(
+                                event,
+                                detailInlineDraft.systemPrompt,
+                                (newValue, cursorPos) => {
+                                  setDetailInlineDraft((prev) => ({
+                                    ...prev,
+                                    systemPrompt: newValue,
+                                  }));
+                                  requestAnimationFrame(() => {
+                                    detailSystemPromptTextareaRef.current?.setSelectionRange(cursorPos, cursorPos);
+                                  });
+                                },
+                              );
+                              if (handled) {
+                                return;
+                              }
+                              handleDetailInlineEditKeyDown(event);
+                            }}
+                            className="w-full min-h-[120px] resize-none bg-transparent border-0 p-0 text-[15px] leading-relaxed font-mono text-foreground placeholder:text-muted-foreground focus:outline-none"
+                            rows={4}
+                            spellCheck={false}
+                          />
+                        </div>
                       ) : (
                         <div
                           role="button"
@@ -2005,21 +2028,42 @@ function PromptSkillMainContent() {
                       ) : null}
                     </div>
                     {isDetailInlineEditing ? (
-                      <Textarea
-                        aria-label={t('prompt.userPromptLabel', 'User Prompt')}
-                        value={detailInlineDraft.userPrompt}
-                        onChange={(event) => {
-                          const nextUserPrompt = event.target.value;
-                          setDetailInlineDraft((prev) => ({
-                            ...prev,
-                            userPrompt: nextUserPrompt,
-                          }));
-                        }}
-                        onKeyDown={handleDetailInlineEditKeyDown}
-                        className="min-h-[280px] bg-white/95 dark:bg-white text-[14px] leading-relaxed font-mono shadow-sm"
-                        rows={12}
-                        enableMarkdownList
-                      />
+                      <div className="p-4 rounded-xl app-wallpaper-surface border border-border">
+                        <textarea
+                          ref={detailUserPromptTextareaRef}
+                          aria-label={t('prompt.userPromptLabel', 'User Prompt')}
+                          value={detailInlineDraft.userPrompt}
+                          onChange={(event) => {
+                            const nextUserPrompt = event.target.value;
+                            setDetailInlineDraft((prev) => ({
+                              ...prev,
+                              userPrompt: nextUserPrompt,
+                            }));
+                          }}
+                          onKeyDown={(event) => {
+                            const handled = handleMarkdownListKeyDown(
+                              event,
+                              detailInlineDraft.userPrompt,
+                              (newValue, cursorPos) => {
+                                setDetailInlineDraft((prev) => ({
+                                  ...prev,
+                                  userPrompt: newValue,
+                                }));
+                                requestAnimationFrame(() => {
+                                  detailUserPromptTextareaRef.current?.setSelectionRange(cursorPos, cursorPos);
+                                });
+                              },
+                            );
+                            if (handled) {
+                              return;
+                            }
+                            handleDetailInlineEditKeyDown(event);
+                          }}
+                          className="w-full min-h-[280px] resize-none bg-transparent border-0 p-0 text-[15px] leading-relaxed font-mono text-foreground placeholder:text-muted-foreground focus:outline-none"
+                          rows={12}
+                          spellCheck={false}
+                        />
+                      </div>
                     ) : (
                       <div
                         role="button"

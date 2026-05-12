@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   downloadBackup,
+  downloadCompressedBackup,
   downloadSelectiveExport,
   exportDatabase,
   restoreFromBackup,
@@ -136,6 +137,88 @@ describe("database-backup restore", () => {
     createObjectURL.mockRestore();
     revokeObjectURL.mockRestore();
     clickSpy.mockRestore();
+    Object.defineProperty(URL, "createObjectURL", {
+      configurable: true,
+      writable: true,
+      value: originalCreateObjectURL,
+    });
+    Object.defineProperty(URL, "revokeObjectURL", {
+      configurable: true,
+      writable: true,
+      value: originalRevokeObjectURL,
+    });
+    vi.useRealTimers();
+  });
+
+  it("still exports legacy compressed backups as .phub.gz for backward compatibility", async () => {
+    vi.useFakeTimers();
+    const originalBlobStream = Blob.prototype.stream;
+    Object.defineProperty(Blob.prototype, "stream", {
+      configurable: true,
+      value: vi.fn(() => ({
+        pipeThrough: vi.fn(
+          () =>
+            new ReadableStream({
+              start(controller) {
+                controller.close();
+              },
+            }),
+        ),
+      })),
+    });
+
+    class CompressionStreamMock {
+      readable = new ReadableStream();
+
+      writable = new WritableStream();
+    }
+
+    vi.stubGlobal(
+      "CompressionStream",
+      CompressionStreamMock as typeof CompressionStream,
+    );
+    const originalCreateElement = document.createElement.bind(document);
+    const originalCreateObjectURL = URL.createObjectURL;
+    const originalRevokeObjectURL = URL.revokeObjectURL;
+
+    Object.defineProperty(URL, "createObjectURL", {
+      configurable: true,
+      writable: true,
+      value: vi.fn(),
+    });
+    Object.defineProperty(URL, "revokeObjectURL", {
+      configurable: true,
+      writable: true,
+      value: vi.fn(),
+    });
+
+    const createObjectURL = vi
+      .spyOn(URL, "createObjectURL")
+      .mockReturnValue("blob:test-gz-download");
+    const anchor = originalCreateElement("a");
+    const clickSpy = vi.spyOn(anchor, "click").mockImplementation(() => {});
+    vi.spyOn(document, "createElement").mockImplementation((tagName: string) => {
+      if (tagName === "a") {
+        return anchor;
+      }
+      return originalCreateElement(tagName);
+    });
+
+    await downloadCompressedBackup();
+
+    expect(createObjectURL).toHaveBeenCalledTimes(1);
+    expect(anchor.download).toMatch(/prompthub-backup-.*\.phub\.gz/);
+    expect(clickSpy).toHaveBeenCalledTimes(1);
+
+    await vi.runAllTimersAsync();
+
+    createObjectURL.mockRestore();
+    clickSpy.mockRestore();
+    vi.unstubAllGlobals();
+    Object.defineProperty(Blob.prototype, "stream", {
+      configurable: true,
+      value: originalBlobStream,
+    });
     Object.defineProperty(URL, "createObjectURL", {
       configurable: true,
       writable: true,

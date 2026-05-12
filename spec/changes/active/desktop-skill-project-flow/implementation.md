@@ -14,6 +14,10 @@
 - 进一步统一项目 Skills 三栏头部高度与分割线位置，约束项目卡为纵向弹性布局，让底部动作按钮在不同卡片内容长度下保持同一基线；同时把项目详情右栏标题与卡片内容拆开，修正“平台集成”卡片视觉偏高的问题。
 - 为项目视图增加静默首扫恢复：首次进入某个项目且当前会话还没有扫描状态时自动触发扫描，不再要求每次手动点击刷新；已缓存的项目扫描结果会保存在 skill store 持久化状态中，并以轻量字段恢复列表与计数。
 - 修复 Skills 导航残留详情的问题：切换 `storeView` 时清空 `selectedSkillId`，Sidebar 返回 `我的 Skills` / `项目 Skills` / `收藏` / `待分发` / `商店` 时也会主动清空当前选中；TopBar 只在用户实际输入搜索词时才自动定位第一个结果，不再因为空搜索把页面直接带进首个 skill 详情。
+- 修复 Skills 搜索回归：`filterVisibleScannedSkills(...)` 现在会容忍扫描结果中的空文本字段，不再因为 `undefined.toLowerCase()` 崩溃；同时 TopBar 在 Skills 模块下输入搜索词时不再自动跳转并选中首个 skill，避免“搜索把页面带跑”的突兀交互。
+- 修复 Skill 商店顶部搜索与商店页主体搜索状态脱节的问题：当 `storeView` 为 `store` 时，TopBar 现在直接读写 `storeSearchQuery`，并基于当前选中的远程源与分类过滤商店条目；`distribution` 则继续沿用本地 Skills 的 `searchQuery`，避免把“分发管理页”错误当成远程商店目录处理。
+- 继续补强搜索回归测试：新增 TopBar 对 `my-skills`、`store`、Prompt 搜索导航的覆盖，并新增 SkillStore 搜索框对 `storeSearchQuery` 的绑定测试，避免未来再次出现“输入后自动跳详情”或“顶部搜索与主体列表脱节”的回归。
+- 进一步补齐 `distribution` 视图搜索分流测试，确认其仍走本地 Skills 搜索；同时为 Rules 顶部搜索补上 `Tab` 结果导航测试，覆盖 `Enter` 之外的另一条关键键盘路径。
 - 同步更新桌面端 About 页面 7 个 locale 的项目说明文案，并刷新中英法德西日繁 README 顶部定位描述，使产品表述统一为 Prompt、Skill 与 Agent 资产的一站式 AI 工具箱，同时继续强调云同步、备份恢复、版本管理与本地优先。
 
 ## Verification
@@ -30,6 +34,8 @@
   - 结果：失败（受现有 `src/renderer/components/settings/AISettings.tsx` 与 `src/renderer/services/database-backup.ts` 的类型错误阻塞，非本次改动引入）
 - `pnpm --filter @prompthub/desktop build`
   - 结果：通过
+- `pnpm --filter @prompthub/desktop test -- tests/unit/components/top-bar.test.tsx tests/unit/components/sidebar.test.tsx tests/unit/components/skill-store-remote.test.tsx tests/unit/services/skill-filter.test.ts --run`
+  - 结果：通过（36/36）
 
 ## Notes
 

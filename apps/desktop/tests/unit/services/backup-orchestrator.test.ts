@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../../../src/renderer/services/database-backup", () => ({
   downloadBackup: vi.fn(),
-  downloadCompressedBackup: vi.fn(),
+  downloadSelectiveExport: vi.fn(),
 }));
 
 vi.mock("../../../src/renderer/services/backup-status", () => ({
@@ -43,7 +43,7 @@ import {
 
 import {
   downloadBackup,
-  downloadCompressedBackup,
+  downloadSelectiveExport,
 } from "../../../src/renderer/services/database-backup";
 import { recordManualBackup } from "../../../src/renderer/services/backup-status";
 import { createUpgradeBackup } from "../../../src/renderer/services/upgrade-backup";
@@ -59,7 +59,7 @@ describe("backup-orchestrator", () => {
     vi.clearAllMocks();
   });
 
-  it("runs compressed full backup with snapshot and manual backup record", async () => {
+  it("runs full backup as a full selective ZIP export with snapshot and manual backup record", async () => {
     vi.mocked(recordManualBackup).mockResolvedValue({
       lastManualBackupAt: "2026-05-10T00:00:00.000Z",
       lastManualBackupVersion: "0.5.5",
@@ -67,32 +67,51 @@ describe("backup-orchestrator", () => {
 
     const result = await runFullExportBackup({
       currentVersion: "0.5.5",
-      compressed: true,
       recordManualBackup: true,
     });
 
     expect(createUpgradeBackup).toHaveBeenCalledWith({ fromVersion: "0.5.5" });
-    expect(downloadCompressedBackup).toHaveBeenCalledTimes(1);
+    expect(downloadSelectiveExport).toHaveBeenCalledWith({
+      prompts: true,
+      folders: true,
+      versions: true,
+      images: true,
+      videos: true,
+      aiConfig: true,
+      settings: true,
+      rules: true,
+      skills: true,
+    });
     expect(downloadBackup).not.toHaveBeenCalled();
     expect(recordManualBackup).toHaveBeenCalledWith("0.5.5");
     expect(result?.lastManualBackupVersion).toBe("0.5.5");
   });
 
-  it("runs plain full backup without manual record when disabled", async () => {
+  it("runs full backup without currentVersion by skipping snapshot but still exporting ZIP", async () => {
     const result = await runFullExportBackup({
-      currentVersion: "0.5.5",
-      compressed: false,
       recordManualBackup: false,
     });
 
-    expect(createUpgradeBackup).toHaveBeenCalledWith({ fromVersion: "0.5.5" });
-    expect(downloadBackup).toHaveBeenCalledTimes(1);
-    expect(downloadCompressedBackup).not.toHaveBeenCalled();
+    expect(createUpgradeBackup).toHaveBeenCalledWith(undefined);
+    expect(downloadSelectiveExport).toHaveBeenCalledTimes(1);
     expect(recordManualBackup).not.toHaveBeenCalled();
     expect(result).toBeNull();
   });
 
-  it("runs pre-upgrade backup with compressed export and status update", async () => {
+  it("runs full backup without manual record when disabled", async () => {
+    const result = await runFullExportBackup({
+      currentVersion: "0.5.5",
+      recordManualBackup: false,
+    });
+
+    expect(createUpgradeBackup).toHaveBeenCalledWith({ fromVersion: "0.5.5" });
+    expect(downloadSelectiveExport).toHaveBeenCalledTimes(1);
+    expect(downloadBackup).not.toHaveBeenCalled();
+    expect(recordManualBackup).not.toHaveBeenCalled();
+    expect(result).toBeNull();
+  });
+
+  it("runs pre-upgrade backup with legacy JSON backup and status update", async () => {
     vi.mocked(recordManualBackup).mockResolvedValue({
       lastManualBackupAt: "2026-05-10T00:00:00.000Z",
       lastManualBackupVersion: "0.5.5",
@@ -101,7 +120,8 @@ describe("backup-orchestrator", () => {
     const status = await runPreUpgradeBackup("0.5.5");
 
     expect(createUpgradeBackup).toHaveBeenCalledWith({ fromVersion: "0.5.5" });
-    expect(downloadCompressedBackup).toHaveBeenCalledTimes(1);
+    expect(downloadBackup).toHaveBeenCalledTimes(1);
+    expect(downloadSelectiveExport).not.toHaveBeenCalled();
     expect(recordManualBackup).toHaveBeenCalledWith("0.5.5");
     expect(status.lastManualBackupVersion).toBe("0.5.5");
   });

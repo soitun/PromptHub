@@ -1,6 +1,6 @@
 import {
   downloadBackup,
-  downloadCompressedBackup,
+  downloadSelectiveExport,
 } from "./database-backup";
 import {
   autoSync,
@@ -34,7 +34,6 @@ import {
 
 export interface FullExportBackupOptions {
   currentVersion?: string;
-  compressed: boolean;
   recordManualBackup?: boolean;
 }
 
@@ -74,20 +73,25 @@ async function createSnapshotIfPossible(currentVersion?: string): Promise<void> 
   );
 }
 
-async function downloadExportFile(compressed: boolean): Promise<void> {
-  if (compressed) {
-    await downloadCompressedBackup();
-    return;
-  }
-
-  await downloadBackup();
+async function downloadExportFile(): Promise<void> {
+  await downloadSelectiveExport({
+    prompts: true,
+    folders: true,
+    versions: true,
+    images: true,
+    videos: true,
+    aiConfig: true,
+    settings: true,
+    rules: true,
+    skills: true,
+  });
 }
 
 export async function runFullExportBackup(
   options: FullExportBackupOptions,
 ): Promise<ManualBackupStatus | null> {
   await createSnapshotIfPossible(options.currentVersion);
-  await downloadExportFile(options.compressed);
+  await downloadExportFile();
 
   if (options.recordManualBackup && options.currentVersion) {
     return recordManualBackup(options.currentVersion);
@@ -100,7 +104,7 @@ export async function runPreUpgradeBackup(
   currentVersion: string,
 ): Promise<ManualBackupStatus> {
   await createSnapshotIfPossible(currentVersion);
-  await downloadCompressedBackup();
+  await downloadBackup();
   return recordManualBackup(currentVersion);
 }
 

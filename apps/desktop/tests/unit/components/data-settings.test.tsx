@@ -13,6 +13,7 @@ import {
   restoreUpgradeBackup,
 } from "../../../src/renderer/services/upgrade-backup";
 import {
+  runFullExportBackup,
   runS3ConnectionCheck,
   runS3Download,
   runS3Upload,
@@ -505,7 +506,7 @@ describe("DataSettings", { timeout: 15_000 }, () => {
     ).toBeGreaterThan(0);
   });
 
-  it("restores a backup file through the restore action and shows success", async () => {
+  it("imports a backup file through the import action with preview confirmation", async () => {
     const showToast = vi.fn();
     useToastMock.mockReturnValue({ showToast });
     vi.mocked(previewImportFile).mockResolvedValue({
@@ -571,7 +572,7 @@ describe("DataSettings", { timeout: 15_000 }, () => {
       return originalCreateElement(tagName);
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Restore" }));
+    fireEvent.click(screen.getByRole("button", { name: "Import Data" }));
     expect(input.type).toBe("file");
     expect(input.accept).toBe(".json,.phub,.gz,.zip");
 
@@ -598,6 +599,30 @@ describe("DataSettings", { timeout: 15_000 }, () => {
     });
     expect(restoreFromFile).toHaveBeenCalledWith(file);
     expect(showToast).toHaveBeenCalledWith("Data imported successfully", "success");
+  });
+
+  it("runs full backup export from the full backup button", async () => {
+    const showToast = vi.fn();
+    useToastMock.mockReturnValue({ showToast });
+
+    await act(async () => {
+      await renderWithI18n(<DataSettings activeSubsection="backup" />, {
+        language: "zh",
+      });
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "全量备份" }));
+
+    await waitFor(() => {
+      expect(runFullExportBackup).toHaveBeenCalledWith({
+        currentVersion: "0.4.5",
+        recordManualBackup: true,
+      });
+    });
+    expect(showToast).toHaveBeenCalledWith("数据导出成功", "success");
   });
 
   it("shows the actual restore error message when import fails", async () => {
@@ -634,7 +659,7 @@ describe("DataSettings", { timeout: 15_000 }, () => {
       return originalCreateElement(tagName);
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Restore" }));
+    fireEvent.click(screen.getByRole("button", { name: "Import Data" }));
 
     await act(async () => {
       await input.onchange?.({

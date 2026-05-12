@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { filterVisibleSkills } from "../../../src/renderer/services/skill-filter";
+import {
+  filterVisibleScannedSkills,
+  filterVisibleSkills,
+} from "../../../src/renderer/services/skill-filter";
 
 const skills = [
   {
@@ -57,5 +60,35 @@ describe("filterVisibleSkills", () => {
     });
 
     expect(result.map((skill) => skill.name)).toEqual(["beta"]);
+  });
+
+  it("does not crash when scanned skills contain missing text fields", () => {
+    const result = filterVisibleScannedSkills(
+      [
+        {
+          name: "slide-deck-generator",
+          description: "",
+          author: "",
+          instructions: "",
+          filePath: "/tmp/skills/slide-deck-generator/SKILL.md",
+          localPath: "/tmp/skills/slide-deck-generator",
+          tags: [],
+          platforms: [],
+        },
+        {
+          name: "broken-skill",
+          description: undefined as unknown as string,
+          author: undefined as unknown as string,
+          instructions: undefined as unknown as string,
+          filePath: undefined as unknown as string,
+          localPath: undefined as unknown as string,
+          tags: undefined as unknown as string[],
+          platforms: undefined as unknown as string[],
+        },
+      ],
+      "slide",
+    );
+
+    expect(result.map((skill) => skill.name)).toEqual(["slide-deck-generator"]);
   });
 });

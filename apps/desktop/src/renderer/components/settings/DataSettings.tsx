@@ -428,11 +428,10 @@ export function DataSettings({ activeSubsection = "local" }: DataSettingsProps) 
     }
   };
 
-  const handleFullBackup = async (compressed: boolean) => {
+  const handleFullBackup = async () => {
     try {
       await runFullExportBackup({
         currentVersion,
-        compressed,
         recordManualBackup: true,
       });
       showToast(t("toast.exportSuccess"), "success");
@@ -2206,17 +2205,18 @@ export function DataSettings({ activeSubsection = "local" }: DataSettingsProps) 
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => handleFullBackup(true)}
+                  onClick={() => handleFullBackup()}
                   className="h-9 px-4 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors"
-                  title={t("settings.backupCompressed", "压缩备份")}
+                  title={t("settings.fullBackupExport", "全量备份")}
                 >
-                  {t("settings.backupCompressed", "压缩备份")}
+                  {t("settings.fullBackupExport", "全量备份")}
                 </button>
                 <button
                   onClick={handleImportBackup}
+                  title={t("settings.import", "导入数据")}
                   className="h-9 px-4 rounded-lg bg-muted text-foreground text-sm font-medium hover:bg-muted/80 transition-colors"
                 >
-                  {t("settings.restore", "恢复")}
+                  {t("settings.import", "导入数据")}
                 </button>
               </div>
             </div>
@@ -2239,10 +2239,10 @@ export function DataSettings({ activeSubsection = "local" }: DataSettingsProps) 
                 <button
                   onClick={() => void refreshUpgradeBackups()}
                   disabled={loadingUpgradeBackups}
-                  className="h-8 px-3 rounded-lg bg-muted text-sm hover:bg-muted/80 transition-colors flex items-center gap-2 disabled:opacity-50"
+                  className="h-8 shrink-0 whitespace-nowrap px-3 rounded-lg bg-muted text-sm hover:bg-muted/80 transition-colors flex items-center gap-2 disabled:opacity-50"
                 >
                   <RefreshCwIcon
-                    className={`w-4 h-4 ${loadingUpgradeBackups ? "animate-spin" : ""}`}
+                    className={`w-4 h-4 shrink-0 ${loadingUpgradeBackups ? "animate-spin" : ""}`}
                   />
                   {t("common.refresh", "Refresh")}
                 </button>

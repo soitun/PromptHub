@@ -13,6 +13,7 @@ interface RulesState {
   files: RuleFileDescriptor[];
   selectedRuleId: RuleFileId | null;
   currentFile: RuleFileContent | null;
+  searchQuery: string;
   draftContent: string;
   aiInstruction: string;
   aiSummary: string | null;
@@ -23,6 +24,7 @@ interface RulesState {
   hasLoadedFiles: boolean;
   loadFiles: (options?: { force?: boolean }) => Promise<void>;
   selectRule: (ruleId: RuleFileId) => Promise<void>;
+  setSearchQuery: (query: string) => void;
   setDraftContent: (content: string) => void;
   setAiInstruction: (instruction: string) => void;
   saveCurrentRule: () => Promise<void>;
@@ -76,6 +78,7 @@ export const useRulesStore = create<RulesState>((set, get) => ({
   files: [],
   selectedRuleId: null,
   currentFile: null,
+  searchQuery: "",
   draftContent: "",
   aiInstruction: "",
   aiSummary: null,
@@ -129,6 +132,8 @@ export const useRulesStore = create<RulesState>((set, get) => ({
       set({ isLoading: false, error: getErrorMessage(error) });
     }
   },
+
+  setSearchQuery: (query) => set({ searchQuery: query }),
 
   setDraftContent: (content) => set({ draftContent: content }),
 

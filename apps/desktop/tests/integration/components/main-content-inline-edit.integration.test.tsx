@@ -180,6 +180,7 @@ describe("MainContent inline edit integration", () => {
 
     await waitFor(() => {
       expect(promptState.updatePrompt).toHaveBeenCalledWith("prompt-1", {
+        systemPrompt: "System text",
         title: "Updated Title",
         userPrompt: "Updated user prompt",
       });
@@ -212,7 +213,7 @@ describe("MainContent inline edit integration", () => {
 
     expect(screen.queryByRole("textbox", { name: "Title" })).not.toBeInTheDocument();
     expect(screen.getAllByText("Original Title").length).toBeGreaterThan(0);
-    expect(screen.getByText("Original user prompt")).toBeInTheDocument();
+    expect(screen.getAllByText("Original user prompt").length).toBeGreaterThan(0);
     expect(promptState.updatePrompt).not.toHaveBeenCalled();
   });
 
@@ -225,7 +226,11 @@ describe("MainContent inline edit integration", () => {
       await renderWithI18n(<MainContent />, { language: "en" });
     });
 
-    fireEvent.doubleClick(screen.getByText("Original user prompt"));
+    fireEvent.doubleClick(
+      screen.getByRole("button", {
+        name: "Double-click to edit user prompt",
+      }),
+    );
 
     expect(screen.getByRole("textbox", { name: "Title" })).toBeInTheDocument();
     expect(
@@ -233,7 +238,7 @@ describe("MainContent inline edit integration", () => {
     ).toBeInTheDocument();
   });
 
-  it("uses a white editing surface for inline title and user prompt fields", async () => {
+  it("keeps inline editors visually unobtrusive", async () => {
     const promptState = createPromptState(createPrompt());
 
     usePromptStoreMock.mockImplementation((selector) => selector(promptState));
@@ -242,13 +247,17 @@ describe("MainContent inline edit integration", () => {
       await renderWithI18n(<MainContent />, { language: "en" });
     });
 
-    fireEvent.doubleClick(screen.getByText("Original user prompt"));
+    fireEvent.doubleClick(
+      screen.getByRole("button", {
+        name: "Double-click to edit user prompt",
+      }),
+    );
 
     expect(screen.getByRole("textbox", { name: "Title" }).className).toContain(
-      "bg-white/95",
+      "bg-transparent",
     );
     expect(
       screen.getByRole("textbox", { name: "User Prompt" }).className,
-    ).toContain("bg-white/95");
+    ).toContain("bg-transparent");
   });
 });

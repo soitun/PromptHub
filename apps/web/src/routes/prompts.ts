@@ -47,6 +47,15 @@ const createVersionSchema = z.object({
   note: z.string().max(500).optional(),
 });
 
+const renameTagSchema = z.object({
+  oldTag: z.string().trim().min(1),
+  newTag: z.string().trim().min(1),
+});
+
+const deleteTagSchema = z.object({
+  tag: z.string().trim().min(1),
+});
+
 const listQuerySchema = z.object({
   scope: z.enum(['private', 'shared', 'all']).optional(),
   keyword: z.string().optional(),
@@ -204,6 +213,45 @@ prompts.get('/:id/versions/diff', async (c) => {
 
   try {
     return success(c, promptService.diff(getAuthUser(c), c.req.param('id'), parsed.data.from, parsed.data.to));
+  } catch (routeError) {
+    return toPromptErrorResponse(c, routeError);
+  }
+});
+
+prompts.get('/meta/tags', async (c) => {
+  try {
+    getAuthUser(c);
+    return success(c, promptService.getAllTags());
+  } catch (routeError) {
+    return toPromptErrorResponse(c, routeError);
+  }
+});
+
+prompts.post('/meta/tags/rename', async (c) => {
+  const parsed = await parseJsonBody(c, renameTagSchema);
+  if (!parsed.success) {
+    return parsed.response;
+  }
+
+  try {
+    getAuthUser(c);
+    promptService.renameTag(parsed.data.oldTag, parsed.data.newTag);
+    return success(c, { ok: true });
+  } catch (routeError) {
+    return toPromptErrorResponse(c, routeError);
+  }
+});
+
+prompts.post('/meta/tags/delete', async (c) => {
+  const parsed = await parseJsonBody(c, deleteTagSchema);
+  if (!parsed.success) {
+    return parsed.response;
+  }
+
+  try {
+    getAuthUser(c);
+    promptService.deleteTag(parsed.data.tag);
+    return success(c, { ok: true });
   } catch (routeError) {
     return toPromptErrorResponse(c, routeError);
   }

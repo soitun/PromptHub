@@ -68,23 +68,23 @@ export function registerPromptIPC(db: PromptDB, folderDb: FolderDB, rawDb: Datab
   // Get all Prompts
   // 获取所有 Prompt
   ipcMain.handle(IPC_CHANNELS.PROMPT_GET_ALL, async () => {
-    logger.debug('Handling PROMPT_GET_ALL');
-    return promptDB.getAll();
+    return db.getAll();
   });
 
   ipcMain.handle(IPC_CHANNELS.PROMPT_GET_ALL_TAGS, async () => {
-    logger.debug('Handling PROMPT_GET_ALL_TAGS');
-    return promptDB.getAllTags();
+    return db.getAllTags();
   });
 
   ipcMain.handle(IPC_CHANNELS.PROMPT_RENAME_TAG, async (_, oldTag: string, newTag: string) => {
-    logger.info('Handling PROMPT_RENAME_TAG', { oldTag, newTag });
-    promptDB.renameTag(oldTag, newTag);
+    db.renameTag(oldTag, newTag);
+    syncWorkspace();
+    return true;
   });
 
   ipcMain.handle(IPC_CHANNELS.PROMPT_DELETE_TAG, async (_, tag: string) => {
-    logger.info('Handling PROMPT_DELETE_TAG', { tag });
-    promptDB.deleteTag(tag);
+    db.deleteTag(tag);
+    syncWorkspace();
+    return true;
   });
 
   ipcMain.handle(IPC_CHANNELS.PROMPT_UPDATE, async (_, id: string, data: UpdatePromptDTO) => {

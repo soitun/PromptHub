@@ -75,15 +75,18 @@ export function filterVisibleScannedSkills(
   return scannedSkills.filter((skill) => {
     const fields = [
       skill.name,
-      skill.description,
-      skill.author,
-      skill.instructions,
-      skill.filePath,
-      skill.localPath,
-      ...skill.tags,
-      ...skill.platforms,
+      skill.description || "",
+      skill.author || "",
+      skill.instructions || "",
+      skill.filePath || "",
+      skill.localPath || "",
+      ...(skill.tags || []),
+      ...(skill.platforms || []),
     ];
 
-    return fields.some((value) => value.toLowerCase().includes(query));
+    return fields.some(
+      (value) =>
+        typeof value === "string" && value.toLowerCase().includes(query),
+    );
   });
 }

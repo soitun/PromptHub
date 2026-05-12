@@ -243,6 +243,20 @@ export class PromptService {
     return { from, to, fields };
   }
 
+  getAllTags(): string[] {
+    return this.promptDb.getAllTags();
+  }
+
+  renameTag(oldTag: string, newTag: string): void {
+    this.promptDb.renameTag(oldTag, newTag);
+    syncPromptWorkspaceFromDatabase(this.db, this.promptDb, this.folderDb);
+  }
+
+  deleteTag(tag: string): void {
+    this.promptDb.deleteTag(tag);
+    syncPromptWorkspaceFromDatabase(this.db, this.promptDb, this.folderDb);
+  }
+
   private getVisibleRows(actor: PromptActor, scope: 'private' | 'shared' | 'all'): PromptRow[] {
     if (scope === 'private') {
       return this.db

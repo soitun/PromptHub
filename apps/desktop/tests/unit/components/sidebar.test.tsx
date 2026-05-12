@@ -145,6 +145,7 @@ describe("Sidebar", () => {
         },
       ],
       selectedRuleId: "claude-global",
+      searchQuery: "",
     } as Partial<ReturnType<typeof useRulesStore.getState>>);
 
     useSkillStore.setState({
@@ -276,6 +277,29 @@ describe("Sidebar", () => {
 
     expect(selectRuleMock).toHaveBeenCalledWith("project:rule-project-1");
     expect(useRulesStore.getState().selectedRuleId).toBe("project:rule-project-1");
+  });
+
+  it("filters the rules sidebar using the shared rules search query", async () => {
+    useUIStore.setState({
+      appModule: "rules",
+      viewMode: "prompt",
+      isSidebarCollapsed: false,
+    });
+    useRulesStore.setState({
+      searchQuery: "codex",
+    } as Partial<ReturnType<typeof useRulesStore.getState>>);
+
+    await act(async () => {
+      await renderWithI18n(
+        <Sidebar currentPage="home" onNavigate={vi.fn()} />,
+        { language: "en" },
+      );
+    });
+
+    expect(screen.getByText("Codex CLI")).toBeInTheDocument();
+    expect(screen.queryByText("Claude Code")).not.toBeInTheDocument();
+    expect(screen.queryByText("Gemini CLI")).not.toBeInTheDocument();
+    expect(screen.queryByText("Docs Site")).not.toBeInTheDocument();
   });
 
   it("hides the secondary module menu when the shell is collapsed", async () => {
