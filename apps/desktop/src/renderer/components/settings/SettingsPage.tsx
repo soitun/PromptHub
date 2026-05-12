@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { ComponentType, SVGProps } from "react";
 import {
   SettingsIcon,
@@ -30,6 +30,7 @@ import { AISettingsPrototype } from "./AISettingsPrototype";
 import { SkillSettings } from "./SkillSettings";
 import { WebDeviceSettings } from "./WebDeviceSettings";
 import { WebWorkspaceSettings } from "./WebWorkspaceSettings";
+import { useSettingsStore } from "../../stores/settings.store";
 import { isWebRuntime } from "../../runtime";
 
 interface SettingsPageProps {
@@ -95,20 +96,20 @@ const DATA_SETTINGS_SUBMENU_GROUPS: Array<{
     items: [
       {
         id: "selfHosted",
-        labelKey: "settings.selfHostedWeb",
-        fallback: "Self-hosted web",
+        labelKey: "settings.selfHostedSyncMenu",
+        fallback: "Self-Hosted PromptHub",
         icon: ServerCogIcon,
       },
       {
         id: "webdav",
-        labelKey: "settings.webdav",
+        labelKey: "settings.webdavSyncMenu",
         fallback: "WebDAV",
         icon: CloudIcon,
       },
       {
         id: "s3",
-        labelKey: "settings.s3Storage",
-        fallback: "S3 compatible storage",
+        labelKey: "settings.s3SyncMenu",
+        fallback: "S3 Compatible Storage",
         icon: DatabaseIcon,
       },
     ],
@@ -130,6 +131,12 @@ const DATA_SETTINGS_SUBMENU_GROUPS: Array<{
 export function SettingsPage({ onBack }: SettingsPageProps) {
   const webRuntime = isWebRuntime();
   const settingsMenu = webRuntime ? WEB_SETTINGS_MENU : DESKTOP_SETTINGS_MENU;
+  const syncProvider = useSettingsStore((state) => state.syncProvider);
+  const webdavEnabled = useSettingsStore((state) => state.webdavEnabled);
+  const selfHostedSyncEnabled = useSettingsStore(
+    (state) => state.selfHostedSyncEnabled,
+  );
+  const s3StorageEnabled = useSettingsStore((state) => state.s3StorageEnabled);
   const [activeSection, setActiveSection] = useState(
     webRuntime ? "web" : "general",
   );
@@ -167,6 +174,14 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
     !webRuntime && activeSection === "data"
       ? DATA_SETTINGS_SUBMENU_GROUPS
       : null;
+  const enabledSubsections = useMemo(
+    () => ({
+      selfHosted: selfHostedSyncEnabled,
+      webdav: webdavEnabled,
+      s3: s3StorageEnabled,
+    }),
+    [selfHostedSyncEnabled, s3StorageEnabled, webdavEnabled],
+  );
 
   return (
     <div className="flex flex-1 overflow-hidden">
@@ -217,6 +232,12 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
                   <button
                     key={item.id}
                     onClick={() => setActiveDataSubsection(item.id)}
+                    aria-label={`${t(item.labelKey, item.fallback)}${
+                      item.id in enabledSubsections &&
+                      enabledSubsections[item.id as keyof typeof enabledSubsections]
+                        ? ` ${t("common.enabled")}`
+                        : ""
+                    }`}
                     className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] transition-all duration-150 ${
                       activeDataSubsection === item.id
                         ? "bg-primary text-white shadow-sm"
@@ -224,7 +245,30 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
                     }`}
                   >
                     <item.icon className="w-4 h-4" />
-                    <span>{t(item.labelKey, item.fallback)}</span>
+                    <span className="min-w-0 flex-1 text-left">
+                      {t(item.labelKey, item.fallback)}
+                    </span>
+                    {item.id in enabledSubsections &&
+                    enabledSubsections[
+                      item.id as keyof typeof enabledSubsections
+                    ] ? (
+                      <span
+                        className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                          syncProvider ===
+                          (item.id === "selfHosted"
+                            ? "self-hosted"
+                            : item.id)
+                            ? activeDataSubsection === item.id
+                              ? "bg-white/20 text-white"
+                              : "bg-primary/10 text-primary"
+                            : activeDataSubsection === item.id
+                              ? "bg-white/15 text-white/90"
+                              : "bg-muted text-muted-foreground"
+                        }`}
+                      >
+                        {t("common.enabled")}
+                      </span>
+                    ) : null}
                   </button>
                 ))}
               </section>

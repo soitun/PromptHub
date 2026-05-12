@@ -13,15 +13,19 @@ import {
 import { initDatabase, migrateLegacyIndexedDbToMainProcess } from "./services/database";
 import { ImportedPromptData } from "./components/prompt/ImportPromptModal";
 import {
+  runS3AutoSync,
   runSelfHostedAutoSync as executeSelfHostedAutoSync,
   runWebDAVAutoSync,
 } from "./services/backup-orchestrator";
 import {
+  hasValidS3Config,
   hasValidSelfHostedConfig,
   hasValidWebDAVConfig,
   shouldRunBackgroundUpdateCheck,
+  shouldRunPeriodicS3Sync,
   shouldRunPeriodicSelfHostedSync,
   shouldRunPeriodicWebDAVSync,
+  shouldRunStartupS3Sync,
   shouldRunStartupSelfHostedSync,
   shouldRunStartupWebDAVSync,
 } from "./services/app-background";
@@ -46,7 +50,6 @@ const EditPromptModal = lazy(() =>
     default: m.EditPromptModal,
   })),
 );
-
 // Page type
 // 页面类型
 type PageType = "home" | "settings";
@@ -85,6 +88,8 @@ function App() {
   const isUpdateCheckInFlightRef = useRef(false);
   const isWebDAVSyncInFlightRef = useRef(false);
   const pendingStartupSyncRef = useRef(false);
+  const isS3SyncInFlightRef = useRef(false);
+  const pendingS3StartupSyncRef = useRef(false);
   const isSelfHostedSyncInFlightRef = useRef(false);
   const pendingSelfHostedStartupSyncRef = useRef(false);
   const isWindowVisibleRef = useRef(true);
@@ -546,6 +551,8 @@ function App() {
     // 初始化数据库，然后加载数据
     let startupSyncTimer: NodeJS.Timeout | null = null;
     let intervalId: NodeJS.Timeout | null = null;
+    let s3StartupSyncTimer: NodeJS.Timeout | null = null;
+    let s3IntervalId: NodeJS.Timeout | null = null;
     let selfHostedStartupSyncTimer: NodeJS.Timeout | null = null;
     let selfHostedIntervalId: NodeJS.Timeout | null = null;
     let disposed = false;
@@ -660,11 +667,86 @@ function App() {
       }
 
       if (
+        pendingS3StartupSyncRef.current &&
+        isWindowVisibleRef.current &&
+        navigator.onLine !== false &&
+        useSettingsStore.getState().syncProvider === "s3"
+      ) {
+        void runS3AutoSyncTask("startup-resume");
+      }
+
+      if (
         pendingSelfHostedStartupSyncRef.current &&
         isWindowVisibleRef.current &&
-        navigator.onLine !== false
+        navigator.onLine !== false &&
+        useSettingsStore.getState().syncProvider === "self-hosted"
       ) {
         void runSelfHostedAutoSync("startup-resume");
+      }
+    };
+
+    const runS3AutoSyncTask = async (
+      reason: "startup" | "startup-resume" | "interval",
+    ) => {
+      const settings = useSettingsStore.getState();
+      const state = {
+        isVisible: isWindowVisibleRef.current,
+        isOnline: navigator.onLine !== false,
+        isRunning: isS3SyncInFlightRef.current,
+      };
+
+      const canRun =
+        reason === "interval"
+          ? shouldRunPeriodicS3Sync(settings, state)
+          : shouldRunStartupS3Sync(settings, state);
+
+      if (!canRun) {
+        if (
+          reason !== "interval" &&
+          settings.s3SyncOnStartup &&
+          hasValidS3Config(settings)
+        ) {
+          pendingS3StartupSyncRef.current = true;
+        }
+        return;
+      }
+
+      pendingS3StartupSyncRef.current = false;
+      isS3SyncInFlightRef.current = true;
+
+      try {
+        const result = await runS3AutoSync({
+          config: {
+            endpoint: settings.s3Endpoint,
+            region: settings.s3Region,
+            bucket: settings.s3Bucket,
+            accessKeyId: settings.s3AccessKeyId,
+            secretAccessKey: settings.s3SecretAccessKey,
+            backupPrefix: settings.s3BackupPrefix,
+          },
+          options: {
+            includeImages: settings.s3IncludeImages,
+            incrementalSync: settings.s3IncrementalSync,
+            encryptionPassword:
+              settings.s3EncryptionEnabled && settings.s3EncryptionPassword
+                ? settings.s3EncryptionPassword
+                : undefined,
+          },
+        });
+
+        if (!result.success) {
+          console.error(`⚠️ S3 ${reason} sync failed:`, result.message);
+          return;
+        }
+
+        console.log(`✅ S3 ${reason} sync completed:`, result.message);
+        if (result.localChanged) {
+          await Promise.all([fetchPrompts(), fetchFolders()]);
+        }
+      } catch (syncError) {
+        console.error(`⚠️ S3 ${reason} sync error:`, syncError);
+      } finally {
+        isS3SyncInFlightRef.current = false;
       }
     };
 
@@ -785,7 +867,11 @@ function App() {
       // Sync after startup (run after data is loaded; do not block UI)
       // 启动后同步（在数据加载完成后执行，不阻塞 UI）
       const settings = useSettingsStore.getState();
-      if (settings.webdavSyncOnStartup && hasValidWebDAVConfig(settings)) {
+      if (
+        settings.syncProvider === "webdav" &&
+        settings.webdavSyncOnStartup &&
+        hasValidWebDAVConfig(settings)
+      ) {
         const delay = (settings.webdavSyncOnStartupDelay ?? 10) * 1000;
         console.log(`🔄 Will sync with WebDAV in ${delay / 1000}s...`);
         startupSyncTimer = setTimeout(() => {
@@ -798,6 +884,23 @@ function App() {
       }
 
       if (
+        settings.syncProvider === "s3" &&
+        settings.s3SyncOnStartup &&
+        hasValidS3Config(settings)
+      ) {
+        const delay = (settings.s3SyncOnStartupDelay ?? 10) * 1000;
+        console.log(`🔄 Will sync with S3 in ${delay / 1000}s...`);
+        s3StartupSyncTimer = setTimeout(() => {
+          if (!isWindowVisibleRef.current || navigator.onLine === false) {
+            pendingS3StartupSyncRef.current = true;
+            return;
+          }
+          void runS3AutoSyncTask("startup");
+        }, delay);
+      }
+
+      if (
+        settings.syncProvider === "self-hosted" &&
         settings.selfHostedSyncOnStartup &&
         hasValidSelfHostedConfig(settings)
       ) {
@@ -842,6 +945,7 @@ function App() {
       // 定时自动同步
       const settings = useSettingsStore.getState();
       if (
+        settings.syncProvider === "webdav" &&
         settings.webdavAutoSyncInterval > 0 &&
         hasValidWebDAVConfig(settings)
       ) {
@@ -855,6 +959,19 @@ function App() {
       }
 
       if (
+        settings.syncProvider === "s3" &&
+        settings.s3AutoSyncInterval > 0 &&
+        hasValidS3Config(settings)
+      ) {
+        const intervalMs = settings.s3AutoSyncInterval * 60 * 1000;
+        console.log(`🔄 S3 auto sync interval: ${settings.s3AutoSyncInterval} minutes`);
+        s3IntervalId = setInterval(() => {
+          void runS3AutoSyncTask("interval");
+        }, intervalMs);
+      }
+
+      if (
+        settings.syncProvider === "self-hosted" &&
         settings.selfHostedAutoSyncInterval > 0 &&
         hasValidSelfHostedConfig(settings)
       ) {
@@ -877,6 +994,8 @@ function App() {
       disposed = true;
       if (startupSyncTimer) clearTimeout(startupSyncTimer);
       if (intervalId) clearInterval(intervalId);
+      if (s3StartupSyncTimer) clearTimeout(s3StartupSyncTimer);
+      if (s3IntervalId) clearInterval(s3IntervalId);
       if (selfHostedStartupSyncTimer) clearTimeout(selfHostedStartupSyncTimer);
       if (selfHostedIntervalId) clearInterval(selfHostedIntervalId);
       document.removeEventListener(

@@ -11,6 +11,8 @@
 - 同步必须围绕可恢复的数据对象或稳定数据布局进行，而不是依赖临时 UI 状态。
 - 不同同步后端可以不同，但用户可见的同步语义必须保持一致：连接验证、上传、下载、恢复、周期同步。
 - 同步 provider 稳定联合类型为：`manual | webdav | self-hosted | s3`。
+- 桌面端可以同时启用多个备份目标用于手动上传、下载与恢复，但自动同步在任一时刻只能由一个 `syncProvider` 驱动，避免多源竞争写入。
+- 桌面端数据设置中的云备份导航应使用 provider 导向命名，并直接显示每个 provider 是否已启用。
 - 对 `webdav` push/pull 的编排必须通过路由/页面外的 orchestrator 服务完成，避免在入口层直接堆叠远端流程细节。
 
 ### 1.1 Stable Web Sync Response Shape
@@ -50,6 +52,14 @@ When web sync route behavior is changed:
 - contributor keeps provider-specific IO in orchestrator service (`apps/web/src/services/sync-orchestrator.ts`)
 - contributor preserves response compatibility while maintaining unified `summary`
 - contributor validates route contract with unit/integration tests under `apps/web/src/routes/sync.test.ts`
+
+### Scenario: Desktop has multiple backup targets configured
+
+When desktop users enable more than one cloud backup target:
+
+- manual backup, download, and restore actions can remain available for every enabled target
+- startup sync, interval sync, and save-triggered sync run only for the selected `syncProvider`
+- settings navigation keeps provider-oriented labels and shows which providers are enabled without entering each panel
 
 ### Scenario: User needs deployment-level sync guidance
 

@@ -1,7 +1,11 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import i18n, { changeLanguage } from "../i18n";
-import type { Settings, SkillProject } from "@prompthub/shared/types";
+import type {
+  Settings,
+  SkillProject,
+  SyncProviderKind,
+} from "@prompthub/shared/types";
 import type { UpdateChannel } from "@prompthub/shared/types";
 import type { AIProtocol } from "@prompthub/shared/types";
 import { isPrereleaseVersion } from "../../utils/version";
@@ -81,6 +85,78 @@ function normalizeAIProtocol(value: unknown, provider?: string, apiUrl?: string)
     return value;
   }
   return inferAIProtocol(provider, apiUrl);
+}
+
+function normalizeSyncProvider(value: unknown): SyncProviderKind {
+  if (value === "webdav" || value === "self-hosted" || value === "s3") {
+    return value;
+  }
+
+  return "manual";
+}
+
+function buildMainProcessSyncSettings(
+  provider: SyncProviderKind,
+): NonNullable<Settings["sync"]> {
+  return {
+    enabled: provider !== "manual",
+    provider,
+    autoSync: provider !== "manual",
+  };
+}
+
+function inferLegacySyncProvider(state: Partial<SettingsState>): SyncProviderKind {
+  const activeProviders: SyncProviderKind[] = [];
+
+  if (
+    state.webdavEnabled &&
+    (state.webdavSyncOnStartup ||
+      (state.webdavAutoSyncInterval ?? 0) > 0 ||
+      state.webdavSyncOnSave)
+  ) {
+    activeProviders.push("webdav");
+  }
+
+  if (
+    state.selfHostedSyncEnabled &&
+    (state.selfHostedSyncOnStartup ||
+      (state.selfHostedAutoSyncInterval ?? 0) > 0)
+  ) {
+    activeProviders.push("self-hosted");
+  }
+
+  if (
+    state.s3StorageEnabled &&
+    (state.s3SyncOnStartup ||
+      (state.s3AutoSyncInterval ?? 0) > 0 ||
+      state.s3SyncOnSave)
+  ) {
+    activeProviders.push("s3");
+  }
+
+  return activeProviders.length === 1 ? activeProviders[0] : "manual";
+}
+
+function clampSyncProvider(
+  provider: SyncProviderKind,
+  state: Pick<
+    SettingsState,
+    "webdavEnabled" | "selfHostedSyncEnabled" | "s3StorageEnabled"
+  >,
+): SyncProviderKind {
+  if (provider === "webdav" && !state.webdavEnabled) {
+    return "manual";
+  }
+
+  if (provider === "self-hosted" && !state.selfHostedSyncEnabled) {
+    return "manual";
+  }
+
+  if (provider === "s3" && !state.s3StorageEnabled) {
+    return "manual";
+  }
+
+  return provider;
 }
 
 type Hs = { hue: number; saturation: number };
@@ -353,6 +429,7 @@ interface SettingsState {
   s3IncrementalSync: boolean;
   s3EncryptionEnabled: boolean;
   s3EncryptionPassword: string;
+  syncProvider: SyncProviderKind;
 
   // Update settings
   autoCheckUpdate: boolean;
@@ -456,6 +533,7 @@ interface SettingsState {
   setS3IncrementalSync: (enabled: boolean) => void;
   setS3EncryptionEnabled: (enabled: boolean) => void;
   setS3EncryptionPassword: (password: string) => void;
+  setSyncProvider: (provider: SyncProviderKind) => void;
   setAutoCheckUpdate: (enabled: boolean) => void;
   setUseUpdateMirror: (enabled: boolean) => void;
   setUpdateChannel: (channel: UpdateChannel) => void;
@@ -556,11 +634,16 @@ export async function loadSettingsFromMainProcess(): Promise<void> {
       ? settings.minimizeOnLaunch
       : state.minimizeOnLaunch;
   const githubToken = sanitizeGithubToken(settings.githubToken ?? "");
+  const syncProvider = clampSyncProvider(
+    normalizeSyncProvider(settings.sync?.provider),
+    state,
+  );
 
   useSettingsStore.setState({
     launchAtStartup,
     minimizeOnLaunch,
     githubToken,
+    syncProvider,
   });
 
   if (typeof settings.launchAtStartup !== "boolean") {
@@ -569,6 +652,10 @@ export async function loadSettingsFromMainProcess(): Promise<void> {
 
   if (typeof settings.minimizeOnLaunch !== "boolean") {
     syncSettingsToMain({ minimizeOnLaunch });
+  }
+
+  if (settings.sync?.provider !== syncProvider) {
+    syncSettingsToMain({ sync: buildMainProcessSyncSettings(syncProvider) });
   }
 }
 
@@ -666,6 +753,7 @@ export const useSettingsStore = create<SettingsState>()(
         s3IncrementalSync: true,
         s3EncryptionEnabled: false,
         s3EncryptionPassword: "",
+        syncProvider: "manual",
         autoCheckUpdate: true,
         useUpdateMirror: false,
         updateChannel: "stable",
@@ -908,7 +996,17 @@ export const useSettingsStore = create<SettingsState>()(
           changeLanguage(normalized);
         },
         setDataPath: (path) => setTouched({ dataPath: path }),
-        setWebdavEnabled: (enabled) => setTouched({ webdavEnabled: enabled }),
+        setWebdavEnabled: (enabled) => {
+          const current = get();
+          const nextSyncProvider = enabled
+            ? current.syncProvider
+            : clampSyncProvider(current.syncProvider, {
+                ...current,
+                webdavEnabled: enabled,
+              });
+          setTouched({ webdavEnabled: enabled, syncProvider: nextSyncProvider });
+          syncSettingsToMain({ sync: buildMainProcessSyncSettings(nextSyncProvider) });
+        },
         setWebdavUrl: (url) => setTouched({ webdavUrl: url }),
         setWebdavUsername: (username) =>
           setTouched({ webdavUsername: username }),
@@ -934,8 +1032,20 @@ export const useSettingsStore = create<SettingsState>()(
           setTouched({ webdavEncryptionEnabled: enabled }),
         setWebdavEncryptionPassword: (password) =>
           setTouched({ webdavEncryptionPassword: password }),
-        setSelfHostedSyncEnabled: (enabled) =>
-          setTouched({ selfHostedSyncEnabled: enabled }),
+        setSelfHostedSyncEnabled: (enabled) => {
+          const current = get();
+          const nextSyncProvider = enabled
+            ? current.syncProvider
+            : clampSyncProvider(current.syncProvider, {
+                ...current,
+                selfHostedSyncEnabled: enabled,
+              });
+          setTouched({
+            selfHostedSyncEnabled: enabled,
+            syncProvider: nextSyncProvider,
+          });
+          syncSettingsToMain({ sync: buildMainProcessSyncSettings(nextSyncProvider) });
+        },
         setSelfHostedSyncUrl: (url) => setTouched({ selfHostedSyncUrl: url }),
         setSelfHostedSyncUsername: (username) =>
           setTouched({ selfHostedSyncUsername: username }),
@@ -949,8 +1059,17 @@ export const useSettingsStore = create<SettingsState>()(
           }),
         setSelfHostedAutoSyncInterval: (interval) =>
           setTouched({ selfHostedAutoSyncInterval: Math.max(0, interval) }),
-        setS3StorageEnabled: (enabled) =>
-          setTouched({ s3StorageEnabled: enabled }),
+        setS3StorageEnabled: (enabled) => {
+          const current = get();
+          const nextSyncProvider = enabled
+            ? current.syncProvider
+            : clampSyncProvider(current.syncProvider, {
+                ...current,
+                s3StorageEnabled: enabled,
+              });
+          setTouched({ s3StorageEnabled: enabled, syncProvider: nextSyncProvider });
+          syncSettingsToMain({ sync: buildMainProcessSyncSettings(nextSyncProvider) });
+        },
         setS3Endpoint: (endpoint) => setTouched({ s3Endpoint: endpoint }),
         setS3Region: (region) => setTouched({ s3Region: region }),
         setS3Bucket: (bucket) => setTouched({ s3Bucket: bucket }),
@@ -974,6 +1093,11 @@ export const useSettingsStore = create<SettingsState>()(
           setTouched({ s3EncryptionEnabled: enabled }),
         setS3EncryptionPassword: (password) =>
           setTouched({ s3EncryptionPassword: password }),
+        setSyncProvider: (provider) => {
+          const normalized = clampSyncProvider(provider, get());
+          setTouched({ syncProvider: normalized });
+          syncSettingsToMain({ sync: buildMainProcessSyncSettings(normalized) });
+        },
         setAutoCheckUpdate: (enabled) =>
           setTouched({ autoCheckUpdate: enabled }),
         setUseUpdateMirror: (enabled) =>
@@ -1341,8 +1465,25 @@ export const useSettingsStore = create<SettingsState>()(
     },
     {
       name: "prompthub-settings",
-      version: 8,
+      version: 9,
       partialize: stripEphemeralSettings,
+      merge: (persistedState, currentState) => {
+        const next = {
+          ...currentState,
+          ...(persistedState as Partial<SettingsState>),
+        };
+
+        next.syncProvider = clampSyncProvider(
+          normalizeSyncProvider(next.syncProvider),
+          {
+            webdavEnabled: next.webdavEnabled === true,
+            selfHostedSyncEnabled: next.selfHostedSyncEnabled === true,
+            s3StorageEnabled: next.s3StorageEnabled === true,
+          },
+        );
+
+        return next;
+      },
       migrate: (state, version) => {
         if (!state || typeof state !== "object") {
           return state as SettingsState;
@@ -1481,6 +1622,18 @@ export const useSettingsStore = create<SettingsState>()(
         if (typeof next.updateChannelExplicitlySet !== "boolean") {
           next.updateChannelExplicitlySet = false;
         }
+        if (version < 9) {
+          next.syncProvider = inferLegacySyncProvider(next);
+        } else {
+          next.syncProvider = clampSyncProvider(
+            normalizeSyncProvider(next.syncProvider),
+            {
+              webdavEnabled: next.webdavEnabled === true,
+              selfHostedSyncEnabled: next.selfHostedSyncEnabled === true,
+              s3StorageEnabled: next.s3StorageEnabled === true,
+            },
+          );
+        }
         if (version < 8) {
           next.aiApiProtocol = normalizeAIProtocol(
             next.aiApiProtocol,
@@ -1513,6 +1666,19 @@ export const useSettingsStore = create<SettingsState>()(
         return next;
       },
       onRehydrateStorage: () => (state) => {
+        const hydratedSyncProvider = clampSyncProvider(
+          normalizeSyncProvider(state?.syncProvider),
+          {
+            webdavEnabled: state?.webdavEnabled === true,
+            selfHostedSyncEnabled: state?.selfHostedSyncEnabled === true,
+            s3StorageEnabled: state?.s3StorageEnabled === true,
+          },
+        );
+
+        if (state && state.syncProvider !== hydratedSyncProvider) {
+          useSettingsStore.setState({ syncProvider: hydratedSyncProvider });
+        }
+
         applyBackgroundImageVars({
           backgroundImageFileName: state?.backgroundImageFileName,
           backgroundImageOpacity: state?.backgroundImageOpacity,
@@ -1523,6 +1689,7 @@ export const useSettingsStore = create<SettingsState>()(
           customSkillPlatformPaths: state?.customSkillPlatformPaths || {},
           skillPlatformOrder: state?.skillPlatformOrder || [],
           skillProjects: state?.skillProjects || [],
+          sync: buildMainProcessSyncSettings(hydratedSyncProvider),
         });
       },
     },

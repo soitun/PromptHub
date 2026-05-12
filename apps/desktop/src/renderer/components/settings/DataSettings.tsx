@@ -32,6 +32,9 @@ import { hasAnySkipped } from "../../services/database-backup-format";
 import { clearDatabase } from "../../services/database";
 import {
   runFullExportBackup,
+  runS3ConnectionCheck,
+  runS3Download,
+  runS3Upload,
   runSelfHostedConnectionCheck,
   runSelfHostedPull,
   runSelfHostedPush,
@@ -58,6 +61,7 @@ import type { ImportPreviewSummary } from "../../services/database-backup";
 const MANUAL_RECOVERY_PATHS_STORAGE_KEY = "prompthub-manual-recovery-paths";
 const DEFAULT_VISIBLE_UPGRADE_BACKUPS = 3;
 const EXPANDED_UPGRADE_BACKUP_MAX_HEIGHT = 420;
+const WEBDAV_SYNC_ON_SAVE_AVAILABLE = true;
 
 type DataPathChangeAction = "migrate" | "switch" | "overwrite";
 type DataSettingsSubsection =
@@ -164,6 +168,22 @@ function getSyncPanelContentClassName(disabled: boolean): string {
   return disabled ? "space-y-3 pt-2 border-t border-border opacity-60" : "space-y-3 pt-2 border-t border-border";
 }
 
+function getSyncProviderOptionLabel(
+  provider: "manual" | "webdav" | "self-hosted" | "s3",
+  translate: (key: string, fallback: string) => string,
+): string {
+  switch (provider) {
+    case "webdav":
+      return translate("settings.webdavSyncMenu", "WebDAV");
+    case "self-hosted":
+      return translate("settings.selfHostedSyncMenu", "Self-Hosted PromptHub");
+    case "s3":
+      return translate("settings.s3SyncMenu", "S3 Compatible Storage");
+    default:
+      return translate("settings.syncProviderManual", "Manual only");
+  }
+}
+
 /**
  * DataSettings — Data management tab
  * Handles: data path, WebDAV sync, backup/restore, clear data
@@ -175,6 +195,7 @@ interface DataSettingsProps {
 
 export function DataSettings({ activeSubsection = "local" }: DataSettingsProps) {
   const { t } = useTranslation();
+  const translateLabel = (key: string, fallback: string): string => t(key, fallback);
   const { showToast } = useToast();
   const webRuntime = isWebRuntime();
   const settings = useSettingsStore();
@@ -225,6 +246,9 @@ export function DataSettings({ activeSubsection = "local" }: DataSettingsProps) 
   const [webdavTesting, setWebdavTesting] = useState(false);
   const [webdavUploading, setWebdavUploading] = useState(false);
   const [webdavDownloading, setWebdavDownloading] = useState(false);
+  const [s3Testing, setS3Testing] = useState(false);
+  const [s3Uploading, setS3Uploading] = useState(false);
+  const [s3Downloading, setS3Downloading] = useState(false);
   const [selfHostedTesting, setSelfHostedTesting] = useState(false);
   const [selfHostedUploading, setSelfHostedUploading] = useState(false);
   const [selfHostedDownloading, setSelfHostedDownloading] = useState(false);
@@ -237,6 +261,46 @@ export function DataSettings({ activeSubsection = "local" }: DataSettingsProps) 
     settings.webdavUrl.trim().length > 0 &&
     settings.webdavUsername.trim().length > 0 &&
     settings.webdavPassword.trim().length > 0;
+  const s3ConfigComplete =
+    settings.s3Endpoint.trim().length > 0 &&
+    settings.s3Region.trim().length > 0 &&
+    settings.s3Bucket.trim().length > 0 &&
+    settings.s3AccessKeyId.trim().length > 0 &&
+    settings.s3SecretAccessKey.trim().length > 0;
+  const s3ControlsDisabled = !settings.s3StorageEnabled;
+  const selfHostedIsSyncSource = settings.syncProvider === "self-hosted";
+  const webdavIsSyncSource = settings.syncProvider === "webdav";
+  const s3IsSyncSource = settings.syncProvider === "s3";
+  const syncProviderOptions = [
+    {
+      value: "manual",
+      label: getSyncProviderOptionLabel("manual", translateLabel),
+    },
+    ...(settings.selfHostedSyncEnabled
+      ? [
+          {
+            value: "self-hosted",
+            label: getSyncProviderOptionLabel("self-hosted", translateLabel),
+          },
+        ]
+      : []),
+    ...(settings.webdavEnabled
+      ? [
+          {
+            value: "webdav",
+            label: getSyncProviderOptionLabel("webdav", translateLabel),
+          },
+        ]
+      : []),
+    ...(settings.s3StorageEnabled
+      ? [
+          {
+            value: "s3",
+            label: getSyncProviderOptionLabel("s3", translateLabel),
+          },
+        ]
+      : []),
+  ];
 
   // Export/backup options
   // 数据导出/备份选项
@@ -990,13 +1054,40 @@ export function DataSettings({ activeSubsection = "local" }: DataSettingsProps) 
         ) : null}
 
         {!webRuntime && activeSubsection === "selfHosted" ? (
-          <DataSettingsSection title={t("settings.selfHostedWeb")}>
+          <DataSettingsSection title={t("settings.selfHostedSyncMenu", "Self-Hosted PromptHub")}>
             <div className="p-4 space-y-4">
+              <div className="rounded-xl border border-border bg-muted/30 px-3 py-3">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-medium">
+                      {t("settings.syncProviderTitle", "Current sync source")}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {t(
+                        "settings.syncProviderDesc",
+                        "You can enable multiple backup targets, but automatic sync uses only one source at a time to avoid conflicts.",
+                      )}
+                    </p>
+                  </div>
+                  <div className="min-w-[220px]">
+                    <Select
+                      value={settings.syncProvider}
+                      onChange={(value) =>
+                        settings.setSyncProvider(
+                          value as "manual" | "webdav" | "self-hosted" | "s3",
+                        )
+                      }
+                      options={syncProviderOptions}
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div className="flex items-center gap-3">
                 <ServerCogIcon className="w-5 h-5 text-muted-foreground" />
                 <div className="flex-1">
                   <p className="text-sm font-medium">
-                    {t("settings.selfHostedWeb")}
+                    {t("settings.selfHostedSyncMenu", "Self-Hosted PromptHub")}
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     {t(
@@ -1193,10 +1284,15 @@ export function DataSettings({ activeSubsection = "local" }: DataSettingsProps) 
                         {t("settings.selfHostedAutoRun", "Automatic Sync")}
                       </p>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        {t(
-                          "settings.selfHostedAutoRunDesc",
-                          "Keep desktop and your self-hosted PromptHub workspace aligned on a background schedule.",
-                        )}
+                        {selfHostedIsSyncSource
+                          ? t(
+                              "settings.selfHostedAutoRunDesc",
+                              "Keep desktop and your self-hosted PromptHub workspace aligned on a background schedule.",
+                            )
+                          : t(
+                              "settings.syncSourceInactiveDesc",
+                              "This target stays available for manual backup and restore, but automatic sync only runs for the current sync source.",
+                            )}
                       </p>
                     </div>
                     <div className="min-w-[140px]">
@@ -1300,13 +1396,13 @@ export function DataSettings({ activeSubsection = "local" }: DataSettingsProps) 
         ) : null}
 
         {!webRuntime && activeSubsection === "webdav" ? (
-        <DataSettingsSection title={t("settings.webdav")}>
+        <DataSettingsSection title={t("settings.webdavSyncMenu", "WebDAV")}>
           <div className="p-4 space-y-4">
             <div className="flex items-center gap-3">
               <CloudIcon className="w-5 h-5 text-muted-foreground" />
               <div className="flex-1">
                 <p className="text-sm font-medium">
-                  {t("settings.webdavEnabled")}
+                  {t("settings.webdavSyncMenu", "WebDAV")}
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {t("settings.webdavEnabledDesc")}
@@ -1476,15 +1572,20 @@ export function DataSettings({ activeSubsection = "local" }: DataSettingsProps) 
                 </div>
 
                 {/* 自动运行（定时同步） */}
-                <div className="flex items-center justify-between pt-3 border-t border-border">
-                  <div className="flex-1 mr-4">
-                    <p className="text-sm font-medium">
-                      {t("settings.webdavAutoRun", "自动运行")}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {t("settings.webdavAutoRunDesc")}
-                    </p>
-                  </div>
+                  <div className="flex items-center justify-between pt-3 border-t border-border">
+                    <div className="flex-1 mr-4">
+                      <p className="text-sm font-medium">
+                        {t("settings.webdavAutoRun", "自动运行")}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {webdavIsSyncSource
+                          ? t("settings.webdavAutoRunDesc")
+                          : t(
+                              "settings.syncSourceInactiveDesc",
+                              "This target stays available for manual backup and restore, but automatic sync only runs for the current sync source.",
+                            )}
+                      </p>
+                    </div>
                   <div className="min-w-[140px]">
                     <Select
                       value={String(settings.webdavAutoSyncInterval)}
@@ -1582,13 +1683,17 @@ export function DataSettings({ activeSubsection = "local" }: DataSettingsProps) 
                       {t("settings.webdavSyncOnSave", "保存时同步（实验性质）")}
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      {t("settings.webdavSyncOnSaveDesc")}
+                      {WEBDAV_SYNC_ON_SAVE_AVAILABLE
+                        ? t("settings.webdavSyncOnSaveDesc")
+                        : t("settings.webdavSyncOnSaveUnavailableDesc")}
                     </p>
                   </div>
                     <ToggleSwitch
                       checked={settings.webdavSyncOnSave}
                       onChange={settings.setWebdavSyncOnSave}
-                      disabled={!settings.webdavEnabled}
+                      disabled={
+                        !settings.webdavEnabled || !WEBDAV_SYNC_ON_SAVE_AVAILABLE
+                      }
                     />
                 </div>
 
@@ -1665,12 +1770,12 @@ export function DataSettings({ activeSubsection = "local" }: DataSettingsProps) 
         ) : null}
 
         {!webRuntime && activeSubsection === "s3" ? (
-        <DataSettingsSection title={t("settings.s3Storage", "S3 compatible storage")}>
+        <DataSettingsSection title={t("settings.s3SyncMenu", "S3 Compatible Storage")}>
           <div className="p-4 space-y-4">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-medium">
-                  {t("settings.s3Storage", "S3 compatible storage")}
+                  {t("settings.s3SyncMenu", "S3 Compatible Storage")}
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {t(
@@ -1685,8 +1790,8 @@ export function DataSettings({ activeSubsection = "local" }: DataSettingsProps) 
               />
             </div>
 
-            <div className={getSyncPanelContentClassName(!settings.s3StorageEnabled)}>
-              <fieldset disabled={!settings.s3StorageEnabled} className="space-y-3 min-w-0">
+            <div className={getSyncPanelContentClassName(s3ControlsDisabled)}>
+              <fieldset disabled={s3ControlsDisabled} className="space-y-3 min-w-0">
                 <div>
                 <label className="text-xs text-muted-foreground mb-1 block">
                   {t("settings.s3Endpoint", "API endpoint")}
@@ -1764,39 +1869,128 @@ export function DataSettings({ activeSubsection = "local" }: DataSettingsProps) 
 
             <div className="flex flex-wrap gap-2 pt-2 border-t border-border">
               <button
-                disabled
-                className="h-8 px-4 rounded-lg bg-muted text-sm transition-colors flex items-center gap-2 opacity-50 cursor-not-allowed"
+                onClick={async () => {
+                  if (!s3ConfigComplete) {
+                    return;
+                  }
+
+                  setS3Testing(true);
+                  try {
+                    const result = await runS3ConnectionCheck({
+                      endpoint: settings.s3Endpoint,
+                      region: settings.s3Region,
+                      bucket: settings.s3Bucket,
+                      accessKeyId: settings.s3AccessKeyId,
+                      secretAccessKey: settings.s3SecretAccessKey,
+                      backupPrefix: settings.s3BackupPrefix,
+                    });
+                    showToast(result.message, result.success ? "success" : "error");
+                  } finally {
+                    setS3Testing(false);
+                  }
+                }}
+                disabled={s3Testing || !s3ConfigComplete || !settings.s3StorageEnabled}
+                className="h-8 px-4 rounded-lg bg-muted text-sm hover:bg-muted/80 transition-colors flex items-center gap-2 disabled:opacity-50"
               >
-                <RefreshCwIcon className="w-4 h-4" />
+                <RefreshCwIcon className={`w-4 h-4 ${s3Testing ? "animate-spin" : ""}`} />
                 {t("settings.testConnection")}
               </button>
               <button
-                disabled
-                className="h-8 px-4 rounded-lg bg-primary text-white text-sm transition-colors flex items-center gap-2 opacity-50 cursor-not-allowed"
+                onClick={async () => {
+                  if (!s3ConfigComplete) {
+                    return;
+                  }
+
+                  setS3Uploading(true);
+                  try {
+                    const result = await runS3Upload({
+                      config: {
+                        endpoint: settings.s3Endpoint,
+                        region: settings.s3Region,
+                        bucket: settings.s3Bucket,
+                        accessKeyId: settings.s3AccessKeyId,
+                        secretAccessKey: settings.s3SecretAccessKey,
+                        backupPrefix: settings.s3BackupPrefix,
+                      },
+                      options: {
+                        includeImages: settings.s3IncludeImages,
+                        incrementalSync: settings.s3IncrementalSync,
+                        encryptionPassword:
+                          settings.s3EncryptionEnabled && settings.s3EncryptionPassword
+                            ? settings.s3EncryptionPassword
+                            : undefined,
+                      },
+                    });
+                    showToast(result.message, result.success ? "success" : "error");
+                  } finally {
+                    setS3Uploading(false);
+                  }
+                }}
+                disabled={s3Uploading || !s3ConfigComplete || !settings.s3StorageEnabled}
+                className="h-8 px-4 rounded-lg bg-primary text-white text-sm hover:bg-primary/90 transition-colors flex items-center gap-2 disabled:opacity-50"
               >
                 <UploadIcon className="w-4 h-4" />
                 {t("settings.upload")}
               </button>
               <button
-                disabled
-                className="h-8 px-4 rounded-lg bg-muted text-sm transition-colors flex items-center gap-2 opacity-50 cursor-not-allowed"
+                onClick={async () => {
+                  if (!s3ConfigComplete) {
+                    return;
+                  }
+
+                  setS3Downloading(true);
+                  try {
+                    const result = await runS3Download({
+                      config: {
+                        endpoint: settings.s3Endpoint,
+                        region: settings.s3Region,
+                        bucket: settings.s3Bucket,
+                        accessKeyId: settings.s3AccessKeyId,
+                        secretAccessKey: settings.s3SecretAccessKey,
+                        backupPrefix: settings.s3BackupPrefix,
+                      },
+                      options: {
+                        incrementalSync: settings.s3IncrementalSync,
+                        encryptionPassword:
+                          settings.s3EncryptionEnabled && settings.s3EncryptionPassword
+                            ? settings.s3EncryptionPassword
+                            : undefined,
+                      },
+                    });
+                    if (result.success) {
+                      showToast(result.message, "success");
+                      setTimeout(() => window.location.reload(), 1000);
+                    } else {
+                      showToast(result.message, "error");
+                    }
+                  } finally {
+                    setS3Downloading(false);
+                  }
+                }}
+                disabled={s3Downloading || !s3ConfigComplete || !settings.s3StorageEnabled}
+                className="h-8 px-4 rounded-lg bg-muted text-sm hover:bg-muted/80 transition-colors flex items-center gap-2 disabled:opacity-50"
               >
                 <DownloadIcon className="w-4 h-4" />
                 {t("settings.download")}
               </button>
             </div>
 
-            <div className={getSyncPanelContentClassName(!settings.s3StorageEnabled)}>
-              <fieldset disabled={!settings.s3StorageEnabled} className="space-y-3 min-w-0">
+            <div className={getSyncPanelContentClassName(s3ControlsDisabled)}>
+              <fieldset disabled={s3ControlsDisabled} className="space-y-3 min-w-0">
                 <div className="flex items-center justify-between gap-3">
-                <div className="flex-1 mr-4">
-                  <p className="text-sm font-medium">
-                    {t("settings.webdavAutoRun", "Automatic sync")}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {t("settings.webdavAutoRunDesc")}
-                  </p>
-                </div>
+                  <div className="flex-1 mr-4">
+                    <p className="text-sm font-medium">
+                      {t("settings.webdavAutoRun", "Automatic sync")}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {s3IsSyncSource
+                        ? t("settings.webdavAutoRunDesc")
+                        : t(
+                            "settings.syncSourceInactiveDesc",
+                            "This target stays available for manual backup and restore, but automatic sync only runs for the current sync source.",
+                          )}
+                    </p>
+                  </div>
                 <div className="min-w-[140px]">
                   <Select
                     value={String(settings.s3AutoSyncInterval)}

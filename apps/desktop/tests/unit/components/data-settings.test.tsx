@@ -13,6 +13,9 @@ import {
   restoreUpgradeBackup,
 } from "../../../src/renderer/services/upgrade-backup";
 import {
+  runS3ConnectionCheck,
+  runS3Download,
+  runS3Upload,
   runSelfHostedConnectionCheck,
   runWebDAVConnectionCheck,
 } from "../../../src/renderer/services/backup-orchestrator";
@@ -64,6 +67,9 @@ vi.mock("../../../src/renderer/services/self-hosted-sync", () => ({
 
 vi.mock("../../../src/renderer/services/backup-orchestrator", () => ({
   runFullExportBackup: vi.fn(),
+  runS3ConnectionCheck: vi.fn(),
+  runS3Download: vi.fn(),
+  runS3Upload: vi.fn(),
   runSelfHostedConnectionCheck: vi.fn(),
   runSelfHostedPull: vi.fn(),
   runSelfHostedPush: vi.fn(),
@@ -122,6 +128,8 @@ function createSettingsState() {
     setWebdavEncryptionEnabled: vi.fn(),
     webdavEncryptionPassword: "",
     setWebdavEncryptionPassword: vi.fn(),
+    syncProvider: "manual",
+    setSyncProvider: vi.fn(),
     selfHostedSyncEnabled: false,
     selfHostedSyncUrl: "",
     selfHostedSyncUsername: "",
@@ -216,14 +224,18 @@ describe("DataSettings", { timeout: 15_000 }, () => {
 
   it("shows the real current data path and the pending path after restart", async () => {
     await act(async () => {
-      await renderWithI18n(<DataSettings />, { language: "en" });
+      await renderWithI18n(<DataSettings activeSubsection="local" />, {
+        language: "en",
+      });
     });
     await act(async () => {
       await Promise.resolve();
     });
 
     await waitFor(() => {
-      expect(screen.getByText("/actual/data")).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: "/actual/data" }),
+      ).toBeInTheDocument();
     });
 
     expect(
@@ -276,7 +288,9 @@ describe("DataSettings", { timeout: 15_000 }, () => {
     });
 
     await act(async () => {
-      await renderWithI18n(<DataSettings />, { language: "en" });
+      await renderWithI18n(<DataSettings activeSubsection="local" />, {
+        language: "en",
+      });
     });
 
     await act(async () => {
@@ -349,7 +363,9 @@ describe("DataSettings", { timeout: 15_000 }, () => {
     });
 
     await act(async () => {
-      await renderWithI18n(<DataSettings />, { language: "en" });
+      await renderWithI18n(<DataSettings activeSubsection="local" />, {
+        language: "en",
+      });
     });
 
     await act(async () => {
@@ -400,7 +416,9 @@ describe("DataSettings", { timeout: 15_000 }, () => {
     });
 
     await act(async () => {
-      await renderWithI18n(<DataSettings />, { language: "en" });
+      await renderWithI18n(<DataSettings activeSubsection="local" />, {
+        language: "en",
+      });
     });
 
     await act(async () => {
@@ -458,7 +476,9 @@ describe("DataSettings", { timeout: 15_000 }, () => {
     });
 
     await act(async () => {
-      await renderWithI18n(<DataSettings />, { language: "en" });
+      await renderWithI18n(<DataSettings activeSubsection="recovery" />, {
+        language: "en",
+      });
     });
     await act(async () => {
       await Promise.resolve();
@@ -536,7 +556,9 @@ describe("DataSettings", { timeout: 15_000 }, () => {
     };
 
     await act(async () => {
-      await renderWithI18n(<DataSettings />, { language: "en" });
+      await renderWithI18n(<DataSettings activeSubsection="backup" />, {
+        language: "en",
+      });
     });
     await act(async () => {
       await Promise.resolve();
@@ -597,7 +619,9 @@ describe("DataSettings", { timeout: 15_000 }, () => {
     };
 
     await act(async () => {
-      await renderWithI18n(<DataSettings />, { language: "en" });
+      await renderWithI18n(<DataSettings activeSubsection="backup" />, {
+        language: "en",
+      });
     });
     await act(async () => {
       await Promise.resolve();
@@ -642,7 +666,9 @@ describe("DataSettings", { timeout: 15_000 }, () => {
     });
 
     await act(async () => {
-      await renderWithI18n(<DataSettings />, { language: "en" });
+      await renderWithI18n(<DataSettings activeSubsection="selfHosted" />, {
+        language: "en",
+      });
     });
     await act(async () => {
       await Promise.resolve();
@@ -661,6 +687,47 @@ describe("DataSettings", { timeout: 15_000 }, () => {
       "Connection successful. Remote workspace currently stores 3 prompts, 2 folders, 4 rules, and 1 skills.",
       "success",
     );
+  });
+
+  it("lets users choose one active sync source while keeping multiple backup targets enabled", async () => {
+    const settingsState = createSettingsState();
+    settingsState.selfHostedSyncEnabled = true;
+    settingsState.webdavEnabled = true;
+    settingsState.s3StorageEnabled = true;
+    settingsState.syncProvider = "manual";
+    useSettingsStoreMock.mockReturnValue(settingsState);
+
+    await act(async () => {
+      await renderWithI18n(<DataSettings activeSubsection="selfHosted" />, {
+        language: "en",
+      });
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Manual only" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "WebDAV" }),
+    );
+
+    expect(settingsState.setSyncProvider).toHaveBeenCalledWith("webdav");
+  });
+
+  it("shows inactive sync-source guidance when a backup target is enabled but not selected", async () => {
+    const settingsState = createSettingsState();
+    settingsState.webdavEnabled = true;
+    settingsState.syncProvider = "s3";
+    useSettingsStoreMock.mockReturnValue(settingsState);
+
+    await act(async () => {
+      await renderWithI18n(<DataSettings activeSubsection="webdav" />, {
+        language: "en",
+      });
+    });
+
+    expect(
+      screen.getByText(
+        "This target stays available for manual backup and restore, but automatic sync only runs for the current sync source.",
+      ),
+    ).toBeInTheDocument();
   });
 
   it("keeps WebDAV fields visible but disabled until sync is enabled", async () => {
@@ -704,9 +771,174 @@ describe("DataSettings", { timeout: 15_000 }, () => {
     ).toBeDisabled();
   });
 
+  it("enables WebDAV sync-on-save once WebDAV is enabled", async () => {
+    const settingsState = createSettingsState();
+    settingsState.webdavEnabled = true;
+    useSettingsStoreMock.mockReturnValue(settingsState);
+
+    await act(async () => {
+      await renderWithI18n(<DataSettings activeSubsection="webdav" />, {
+        language: "en",
+      });
+    });
+
+    expect(
+      screen.getByText(
+        "Attempt sync when data is saved. Note: frequent syncing may affect performance and battery.",
+      ),
+    ).toBeInTheDocument();
+
+    const syncOnSaveLabel = screen.getByText("Sync on Save (Experimental)");
+    const syncOnSaveButton = syncOnSaveLabel
+      .closest("div")
+      ?.parentElement?.querySelector("button");
+    expect(syncOnSaveButton).not.toBeDisabled();
+  });
+
+  it("enables S3 actions once storage is enabled in settings", async () => {
+    const settingsState = createSettingsState();
+    settingsState.s3StorageEnabled = true;
+    settingsState.s3Endpoint = "https://s3.example.com";
+    settingsState.s3Region = "us-east-1";
+    settingsState.s3Bucket = "prompthub-backups";
+    settingsState.s3AccessKeyId = "access";
+    settingsState.s3SecretAccessKey = "secret";
+    useSettingsStoreMock.mockReturnValue(settingsState);
+
+    await act(async () => {
+      await renderWithI18n(<DataSettings activeSubsection="s3" />, {
+        language: "en",
+      });
+    });
+
+    expect(screen.getByPlaceholderText("https://s3.example.com")).not.toBeDisabled();
+    expect(screen.getByRole("button", { name: "Test Connection" })).not.toBeDisabled();
+    expect(screen.getByRole("button", { name: "Upload" })).not.toBeDisabled();
+    expect(screen.getByRole("button", { name: "Download" })).not.toBeDisabled();
+  });
+
+  it("runs S3 connection checks from the settings panel", async () => {
+    const settingsState = createSettingsState();
+    settingsState.s3StorageEnabled = true;
+    settingsState.s3Endpoint = "https://s3.example.com";
+    settingsState.s3Region = "us-east-1";
+    settingsState.s3Bucket = "prompthub-backups";
+    settingsState.s3AccessKeyId = "access";
+    settingsState.s3SecretAccessKey = "secret";
+    useSettingsStoreMock.mockReturnValue(settingsState);
+    vi.mocked(runS3ConnectionCheck).mockResolvedValue({
+      success: true,
+      message: "Connection successful",
+    });
+
+    await act(async () => {
+      await renderWithI18n(<DataSettings activeSubsection="s3" />, {
+        language: "en",
+      });
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Test Connection" }));
+
+    await waitFor(() => {
+      expect(runS3ConnectionCheck).toHaveBeenCalledWith({
+        endpoint: "https://s3.example.com",
+        region: "us-east-1",
+        bucket: "prompthub-backups",
+        accessKeyId: "access",
+        secretAccessKey: "secret",
+        backupPrefix: "",
+      });
+    });
+  });
+
+  it("runs S3 uploads from the settings panel", async () => {
+    const settingsState = createSettingsState();
+    settingsState.s3StorageEnabled = true;
+    settingsState.s3Endpoint = "https://s3.example.com";
+    settingsState.s3Region = "us-east-1";
+    settingsState.s3Bucket = "prompthub-backups";
+    settingsState.s3AccessKeyId = "access";
+    settingsState.s3SecretAccessKey = "secret";
+    useSettingsStoreMock.mockReturnValue(settingsState);
+    vi.mocked(runS3Upload).mockResolvedValue({
+      success: true,
+      message: "Upload successful",
+      localChanged: false,
+    });
+
+    await act(async () => {
+      await renderWithI18n(<DataSettings activeSubsection="s3" />, {
+        language: "en",
+      });
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Upload" }));
+
+    await waitFor(() => {
+      expect(runS3Upload).toHaveBeenCalledWith({
+        config: {
+          endpoint: "https://s3.example.com",
+          region: "us-east-1",
+          bucket: "prompthub-backups",
+          accessKeyId: "access",
+          secretAccessKey: "secret",
+          backupPrefix: "",
+        },
+        options: {
+          includeImages: true,
+          incrementalSync: true,
+          encryptionPassword: undefined,
+        },
+      });
+    });
+  });
+
+  it("runs S3 downloads from the settings panel", async () => {
+    const settingsState = createSettingsState();
+    settingsState.s3StorageEnabled = true;
+    settingsState.s3Endpoint = "https://s3.example.com";
+    settingsState.s3Region = "us-east-1";
+    settingsState.s3Bucket = "prompthub-backups";
+    settingsState.s3AccessKeyId = "access";
+    settingsState.s3SecretAccessKey = "secret";
+    useSettingsStoreMock.mockReturnValue(settingsState);
+    vi.mocked(runS3Download).mockResolvedValue({
+      success: true,
+      message: "Download successful",
+      localChanged: true,
+    });
+
+    await act(async () => {
+      await renderWithI18n(<DataSettings activeSubsection="s3" />, {
+        language: "en",
+      });
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Download" }));
+
+    await waitFor(() => {
+      expect(runS3Download).toHaveBeenCalledWith({
+        config: {
+          endpoint: "https://s3.example.com",
+          region: "us-east-1",
+          bucket: "prompthub-backups",
+          accessKeyId: "access",
+          secretAccessKey: "secret",
+          backupPrefix: "",
+        },
+        options: {
+          incrementalSync: true,
+          encryptionPassword: undefined,
+        },
+      });
+    });
+  });
+
   it("includes rules in selective export by default", async () => {
     await act(async () => {
-      await renderWithI18n(<DataSettings />, { language: "en" });
+      await renderWithI18n(<DataSettings activeSubsection="backup" />, {
+        language: "en",
+      });
     });
     await act(async () => {
       await Promise.resolve();
@@ -728,7 +960,9 @@ describe("DataSettings", { timeout: 15_000 }, () => {
     (window as Window & { __PROMPTHUB_WEB__?: boolean }).__PROMPTHUB_WEB__ = true;
 
     await act(async () => {
-      await renderWithI18n(<DataSettings />, { language: "en" });
+      await renderWithI18n(<DataSettings activeSubsection="backup" />, {
+        language: "en",
+      });
     });
     await act(async () => {
       await Promise.resolve();
@@ -743,7 +977,9 @@ describe("DataSettings", { timeout: 15_000 }, () => {
 
   it("keeps desktop data settings free of standalone skill configuration controls", async () => {
     await act(async () => {
-      await renderWithI18n(<DataSettings />, { language: "en" });
+      await renderWithI18n(<DataSettings activeSubsection="backup" />, {
+        language: "en",
+      });
     });
     await act(async () => {
       await Promise.resolve();
@@ -776,7 +1012,9 @@ describe("DataSettings", { timeout: 15_000 }, () => {
     ]);
 
     await act(async () => {
-      await renderWithI18n(<DataSettings />, { language: "en" });
+      await renderWithI18n(<DataSettings activeSubsection="backup" />, {
+        language: "en",
+      });
     });
 
     await waitFor(() => {
@@ -857,7 +1095,9 @@ describe("DataSettings", { timeout: 15_000 }, () => {
     ]);
 
     await act(async () => {
-      await renderWithI18n(<DataSettings />, { language: "en" });
+      await renderWithI18n(<DataSettings activeSubsection="backup" />, {
+        language: "en",
+      });
     });
 
     await waitFor(() => {
@@ -907,7 +1147,9 @@ describe("DataSettings", { timeout: 15_000 }, () => {
     });
 
     await act(async () => {
-      await renderWithI18n(<DataSettings />, { language: "en" });
+      await renderWithI18n(<DataSettings activeSubsection="backup" />, {
+        language: "en",
+      });
     });
 
     await waitFor(() => {

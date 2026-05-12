@@ -1,4 +1,5 @@
 interface WebDAVSyncSettings {
+  syncProvider?: "manual" | "webdav" | "self-hosted" | "s3";
   webdavEnabled: boolean;
   webdavUrl: string;
   webdavUsername: string;
@@ -8,12 +9,25 @@ interface WebDAVSyncSettings {
 }
 
 interface SelfHostedSyncSettings {
+  syncProvider?: "manual" | "webdav" | "self-hosted" | "s3";
   selfHostedSyncEnabled: boolean;
   selfHostedSyncUrl: string;
   selfHostedSyncUsername: string;
   selfHostedSyncPassword: string;
   selfHostedSyncOnStartup: boolean;
   selfHostedAutoSyncInterval: number;
+}
+
+interface S3SyncSettings {
+  syncProvider?: "manual" | "webdav" | "self-hosted" | "s3";
+  s3StorageEnabled: boolean;
+  s3Endpoint: string;
+  s3Region: string;
+  s3Bucket: string;
+  s3AccessKeyId: string;
+  s3SecretAccessKey: string;
+  s3SyncOnStartup: boolean;
+  s3AutoSyncInterval: number;
 }
 
 interface BackgroundTaskState {
@@ -45,6 +59,7 @@ export function shouldRunStartupWebDAVSync(
   state: BackgroundTaskState,
 ): boolean {
   return Boolean(
+    settings.syncProvider === "webdav" &&
     settings.webdavSyncOnStartup &&
       hasValidWebDAVConfig(settings) &&
       state.isVisible &&
@@ -58,6 +73,7 @@ export function shouldRunPeriodicWebDAVSync(
   state: BackgroundTaskState,
 ): boolean {
   return Boolean(
+    settings.syncProvider === "webdav" &&
     settings.webdavAutoSyncInterval > 0 &&
       hasValidWebDAVConfig(settings) &&
       state.isVisible &&
@@ -82,6 +98,7 @@ export function shouldRunStartupSelfHostedSync(
   state: BackgroundTaskState,
 ): boolean {
   return Boolean(
+    settings.syncProvider === "self-hosted" &&
     settings.selfHostedSyncOnStartup &&
       hasValidSelfHostedConfig(settings) &&
       state.isVisible &&
@@ -95,8 +112,48 @@ export function shouldRunPeriodicSelfHostedSync(
   state: BackgroundTaskState,
 ): boolean {
   return Boolean(
+    settings.syncProvider === "self-hosted" &&
     settings.selfHostedAutoSyncInterval > 0 &&
       hasValidSelfHostedConfig(settings) &&
+      state.isVisible &&
+      state.isOnline &&
+      !state.isRunning,
+  );
+}
+
+export function hasValidS3Config(settings: S3SyncSettings): boolean {
+  return Boolean(
+    settings.s3StorageEnabled &&
+      settings.s3Endpoint?.trim() &&
+      settings.s3Region?.trim() &&
+      settings.s3Bucket?.trim() &&
+      settings.s3AccessKeyId?.trim() &&
+      settings.s3SecretAccessKey?.trim(),
+  );
+}
+
+export function shouldRunStartupS3Sync(
+  settings: S3SyncSettings,
+  state: BackgroundTaskState,
+): boolean {
+  return Boolean(
+    settings.syncProvider === "s3" &&
+    settings.s3SyncOnStartup &&
+      hasValidS3Config(settings) &&
+      state.isVisible &&
+      state.isOnline &&
+      !state.isRunning,
+  );
+}
+
+export function shouldRunPeriodicS3Sync(
+  settings: S3SyncSettings,
+  state: BackgroundTaskState,
+): boolean {
+  return Boolean(
+    settings.syncProvider === "s3" &&
+    settings.s3AutoSyncInterval > 0 &&
+      hasValidS3Config(settings) &&
       state.isVisible &&
       state.isOnline &&
       !state.isRunning,
