@@ -12,6 +12,11 @@ const useSettingsStoreMock = vi.fn();
 const useToastMock = vi.fn();
 const useSkillPlatformMock = vi.fn();
 
+vi.mock("../../../src/renderer/services/webdav-save-sync", () => ({
+  scheduleAllSaveSync: vi.fn(),
+  debouncedPromptSaveSync: vi.fn(),
+}));
+
 vi.mock("../../../src/renderer/stores/skill.store", () => ({
   useSkillStore: (selector: (state: Record<string, unknown>) => unknown) =>
     useSkillStoreMock(selector),

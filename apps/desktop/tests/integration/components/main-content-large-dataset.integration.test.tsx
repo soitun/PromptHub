@@ -27,10 +27,14 @@ vi.mock("../../../src/renderer/stores/settings.store", () => ({
     useSettingsStoreMock(selector),
 }));
 
-vi.mock("../../../src/renderer/stores/ui.store", () => ({
-  useUIStore: (selector: (state: Record<string, unknown>) => unknown) =>
-    useUIStoreMock(selector),
-}));
+vi.mock("../../../src/renderer/stores/ui.store", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../../src/renderer/stores/ui.store")>();
+  return {
+    ...actual,
+    useUIStore: (selector: (state: Record<string, unknown>) => unknown) =>
+      useUIStoreMock(selector),
+  };
+});
 
 vi.mock("../../../src/renderer/components/ui/Toast", () => ({
   useToast: () => useToastMock(),
@@ -43,11 +47,14 @@ vi.mock("../../../src/renderer/services/ai", () => ({
   multiModelCompare: vi.fn(),
 }));
 
+vi.mock("../../../src/renderer/components/prompt/PromptListHeader", () => ({
+  PromptListHeader: ({ count }: { count: number }) => <div>count:{count}</div>,
+}));
+
 vi.mock("../../../src/renderer/components/prompt", () => ({
   EditPromptModal: () => null,
   VersionHistoryModal: () => null,
   VariableInputModal: () => null,
-  PromptListHeader: ({ count }: { count: number }) => <div>count:{count}</div>,
   PromptListView: () => null,
   PromptTableView: () => <div>table-view</div>,
   AiTestModal: () => null,

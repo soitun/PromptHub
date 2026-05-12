@@ -232,4 +232,23 @@ describe("MainContent inline edit integration", () => {
       screen.getByRole("textbox", { name: "User Prompt" }),
     ).toBeInTheDocument();
   });
+
+  it("uses a white editing surface for inline title and user prompt fields", async () => {
+    const promptState = createPromptState(createPrompt());
+
+    usePromptStoreMock.mockImplementation((selector) => selector(promptState));
+
+    await act(async () => {
+      await renderWithI18n(<MainContent />, { language: "en" });
+    });
+
+    fireEvent.doubleClick(screen.getByText("Original user prompt"));
+
+    expect(screen.getByRole("textbox", { name: "Title" }).className).toContain(
+      "bg-white/95",
+    );
+    expect(
+      screen.getByRole("textbox", { name: "User Prompt" }).className,
+    ).toContain("bg-white/95");
+  });
 });
