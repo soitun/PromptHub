@@ -549,7 +549,109 @@ export class PromptDB {
   }
 
   /**
+   * Get all unique tags across all prompts
+   * 获取所有唯一的标签
+   */
+  getAllTags(): string[] {
+    const rows = this.db.prepare(`SELECT tags FROM prompts WHERE tags IS NOT NULL AND tags != '[]'`).all() as { tags: string }[];
+    const tagSet = new Set<string>();
+    
+    for (const row of rows) {
+      try {
+        const tags = JSON.parse(row.tags);
+        if (Array.isArray(tags)) {
+          for (const tag of tags) {
+            if (typeof tag === 'string' && tag.trim()) {
+              tagSet.add(tag.trim());
+            }
+          }
+        }
+      } catch (e) {
+        // ignore invalid json
+      }
+    }
+    
+    // Sort case-insensitively
+    return Array.from(tagSet).sort((a, b) => a.localeCompare(b));
+  }
+
+  /**
+   * Rename a tag across all prompts
+   * 全局重命名标签
+   */
+  renameTag(oldTag: string, newTag: string): void {
+    if (!oldTag || !newTag || oldTag === newTag) return;
+    
+    const txn = this.db.transaction(() => {
+      // Find all prompts containing the old tag
+      // LIKE '%"oldTag"%' is a fast initial filter
+      const rows = this.db.prepare(`SELECT id, tags FROM prompts WHERE tags LIKE ?`).all(`%"${oldTag}"%`) as { id: string, tags: string }[];
+      
+      const updateStmt = this.db.prepare(`
+        UPDATE prompts 
+        SET tags = ?, current_version = current_version + 1, updated_at = ?
+        WHERE id = ?
+      `);
+
+      const now = Date.now();
+      let hasUpdates = false;
+
+      for (const row of rows) {
+        try {
+          const tags = JSON.parse(row.tags);
+          if (Array.isArray(tags) && tags.includes(oldTag)) {
+            // Replace oldTag with newTag.
+            // If newTag already exists in the array, just remove oldTag (to avoid duplicates)
+            const newTags = Array.from(new Set(tags.map(t => t === oldTag ? newTag : t)));
+            updateStmt.run(JSON.stringify(newTags), now, row.id);
+            hasUpdates = true;
+          }
+        } catch (e) {
+          // ignore invalid json
+        }
+      }
+    });
+    
+    txn();
+  }
+
+  /**
+   * Delete a tag across all prompts
+   * 全局删除标签
+   */
+  deleteTag(tag: string): void {
+    if (!tag) return;
+    
+    const txn = this.db.transaction(() => {
+      const rows = this.db.prepare(`SELECT id, tags FROM prompts WHERE tags LIKE ?`).all(`%"${tag}"%`) as { id: string, tags: string }[];
+      
+      const updateStmt = this.db.prepare(`
+        UPDATE prompts 
+        SET tags = ?, current_version = current_version + 1, updated_at = ?
+        WHERE id = ?
+      `);
+
+      const now = Date.now();
+
+      for (const row of rows) {
+        try {
+          const tags = JSON.parse(row.tags);
+          if (Array.isArray(tags) && tags.includes(tag)) {
+            const newTags = tags.filter(t => t !== tag);
+            updateStmt.run(JSON.stringify(newTags), now, row.id);
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
+    });
+    
+    txn();
+  }
+
+  /**
    * Convert database row to Prompt object
+
    * 数据库行转 Prompt 对象
    */
   private rowToPrompt(row: PromptRow): Prompt {

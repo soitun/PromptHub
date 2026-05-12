@@ -14,6 +14,9 @@ export const promptApi = {
     ipcRenderer.invoke(IPC_CHANNELS.PROMPT_CREATE, data),
   get: (id: string) => ipcRenderer.invoke(IPC_CHANNELS.PROMPT_GET, id),
   getAll: () => ipcRenderer.invoke(IPC_CHANNELS.PROMPT_GET_ALL),
+  getAllTags: () => ipcRenderer.invoke(IPC_CHANNELS.PROMPT_GET_ALL_TAGS),
+  renameTag: (oldTag: string, newTag: string) => ipcRenderer.invoke(IPC_CHANNELS.PROMPT_RENAME_TAG, oldTag, newTag),
+  deleteTag: (tag: string) => ipcRenderer.invoke(IPC_CHANNELS.PROMPT_DELETE_TAG, tag),
   update: (id: string, data: UpdatePromptDTO) =>
     ipcRenderer.invoke(IPC_CHANNELS.PROMPT_UPDATE, id, data),
   delete: (id: string) => ipcRenderer.invoke(IPC_CHANNELS.PROMPT_DELETE, id),
