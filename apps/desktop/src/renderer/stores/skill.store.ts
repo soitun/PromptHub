@@ -29,6 +29,7 @@ import {
 import { normalizeSkill, normalizeSkills } from "../services/skill-normalize";
 import {
   validateStoreSourceInput,
+  isLikelyLocalSource,
   type CustomStoreSourceType,
 } from "../services/skill-store-source";
 import {
@@ -267,6 +268,38 @@ function getRegistrySkillCandidates(state: SkillState): RegistrySkill[] {
     (entry) => entry.skills,
   );
   return [...state.registrySkills, ...remoteSkills];
+}
+
+function isLocalRegistrySkill(skill: Pick<RegistrySkill, "content_url" | "source_url">): boolean {
+  return Boolean(
+    (typeof skill.content_url === "string" && isLikelyLocalSource(skill.content_url)) ||
+      (typeof skill.source_url === "string" && isLikelyLocalSource(skill.source_url)),
+  );
+}
+
+async function resolveRegistrySkillContent(
+  regSkill: RegistrySkill,
+): Promise<string> {
+  if (typeof regSkill.content_url === "string" && isLikelyLocalSource(regSkill.content_url)) {
+    const localSkillMd = await window.api.skill.readLocalFileByPath(
+      regSkill.source_url || "",
+      "SKILL.md",
+    );
+    if (localSkillMd?.content?.trim()) {
+      return localSkillMd.content;
+    }
+    return regSkill.content;
+  }
+
+  let remoteContent = regSkill.content;
+  if (regSkill.content_url) {
+    const freshContent = await window.api.skill.fetchRemoteContent(regSkill.content_url);
+    if (freshContent.trim()) {
+      remoteContent = freshContent;
+    }
+  }
+
+  return remoteContent;
 }
 
 function parseJson<T>(raw: string, fallback: T): T {
@@ -1184,15 +1217,7 @@ export const useSkillStore = create<SkillState>()(
       computeRegistrySkillHash: computeSkillContentHash,
 
       getRegistrySkillUpdateStatus: async (regSkill) => {
-        let remoteContent = regSkill.content;
-        if (regSkill.content_url) {
-          const freshContent = await window.api.skill.fetchRemoteContent(
-            regSkill.content_url,
-          );
-          if (freshContent.trim()) {
-            remoteContent = freshContent;
-          }
-        }
+        const remoteContent = await resolveRegistrySkillContent(regSkill);
 
         return getRegistrySkillUpdateStatus(
           findInstalledRegistrySkill(get().skills, regSkill),
@@ -1260,20 +1285,13 @@ export const useSkillStore = create<SkillState>()(
       installRegistrySkill: async (regSkill) => {
         try {
           let effectiveContent = regSkill.content;
-          if (regSkill.content_url) {
-            try {
-              const freshContent = await window.api.skill.fetchRemoteContent(
-                regSkill.content_url,
-              );
-              if (freshContent.trim()) {
-                effectiveContent = freshContent;
-              }
-            } catch (fetchError) {
-              console.warn(
-                `Failed to fetch fresh SKILL.md for "${regSkill.slug}", falling back to cached registry content:`,
-                fetchError,
-              );
-            }
+          try {
+            effectiveContent = await resolveRegistrySkillContent(regSkill);
+          } catch (fetchError) {
+            console.warn(
+              `Failed to resolve latest SKILL.md for "${regSkill.slug}", falling back to cached registry content:`,
+              fetchError,
+            );
           }
 
           if (!hasMeaningfulSkillBody(effectiveContent)) {
@@ -1337,8 +1355,8 @@ export const useSkillStore = create<SkillState>()(
       },
 
       installFromRegistry: async (slug) => {
-        const { registrySkills, installRegistrySkill } = get();
-        const regSkill = registrySkills.find((s) => s.slug === slug);
+        const { installRegistrySkill } = get();
+        const regSkill = getRegistrySkillCandidates(get()).find((s) => s.slug === slug);
         if (!regSkill) return null;
         return installRegistrySkill(regSkill);
       },

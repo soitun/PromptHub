@@ -19,6 +19,10 @@
 - 继续补强搜索回归测试：新增 TopBar 对 `my-skills`、`store`、Prompt 搜索导航的覆盖，并新增 SkillStore 搜索框对 `storeSearchQuery` 的绑定测试，避免未来再次出现“输入后自动跳详情”或“顶部搜索与主体列表脱节”的回归。
 - 进一步补齐 `distribution` 视图搜索分流测试，确认其仍走本地 Skills 搜索；同时为 Rules 顶部搜索补上 `Tab` 结果导航测试，覆盖 `Enter` 之外的另一条关键键盘路径。
 - 同步更新桌面端 About 页面 7 个 locale 的项目说明文案，并刷新中英法德西日繁 README 顶部定位描述，使产品表述统一为 Prompt、Skill 与 Agent 资产的一站式 AI 工具箱，同时继续强调云同步、备份恢复、版本管理与本地优先。
+- 修复本地文件夹 Skill Source 的导入/更新链路：`installFromRegistry(...)` 不再只查内置 `registrySkills`，而是统一从 `getRegistrySkillCandidates(...)` 中查找候选项，因此自定义本地 Source 的 “Import to My Skills” 可以真正导入。
+- 为本地 Source 新增内容解析分流：当 `RegistrySkill.content_url` / `source_url` 指向本地路径时，安装与更新不再调用仅支持 `http/https` 的 `fetchRemoteContent(...)`，而是直接通过 `readLocalFileByPath(source_url, "SKILL.md")` 读取磁盘最新内容，避免 `invalid URL` / `only allows http/https` 报错。
+- 调整 `SkillStoreDetail` 的详情内容优先级：对于本地 Source，详情预览优先显示当前 source 扫描到的最新内容，而不是默认退回已安装副本中的旧 `instructions/content`，从而避免“重加 source 仍看到旧版本”的感知错乱。
+- 补充本地 Source 回归测试：新增 store 层测试覆盖“从 cached local source 安装”和“从 cached local source 更新时读取最新本地文件”；新增组件测试覆盖“本地 source 详情优先展示 source 内容而非已安装旧内容”。
 
 ## Verification
 
@@ -36,6 +40,8 @@
   - 结果：通过
 - `pnpm --filter @prompthub/desktop test -- tests/unit/components/top-bar.test.tsx tests/unit/components/sidebar.test.tsx tests/unit/components/skill-store-remote.test.tsx tests/unit/services/skill-filter.test.ts --run`
   - 结果：通过（36/36）
+- `pnpm --filter @prompthub/desktop test -- tests/unit/stores/skill.store.test.ts tests/unit/components/skill-store-remote.test.tsx --run`
+  - 结果：通过（47/47）
 
 ## Notes
 

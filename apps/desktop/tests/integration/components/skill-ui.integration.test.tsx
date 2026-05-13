@@ -1,8 +1,9 @@
-import { act, fireEvent, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { SkillFullDetailPage } from "../../../src/renderer/components/skill/SkillFullDetailPage";
 import { SkillManager } from "../../../src/renderer/components/skill/SkillManager";
+import { SkillStoreDetail } from "../../../src/renderer/components/skill/SkillStoreDetail";
 import { createSkillFixture, createSkillLocalFileEntryFixture } from "../../fixtures/skills";
 import { renderWithI18n } from "../../helpers/i18n";
 import { installWindowMocks } from "../../helpers/window";
@@ -225,6 +226,110 @@ describe("skill ui integration", () => {
     });
     expect(loadSkills).toHaveBeenCalledTimes(1);
     expect(showToast).toHaveBeenCalledWith("Version snapshot created", "success");
+    },
+    15000,
+  );
+
+  it(
+    "imports and updates a local store source skill using the latest local SKILL.md content",
+    async () => {
+      const showToast = vi.fn();
+      const installFromRegistry = vi.fn();
+      const installRegistrySkill = vi.fn();
+      const updateRegistrySkill = vi.fn().mockResolvedValue({ status: "updated" });
+      const getRegistrySkillUpdateStatus = vi.fn().mockResolvedValue({
+        status: "update-available",
+      });
+
+      const installedLocalSkill = createSkillFixture({
+        id: "local-writer-installed",
+        name: "local-writer",
+        registry_slug: "local-writer",
+        instructions: "# Local Writer\n\nInstalled stale content",
+        content: "# Local Writer\n\nInstalled stale content",
+      });
+
+      const localSourceSkill = {
+        slug: "local-writer",
+        name: "local-writer",
+        description: "Local source skill",
+        category: "general",
+        author: "Local",
+        tags: ["local"],
+        version: "1.1.0",
+        content: "# Local Writer\n\nFresh source content",
+        source_url: "/tmp/local-writer",
+        content_url: "/tmp/local-writer/SKILL.md",
+        compatibility: ["claude"],
+      };
+
+      const translationState = vi.fn().mockReturnValue({
+        value: null,
+        hasTranslation: false,
+        isStale: false,
+      });
+      useSettingsStoreMock.mockImplementation((selector) =>
+        selector(createSettingsState()),
+      );
+      useToastMock.mockReturnValue({ showToast });
+
+      const installPhaseState = createSkillStoreState({
+        skills: [installedLocalSkill],
+        installFromRegistry,
+        installRegistrySkill,
+        updateRegistrySkill,
+        getRegistrySkillUpdateStatus,
+        getTranslationState: translationState,
+      });
+      useSkillStoreMock.mockImplementation((selector) => selector(installPhaseState));
+
+      await act(async () => {
+        await renderWithI18n(
+          <SkillStoreDetail skill={localSourceSkill as never} isInstalled={false} onClose={vi.fn()} />,
+          { language: "en" },
+        );
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText("Fresh source content")).toBeInTheDocument();
+      });
+      expect(screen.queryByText("Installed stale content")).not.toBeInTheDocument();
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Import to My Skills" }));
+      });
+
+      expect(installRegistrySkill).toHaveBeenCalledWith(
+        expect.objectContaining({ slug: "local-writer" }),
+      );
+
+      cleanup();
+
+      const updatePhaseState = createSkillStoreState({
+        skills: [installedLocalSkill],
+        installFromRegistry,
+        installRegistrySkill,
+        updateRegistrySkill,
+        getRegistrySkillUpdateStatus,
+        getTranslationState: translationState,
+      });
+      useSkillStoreMock.mockImplementation((selector) => selector(updatePhaseState));
+
+      await act(async () => {
+        await renderWithI18n(
+          <SkillStoreDetail skill={localSourceSkill as never} isInstalled={true} onClose={vi.fn()} />,
+          { language: "en" },
+        );
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Check update" }));
+        fireEvent.click(screen.getByRole("button", { name: "Update" }));
+      });
+
+      expect(updateRegistrySkill).toHaveBeenCalledWith("local-writer", {
+        overwriteLocalChanges: false,
+      });
     },
     15000,
   );

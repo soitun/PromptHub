@@ -598,6 +598,135 @@ description: Use this skill for PDF tasks.
     );
   });
 
+  it("installs a skill from a cached local store source entry using the latest local file", async () => {
+    const create = vi.fn().mockResolvedValue(
+      createSkillFixture({
+        id: "skill-local-writer",
+        name: "local-writer",
+        registry_slug: "local-writer",
+      }),
+    );
+
+    (window as any).api.skill.create = create;
+    (window as any).api.skill.readLocalFileByPath = vi.fn().mockResolvedValue({
+      content: "# Local Writer\n\nLatest local content\n",
+    });
+    (window as any).api.skill.writeLocalFile = vi.fn().mockResolvedValue(undefined);
+
+    useSkillStore.setState({
+      registrySkills: [],
+      remoteStoreEntries: {
+        local: {
+          loadedAt: 1,
+          error: null,
+          skills: [
+            {
+              slug: "local-writer",
+              name: "Local Writer",
+              description: "Local source skill",
+              category: "general",
+              author: "Local",
+              source_url: "/tmp/local-writer",
+              content_url: "/tmp/local-writer/SKILL.md",
+              tags: ["local"],
+              version: "1.0.0",
+              content: "# Local Writer\n\nStale cached content\n",
+            },
+          ],
+        },
+      },
+    });
+
+    await useSkillStore.getState().installFromRegistry("local-writer");
+
+    expect((window as any).api.skill.readLocalFileByPath).toHaveBeenCalledWith(
+      "/tmp/local-writer",
+      "SKILL.md",
+    );
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        registry_slug: "local-writer",
+        content: "# Local Writer\n\nLatest local content\n",
+        instructions: "# Local Writer\n\nLatest local content\n",
+      }),
+    );
+  });
+
+  it("updates a pristine skill from a cached local store source entry using the latest local file", async () => {
+    const versionCreate = vi.fn().mockResolvedValue({ id: "version-local" });
+    const update = vi.fn().mockImplementation(async (_id, data) => ({
+      ...createSkillFixture({ id: "skill-local-writer", name: "local-writer" }),
+      ...data,
+      id: "skill-local-writer",
+      updated_at: 2,
+    }));
+
+    (window as any).api.skill.versionCreate = versionCreate;
+    (window as any).api.skill.update = update;
+    (window as any).api.skill.readLocalFileByPath = vi.fn().mockResolvedValue({
+      content: "# Local Writer\n\nLatest local content\n",
+    });
+
+    const originalHash = await useSkillStore
+      .getState()
+      .computeRegistrySkillHash("# Local Writer\n\nOriginal content\n");
+
+    useSkillStore.setState({
+      skills: [
+        createSkillFixture({
+          id: "skill-local-writer",
+          name: "local-writer",
+          registry_slug: "local-writer",
+          content: "# Local Writer\n\nOriginal content\n",
+          instructions: "# Local Writer\n\nOriginal content\n",
+          installed_content_hash: originalHash,
+          installed_version: "1.0.0",
+        }),
+      ],
+      registrySkills: [],
+      remoteStoreEntries: {
+        local: {
+          loadedAt: 1,
+          error: null,
+          skills: [
+            {
+              slug: "local-writer",
+              name: "Local Writer",
+              description: "Local source skill",
+              category: "general",
+              author: "Local",
+              source_url: "/tmp/local-writer",
+              content_url: "/tmp/local-writer/SKILL.md",
+              tags: ["local"],
+              version: "1.1.0",
+              content: "# Local Writer\n\nStale cached content\n",
+            },
+          ],
+        },
+      },
+    });
+
+    const result = await useSkillStore.getState().updateRegistrySkill("local-writer");
+
+    expect(result?.status).toBe("updated");
+    expect((window as any).api.skill.readLocalFileByPath).toHaveBeenCalledWith(
+      "/tmp/local-writer",
+      "SKILL.md",
+    );
+    expect(versionCreate).toHaveBeenCalledWith(
+      "skill-local-writer",
+      expect.stringContaining("Store update"),
+    );
+    expect(update).toHaveBeenCalledWith(
+      "skill-local-writer",
+      expect.objectContaining({
+        content: "# Local Writer\n\nLatest local content\n",
+        instructions: "# Local Writer\n\nLatest local content\n",
+        installed_version: "1.1.0",
+      }),
+    );
+  });
+
   it("refuses registry updates when local content was edited unless overwrite is requested", async () => {
     const remoteContent = "# Writer\n\nRemote update\n";
     (window as any).api.skill.fetchRemoteContent = vi.fn().mockResolvedValue(remoteContent);

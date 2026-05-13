@@ -34,6 +34,7 @@ import {
   stripFrontmatter,
 } from "./detail-utils";
 import { computeSkillContentFingerprint } from "../../services/skill-store-update";
+import { isLikelyLocalSource } from "../../services/skill-store-source";
 import {
   isSkillTranslationStale,
   readSkillTranslationSidecar,
@@ -67,6 +68,9 @@ export function SkillStoreDetail({
   const { showToast } = useToast();
   const installFromRegistry = useSkillStore(
     (state) => state.installFromRegistry,
+  );
+  const installRegistrySkill = useSkillStore(
+    (state) => state.installRegistrySkill,
   );
   const updateRegistrySkill = useSkillStore((state) => state.updateRegistrySkill);
   const getRegistrySkillUpdateStatus = useSkillStore(
@@ -126,8 +130,13 @@ export function SkillStoreDetail({
   const installedSkillMdContent =
     installedSkill?.instructions || installedSkill?.content || "";
   const registrySkillMdContent = typeof skill.content === "string" ? skill.content : "";
+  const preferSourceContent = Boolean(
+    skill.content_url && isLikelyLocalSource(skill.content_url),
+  );
   const originalSkillMdContent =
-    installedSkillMdContent.trim() || registrySkillMdContent.trim() || skill.description;
+    (preferSourceContent ? registrySkillMdContent.trim() : installedSkillMdContent.trim()) ||
+    (preferSourceContent ? installedSkillMdContent.trim() : registrySkillMdContent.trim()) ||
+    skill.description;
   const translationCacheKey = `storedoc_v2_${skill.slug}_${targetLang}_${translationMode}`;
   const translationFingerprint = useMemo(
     () => computeSkillContentFingerprint(originalSkillMdContent),
@@ -352,7 +361,7 @@ export function SkillStoreDetail({
     setIsInstalling(true);
     try {
       const performInstall = async () => {
-        const result = await installFromRegistry(skill.slug);
+        const result = await installRegistrySkill(skill);
         if (result) {
           setJustInstalled(true);
           showToast(
@@ -923,7 +932,7 @@ export function SkillStoreDetail({
             setPendingHighRiskInstallReport(null);
             setIsInstalling(true);
             try {
-              const result = await installFromRegistry(skill.slug);
+              const result = await installRegistrySkill(skill);
               if (result) {
                 setJustInstalled(true);
                 showToast(

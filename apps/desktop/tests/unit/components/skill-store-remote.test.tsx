@@ -639,9 +639,14 @@ describe("SkillStore remote loading", () => {
       id: "installed",
       name: "PDF",
     });
+    const installRegistrySkill = vi.fn().mockResolvedValue({
+      id: "installed",
+      name: "PDF",
+    });
 
     useSkillStore.setState({
       installFromRegistry,
+      installRegistrySkill,
       skills: [],
     } as never);
 
@@ -693,7 +698,9 @@ describe("SkillStore remote loading", () => {
       getByText("Import to My Skills").click();
     });
 
-    expect(installFromRegistry).toHaveBeenCalledWith("pdf");
+    expect(installRegistrySkill).toHaveBeenCalledWith(
+      expect.objectContaining({ slug: "pdf" }),
+    );
     expect(showToast).toHaveBeenCalledWith(
       expect.stringContaining("Static scan found potentially risky patterns"),
       "warning",
@@ -732,6 +739,58 @@ describe("SkillStore remote loading", () => {
     });
 
     expect(getByText("Original content")).toBeInTheDocument();
+  });
+
+  it("prefers local source content over installed stale content in store detail", async () => {
+    useSkillStore.setState({
+      getTranslationState: vi.fn().mockReturnValue({
+        value: null,
+        hasTranslation: false,
+        isStale: false,
+      }),
+      skills: [
+        {
+          id: "installed-local-writer",
+          name: "local-writer",
+          registry_slug: "local-writer",
+          description: "Installed stale skill",
+          instructions: "# Local Writer\n\nInstalled stale content",
+          content: "# Local Writer\n\nInstalled stale content",
+          protocol_type: "skill",
+          author: "Local",
+          local_repo_path: "/tmp/local-writer",
+          tags: ["local"],
+          is_favorite: false,
+          currentVersion: 0,
+          created_at: 1,
+          updated_at: 1,
+        },
+      ],
+    } as never);
+
+    const skill = {
+      slug: "local-writer",
+      name: "local-writer",
+      description: "Original description",
+      category: "general",
+      author: "Local",
+      tags: ["local"],
+      version: "1.1.0",
+      content: "# Local Writer\n\nFresh source content",
+      source_url: "/tmp/local-writer",
+      content_url: "/tmp/local-writer/SKILL.md",
+      compatibility: ["claude"],
+    } as never;
+
+    const { getByText, queryByText } = await renderWithI18n(
+      <SkillStoreDetail skill={skill} isInstalled={true} onClose={vi.fn()} />,
+      { language: "en" },
+    );
+
+    await waitFor(() => {
+      expect(getByText("Fresh source content")).toBeInTheDocument();
+    });
+    expect(queryByText("Installed stale content")).not.toBeInTheDocument();
   });
 
   it("prompts for retranslation when store translation is stale", async () => {

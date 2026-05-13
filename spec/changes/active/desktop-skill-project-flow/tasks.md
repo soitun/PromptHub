@@ -6,3 +6,5 @@
 - [x] 运行桌面端 lint / typecheck / 定向测试
 - [x] 更新 implementation.md
 - [x] 调整项目级 Skill 详情页的预览右栏与收录动作
+- [x] 修复本地文件夹 Source 的导入/更新链路，区分本地 source 与远程 store skill
+- [x] 为本地 Source 的安装、更新与详情预览补回归测试
