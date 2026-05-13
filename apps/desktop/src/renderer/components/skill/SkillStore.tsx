@@ -227,6 +227,17 @@ export function SkillStore() {
     [skills],
   );
 
+  const renameCustomStoreSource = useCallback((id: string, name: string) => {
+    const trimmedName = name.trim();
+    if (!trimmedName) return;
+
+    useSkillStore.setState((state) => ({
+      customStoreSources: state.customStoreSources.map((source) =>
+        source.id === id ? { ...source, name: trimmedName } : source,
+      ),
+    }));
+  }, []);
+
   const installed = useMemo(
     () => sourceRegistrySkills.filter(isSkillInstalled),
     [isSkillInstalled, sourceRegistrySkills],
@@ -775,6 +786,7 @@ export function SkillStore() {
               customStoreSources={customStoreSources}
               loadStoreSource={loadStoreSource}
               loadingSourceId={loadingSourceId}
+              renameCustomStoreSource={renameCustomStoreSource}
               remoteStoreEntries={remoteStoreEntries}
               removeCustomStoreSource={removeCustomStoreSource}
               selectStoreSource={selectStoreSource}
