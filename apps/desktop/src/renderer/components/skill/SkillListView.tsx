@@ -19,6 +19,25 @@ import type { Skill, SkillSafetyLevel } from "@prompthub/shared/types";
 import type { SkillPlatform } from "@prompthub/shared/constants/platforms";
 import { getRuntimeCapabilities } from "../../runtime";
 
+function normalizeStringArray(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
+  }
+
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value) as unknown;
+      return Array.isArray(parsed)
+        ? parsed.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+        : [];
+    } catch {
+      return [];
+    }
+  }
+
+  return [];
+}
+
 const MAX_STAGGERED_ROWS = 12;
 
 function getSafetyIconProps(level: SkillSafetyLevel): {
@@ -249,6 +268,7 @@ export function SkillListView({
             const installCount = getInstallCount(skill.id);
             const totalPlatforms = availablePlatforms.length;
             const hasStoreUpdate = skillsWithStoreUpdates.has(skill.id);
+            const visibleTags = normalizeStringArray(skill.tags).slice(0, 3);
 
             return (
               <div
@@ -361,6 +381,18 @@ export function SkillListView({
                   <p className="text-xs text-muted-foreground truncate mt-0.5">
                     {skill.description || t("skill.defaultDescription")}
                   </p>
+                  {visibleTags.length > 0 ? (
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {visibleTags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
 
                 {/* Platform indicators */}

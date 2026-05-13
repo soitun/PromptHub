@@ -12,6 +12,25 @@ import type { Skill } from "@prompthub/shared/types";
 import { SkillIcon } from "./SkillIcon";
 import { getRuntimeCapabilities } from "../../runtime";
 
+function normalizeStringArray(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
+  }
+
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value) as unknown;
+      return Array.isArray(parsed)
+        ? parsed.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+        : [];
+    } catch {
+      return [];
+    }
+  }
+
+  return [];
+}
+
 interface SkillGalleryCardProps {
   animationDelayMs: number;
   hasStoreUpdate?: boolean;
@@ -39,6 +58,7 @@ function SkillGalleryCardComponent({
 }: SkillGalleryCardProps) {
   const { t } = useTranslation();
   const runtimeCapabilities = getRuntimeCapabilities();
+  const visibleTags = normalizeStringArray(skill.tags).slice(0, 4);
 
   return (
     <div
@@ -161,6 +181,18 @@ function SkillGalleryCardComponent({
         {skill.description ||
           t("skill.defaultDescription", "技能描述，帮助 AI 理解何时使用此技能")}
       </p>
+      {visibleTags.length > 0 ? (
+        <div className="flex flex-wrap gap-1.5">
+          {visibleTags.map((tag) => (
+            <span
+              key={tag}
+              className="rounded-full bg-primary/10 px-2 py-1 text-[10px] font-medium text-primary"
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }
