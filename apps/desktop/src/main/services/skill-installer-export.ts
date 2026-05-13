@@ -6,6 +6,7 @@
  */
 import { SkillDB } from "../database/skill";
 import { sanitizeImportedSkillDraft } from "./skill-import-sanitize";
+import { parseSkillMd } from "./skill-validator";
 
 // ==================== SKILL.md export ====================
 
@@ -23,6 +24,9 @@ export function exportAsSkillMd(skill: {
     /[:#\[\]{},\n\r\\]/.test(v)
       ? `"${v.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`
       : v;
+  const parsed = parseSkillMd(skill.instructions || "");
+  const bodyContent = parsed.body || skill.instructions || "";
+
   // Build YAML frontmatter
   const frontmatter: string[] = ["---"];
   frontmatter.push(`name: ${yamlStr(skill.name)}`);
@@ -50,8 +54,10 @@ export function exportAsSkillMd(skill: {
   frontmatter.push("---");
   frontmatter.push("");
 
-  // Add instructions content
-  const content = skill.instructions || "";
+  // Always append the markdown body only. If instructions already contain a
+  // full SKILL.md with frontmatter, reusing the raw string would duplicate the
+  // YAML block during export/install.
+  const content = bodyContent;
 
   return frontmatter.join("\n") + content;
 }
