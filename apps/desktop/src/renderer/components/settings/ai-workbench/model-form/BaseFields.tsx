@@ -12,7 +12,7 @@ import {
 import { Select } from "../../../ui/Select";
 import { PasswordInput } from "../../shared";
 import { PROVIDER_OPTIONS } from "../constants";
-import { getProtocolLabel, getProviderInfo } from "../helpers";
+import { getProviderInfo } from "../helpers";
 import type { ModelFormState, ModelType } from "../types";
 
 export function BaseFields({
@@ -67,6 +67,11 @@ export function BaseFields({
       "https://api.example.com/v1",
     ].filter(Boolean);
   }, [modelForm.apiProtocol, modelForm.provider]);
+  const providerInfo = useMemo(
+    () => getProviderInfo(modelForm.provider),
+    [modelForm.provider],
+  );
+  const showProtocolField = providerInfo?.allowsCustomProtocol === true;
 
   return (
     <>
@@ -125,29 +130,40 @@ export function BaseFields({
             options={PROVIDER_OPTIONS.map((item) => ({
               value: item.id,
               label: item.name,
-              group: item.group,
+              group: t(`settings.${item.group}`),
             }))}
           />
         </div>
-        <div>
-          <label className="mb-1 block text-xs text-muted-foreground">
-            {t("settings.protocol")}
-          </label>
-          <Select
-            value={modelForm.apiProtocol}
-            onChange={(value) =>
-              setModelForm((prev) => ({
-                ...prev,
-                apiProtocol: value as ModelFormState["apiProtocol"],
-              }))
-            }
-            options={[
-              { value: "openai", label: getProtocolLabel("openai") },
-              { value: "gemini", label: getProtocolLabel("gemini") },
-              { value: "anthropic", label: getProtocolLabel("anthropic") },
-            ]}
-          />
-        </div>
+        {showProtocolField ? (
+          <div>
+            <label className="mb-1 block text-xs text-muted-foreground">
+              {t("settings.protocol")}
+            </label>
+            <Select
+              value={modelForm.apiProtocol}
+              onChange={(value) =>
+                setModelForm((prev) => ({
+                  ...prev,
+                  apiProtocol: value as ModelFormState["apiProtocol"],
+                }))
+              }
+              options={[
+                {
+                  value: "openai",
+                  label: t("settings.protocolOpenAICompatible"),
+                },
+                {
+                  value: "gemini",
+                  label: t("settings.protocolGeminiCompatible"),
+                },
+                {
+                  value: "anthropic",
+                  label: t("settings.protocolAnthropicCompatible"),
+                },
+              ]}
+            />
+          </div>
+        ) : null}
         <div>
           <label className="mb-1 block text-xs text-muted-foreground">
             {t("settings.apiKey")}

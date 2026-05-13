@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { Select } from "../../ui/Select";
 import { PasswordInput } from "../shared";
 import { PROVIDER_OPTIONS } from "./constants";
-import { getProtocolLabel, getProviderInfo } from "./helpers";
+import { getProviderInfo } from "./helpers";
 import { Modal } from "../../ui/Modal";
 import type { EndpointDraft } from "./types";
 
@@ -21,6 +21,8 @@ export function EndpointFormModal({
   onSave: () => void;
 }) {
   const { t } = useTranslation();
+  const providerInfo = getProviderInfo(endpointDraft.provider);
+  const showProtocolField = providerInfo?.allowsCustomProtocol === true;
 
   return (
     <Modal
@@ -53,30 +55,41 @@ export function EndpointFormModal({
             options={PROVIDER_OPTIONS.map((item) => ({
               value: item.id,
               label: item.name,
-              group: item.group,
+              group: t(`settings.${item.group}`),
             }))}
           />
         </div>
-        <div>
-          <label className="mb-1 block text-xs text-muted-foreground">
-            {t("settings.protocol")}
-          </label>
-          <Select
-            value={endpointDraft.apiProtocol}
-            onChange={(value) =>
-              setEndpointDraft((prev) =>
-                prev
-                  ? { ...prev, apiProtocol: value as EndpointDraft["apiProtocol"] }
-                  : prev,
-              )
-            }
-            options={[
-              { value: "openai", label: getProtocolLabel("openai") },
-              { value: "gemini", label: getProtocolLabel("gemini") },
-              { value: "anthropic", label: getProtocolLabel("anthropic") },
-            ]}
-          />
-        </div>
+        {showProtocolField ? (
+          <div>
+            <label className="mb-1 block text-xs text-muted-foreground">
+              {t("settings.protocol")}
+            </label>
+            <Select
+              value={endpointDraft.apiProtocol}
+              onChange={(value) =>
+                setEndpointDraft((prev) =>
+                  prev
+                    ? { ...prev, apiProtocol: value as EndpointDraft["apiProtocol"] }
+                    : prev,
+                )
+              }
+              options={[
+                {
+                  value: "openai",
+                  label: t("settings.protocolOpenAICompatible"),
+                },
+                {
+                  value: "gemini",
+                  label: t("settings.protocolGeminiCompatible"),
+                },
+                {
+                  value: "anthropic",
+                  label: t("settings.protocolAnthropicCompatible"),
+                },
+              ]}
+            />
+          </div>
+        ) : null}
         <div>
           <label className="mb-1 block text-xs text-muted-foreground">
             {t("settings.apiKey")}

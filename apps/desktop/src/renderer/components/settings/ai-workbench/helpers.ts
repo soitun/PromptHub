@@ -196,18 +196,6 @@ export function buildEndpointGroupKey(model: AIModelConfig): string {
   return `${model.provider}::${model.apiProtocol}::${model.apiUrl}`;
 }
 
-export function getProtocolLabel(protocol: ModelFormState["apiProtocol"]): string {
-  switch (protocol) {
-    case "gemini":
-      return "Gemini";
-    case "anthropic":
-      return "Anthropic";
-    case "openai":
-    default:
-      return "OpenAI";
-  }
-}
-
 export function buildModelOptions(models: AIModelConfig[]): ModelOption[] {
   return models.map((model) => ({
     value: model.id,

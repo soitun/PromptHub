@@ -84,6 +84,13 @@ export function AvailableModelsList({
     });
   }, [categorizedModels]);
 
+  const getCategoryLabel = (category: string) => {
+    if (category === "Other") {
+      return t("settings.other");
+    }
+    return category;
+  };
+
   if (availableModels.length === 0) {
     return null;
   }
@@ -163,6 +170,7 @@ export function AvailableModelsList({
           <div className="space-y-1">
             {sortedCategories.map((category) => {
               const models = categorizedModels[category];
+              const categoryLabel = getCategoryLabel(category);
               const isCollapsed = collapsedCategories.has(category);
               const allInCategorySelected = models.every((m) =>
                 selectedSet.has(m.id),
@@ -188,7 +196,7 @@ export function AvailableModelsList({
                       <span className="shrink-0">
                         {getCategoryIcon(category, 16)}
                       </span>
-                      <span className="text-xs font-medium">{category}</span>
+                      <span className="text-xs font-medium">{categoryLabel}</span>
                       <span className="rounded bg-muted px-1 py-0.5 text-[10px] text-muted-foreground">
                         {models.length}
                       </span>

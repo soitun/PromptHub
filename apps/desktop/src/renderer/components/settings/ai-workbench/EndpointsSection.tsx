@@ -18,7 +18,6 @@ import {
   getEndpointCategory,
   getEndpointHost,
   getModelCategory,
-  getProtocolLabel,
   getProviderLabel,
 } from "./helpers";
 import type {
@@ -55,6 +54,18 @@ export function EndpointsSection({
   onDeleteModel: (model: AIModelConfig) => void;
 }) {
   const { t } = useTranslation();
+
+  const getProtocolLabel = (protocol: ModelFormState["apiProtocol"]): string => {
+    switch (protocol) {
+      case "gemini":
+        return t("settings.protocolGeminiCompatible");
+      case "anthropic":
+        return t("settings.protocolAnthropicCompatible");
+      case "openai":
+      default:
+        return t("settings.protocolOpenAICompatible");
+    }
+  };
 
   return (
     <div>

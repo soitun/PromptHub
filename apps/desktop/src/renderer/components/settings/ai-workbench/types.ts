@@ -11,7 +11,8 @@ export type ProviderOption = {
   name: string;
   defaultUrl: string;
   recommendedProtocol: AIProtocol;
-  group: string;
+  allowsCustomProtocol: boolean;
+  group: "overseas" | "domestic" | "other";
 };
 
 export type ModelType = "chat" | "image";

@@ -23,6 +23,8 @@
   - UI 中禁用流式开关
   - renderer/main transport 在 `anthropic` 协议下强制 `stream = false`
 - 已补充并更新协议相关单测断言，覆盖新的 `apiProtocol` 字段传递与 Gemini/Anthropic transport 行为。
+- 已修复 AI workbench 协议文案 key 误落在 `skill.*` locale 分组的问题，当前协议下拉与端点卡片改为稳定使用 `settings.protocol*` 翻译。
+- 已把 AI workbench provider 分组从混合语言硬编码改为内部 key（`overseas` / `domestic` / `other`），在表单下拉中统一走 `settings.*` 翻译；模型列表里的 `Other` 分类兜底也改为展示层翻译，避免英文界面残留 `International / 国际`、`Other / 其他`。
 
 ## Verification
 
