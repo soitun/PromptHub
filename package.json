@@ -12,6 +12,7 @@
   "scripts": {
     "build": "pnpm --filter @prompthub/desktop build",
     "build:cli": "pnpm --filter @prompthub/cli build",
+    "pack:cli": "pnpm --filter @prompthub/cli pack",
     "build:web": "pnpm --filter @prompthub/web build",
     "dev": "pnpm --filter @prompthub/desktop dev",
     "dev:cli": "pnpm --filter @prompthub/cli dev",
