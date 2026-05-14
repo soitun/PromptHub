@@ -262,8 +262,17 @@ PromptHub includes both a GUI and a CLI. The CLI is useful for scripts, batch op
 > ⚠️ **Current status**
 >
 > - The desktop app does not install the `prompthub` command automatically
-> - This repository currently provides a standalone CLI source entry and a built bundle
-> - Until standalone package publishing is finished, use one of the methods below
+> - This repository currently provides a standalone CLI source entry, a built bundle, and a local pack/install flow
+> - If you need a global `prompthub` command, pack the CLI tarball from the repository and install it locally
+
+### Pack it locally and install globally
+
+```bash
+pnpm pack:cli
+pnpm add -g ./apps/cli/prompthub-cli-0.5.6-beta.2.tgz
+prompthub --help
+prompthub prompt list
+```
 
 ### Run from source
 
@@ -299,7 +308,7 @@ node apps/cli/out/prompthub.cjs skill list
 
 - The CLI reads and writes PromptHub's local database and managed skill repository directly
 - The desktop app currently only shows CLI guidance in Settings and does not install a shell wrapper
-- For now, `apps/cli` should be used via source execution or the built bundle
+- `apps/cli` can also be packed from the repository and installed locally as a global tarball
 
 ## 🌐 Self-Hosted Web
 

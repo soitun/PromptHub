@@ -313,8 +313,17 @@ PromptHub 同时提供 GUI 和 CLI。CLI 适合脚本化管理、批量导入导
 > ⚠️ **当前状态**
 >
 > - 桌面版不会自动安装 `prompthub` 命令
-> - 当前仓库内已提供 standalone CLI 源码入口和构建后的 bundle
-> - 独立包发布渠道尚未完成前，请使用下面的源码或 bundle 方式
+> - 当前仓库内已提供 standalone CLI 源码入口、构建后的 bundle，以及本地 pack 安装方式
+> - 如需全局命令，请先在仓库里打包再本地安装 CLI tarball
+
+### 从仓库本地打包并全局安装
+
+```bash
+pnpm pack:cli
+pnpm add -g ./apps/cli/prompthub-cli-0.5.6-beta.2.tgz
+prompthub --help
+prompthub prompt list
+```
 
 ### 从源码运行 CLI
 
@@ -350,7 +359,7 @@ node apps/cli/out/prompthub.cjs skill list
 
 - CLI 直接读写 PromptHub 的本地数据库和受管 Skill 仓库
 - 桌面版当前只在设置页展示 CLI 说明，不会自动安装 shell 命令
-- `apps/cli` 目前仍以仓库内源码运行和构建后 bundle 方式使用为准
+- `apps/cli` 现在也支持通过 `pnpm pack:cli` 生成本地 tarball 后全局安装
 
 <div id="self-hosted-web"></div>
 
