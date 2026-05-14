@@ -4,6 +4,12 @@ import electron from "vite-plugin-electron";
 import renderer from "vite-plugin-electron-renderer";
 import path from "path";
 
+const mainExternalModules = new Set([
+  "node-sqlite3-wasm",
+  "electron",
+  "@aws-sdk/client-s3",
+]);
+
 const aliases = {
   "@": path.resolve(__dirname, "src"),
   "@shared": path.resolve(__dirname, "../../packages/shared"),
@@ -36,7 +42,10 @@ export default defineConfig({
           build: {
             outDir: "out/main",
             rollupOptions: {
-              external: ["node-sqlite3-wasm", "electron"],
+              // Keep native/runtime-only main-process deps out of the bundle.
+              external: (id) =>
+                mainExternalModules.has(id) ||
+                [...mainExternalModules].some((item) => id.startsWith(`${item}/`)),
             },
           },
         },

@@ -25,6 +25,13 @@ import { getPlatformGlobalRulePath, getPlatformRootDir } from "./skill-installer
 const RULE_VERSION_LIMIT = 20;
 const RULE_META_FILE_NAME = "_rule.json";
 
+interface AppendRuleVersionResult {
+  index: StoredRuleVersionIndexEntry[];
+  versions: RuleVersionSnapshot[];
+}
+
+const pendingRuleVersionWrites = new Map<RuleFileId, Promise<AppendRuleVersionResult>>();
+
 interface StoredRuleMeta {
   id: RuleFileId;
   scope: "global" | "project";
@@ -183,8 +190,7 @@ function getVersionSequenceFromFileName(fileName: string): number {
   return Number.parseInt(match[1], 10) || 0;
 }
 
-async function getNextVersionSequence(ruleId: RuleFileId): Promise<number> {
-  const index = await readVersionIndex(ruleId);
+function getNextVersionSequence(index: StoredRuleVersionIndexEntry[]): number {
   const highestExistingSequence = index.reduce((highest, entry) => {
     return Math.max(highest, getVersionSequenceFromFileName(entry.fileName));
   }, 0);
@@ -192,10 +198,12 @@ async function getNextVersionSequence(ruleId: RuleFileId): Promise<number> {
   return highestExistingSequence + 1;
 }
 
-async function readRuleVersions(ruleId: RuleFileId): Promise<RuleVersionSnapshot[]> {
-  const index = await readVersionIndex(ruleId);
+async function readRuleVersionsFromIndex(
+  ruleId: RuleFileId,
+  index: StoredRuleVersionIndexEntry[],
+): Promise<RuleVersionSnapshot[]> {
   const versionDir = getRuleVersionsDir(ruleId);
-  const versions = await Promise.all(
+  return Promise.all(
     index.map(async (entry) => {
       const content = await fsp.readFile(path.join(versionDir, entry.fileName), "utf-8");
       return {
@@ -203,60 +211,88 @@ async function readRuleVersions(ruleId: RuleFileId): Promise<RuleVersionSnapshot
         savedAt: entry.savedAt,
         source: entry.source,
         content,
-      } satisfies RuleVersionSnapshot;
+        } satisfies RuleVersionSnapshot;
     }),
   );
-  return versions;
+}
+
+async function readRuleVersions(ruleId: RuleFileId): Promise<RuleVersionSnapshot[]> {
+  const index = await readVersionIndex(ruleId);
+  return readRuleVersionsFromIndex(ruleId, index);
 }
 
 async function appendRuleVersion(
   ruleId: RuleFileId,
   content: string,
   source: RuleVersionSnapshot["source"],
-): Promise<RuleVersionSnapshot[]> {
-  const current = await readRuleVersions(ruleId);
-  if (current[0]?.content === content) {
-    return current;
+): Promise<AppendRuleVersionResult> {
+  const previousWrite =
+    pendingRuleVersionWrites.get(ruleId) ??
+    Promise.resolve<AppendRuleVersionResult>({
+      index: [],
+      versions: [],
+    });
+  const nextWrite = previousWrite.then(async () => {
+    const previousIndex = await readVersionIndex(ruleId);
+    const current = await readRuleVersionsFromIndex(ruleId, previousIndex);
+    if (current[0]?.content === content) {
+      return {
+        index: previousIndex,
+        versions: current,
+      };
+    }
+
+    const versionDir = getRuleVersionsDir(ruleId);
+    ensureDir(versionDir);
+    const versionSequence = getNextVersionSequence(previousIndex);
+    const fileName = `${String(versionSequence).padStart(4, "0")}.md`;
+    const nextVersion: RuleVersionSnapshot = {
+      id: `${encodeRuleId(ruleId)}-${Date.now()}`,
+      savedAt: new Date().toISOString(),
+      content,
+      source,
+    };
+
+    await fsp.writeFile(path.join(versionDir, fileName), content, "utf-8");
+
+    const nextIndex: StoredRuleVersionIndexEntry[] = [
+      {
+        id: nextVersion.id,
+        savedAt: nextVersion.savedAt,
+        source: nextVersion.source,
+        fileName,
+      },
+      ...previousIndex,
+    ].slice(0, RULE_VERSION_LIMIT);
+
+    const staleEntries = previousIndex.slice(RULE_VERSION_LIMIT - 1);
+    await writeVersionIndex(ruleId, nextIndex);
+
+    await Promise.all(
+      staleEntries.map(async (entry) => {
+        try {
+          await fsp.rm(path.join(versionDir, entry.fileName), { force: true });
+        } catch {
+          // ignore stale cleanup failures
+        }
+        }),
+    );
+
+    return {
+      index: nextIndex,
+      versions: [nextVersion, ...current].slice(0, RULE_VERSION_LIMIT),
+    };
+  });
+
+  pendingRuleVersionWrites.set(ruleId, nextWrite);
+
+  try {
+    return await nextWrite;
+  } finally {
+    if (pendingRuleVersionWrites.get(ruleId) === nextWrite) {
+      pendingRuleVersionWrites.delete(ruleId);
+    }
   }
-
-  const versionDir = getRuleVersionsDir(ruleId);
-  ensureDir(versionDir);
-  const versionSequence = await getNextVersionSequence(ruleId);
-  const fileName = `${String(versionSequence).padStart(4, "0")}.md`;
-  const nextVersion: RuleVersionSnapshot = {
-    id: `${encodeRuleId(ruleId)}-${Date.now()}`,
-    savedAt: new Date().toISOString(),
-    content,
-    source,
-  };
-
-  await fsp.writeFile(path.join(versionDir, fileName), content, "utf-8");
-
-  const previousIndex = await readVersionIndex(ruleId);
-  const nextIndex: StoredRuleVersionIndexEntry[] = [
-    {
-      id: nextVersion.id,
-      savedAt: nextVersion.savedAt,
-      source: nextVersion.source,
-      fileName,
-    },
-    ...previousIndex,
-  ].slice(0, RULE_VERSION_LIMIT);
-
-  const staleEntries = previousIndex.slice(RULE_VERSION_LIMIT - 1);
-  await writeVersionIndex(ruleId, nextIndex);
-
-  await Promise.all(
-    staleEntries.map(async (entry) => {
-      try {
-        await fsp.rm(path.join(versionDir, entry.fileName), { force: true });
-      } catch {
-        // ignore stale cleanup failures
-      }
-    }),
-  );
-
-  return readRuleVersions(ruleId);
 }
 
 async function writeManagedRule(meta: StoredRuleMeta, content: string): Promise<void> {
@@ -399,6 +435,16 @@ async function syncRuleIndex(meta: StoredRuleMeta): Promise<void> {
     ? await fsp.readFile(meta.managedPath, "utf-8")
     : "";
   const versionIndex = await readVersionIndex(meta.id);
+  db.upsert(toRuleRecord(meta, versionIndex.length, hashContent(content)));
+  db.replaceVersions(meta.id, toRuleVersionRecords(meta.id, versionIndex));
+}
+
+async function syncRuleIndexWithData(
+  meta: StoredRuleMeta,
+  content: string,
+  versionIndex: StoredRuleVersionIndexEntry[],
+): Promise<void> {
+  const db = getRuleDb();
   db.upsert(toRuleRecord(meta, versionIndex.length, hashContent(content)));
   db.replaceVersions(meta.id, toRuleVersionRecords(meta.id, versionIndex));
 }
@@ -568,7 +614,7 @@ export async function saveRuleContent(
 
   const syncStatus = await writeTargetRule(meta, content);
 
-  const versions = await appendRuleVersion(
+  const versionWrite = await appendRuleVersion(
     ruleId,
     content,
     existedBefore ? "manual-save" : "create",
@@ -580,13 +626,13 @@ export async function saveRuleContent(
     updatedAt: new Date().toISOString(),
   };
   await writeMeta(nextMeta);
-  await syncRuleIndex(nextMeta);
+  await syncRuleIndexWithData(nextMeta, content, versionWrite.index);
 
   const descriptor = await buildDescriptor(nextMeta);
   return {
     ...descriptor,
     content,
-    versions,
+    versions: versionWrite.versions,
   };
 }
 

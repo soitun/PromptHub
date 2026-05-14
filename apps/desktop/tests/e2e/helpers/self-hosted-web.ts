@@ -127,7 +127,7 @@ export async function startSelfHostedTestServer(): Promise<SelfHostedTestServer>
       ...process.env,
       PORT: String(port),
       HOST: "127.0.0.1",
-      DATA_DIR: dataDir,
+      DATA_ROOT: dataDir,
       JWT_SECRET: jwtSecret,
       ALLOW_REGISTRATION: "false",
       LOG_LEVEL: "error",

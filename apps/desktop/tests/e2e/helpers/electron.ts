@@ -3,6 +3,8 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 
+import type { Settings, SyncProviderKind } from "@prompthub/shared/types";
+
 export interface LaunchedElectronApp {
   app: ElectronApplication;
   page: Page;
@@ -12,6 +14,43 @@ export interface LaunchedElectronApp {
 interface LaunchOptions {
   env?: Record<string, string>;
   userDataDir?: string;
+}
+
+function isSyncProviderKind(value: unknown): value is SyncProviderKind {
+  return (
+    value === "manual" ||
+    value === "webdav" ||
+    value === "self-hosted" ||
+    value === "s3"
+  );
+}
+
+function buildMainSettingsPatch(
+  settingsPatch: Record<string, unknown>,
+): Partial<Settings> | null {
+  const nextSettings: Partial<Settings> = {};
+
+  if (typeof settingsPatch.launchAtStartup === "boolean") {
+    nextSettings.launchAtStartup = settingsPatch.launchAtStartup;
+  }
+
+  if (typeof settingsPatch.minimizeOnLaunch === "boolean") {
+    nextSettings.minimizeOnLaunch = settingsPatch.minimizeOnLaunch;
+  }
+
+  if (typeof settingsPatch.githubToken === "string") {
+    nextSettings.githubToken = settingsPatch.githubToken;
+  }
+
+  if (isSyncProviderKind(settingsPatch.syncProvider)) {
+    nextSettings.sync = {
+      enabled: settingsPatch.syncProvider !== "manual",
+      provider: settingsPatch.syncProvider,
+      autoSync: settingsPatch.syncProvider !== "manual",
+    };
+  }
+
+  return Object.keys(nextSettings).length > 0 ? nextSettings : null;
 }
 
 function getMainEntry() {
@@ -68,7 +107,9 @@ export async function setAppSettings(
   page: Page,
   nextSettings: Record<string, unknown>,
 ) {
-  await page.evaluate((settingsPatch) => {
+  const mainSettingsPatch = buildMainSettingsPatch(nextSettings);
+
+  await page.evaluate(async ({ settingsPatch, persistedSettingsPatch }) => {
     const raw = localStorage.getItem("prompthub-settings");
     const parsed = raw ? JSON.parse(raw) : {};
     parsed.state = {
@@ -76,7 +117,10 @@ export async function setAppSettings(
       ...settingsPatch,
     };
     localStorage.setItem("prompthub-settings", JSON.stringify(parsed));
-  }, nextSettings);
+    if (persistedSettingsPatch) {
+      await window.api.settings.set(persistedSettingsPatch);
+    }
+  }, { settingsPatch: nextSettings, persistedSettingsPatch: mainSettingsPatch });
   await page.reload();
   await page.waitForLoadState("domcontentloaded");
 }

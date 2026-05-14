@@ -24,12 +24,16 @@ test.describe("E2E: Skill smoke", () => {
       await expect(page.getByRole("button", { name: "Skills" })).toBeVisible();
 
       await page.getByRole("button", { name: "Skills" }).click();
-      await expect(page.getByRole("button", { name: "My Skills" })).toBeVisible();
+      const skillRow = page
+        .locator("div.group")
+        .filter({ has: page.getByRole("heading", { name: "write" }) })
+        .first();
+      await expect(skillRow).toBeVisible();
       await expect(
         page.getByRole("heading", { name: "write" }),
       ).toBeVisible();
 
-      await page.getByRole("heading", { name: "write" }).click();
+      await skillRow.click();
       await expect(page.getByRole("button", { name: "Snapshot" })).toBeVisible();
       await expect(page.getByText("Current Version v0")).toBeVisible();
 
@@ -81,6 +85,7 @@ test.describe("E2E: Skill smoke", () => {
         .toBe(true);
       await expect.poll(() => isAppWindowVisible(app)).toBe(false);
       await setAppSettings(page, {
+        syncProvider: "webdav",
         webdavEnabled: true,
         webdavUrl: "https://e2e.example.com/dav",
         webdavUsername: "e2e-user",
@@ -152,11 +157,10 @@ test.describe("E2E: Skill smoke", () => {
 
       const promptFile = path.join(
         userDataDir,
-        "workspace",
+        "data",
         "prompts",
         "ops",
-        "deploy-checklist__prompt_ops_1",
-        "prompt.md",
+        "deploy-checklist.md",
       );
 
       await expect

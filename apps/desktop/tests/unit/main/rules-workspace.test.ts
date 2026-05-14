@@ -2,6 +2,7 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { getPlatformById } from "@prompthub/shared/constants/platforms";
 
 import { closeDatabase, initDatabase, RuleDB } from "../../../src/main/database";
 import {
@@ -18,6 +19,7 @@ import {
   removeProjectRule,
   saveRuleContent,
 } from "../../../src/main/services/rules-workspace";
+import { getPlatformGlobalRulePath } from "../../../src/main/services/skill-installer-utils";
 
 describe("rules workspace storage", () => {
   let tempDir: string;
@@ -239,5 +241,30 @@ describe("rules workspace storage", () => {
 
     const opencodeRule = descriptors.find((descriptor) => descriptor.id === "opencode-global");
     expect(opencodeRule?.path).toContain("AGENTS.md");
+  });
+
+  it("deduplicates concurrent initial snapshots for global rules on first read", async () => {
+    const platform = getPlatformById("claude");
+    expect(platform).toBeDefined();
+
+    const globalRulePath = getPlatformGlobalRulePath(platform!);
+    expect(globalRulePath).toBeTruthy();
+
+    fs.mkdirSync(path.dirname(globalRulePath!), { recursive: true });
+    fs.writeFileSync(globalRulePath!, "# Claude global rule\n\nFollow the house style.", "utf8");
+
+    await Promise.all([
+      listRuleDescriptors(),
+      readRuleContent("claude-global"),
+    ]);
+
+    const content = await readRuleContent("claude-global");
+    expect(content.versions).toHaveLength(1);
+    expect(content.versions[0]).toEqual(
+      expect.objectContaining({
+        source: "create",
+        content: "# Claude global rule\n\nFollow the house style.",
+      }),
+    );
   });
 });

@@ -118,6 +118,8 @@ test.describe("E2E: desktop self-hosted sync", () => {
 
       await setAppSettings(page, {
         autoCheckUpdate: false,
+        minimizeOnLaunch: false,
+        syncProvider: "self-hosted",
         selfHostedSyncEnabled: true,
         selfHostedSyncUrl: server.baseUrl,
         selfHostedSyncUsername: server.username,
@@ -156,14 +158,14 @@ test.describe("E2E: desktop self-hosted sync", () => {
           async () =>
             page.evaluate(async () => {
               const prompts = await window.api.prompt.getAll();
-              return prompts[0]?.title ?? null;
+              return prompts.map((prompt) => prompt.title);
             }),
           {
             timeout: 8000,
             message: "desktop should pull remote prompt content on startup",
           },
         )
-        .toBe("Auto Pull Prompt");
+        .toEqual(["Auto Pull Prompt"]);
 
       const restoredState = await page.evaluate(async () => {
         const prompts = await window.api.prompt.getAll();
@@ -180,20 +182,12 @@ test.describe("E2E: desktop self-hosted sync", () => {
         };
       });
 
-      expect(restoredState.prompts).toHaveLength(2);
-      expect(restoredState.folders).toHaveLength(2);
-      expect(restoredState.prompts).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ title: "Auto Pull Prompt" }),
-          expect.objectContaining({ title: "Deploy Checklist" }),
-        ]),
-      );
-      expect(restoredState.folders).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ name: "Startup Folder" }),
-          expect.objectContaining({ name: "Ops" }),
-        ]),
-      );
+      expect(restoredState.prompts).toEqual([
+        expect.objectContaining({ title: "Auto Pull Prompt" }),
+      ]);
+      expect(restoredState.folders).toEqual([
+        expect.objectContaining({ name: "Startup Folder" }),
+      ]);
 
       const startupPrompt = restoredState.prompts.find(
         (prompt) => prompt.title === "Auto Pull Prompt",
@@ -218,6 +212,7 @@ test.describe("E2E: desktop self-hosted sync", () => {
       await setAppLanguage(page, "en");
       await setAppSettings(page, {
         autoCheckUpdate: false,
+        syncProvider: "self-hosted",
         selfHostedSyncEnabled: true,
         selfHostedSyncUrl: server.baseUrl,
         selfHostedSyncUsername: server.username,
@@ -225,7 +220,8 @@ test.describe("E2E: desktop self-hosted sync", () => {
       });
 
       await page.getByRole("button", { name: "Settings", exact: true }).click();
-      await page.getByRole("button", { name: "Data", exact: true }).click();
+      await page.getByRole("button", { name: "Data & Sync", exact: true }).click();
+      await page.getByRole("button", { name: /Self-Hosted PromptHub/ }).click();
 
       await page.getByRole("button", { name: "Test Connection" }).click();
       await expect(
@@ -234,7 +230,9 @@ test.describe("E2E: desktop self-hosted sync", () => {
 
       await page.getByRole("button", { name: "Upload" }).click();
       await expect(
-        page.getByText(/Uploaded 1 prompts, 1 folders, and 0 skills/i),
+        page.getByText(
+          /Uploaded 1 prompts, 1 folders, 6 rules, and 0 skills/i,
+        ),
       ).toBeVisible();
 
       const accessToken = await loginSelfHosted(
@@ -348,11 +346,41 @@ test.describe("E2E: desktop self-hosted sync", () => {
       expect(syncUpdateResponse.ok).toBe(true);
 
       await page.getByRole("button", { name: "Download" }).click();
-      await expect(
-        page.getByText(/Restored 2 prompts, 2 folders, and 0 skills/i),
-      ).toBeVisible();
-
-      await page.waitForTimeout(1500);
+      await expect
+        .poll(
+          async () =>
+            page.evaluate(async () => {
+              const prompts = await window.api.prompt.getAll();
+              const folders = await window.api.folder.getAll();
+              return {
+                prompts: prompts.map((prompt) => ({
+                  id: prompt.id,
+                  title: prompt.title,
+                  folderId: prompt.folderId,
+                })),
+                folders: folders.map((folder) => ({
+                  id: folder.id,
+                  name: folder.name,
+                })),
+              };
+            }),
+          {
+            timeout: 10000,
+            message: "desktop should restore remote self-hosted data after download",
+          },
+        )
+        .toEqual(
+          expect.objectContaining({
+            prompts: expect.arrayContaining([
+              expect.objectContaining({ title: "Deploy Checklist" }),
+              expect.objectContaining({ title: "Remote Prompt" }),
+            ]),
+            folders: expect.arrayContaining([
+              expect.objectContaining({ name: "Ops" }),
+              expect.objectContaining({ name: "Remote Folder" }),
+            ]),
+          }),
+        );
 
       const restoredState = await page.evaluate(async () => {
         const prompts = await window.api.prompt.getAll();
