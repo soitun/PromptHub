@@ -43,7 +43,7 @@ pnpm dev:web
 ### CLI
 
 ```bash
-pnpm --filter @prompthub/desktop cli:dev -- --help
+pnpm --filter @prompthub/cli dev -- --help
 ```
 
 ## 常用命令

@@ -1,10 +1,20 @@
 import { SkillDB } from '@prompthub/db';
-import type { CreateSkillParams, Skill, SkillSafetyReport, SkillVersion, UpdateSkillParams } from '@prompthub/shared';
+import type {
+  CreateSkillParams,
+  Skill,
+  SkillSafetyReport,
+  SkillSafetyScanInput,
+  SkillVersion,
+  UpdateSkillParams,
+} from '@prompthub/shared';
 import { getServerDatabase } from '../database.js';
 import { ErrorCode } from '../utils/response.js';
 import { requestRemoteBuffered } from '../utils/remote-http.js';
 import { ensureSkillName } from '../utils/skill-name.js';
-import { parseRemoteSkill, scanSkillContent } from './skill-content.service.js';
+import {
+  parseRemoteSkill,
+  scanSkillContentWithAI,
+} from './skill-content.service.js';
 import { syncSkillWorkspaceFromDatabase } from './skill-workspace.js';
 
 export interface SkillActor {
@@ -187,10 +197,27 @@ export class SkillService {
     return this.getById(actor, skillId);
   }
 
-  scanSafety(actor: SkillActor, skillId: string): SkillSafetyReport {
+  async scanSafety(
+    actor: SkillActor,
+    skillId: string,
+    overrides: Partial<SkillSafetyScanInput> = {},
+  ): Promise<SkillSafetyReport> {
     const skill = this.getById(actor, skillId);
-    const content = skill.content ?? skill.instructions ?? '';
-    return scanSkillContent(content);
+    const input: SkillSafetyScanInput = {
+      name: overrides.name ?? skill.name,
+      content: overrides.content ?? skill.content ?? skill.instructions ?? '',
+      sourceUrl: overrides.sourceUrl ?? skill.source_url,
+      contentUrl: overrides.contentUrl ?? skill.content_url,
+      localRepoPath: overrides.localRepoPath,
+      securityAudits: overrides.securityAudits,
+      aiConfig: overrides.aiConfig,
+    };
+
+    return scanSkillContentWithAI(input);
+  }
+
+  async scanSafetyInput(input: SkillSafetyScanInput): Promise<SkillSafetyReport> {
+    return scanSkillContentWithAI(input);
   }
 
   async fetchRemote(

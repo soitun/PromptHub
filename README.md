@@ -14,7 +14,7 @@
   [![GitHub Forks](https://img.shields.io/github/forks/legeling/PromptHub?style=for-the-badge&logo=github)](https://github.com/legeling/PromptHub/network/members)
   [![Downloads](https://img.shields.io/github/downloads/legeling/PromptHub/total?style=for-the-badge&logo=github&color=blue)](https://github.com/legeling/PromptHub/releases)
   
-  [![Version](https://img.shields.io/badge/preview-v0.5.6--beta.1-8B5CF6?style=for-the-badge)](https://github.com/legeling/PromptHub/releases)
+  [![Version](https://img.shields.io/badge/preview-v0.5.6--beta.2-8B5CF6?style=for-the-badge)](https://github.com/legeling/PromptHub/releases)
   [![License](https://img.shields.io/badge/license-AGPL--3.0-blue?style=for-the-badge)](./LICENSE)
   [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen?style=for-the-badge)](https://github.com/legeling/PromptHub/pulls)
   
@@ -185,13 +185,13 @@
 
 ### 下载
 
-从 [Releases](https://github.com/legeling/PromptHub/releases) 下载最新预览版本 `v0.5.6-beta.1`：
+从 [Releases](https://github.com/legeling/PromptHub/releases) 下载最新预览版本 `v0.5.6-beta.2`：
 
 | 平台    | 下载                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Windows | [![Windows x64](https://img.shields.io/badge/Windows_x64-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/legeling/PromptHub/releases/download/v0.5.6-beta.1/PromptHub-Setup-0.5.6-beta.1-x64.exe) [![Windows arm64](https://img.shields.io/badge/Windows_arm64-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/legeling/PromptHub/releases/download/v0.5.6-beta.1/PromptHub-Setup-0.5.6-beta.1-arm64.exe)      |
-| macOS   | [![macOS Apple Silicon](https://img.shields.io/badge/macOS_Apple_Silicon-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/legeling/PromptHub/releases/download/v0.5.6-beta.1/PromptHub-0.5.6-beta.1-arm64.dmg) [![macOS Intel](https://img.shields.io/badge/macOS_Intel-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/legeling/PromptHub/releases/download/v0.5.6-beta.1/PromptHub-0.5.6-beta.1-x64.dmg)          |
-| Linux   | [![Linux AppImage](https://img.shields.io/badge/Linux_AppImage-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/legeling/PromptHub/releases/download/v0.5.6-beta.1/PromptHub-0.5.6-beta.1-x64.AppImage) [![Linux deb](https://img.shields.io/badge/Linux_deb-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/legeling/PromptHub/releases/download/v0.5.6-beta.1/prompthub_0.5.6-beta.1_amd64.deb)                   |
+| Windows | [![Windows x64](https://img.shields.io/badge/Windows_x64-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/legeling/PromptHub/releases/download/v0.5.6-beta.2/PromptHub-Setup-0.5.6-beta.2-x64.exe) [![Windows arm64](https://img.shields.io/badge/Windows_arm64-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/legeling/PromptHub/releases/download/v0.5.6-beta.2/PromptHub-Setup-0.5.6-beta.2-arm64.exe)      |
+| macOS   | [![macOS Apple Silicon](https://img.shields.io/badge/macOS_Apple_Silicon-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/legeling/PromptHub/releases/download/v0.5.6-beta.2/PromptHub-0.5.6-beta.2-arm64.dmg) [![macOS Intel](https://img.shields.io/badge/macOS_Intel-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/legeling/PromptHub/releases/download/v0.5.6-beta.2/PromptHub-0.5.6-beta.2-x64.dmg)          |
+| Linux   | [![Linux AppImage](https://img.shields.io/badge/Linux_AppImage-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/legeling/PromptHub/releases/download/v0.5.6-beta.2/PromptHub-0.5.6-beta.2-x64.AppImage) [![Linux deb](https://img.shields.io/badge/Linux_deb-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/legeling/PromptHub/releases/download/v0.5.6-beta.2/prompthub_0.5.6-beta.2_amd64.deb)                   |
 | 预览通道 | [![Preview Prereleases](https://img.shields.io/badge/Preview_Prereleases-8B5CF6?style=for-the-badge&logo=github&logoColor=white)](https://github.com/legeling/PromptHub/releases?q=prerelease%3Atrue) |
 
 > 💡 **安装建议**
@@ -308,44 +308,31 @@ pnpm build:web
 
 PromptHub 同时提供 GUI 和 CLI。CLI 适合脚本化管理、批量导入导出、自动化扫描和本地工作流集成。
 
-### 桌面版用户直接使用
+### 当前可用方式
 
-> ⚠️ **当前行为**
+> ⚠️ **当前状态**
 >
-> - 桌面版安装后并首次启动一次应用：PromptHub 会自动安装 `prompthub` 命令
-> - 重新打开一个终端窗口后：就可以直接使用 `prompthub --参数`
-> - 源码运行 / 构建后的 CLI bundle：仍然保留，适合开发和调试
-
-```bash
-prompthub --help
-prompthub prompt list
-prompthub skill list
-prompthub skill scan
-prompthub --output table prompt search SEO --favorite
-```
-
-> 💡 **提示**
->
-> - 如果你刚安装完桌面版，请先启动一次 PromptHub
-> - 如果当前终端还识别不到 `prompthub`，请关闭并重新打开终端
+> - 桌面版不会自动安装 `prompthub` 命令
+> - 当前仓库内已提供 standalone CLI 源码入口和构建后的 bundle
+> - 独立包发布渠道尚未完成前，请使用下面的源码或 bundle 方式
 
 ### 从源码运行 CLI
 
 ```bash
-pnpm --filter @prompthub/desktop cli:dev -- --help
-pnpm --filter @prompthub/desktop cli:dev -- prompt list
-pnpm --filter @prompthub/desktop cli:dev -- skill list
-pnpm --filter @prompthub/desktop cli:dev -- skill scan
-pnpm --filter @prompthub/desktop cli:dev -- skill install ~/.claude/skills/my-skill
+pnpm --filter @prompthub/cli dev -- --help
+pnpm --filter @prompthub/cli dev -- prompt list
+pnpm --filter @prompthub/cli dev -- skill list
+pnpm --filter @prompthub/cli dev -- skill scan
+pnpm --filter @prompthub/cli dev -- skill install ~/.claude/skills/my-skill
 ```
 
 ### 使用构建后的 CLI bundle
 
 ```bash
-pnpm build
-node apps/desktop/out/cli/prompthub.cjs --help
-node apps/desktop/out/cli/prompthub.cjs prompt list
-node apps/desktop/out/cli/prompthub.cjs skill list
+pnpm build:cli
+node apps/cli/out/prompthub.cjs --help
+node apps/cli/out/prompthub.cjs prompt list
+node apps/cli/out/prompthub.cjs skill list
 ```
 
 ### 常用全局参数
@@ -362,8 +349,8 @@ node apps/desktop/out/cli/prompthub.cjs skill list
 ### 说明
 
 - CLI 直接读写 PromptHub 的本地数据库和受管 Skill 仓库
-- 桌面版会在首次启动时自动安装 shell 命令包装器
-- 如果你移动了应用安装位置，再次启动 PromptHub 会自动刷新命令包装器路径
+- 桌面版当前只在设置页展示 CLI 说明，不会自动安装 shell 命令
+- `apps/cli` 目前仍以仓库内源码运行和构建后 bundle 方式使用为准
 
 <div id="self-hosted-web"></div>
 
@@ -519,25 +506,23 @@ apps/web/logs
 
 查看完整的更新日志：**[CHANGELOG.md](./CHANGELOG.md)**
 
-### 最新版本 v0.5.5 (2026-05-05)
+### 最新预览版本 v0.5.6-beta.2 (2026-05-14)
 
 **Skill / AI**
 
-- 🧩 **商店 Skill 更新检测与冲突保护**：商店下载的 Skill 会保存安装时内容哈希与版本，可检查远端 `SKILL.md` 是否变化，并在本地修改与远端更新同时存在时提示冲突
-- 🌍 **完整 `SKILL.md` AI 翻译**：Skill 翻译改为针对完整文档生成 sidecar 译文，支持全文翻译与沉浸式对照显示，描述区和正文区始终基于同一份文档版本渲染
-- 💬 **AI 测试与翻译错误提示优化**：模型测试结果会直接显示“XX 模型测试成功/失败”；翻译模型未配置、请求超时或网关返回 `504` 时，也会直接提示具体原因
+- 🔐 **Skill 安全扫描改为 AI-only 审阅链路**：桌面端与 Web 端统一为“来源预检 + 仓库上下文 + AI 审阅”流程；内部 / 受限来源会在模型调用前直接阻断，高风险安装仍要求显式确认
+
+**同步 / Sync**
+
+- 🔁 **导出 / 备份 / 自托管同步一致性继续补强**：Rules、Skill 附加文件和托管副本现在可稳定穿过桌面 ZIP、WebDAV、自托管同步与 Web 导入导出链路；桌面自托管流程也已对齐图形验证码登录、启动拉取与手动上传 / 下载真实行为
 
 **桌面 / Desktop**
 
-- 🗂️ **数据目录切换真正重启生效**：切换数据目录后现在会通过专用 relaunch IPC 重启应用并重新应用 `userData` 路径，选择当前已生效目录时也不会再误报待重启
-- 🎞️ **视频保存边界收紧**：视频保存现在只接受主进程文件选择器刚返回的目标路径，并限制到受支持的视频扩展名，避免 renderer 直接写入任意本地路径
-- 🔄 **平台部署隐藏内部 sidecar**：Skill 平台 symlink 安装改为只链接 canonical `SKILL.md`，不会把 `.prompthub` 翻译 sidecar 暴露到外部平台技能目录
+- 🧭 **桌面首页与 Skill 商店交互继续打磨**：新版双栏首页已稳定支持模块显隐与拖拽排序，背景图可单独开关；Skill 商店统一顶部搜索入口、收口自定义源编辑流，并补齐更多多语言文案
 
-**Web / Docs**
+**验证 / Verification**
 
-- 🌐 **媒体上传与显示修复**：Web/Docker 环境支持图片、视频选择上传，并能显示桌面同步来的 `local-image://` / `local-video://` 媒体
-- 🔐 **同步私密状态与密码修复**：桌面数据同步到网页端时，不再把缺失 `visibility` 的普通文件夹误判为私密；自托管 Web 设置页也新增登录密码修改入口
-- 🌍 **发版文档重同步**：重新整理 README、多语言 README、CHANGELOG 与官网 release metadata，使最终 `v0.5.5` 说明与实际交付内容一致
+- 🧪 **`0.5.6-beta.2` 发版门禁已收绿**：desktop `pnpm test:release` 现已全流程通过，覆盖 lint、typecheck、full unit、integration、build 与 smoke E2E
 
 > [查看完整更新日志](./CHANGELOG.md)
 
@@ -600,7 +585,7 @@ PromptHub/
 | Web lint | `pnpm lint:web` |
 | 桌面端全量测试 | `pnpm test -- --run` |
 | Web 全量验证 | `pnpm verify:web` |
-| CLI 源码运行 | `pnpm --filter @prompthub/desktop cli:dev -- --help` |
+| CLI 源码运行 | `pnpm --filter @prompthub/cli dev -- --help` |
 | E2E | `pnpm test:e2e` |
 | 发布前桌面门禁 | `pnpm test:release` |
 

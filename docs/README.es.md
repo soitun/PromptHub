@@ -7,7 +7,7 @@
   <p>
     <a href="https://github.com/legeling/PromptHub/stargazers"><img src="https://img.shields.io/github/stars/legeling/PromptHub?style=flat-square&color=yellow" alt="GitHub Stars"/></a>
     <a href="https://github.com/legeling/PromptHub/network/members"><img src="https://img.shields.io/github/forks/legeling/PromptHub?style=flat-square" alt="GitHub Forks"/></a>
-    <a href="https://github.com/legeling/PromptHub/releases"><img src="https://img.shields.io/badge/preview-v0.5.6--beta.1-8B5CF6?style=flat-square" alt="Versión"/></a>
+    <a href="https://github.com/legeling/PromptHub/releases"><img src="https://img.shields.io/badge/preview-v0.5.6--beta.2-8B5CF6?style=flat-square" alt="Versión"/></a>
     <a href="https://github.com/legeling/PromptHub/releases"><img src="https://img.shields.io/github/downloads/legeling/PromptHub/total?style=flat-square&color=blue" alt="Descargas"/></a>
     <img src="https://img.shields.io/badge/license-AGPL--3.0-blue?style=flat-square" alt="Licencia: AGPL-3.0"/>
   </p>
@@ -140,13 +140,13 @@ Si vas a empezar con PromptHub, lo mejor es empezar por la app de escritorio.
 
 ### Descarga
 
-Descarga la versión más reciente `v0.5.5` desde [Releases](https://github.com/legeling/PromptHub/releases):
+Descarga la preview más reciente `v0.5.6-beta.2` desde [Releases](https://github.com/legeling/PromptHub/releases):
 
 | Plataforma | Descarga |
 | :--------: | :------- |
-| Windows | [![Windows x64](https://img.shields.io/badge/Windows_x64-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-Setup-0.5.5-x64.exe) [![Windows arm64](https://img.shields.io/badge/Windows_arm64-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-Setup-0.5.5-arm64.exe) |
-| macOS | [![macOS Apple Silicon](https://img.shields.io/badge/macOS_Apple_Silicon-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.5.5-arm64.dmg) [![macOS Intel](https://img.shields.io/badge/macOS_Intel-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.5.5-x64.dmg) |
-| Linux | [![Linux AppImage](https://img.shields.io/badge/Linux_AppImage-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.5.5-x64.AppImage) [![Linux deb](https://img.shields.io/badge/Linux_deb-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/legeling/PromptHub/releases/latest/download/prompthub_0.5.5_amd64.deb) |
+| Windows | [![Windows x64](https://img.shields.io/badge/Windows_x64-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/legeling/PromptHub/releases/download/v0.5.6-beta.2/PromptHub-Setup-0.5.6-beta.2-x64.exe) [![Windows arm64](https://img.shields.io/badge/Windows_arm64-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/legeling/PromptHub/releases/download/v0.5.6-beta.2/PromptHub-Setup-0.5.6-beta.2-arm64.exe) |
+| macOS | [![macOS Apple Silicon](https://img.shields.io/badge/macOS_Apple_Silicon-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/legeling/PromptHub/releases/download/v0.5.6-beta.2/PromptHub-0.5.6-beta.2-arm64.dmg) [![macOS Intel](https://img.shields.io/badge/macOS_Intel-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/legeling/PromptHub/releases/download/v0.5.6-beta.2/PromptHub-0.5.6-beta.2-x64.dmg) |
+| Linux | [![Linux AppImage](https://img.shields.io/badge/Linux_AppImage-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/legeling/PromptHub/releases/download/v0.5.6-beta.2/PromptHub-0.5.6-beta.2-x64.AppImage) [![Linux deb](https://img.shields.io/badge/Linux_deb-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/legeling/PromptHub/releases/download/v0.5.6-beta.2/prompthub_0.5.6-beta.2_amd64.deb) |
 | Vista previa | [![Preview Prereleases](https://img.shields.io/badge/Preview_Prereleases-8B5CF6?style=for-the-badge&logo=github&logoColor=white)](https://github.com/legeling/PromptHub/releases?q=prerelease%3Atrue) |
 
 > 💡 **Consejos de instalación**
@@ -257,44 +257,31 @@ Por favor, traduce el siguiente texto de {{source_lang}} a {{target_lang}}:
 
 PromptHub incluye GUI y CLI. La CLI es útil para scripts, operaciones por lotes, importaciones, escaneos y automatización.
 
-### Usarla directamente después de instalar la app de escritorio
+### Formas disponibles actualmente
 
-> ⚠️ **Comportamiento actual**
+> ⚠️ **Estado actual**
 >
-> - Tras instalar la app de escritorio y abrir PromptHub una vez, la aplicación instala automáticamente el comando `prompthub`
-> - Después de volver a abrir la terminal, ya puedes usar `prompthub --args` directamente
-> - La ejecución desde código fuente y el bundle CLI compilado siguen disponibles para desarrollo y depuración
-
-```bash
-prompthub --help
-prompthub prompt list
-prompthub skill list
-prompthub skill scan
-prompthub --output table prompt search SEO --favorite
-```
-
-> 💡 **Consejo**
->
-> - Si acabas de instalar la app de escritorio, abre PromptHub una vez primero
-> - Si tu terminal actual todavía no encuentra `prompthub`, ciérrala y ábrela de nuevo
+> - La app de escritorio no instala automáticamente el comando `prompthub`
+> - Este repositorio ofrece ahora una entrada standalone CLI desde código fuente y un bundle compilado
+> - Mientras no termine la publicación del paquete independiente, usa uno de los métodos siguientes
 
 ### Ejecutar desde el código fuente
 
 ```bash
-pnpm --filter @prompthub/desktop cli:dev -- --help
-pnpm --filter @prompthub/desktop cli:dev -- prompt list
-pnpm --filter @prompthub/desktop cli:dev -- skill list
-pnpm --filter @prompthub/desktop cli:dev -- skill scan
-pnpm --filter @prompthub/desktop cli:dev -- skill install ~/.claude/skills/my-skill
+pnpm --filter @prompthub/cli dev -- --help
+pnpm --filter @prompthub/cli dev -- prompt list
+pnpm --filter @prompthub/cli dev -- skill list
+pnpm --filter @prompthub/cli dev -- skill scan
+pnpm --filter @prompthub/cli dev -- skill install ~/.claude/skills/my-skill
 ```
 
 ### Usar el bundle CLI compilado
 
 ```bash
-pnpm build
-node apps/desktop/out/cli/prompthub.cjs --help
-node apps/desktop/out/cli/prompthub.cjs prompt list
-node apps/desktop/out/cli/prompthub.cjs skill list
+pnpm build:cli
+node apps/cli/out/prompthub.cjs --help
+node apps/cli/out/prompthub.cjs prompt list
+node apps/cli/out/prompthub.cjs skill list
 ```
 
 ### Opciones comunes
@@ -311,8 +298,8 @@ node apps/desktop/out/cli/prompthub.cjs skill list
 ### Notas
 
 - La CLI lee y escribe directamente la base de datos local de PromptHub y el repositorio de skills gestionado
-- La app de escritorio instala el wrapper del comando shell en el primer arranque
-- Si más adelante mueves la aplicación, volver a abrir PromptHub actualizará la ruta del wrapper
+- La app de escritorio ahora solo muestra la guía de CLI en Ajustes y no instala ningún wrapper de shell
+- Por ahora, usa `apps/cli` desde el código fuente o mediante el bundle compilado
 
 ## 🌐 Web autoalojada
 
@@ -431,25 +418,23 @@ Para despliegue completo, actualizaciones, copias, imágenes GHCR y notas de des
 
 Consulta el changelog completo: **[CHANGELOG.md](../CHANGELOG.md)**
 
-### Última versión v0.5.5 (2026-05-05) 🎉
+### Última preview v0.5.6-beta.2 (2026-05-14) 🎉
 
 **Skill / AI**
 
-- 🧩 **Detección de actualizaciones de Skills del store y protección ante conflictos**: los Skills instalados desde el store ahora guardan hash y versión de instalación, comparan el `SKILL.md` remoto y piden confirmación cuando coinciden cambios locales y remotos
-- 🌍 **Sidecars de traducción para `SKILL.md` completo**: la traducción de Skills ahora persiste sidecars generados desde el documento completo y admite modos completo e inmersivo bilingüe
-- 💬 **Feedback más claro para pruebas y traducción con IA**: las pruebas de modelo dicen explícitamente "<modelo> prueba exitosa / fallida", y los errores por configuración, timeout o `504` se explican con claridad
+- 🔐 **La revisión de seguridad de Skills ahora es totalmente AI-only**: desktop y web comparten ahora un flujo de preflight de origen, contexto del repositorio y revisión con IA. Las fuentes bloqueadas o internas se rechazan antes de llamar al modelo, y las instalaciones de alto riesgo siguen requiriendo confirmación explícita
+
+**Sync**
+
+- 🔁 **Más consistencia en exportación / backup / sync self-hosted**: Rules, archivos extra de Skills y copias gestionadas ahora recorren con más fiabilidad el ZIP de desktop, WebDAV, self-hosted sync y el import/export web. Los flujos self-hosted de desktop también quedaron alineados con login por captcha de imagen, startup pull y upload/download manual
 
 **Desktop**
 
-- 🗂️ **El cambio de ruta de datos ahora relanza la app de verdad**: el cambio de directorio pasa por una IPC específica de relanzamiento para que la nueva ruta `userData` se aplique realmente, y reseleccionar el directorio activo ya no muestra un falso reinicio pendiente
-- 🎞️ **Límites más estrictos al guardar vídeo**: ahora solo se aceptan rutas recién devueltas por el selector nativo y extensiones de vídeo admitidas
-- 🔄 **Los sidecars internos se ocultan al instalar en plataformas**: las instalaciones con symlink ahora enlazan solo el `SKILL.md` canónico, sin exponer sidecars `.prompthub` en carpetas externas
+- 🧭 **Más pulido en la home de desktop y en Skill Store**: la nueva home de dos columnas mantiene estable la visibilidad y el orden por arrastre de los módulos, el fondo puede activarse o desactivarse sin perder la imagen elegida, y Skill Store ahora usa una sola búsqueda superior con un flujo más compacto para editar fuentes personalizadas y mejor cobertura i18n
 
-**Web / Docs**
+**Verificación**
 
-- 🌐 **Corregidos subida y visualización de medios**: los despliegues Web/Docker pueden subir medios seleccionados y mostrar URLs `local-image://` / `local-video://` sincronizadas desde escritorio
-- 🔐 **Arreglos de privacidad de sync y contraseña**: las carpetas de escritorio sin `visibility` ya no se importan como privadas en la Web, y la configuración de la Web autoalojada incluye formulario para cambiar contraseña
-- 🌍 **Documentación de release resincronizada**: README, docs localizadas, changelog y metadatos de release del sitio se resincronizaron para que `v0.5.5` coincida con lo realmente entregado
+- 🧪 **La release gate de `0.5.6-beta.2` vuelve a estar en verde**: el `pnpm test:release` de desktop ya pasa end-to-end con lint, typecheck, full unit, integration, build y smoke E2E
 
 > 📋 [Ver changelog completo](../CHANGELOG.md)
 
@@ -504,7 +489,7 @@ PromptHub/
 | Lint web | `pnpm lint:web` |
 | Tests completos escritorio | `pnpm test -- --run` |
 | Verificación completa web | `pnpm verify:web` |
-| CLI desde código fuente | `pnpm --filter @prompthub/desktop cli:dev -- --help` |
+| CLI desde código fuente | `pnpm --filter @prompthub/cli dev -- --help` |
 | E2E | `pnpm test:e2e` |
 | Gate de release escritorio | `pnpm test:release` |
 

@@ -53,7 +53,9 @@ const skillSafetyReportSchema = z.object({
   recommendedAction: z.enum(['allow', 'review', 'block']),
   scannedAt: z.number().int().nonnegative(),
   checkedFileCount: z.number().int().nonnegative(),
-  scanMethod: z.enum(['ai', 'static']),
+  scanMethod: z
+    .union([z.literal('ai'), z.literal('static')])
+    .transform(() => 'ai' as const),
   score: z.number().min(0).max(100).optional(),
 });
 

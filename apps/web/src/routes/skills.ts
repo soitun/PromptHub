@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
-import type { SkillSafetyReport } from '@prompthub/shared';
+import type { SkillSafetyReport, SkillSafetyScanInput } from '@prompthub/shared';
 import type { Context } from 'hono';
 import { getAuthUser } from '../middleware/auth.js';
 import { SkillService, SkillServiceError } from '../services/skill.service.js';
@@ -62,8 +62,26 @@ const safetyReportSchema = z.object({
   recommendedAction: z.enum(['allow', 'review', 'block']),
   scannedAt: z.number().int().nonnegative(),
   checkedFileCount: z.number().int().nonnegative(),
-  scanMethod: z.enum(['ai', 'static']),
+  scanMethod: z.literal('ai'),
   score: z.number().min(0).max(100).optional(),
+});
+
+const safetyScanInputSchema = z.object({
+  name: z.string().optional(),
+  content: z.string().optional(),
+  sourceUrl: z.string().url().optional(),
+  contentUrl: z.string().url().optional(),
+  localRepoPath: z.string().optional(),
+  securityAudits: z.array(z.string()).optional(),
+  aiConfig: z
+    .object({
+      provider: z.string(),
+      apiProtocol: z.enum(['openai', 'gemini', 'anthropic']),
+      apiKey: z.string(),
+      apiUrl: z.string(),
+      model: z.string(),
+    })
+    .optional(),
 });
 
 const fetchRemoteSchema = z.object({
@@ -191,8 +209,46 @@ skills.post('/import', async (c) => {
 });
 
 skills.post('/:id/safety-scan', async (c) => {
+  let body: unknown = {};
   try {
-    const report = skillService.scanSafety(getAuthUser(c), c.req.param('id'));
+    body = await c.req.json();
+  } catch {
+    body = {};
+  }
+
+  const parsed = safetyScanInputSchema.partial().safeParse(body);
+  if (!parsed.success) {
+    const message = parsed.error.issues
+      .map((issue) => {
+        const path = issue.path.join('.');
+        return path ? `${path}: ${issue.message}` : issue.message;
+      })
+      .join('; ');
+    return error(c, 422, ErrorCode.VALIDATION_ERROR, message);
+  }
+
+  try {
+    const report = await skillService.scanSafety(
+      getAuthUser(c),
+      c.req.param('id'),
+      parsed.data as Partial<SkillSafetyScanInput>,
+    );
+    return success(c, report);
+  } catch (routeError) {
+    return toSkillErrorResponse(c, routeError);
+  }
+});
+
+skills.post('/safety-scan', async (c) => {
+  const parsed = await parseJsonBody(c, safetyScanInputSchema);
+  if (!parsed.success) {
+    return parsed.response;
+  }
+
+  try {
+    const report = await skillService.scanSafetyInput(
+      parsed.data as SkillSafetyScanInput,
+    );
     return success(c, report);
   } catch (routeError) {
     return toSkillErrorResponse(c, routeError);
@@ -273,6 +329,15 @@ skills.delete('/:id/versions/:versionId', async (c) => {
 function toSkillErrorResponse(c: Context, routeError: unknown): Response {
   if (routeError instanceof SkillServiceError) {
     return error(c, routeError.status, routeError.code, routeError.message);
+  }
+
+  if (routeError instanceof Error) {
+    if (routeError.message === 'AI_NOT_CONFIGURED') {
+      return error(c, 422, ErrorCode.VALIDATION_ERROR, 'AI_NOT_CONFIGURED');
+    }
+    if (routeError.message === 'SAFETY_SCAN_BLOCKED_SOURCE') {
+      return error(c, 422, ErrorCode.VALIDATION_ERROR, 'SAFETY_SCAN_BLOCKED_SOURCE');
+    }
   }
 
   return error(c, 500, ErrorCode.INTERNAL_ERROR, 'Internal server error');

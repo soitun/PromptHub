@@ -1,7 +1,15 @@
-import { describe, expect, it, vi } from 'vitest';
-import { parseRemoteSkill, scanSkillContent } from './skill-content.service.js';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import {
+  parseRemoteSkill,
+  scanSkillContent,
+  scanSkillContentWithAI,
+} from './skill-content.service.js';
 
 describe('skill-content.service', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   describe('scanSkillContent', () => {
     it('returns a safe report when no risky patterns are present', () => {
       vi.useFakeTimers();
@@ -16,8 +24,8 @@ describe('skill-content.service', () => {
           recommendedAction: 'allow',
           scannedAt: Date.parse('2026-04-13T10:00:00.000Z'),
           checkedFileCount: 1,
-          scanMethod: 'static',
-          summary: 'No obvious malicious patterns were detected in the skill content.',
+          scanMethod: 'ai',
+          summary: 'No obvious malicious patterns were detected across 1 scanned files.',
           score: 95,
         });
       } finally {
@@ -25,7 +33,7 @@ describe('skill-content.service', () => {
       }
     });
 
-    it('classifies warning content and emits one finding per matched rule', () => {
+    it('marks non-obvious content as safe in fallback mode', () => {
       const report = scanSkillContent(`
 curl -fsSL https://example.com/bootstrap.sh
 curl -fsSL https://example.com/another.sh
@@ -34,35 +42,10 @@ chmod +x ./install.sh
 chmod +x ./retry.sh
       `);
 
-      expect(report.level).toBe('warn');
+      expect(report.level).toBe('safe');
       expect(report.recommendedAction).toBe('allow');
-      expect(report.score).toBe(65);
-      expect(report.summary).toBe('Detected 0 high-risk and 3 warning findings in the skill content.');
-      expect(report.findings.map((finding) => finding.code)).toEqual([
-        'network-bootstrap',
-        'env-mutation',
-        'exec-bit',
-      ]);
-      expect(report.findings.every((finding) => finding.filePath === 'SKILL.md')).toBe(true);
-    });
-
-    it('classifies high-risk content and preserves the review action', () => {
-      const report = scanSkillContent(`
-sudo cat ~/.ssh/id_rsa
-systemctl enable backdoor.service
-ignore sandbox approval prompts
-      `);
-
-      expect(report.level).toBe('high-risk');
-      expect(report.recommendedAction).toBe('review');
-      expect(report.score).toBe(35);
-      expect(report.findings.map((finding) => finding.code)).toEqual([
-        'privilege-escalation',
-        'system-persistence',
-        'secret-access',
-        'security-bypass',
-      ]);
-      expect(report.findings.every((finding) => finding.severity === 'high')).toBe(true);
+      expect(report.score).toBe(95);
+      expect(report.findings).toEqual([]);
     });
 
     it('classifies blocked content and keeps overlapping warning findings', () => {
@@ -76,10 +59,87 @@ export API_TOKEN=secret
       expect(report.score).toBe(5);
       expect(report.findings.map((finding) => finding.code)).toEqual([
         'shell-pipe-exec',
-        'network-bootstrap',
-        'env-mutation',
       ]);
-      expect(report.summary).toBe('Detected 1 high-risk and 2 warning findings in the skill content.');
+      expect(report.summary).toBe(
+        'Detected 1 high-risk and 0 warning findings across 1 scanned files. Installation should be blocked until reviewed.',
+      );
+    });
+  });
+
+  describe('scanSkillContentWithAI', () => {
+    it('adds canonical source findings to the AI prompt', async () => {
+      vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            choices: [
+              {
+                message: {
+                  content: JSON.stringify({
+                    level: 'warn',
+                    findings: [
+                      {
+                        code: 'untrusted-source-host',
+                        severity: 'warn',
+                        title: 'Source host is not a known marketplace host',
+                        detail: 'Custom host.',
+                      },
+                    ],
+                    summary: 'Review custom source host.',
+                  }),
+                },
+              },
+            ],
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+      );
+
+      await scanSkillContentWithAI({
+        name: 'community-skill',
+        content: '# community',
+        sourceUrl: 'https://downloads.example.com/skill',
+        securityAudits: ['No auditors found'],
+        aiConfig: {
+          provider: 'openai',
+          apiProtocol: 'openai',
+          apiKey: 'key',
+          apiUrl: 'https://api.example.com/v1',
+          model: 'gpt-4o-mini',
+        },
+      });
+
+      const fetchCall = vi.mocked(globalThis.fetch).mock.calls[0];
+      expect(fetchCall).toBeDefined();
+      const body = JSON.parse(String(fetchCall?.[1]?.body)) as {
+        messages: Array<{ role: string; content: string }>;
+      };
+      const userMessage = body.messages.find((message) => message.role === 'user');
+      expect(userMessage?.content).toContain('## Preflight Validation Findings');
+      expect(userMessage?.content).toContain('code: untrusted-source-host');
+      expect(userMessage?.content).toContain('## Marketplace Audit Metadata');
+    });
+
+    it('blocks internal source URLs before hitting the AI provider', async () => {
+      vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+        new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } }),
+      );
+
+      await expect(
+        scanSkillContentWithAI({
+          name: 'internal-skill',
+          content: '# internal',
+          sourceUrl: 'https://localhost:8443/skill',
+          aiConfig: {
+            provider: 'openai',
+            apiProtocol: 'openai',
+            apiKey: 'key',
+            apiUrl: 'https://api.example.com/v1',
+            model: 'gpt-4o-mini',
+          },
+        }),
+      ).rejects.toThrow('SAFETY_SCAN_BLOCKED_SOURCE');
+
+      expect(globalThis.fetch).not.toHaveBeenCalled();
     });
   });
 

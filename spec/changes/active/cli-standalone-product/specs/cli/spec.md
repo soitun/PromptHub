@@ -21,12 +21,12 @@ PromptHub MUST keep runtime path resolution in a shared module consumed by both 
 - **WHEN** desktop and CLI run against the same appData / userData roots
 - **THEN** `skills`, `rules`, `prompts`, and asset directories resolve to the same absolute paths.
 
-### Requirement: Desktop CLI Compatibility During Migration
+### Requirement: Desktop Stops Shipping a CLI Entry
 
-PromptHub desktop MUST continue to expose its current CLI entry during Phase 1 migration.
+PromptHub desktop MUST stop exposing and packaging any CLI entry once `apps/cli` becomes the standalone CLI product.
 
-#### Scenario: Existing desktop package bin continues to work
+#### Scenario: Desktop package no longer installs or launches CLI entrypoints
 
-- **WHEN** the existing desktop package bin entry is invoked
-- **THEN** it still executes successfully
-- **AND** it reuses the shared CLI implementation instead of duplicating command logic.
+- **WHEN** the desktop application is installed or launched
+- **THEN** it does not install a `prompthub` shell wrapper or desktop CLI bin
+- **AND** desktop only surfaces standalone CLI guidance in Settings.

@@ -1,5 +1,12 @@
-import type { Folder, Settings, Skill, SyncProviderKind } from '@prompthub/shared';
-import type { SkillSafetyReport, SkillVersion } from '@prompthub/shared';
+import type {
+  Folder,
+  Settings,
+  Skill,
+  SkillSafetyReport,
+  SkillSafetyScanInput,
+  SkillVersion,
+  SyncProviderKind,
+} from '@prompthub/shared';
 import { fetchWithAuthRetry } from './auth-session';
 
 interface ApiEnvelope<T> {
@@ -184,12 +191,16 @@ export async function fetchSkillVersions(token: string, skillId: string): Promis
   return requestJson<SkillVersion[]>(`/api/skills/${skillId}/versions`, { headers: getAuthHeaders(token) }, 'Request failed');
 }
 
-export async function scanSkillSafety(token: string, skillId: string): Promise<ApiEnvelope<SkillSafetyReport>> {
+export async function scanSkillSafety(
+  token: string,
+  payload: SkillSafetyScanInput,
+): Promise<ApiEnvelope<SkillSafetyReport>> {
   return requestJson<SkillSafetyReport>(
-    `/api/skills/${skillId}/safety-scan`,
+    '/api/skills/safety-scan',
     {
       method: 'POST',
-      headers: getAuthHeaders(token),
+      headers: getAuthHeaders(token, 'application/json'),
+      body: JSON.stringify(payload),
     },
     'Request failed',
   );

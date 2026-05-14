@@ -27,6 +27,9 @@ const rootPackage = JSON.parse(fs.readFileSync(rootPackagePath, "utf8"));
 const changelog = fs.readFileSync(rootChangelogPath, "utf8");
 const version = rootPackage.version;
 const releaseTag = `v${version}`;
+const releaseDownloadBase = version.includes("-")
+  ? `https://github.com/legeling/PromptHub/releases/download/${releaseTag}`
+  : "https://github.com/legeling/PromptHub/releases/latest/download";
 
 const latestHeaderMatch = changelog.match(
   /^## \[(\d+\.\d+\.\d+(?:-[a-zA-Z0-9.]+)?)\] - (\d{4}-\d{2}-\d{2})/m,
@@ -44,17 +47,17 @@ export const HERO_VERSION_BADGE = {
 
 export const RELEASE_DOWNLOAD_URLS = {
   macArm64:
-    "https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-${version}-arm64.dmg",
+    "${releaseDownloadBase}/PromptHub-${version}-arm64.dmg",
   macX64:
-    "https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-${version}-x64.dmg",
+    "${releaseDownloadBase}/PromptHub-${version}-x64.dmg",
   windowsX64:
-    "https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-Setup-${version}-x64.exe",
+    "${releaseDownloadBase}/PromptHub-Setup-${version}-x64.exe",
   windowsArm64:
-    "https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-Setup-${version}-arm64.exe",
+    "${releaseDownloadBase}/PromptHub-Setup-${version}-arm64.exe",
   linuxAppImage:
-    "https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-${version}-x64.AppImage",
+    "${releaseDownloadBase}/PromptHub-${version}-x64.AppImage",
   linuxDeb:
-    "https://github.com/legeling/PromptHub/releases/latest/download/prompthub_${version}_amd64.deb",
+    "${releaseDownloadBase}/prompthub_${version}_amd64.deb",
 } as const;
 `;
 
@@ -64,12 +67,18 @@ fs.writeFileSync(websiteChangelogPath, changelog);
 
 const zhIntro = fs
   .readFileSync(zhIntroPath, "utf8")
-  .replace(/### 🧩 Skill 技能管理（v[\d.]+）/, `### 🧩 Skill 技能管理（${releaseTag}）`);
+  .replace(
+    /### 🧩 Skill 技能管理（v\d+\.\d+\.\d+(?:-[A-Za-z0-9.]+)?）/,
+    `### 🧩 Skill 技能管理（${releaseTag}）`,
+  );
 fs.writeFileSync(zhIntroPath, zhIntro);
 
 const enIntro = fs
   .readFileSync(enIntroPath, "utf8")
-  .replace(/### 🧩 Skill Management \(v[\d.]+\)/, `### 🧩 Skill Management (${releaseTag})`);
+  .replace(
+    /### 🧩 Skill Management \(v\d+\.\d+\.\d+(?:-[A-Za-z0-9.]+)?\)/,
+    `### 🧩 Skill Management (${releaseTag})`,
+  );
 fs.writeFileSync(enIntroPath, enIntro);
 
 console.log(

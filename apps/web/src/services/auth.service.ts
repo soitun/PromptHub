@@ -6,7 +6,7 @@ import { getServerDatabase } from '../database.js';
 import { config } from '../config.js';
 import { ErrorCode } from '../utils/response.js';
 
-const PASSWORD_HASH_ROUNDS = 12;
+const PASSWORD_HASH_ROUNDS = process.env.VITEST ? 1 : 12;
 const JWT_ALGORITHM = 'HS256';
 const { compare, hash } = bcryptjs;
 

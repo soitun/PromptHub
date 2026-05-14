@@ -26,12 +26,14 @@ Completed.
   - 清理旧版多语言 README 中遗留的旧截图组、旧命令、旧 CLI 输出路径和过期仓库结构。
   - 保留各语言既有的版本说明、赞助信息与 changelog 摘要，但对齐相对链接和入口说明。
   - 统一将多语言 README 内部引用显示为 `web-self-hosted.md` / `contributing.md`，避免显示多余的 `docs/` 前缀。
+- 追加清理多语言 README 命令表中的最后一批旧 desktop CLI 残留，将 `pnpm --filter @prompthub/desktop cli:dev -- --help` 统一改为 `pnpm --filter @prompthub/cli dev -- --help`。
 
 ## Verification
 
 - 通过：检查 `README.md` 中更新后的关键跳转、CLI bundle 路径和文档链接引用
 - 通过：检查 `docs/contributing.md` 与 `docs/README.md` 中的关键相对路径引用
 - 通过：检查 `docs/README.{en,zh-TW,ja,de,es,fr}.md` 的章节骨架已统一，不再残留旧截图章节或旧 CLI 路径
+- 通过：仓库级搜索确认 `pnpm --filter @prompthub/desktop cli:dev` 已无匹配，仅保留 active change 中对已删除 desktop CLI 的历史说明
 - 通过：`git diff --check -- docs/README.en.md docs/README.zh-TW.md docs/README.ja.md docs/README.de.md docs/README.es.md docs/README.fr.md spec/changes/active/readme-contributor-refresh/tasks.md spec/changes/active/readme-contributor-refresh/implementation.md`
 - 通过：`pnpm --filter @prompthub/desktop lint`
 

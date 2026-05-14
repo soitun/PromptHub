@@ -78,7 +78,17 @@ describe('client endpoints api', () => {
     expect((await fetchSkills('token-1', 'all')).data[0]?.id).toBe('skill-1');
     expect((await createSkill('token-1', { name: 'skill-a', content: 'echo hi' })).data.id).toBe('skill-2');
     expect((await fetchSkillVersions('token-1', 'skill-2')).data[0]?.id).toBe('version-1');
-    expect((await scanSkillSafety('token-1', 'skill-2')).data.level).toBe('warn');
+    expect((await scanSkillSafety('token-1', {
+      name: 'skill-2',
+      content: 'echo hi',
+      aiConfig: {
+        provider: 'openai',
+        apiProtocol: 'openai',
+        apiKey: 'key',
+        apiUrl: 'https://api.example.com/v1',
+        model: 'gpt-4o-mini',
+      },
+    })).data.level).toBe('warn');
     expect((await saveSkillSafetyReport('token-1', 'skill-2', {
       level: 'safe',
       findings: [],
@@ -87,7 +97,7 @@ describe('client endpoints api', () => {
       summary: 'ok',
       recommendedAction: 'allow',
       checkedFileCount: 1,
-      scanMethod: 'static',
+      scanMethod: 'ai',
     })).data.id).toBe('skill-2');
     expect((await fetchSettings('token-1')).data.theme).toBe('dark');
     expect((await updateSettings('token-1', { theme: 'light' })).data.ok).toBe(true);

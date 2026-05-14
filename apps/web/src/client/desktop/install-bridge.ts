@@ -1,16 +1,25 @@
 import type {
   AITransportRequest,
   AITransportResponse,
+  CreateRuleProjectInput,
   CreateFolderDTO,
   CreatePromptDTO,
   CreateSkillParams,
   Folder,
   Prompt,
   PromptVersion,
+  RuleBackupRecord,
+  RuleFileContent,
+  RuleFileDescriptor,
+  RuleFileId,
+  RuleRewriteRequest,
+  RuleRewriteResult,
+  RuleVersionSnapshot,
   SearchQuery,
   Settings,
   Skill,
   SkillLocalFileEntry,
+  SkillSafetyScanInput,
   SkillSafetyReport,
   SkillVersion,
   UpdateFolderDTO,
@@ -85,6 +94,10 @@ async function apiOk(
 ): Promise<boolean> {
   await apiJsonBody(path, method, body);
   return true;
+}
+
+async function apiDelete<T>(path: string): Promise<T> {
+  return apiJson<T>(path, { method: 'DELETE' });
 }
 
 function encodeFileName(fileName: string): string {
@@ -228,6 +241,11 @@ export function installDesktopBridge(): void {
         apiJsonBody<Prompt>('/api/prompts', 'POST', data),
       get: (id: string) => apiJson<Prompt>(`/api/prompts/${id}`),
       getAll: () => apiJson<Prompt[]>('/api/prompts?scope=all'),
+      getAllTags: () => apiJson<string[]>('/api/prompts/meta/tags'),
+      renameTag: (oldTag: string, newTag: string) =>
+        apiOk('/api/prompts/meta/tags/rename', 'POST', { oldTag, newTag }),
+      deleteTag: (tag: string) =>
+        apiOk('/api/prompts/meta/tags/delete', 'POST', { tag }),
       update: (id: string, data: UpdatePromptDTO) =>
         apiJsonBody<Prompt>(`/api/prompts/${id}`, 'PUT', data),
       delete: (id: string) => apiOk(`/api/prompts/${id}`, 'DELETE'),
@@ -249,6 +267,31 @@ export function installDesktopBridge(): void {
       copy: (id: string) => apiJsonBody<Prompt>(`/api/prompts/${id}/copy`, 'POST'),
       insertDirect: async (_prompt: Prompt) => {},
       syncWorkspace: async () => {},
+    },
+    rules: {
+      list: () => apiJson<RuleFileDescriptor[]>('/api/rules'),
+      scan: () => apiJson<RuleFileDescriptor[]>('/api/rules/scan', { method: 'POST' }),
+      read: (ruleId: RuleFileId) =>
+        apiJson<RuleFileContent>(`/api/rules/${encodeURIComponent(ruleId)}`),
+      save: (ruleId: RuleFileId, content: string) =>
+        apiJsonBody<RuleFileContent>(`/api/rules/${encodeURIComponent(ruleId)}`, 'PUT', {
+          content,
+        }),
+      rewrite: (payload: RuleRewriteRequest) =>
+        apiJsonBody<RuleRewriteResult>('/api/rules/rewrite', 'POST', payload),
+      addProject: (input: CreateRuleProjectInput) =>
+        apiJsonBody<RuleFileDescriptor>('/api/rules/projects', 'POST', input),
+      removeProject: (projectId: string) =>
+        apiDelete<{ success: boolean }>(`/api/rules/projects/${encodeURIComponent(projectId)}`),
+      importRecords: (records: RuleBackupRecord[], options?: { replace?: boolean }) =>
+        apiJsonBody<{ success: boolean }>('/api/rules/import-records', 'POST', {
+          records,
+          options,
+        }),
+      deleteVersion: (ruleId: RuleFileId, versionId: string) =>
+        apiDelete<RuleVersionSnapshot[]>(
+          `/api/rules/${encodeURIComponent(ruleId)}/versions/${encodeURIComponent(versionId)}`,
+        ),
     },
     security: {
       status: async () => ({ configured: false, unlocked: true }),
@@ -311,11 +354,12 @@ export function installDesktopBridge(): void {
       saveToRepo: async (_skillId: string) => null,
       syncFromRepo: async (id: string) => apiJson<Skill>(`/api/skills/${id}`),
       scanLocal: async () => ({ imported: [], skipped: [], failed: [] }),
-      scanLocalPreview: async (_customPaths?: string[]) => [],
-      scanSafety: (payload: { skillId: string }) =>
-        apiJson<SkillSafetyReport>(`/api/skills/${payload.skillId}/safety-scan`, {
-          method: 'POST',
-        }),
+      scanLocalPreview: async (
+        _customPaths?: string[],
+        _aiConfig?: SkillSafetyScanInput['aiConfig'],
+      ) => [],
+      scanSafety: (payload: SkillSafetyScanInput) =>
+        apiJsonBody<SkillSafetyReport>('/api/skills/safety-scan', 'POST', payload),
       saveSafetyReport: (skillId: string, report: SkillSafetyReport) =>
         apiJsonBody<Skill>(`/api/skills/${skillId}/safety-report`, 'PUT', report),
       export: async (skillId: string, _format: 'skillmd' | 'json') => {

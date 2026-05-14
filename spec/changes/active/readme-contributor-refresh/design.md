@@ -45,8 +45,8 @@ GitHub 对根级 `CONTRIBUTING.md` 有天然识别能力，因此采用以下分
 - 桌面完整开发入口：`pnpm electron:dev`
 - Web 开发入口：`pnpm dev:web`
 - 根 `pnpm build` 仅构建桌面版；Web 需显式使用 `pnpm build:web`
-- 源码方式运行 CLI：`pnpm --filter @prompthub/desktop cli:dev -- --help`
-- 构建后的 CLI bundle 路径：`apps/desktop/out/cli/prompthub.cjs`
+- 源码方式运行 CLI：`pnpm --filter @prompthub/cli dev -- --help`
+- 构建后的 CLI bundle 路径：`apps/cli/out/prompthub.cjs`
 
 ## Stable Spec Sync
 

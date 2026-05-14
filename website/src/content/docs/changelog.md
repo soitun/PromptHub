@@ -1,5 +1,26 @@
 ## [Unreleased]
 
+## [0.5.6-beta.2] - 2026-05-14
+
+### 预览 / Preview
+
+- 🧪 **第二个 `0.5.6` beta 预览聚焦发布收口**：本次预览在 `0.5.6-beta.1` 功能集合之上，继续收口 AI-only Skill 安全审阅、导出 / 备份 / 自托管同步一致性，以及桌面首页 / Skill 商店交互与多语言完成度，为正式版前再做一轮完整验证
+  - **Second `0.5.6` Beta Focuses on Release Readiness**: This preview builds on the `0.5.6-beta.1` feature set and tightens AI-only Skill safety review, export / backup / self-hosted sync consistency, plus desktop home / Skill Store UX and localization completeness for one more full validation round before stable release
+
+### 修复 / Fixed
+
+- 🔐 **Skill 安全扫描统一为 AI-only 审阅链路**：桌面端与 Web 端现在都采用“来源预检 + 仓库结构上下文 + AI 审阅”流程；内部 / 受限来源会在模型调用前直接阻断，同时继续稳定对齐 canonical finding codes 与高风险安装确认流程
+  - **Skill Safety Scanning Is Now Fully AI-Only**: Desktop and Web now share a "source preflight + repository-structure context + AI review" flow; blocked or internal sources are rejected before model execution, while canonical finding codes and the high-risk install confirmation flow stay aligned
+- 🔁 **导出 / 备份 / 自托管同步链路继续补强**：Rules、Skill 附加文件和托管副本现在能更稳定地穿过桌面 ZIP、WebDAV、自托管同步与 Web 导入导出链路；桌面自托管流程也已对齐图形验证码登录、启动拉取、手动上传 / 下载与当前 replace / merge 行为边界
+  - **Export / Backup / Self-Hosted Sync Flows Hardened Again**: Rules, extra Skill files, and managed copies now move more reliably through desktop ZIP export, WebDAV, self-hosted sync, and Web import/export; desktop self-hosted flows now also match the current image-captcha login, startup pull, manual upload/download, and replace / merge runtime semantics
+- 🧭 **桌面首页与 Skill 商店交互打磨**：新版双栏桌面首页已稳定支持模块显隐与拖拽排序，背景图可单独开关；Skill 商店统一顶部搜索入口、收口自定义源编辑流，并补齐更多 `Project Skills / Store / Web Library` 多语言文案
+  - **Desktop Home and Skill Store UX Refined**: The new two-column desktop home now stably supports module visibility and drag sorting, desktop backgrounds can be toggled independently, and the Skill Store now uses one top search entry, a tighter custom-source editing flow, and broader `Project Skills / Store / Web Library` localization coverage
+
+### 维护 / Maintenance
+
+- 🧪 **桌面发版门禁重新收绿**：`pnpm test:release` 现已再次全绿，覆盖 lint、typecheck、full unit、integration、build 与 smoke E2E；同时补强了 `SkillFileEditor`、Rules 工作区与 self-hosted smoke 的回归稳定性
+  - **Desktop Release Gate Back to Green**: `pnpm test:release` is green again across lint, typecheck, full unit, integration, build, and smoke E2E, with additional regression hardening for `SkillFileEditor`, the Rules workspace, and self-hosted smoke coverage
+
 ## [0.5.6-beta.1] - 2026-05-12
 
 ### 预览 / Preview

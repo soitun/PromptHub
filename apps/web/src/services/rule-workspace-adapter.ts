@@ -7,8 +7,10 @@ import type {
   RuleVersionSnapshot,
 } from '@prompthub/shared';
 import {
+  createProjectRule,
   exportRuleBackupRecords,
   importRuleBackupRecords,
+  removeProjectRule,
 } from './rule-workspace.js';
 
 function getRuleRecord(userId: string, ruleId: RuleFileId): RuleBackupRecord | null {
@@ -93,4 +95,9 @@ export function removeRuleVersion(
   return getRuleRecord(userId, ruleId)?.versions ?? [];
 }
 
-export { exportRuleBackupRecords, importRuleBackupRecords };
+export {
+  createProjectRule,
+  exportRuleBackupRecords,
+  importRuleBackupRecords,
+  removeProjectRule,
+};

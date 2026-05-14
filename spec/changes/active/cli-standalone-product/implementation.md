@@ -29,6 +29,7 @@
 - `apps/cli/tsconfig.json` 已收窄 `include` 与 alias 作用域，不再把 `apps/desktop/src/renderer/**/*.tsx` 卷入 standalone CLI typecheck。
 - `apps/cli/vite.config.ts` 已去掉 desktop renderer 相关 alias，保证 standalone CLI bundle 只依赖 core/db/shared。
 - 补充清理文档与 active spec 残留：修正多语言 README 命令表中的旧 desktop CLI 启动命令，并把设计文档中的迁移计划改写为当前已落地的迁移结果。
+- 继续修正用户文档与设置页中的错误安装说明：明确 desktop 不会自动安装 `prompthub` 命令，当前以 `apps/cli` 的源码入口和构建后 bundle 作为真实可用方式，并把 active spec 中“desktop 继续暴露 CLI 入口”的旧迁移要求改成“desktop 停止分发 CLI 入口”。
 - 继续把原 desktop CLI 测试中仍然适用于 standalone 产品的高价值场景迁移到 `apps/cli/tests/run.test.ts`，补齐以下回归覆盖：
   - 全局参数缺值报错（`--data-dir`）
   - prompt `--tags` CSV 归一化
@@ -50,6 +51,7 @@
 - `pnpm --filter @prompthub/desktop test -- tests/unit/components/about-settings.test.tsx tests/unit/components/settings-page.test.tsx --run`
 - `pnpm --filter @prompthub/desktop build`
 - 仓库级搜索：确认 `pnpm --filter @prompthub/desktop cli:dev` 已无匹配，剩余 `desktop-cli` / `--cli` 命中仅存在于 active change 的历史记录文本中
+- 仓库级搜索：确认 README、多语言 README、desktop About 设置页与 active spec 已不再宣称“桌面版自动安装 CLI”；剩余旧说法仅存在于历史 `CHANGELOG.md` / `website` changelog 发布记录中
 
 说明：`pnpm --filter @prompthub/desktop test -- --run` 当前仍有与本次 CLI 拆分无关的历史失败项，本次改动已对 desktop 受影响范围做 lint/typecheck/定点 UI 测试与 build 验证。
 

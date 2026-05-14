@@ -3,9 +3,9 @@
 ## Source
 
 - Repository: `legeling/PromptHub`
-- Snapshot date: `2026-05-12`
+- Snapshot date: `2026-05-13`
 - Capture method: `gh issue list --state open --limit 200 --json ...`
-- Open issues captured: `28`
+- Open issues captured: `34`
 
 ## Notes
 
@@ -16,6 +16,12 @@
 
 | # | 标题 | 标签 | 创建时间 | 最近更新 | 链接 |
 |---|---|---|---|---|---|
+| #134 | [Feature]: 支持重命名自定义添加的 Skill 商店 | enhancement, version: 0.5.5 | 2026-05-13 | 2026-05-13 | https://github.com/legeling/PromptHub/issues/134 |
+| #133 | [Feature]: 在 Skill 视图面板中直接展示每个技能的标签信息 | enhancement, version: 0.5.5 | 2026-05-13 | 2026-05-13 | https://github.com/legeling/PromptHub/issues/133 |
+| #132 | [Feature]: 增加 Prompt 商店 | enhancement, version: 0.5.5 | 2026-05-13 | 2026-05-13 | https://github.com/legeling/PromptHub/issues/132 |
+| #131 | [Bug]: 安装 Skill 导致 skill.md 头部 YAML 前置注释重复叠加 | bug, version: 0.5.5 | 2026-05-13 | 2026-05-13 | https://github.com/legeling/PromptHub/issues/131 |
+| #130 | [Feature]: 支持自定义添加 AI 编程工具 | enhancement, version: 0.5.5 | 2026-05-13 | 2026-05-13 | https://github.com/legeling/PromptHub/issues/130 |
+| #129 | [Bug]: 本地文件夹 Skill 的更新报错问题、重导入本地 skill源不读取最新 skill问题 | bug, version: 0.5.5 | 2026-05-12 | 2026-05-12 | https://github.com/legeling/PromptHub/issues/129 |
 | #128 | [Feature]: 可以增加项目局部skill以及支持skill.sh/skillmp市场 | enhancement, version: 0.5.5 | 2026-05-12 | 2026-05-12 | https://github.com/legeling/PromptHub/issues/128 |
 | #127 | 界面很漂亮，我撸了款Skill完整的创作平台工具SkillNexus，欢迎legeling指点 | enhancement, version: 0.5.5 | 2026-05-10 | 2026-05-10 | https://github.com/legeling/PromptHub/issues/127 |
 | #120 | [Feature]: 希望增加个文件夹直接拖进来自动识别skill功能, | enhancement | 2026-05-09 | 2026-05-09 | https://github.com/legeling/PromptHub/issues/120 |

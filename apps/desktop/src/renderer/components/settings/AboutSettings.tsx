@@ -123,10 +123,10 @@ export function AboutSettings() {
               <p>{t("settings.cliStandaloneDesc")}</p>
               <p>{t("settings.cliInstallHint")}</p>
               <div className="rounded-lg bg-muted/60 px-3 py-2 font-mono text-xs text-foreground break-all">
-                npm install -g @prompthub/cli
+                pnpm --filter @prompthub/cli dev -- --help
               </div>
               <div className="rounded-lg bg-muted/60 px-3 py-2 font-mono text-xs text-foreground break-all">
-                pnpm add -g @prompthub/cli
+                pnpm build:cli && node apps/cli/out/prompthub.cjs --help
               </div>
             </div>
           </SettingSection>

@@ -12,10 +12,12 @@ import type {
 } from '@prompthub/shared';
 import { getAuthUser } from '../middleware/auth.js';
 import {
+  createProjectRule,
   exportRuleBackupRecords,
   importRuleBackupRecords,
   readRuleContent,
   readRuleVersions,
+  removeProjectRule,
   removeRuleVersion,
   saveRuleContent,
 } from '../services/rule.service.js';
@@ -57,6 +59,12 @@ const importRecordsSchema = z.object({
 
 const deleteVersionSchema = z.object({
   versionId: z.string().min(1),
+});
+
+const createProjectRuleSchema = z.object({
+  id: z.string().min(1).optional(),
+  name: z.string().trim().min(1),
+  rootPath: z.string().trim().min(1),
 });
 
 rules.get('/', async (c) => {
@@ -103,6 +111,27 @@ rules.post('/scan', async (c) => {
   return success(c, descriptors);
 });
 
+rules.post('/projects', async (c) => {
+  const parsed = await parseJsonBody(c, createProjectRuleSchema);
+  if (!parsed.success) {
+    return parsed.response;
+  }
+
+  const actor = getAuthUser(c);
+  return success(c, createProjectRule(actor.userId, parsed.data), 201);
+});
+
+rules.delete('/projects/:projectId', async (c) => {
+  const projectId = c.req.param('projectId');
+  if (!projectId) {
+    return error(c, 422, ErrorCode.VALIDATION_ERROR, 'project id is required');
+  }
+
+  const actor = getAuthUser(c);
+  removeProjectRule(actor.userId, projectId);
+  return success(c, { success: true });
+});
+
 rules.get('/:id', async (c) => {
   const parsed = ruleIdSchema.safeParse(c.req.param('id'));
   if (!parsed.success) {
@@ -133,6 +162,28 @@ rules.put('/:id', async (c) => {
   return success(c, updated);
 });
 
+function buildRewriteResult(payload: z.infer<typeof rewriteRuleSchema>): RuleRewriteResult {
+  const current = payload.currentContent.trim();
+  const instruction = payload.instruction.trim();
+  const rewrittenContent = current
+    ? `${current}\n\n<!-- ${instruction} -->`
+    : `<!-- ${instruction} -->`;
+
+  return {
+    content: rewrittenContent,
+    summary: 'AI rewrite generated a new draft.',
+  };
+}
+
+rules.post('/rewrite', async (c) => {
+  const parsed = await parseJsonBody(c, rewriteRuleSchema);
+  if (!parsed.success) {
+    return parsed.response;
+  }
+
+  return success(c, buildRewriteResult(parsed.data));
+});
+
 rules.post('/:id/rewrite', async (c) => {
   const idParsed = ruleIdSchema.safeParse(c.req.param('id'));
   if (!idParsed.success) {
@@ -144,18 +195,7 @@ rules.post('/:id/rewrite', async (c) => {
     return parsed.response;
   }
 
-  const current = parsed.data.currentContent.trim();
-  const instruction = parsed.data.instruction.trim();
-  const rewrittenContent = current
-    ? `${current}\n\n<!-- ${instruction} -->`
-    : `<!-- ${instruction} -->`;
-
-  const result: RuleRewriteResult = {
-    content: rewrittenContent,
-    summary: 'AI rewrite generated a new draft.',
-  };
-
-  return success(c, result);
+  return success(c, buildRewriteResult(parsed.data));
 });
 
 rules.post('/import-records', async (c) => {

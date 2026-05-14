@@ -1,6 +1,7 @@
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import type { RuleBackupRecord, RuleVersionSnapshot } from '@prompthub/shared';
+import type { CreateRuleProjectInput, RuleBackupRecord, RuleVersionSnapshot } from '@prompthub/shared';
 import { getRulesDir } from '../runtime-paths.js';
 
 const RULE_VERSION_LIMIT = 20;
@@ -251,4 +252,57 @@ export function importRuleBackupRecords(
 
 export function bootstrapRuleWorkspace(): void {
   ensureDir(getRulesDir());
+}
+
+export function createProjectRule(userId: string, input: CreateRuleProjectInput): RuleBackupRecord {
+  const name = input.name.trim();
+  const rootPath = input.rootPath.trim();
+  if (!name || !rootPath) {
+    throw new Error('Rule project name and rootPath are required');
+  }
+
+  const duplicate = exportRuleBackupRecords(userId).find(
+    (record) =>
+      record.id.startsWith('project:') &&
+      record.projectRootPath?.toLowerCase() === rootPath.toLowerCase(),
+  );
+  if (duplicate) {
+    throw new Error('Rule project root path already exists');
+  }
+
+  const projectId = input.id ?? crypto.randomUUID();
+  const ruleRecord: RuleBackupRecord = {
+    id: `project:${projectId}`,
+    platformId: 'workspace',
+    platformName: name,
+    platformIcon: 'FolderRoot',
+    platformDescription: `Project rules from ${rootPath}`,
+    name: 'AGENTS.md',
+    description: 'Project rule file loaded from a user-managed directory.',
+    path: path.join(rootPath, 'AGENTS.md'),
+    managedPath: path.join(
+      getUserRulesProjectsRoot(userId),
+      `${slugify(name)}__${projectId}`,
+      'AGENTS.md',
+    ),
+    targetPath: path.join(rootPath, 'AGENTS.md'),
+    projectRootPath: rootPath,
+    syncStatus: 'target-missing',
+    content: '',
+    versions: [],
+  };
+
+  importRuleBackupRecords(userId, [ruleRecord]);
+  return exportRuleBackupRecords(userId).find((record) => record.id === ruleRecord.id) ?? ruleRecord;
+}
+
+export function removeProjectRule(userId: string, projectId: string): void {
+  const ruleId = `project:${projectId}`;
+  const record = exportRuleBackupRecords(userId).find((item) => item.id === ruleId);
+  if (!record?.managedPath) {
+    return;
+  }
+
+  fs.rmSync(path.dirname(record.managedPath), { recursive: true, force: true });
+  fs.rmSync(getRuleVersionsDir(userId, ruleId), { recursive: true, force: true });
 }
