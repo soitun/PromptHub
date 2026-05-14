@@ -269,7 +269,7 @@ PromptHub 同時提供 GUI 與 CLI。CLI 適合腳本化管理、批次作業、
 
 ```bash
 pnpm pack:cli
-pnpm add -g ./apps/cli/prompthub-cli-0.5.6-beta.2.tgz
+pnpm add -g ./apps/cli/prompthub-cli-*.tgz
 prompthub --help
 prompthub prompt list
 ```

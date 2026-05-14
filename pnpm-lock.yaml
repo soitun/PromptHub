@@ -10,6 +10,10 @@ importers:
 
   apps/cli:
     dependencies:
+      node-sqlite3-wasm:
+        specifier: ^0.8.30
+        version: 0.8.53
+    devDependencies:
       '@prompthub/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -19,7 +23,6 @@ importers:
       '@prompthub/shared':
         specifier: workspace:*
         version: link:../../packages/shared
-    devDependencies:
       '@types/node':
         specifier: ^22.0.0
         version: 22.19.1

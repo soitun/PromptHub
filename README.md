@@ -320,7 +320,7 @@ PromptHub 同时提供 GUI 和 CLI。CLI 适合脚本化管理、批量导入导
 
 ```bash
 pnpm pack:cli
-pnpm add -g ./apps/cli/prompthub-cli-0.5.6-beta.2.tgz
+pnpm add -g ./apps/cli/prompthub-cli-*.tgz
 prompthub --help
 prompthub prompt list
 ```

@@ -269,7 +269,7 @@ PromptHub includes both a GUI and a CLI. The CLI is useful for scripts, batch op
 
 ```bash
 pnpm pack:cli
-pnpm add -g ./apps/cli/prompthub-cli-0.5.6-beta.2.tgz
+pnpm add -g ./apps/cli/prompthub-cli-*.tgz
 prompthub --help
 prompthub prompt list
 ```
