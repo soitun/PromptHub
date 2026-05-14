@@ -57,6 +57,7 @@ describe("Sidebar", () => {
       isTagsSectionCollapsed: false,
       skillTagsSectionHeight: 140,
       isSkillTagsSectionCollapsed: false,
+      desktopHomeModules: ["prompt", "skill", "rules"],
       skillProjects: [
         {
           id: "project-1",
@@ -249,6 +250,25 @@ describe("Sidebar", () => {
     expect(within(windsurfButton).getByAltText("windsurf icon")).toBeInTheDocument();
   });
 
+  it("keeps Rules visible but hides project-directory actions in web runtime", async () => {
+    (window as Window & { __PROMPTHUB_WEB__?: boolean }).__PROMPTHUB_WEB__ = true;
+
+    await act(async () => {
+      await renderWithI18n(
+        <Sidebar currentPage="home" onNavigate={vi.fn()} />,
+        { language: "en" },
+      );
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /Rules/i }));
+    });
+
+    expect(screen.getByText("Global Rules")).toBeInTheDocument();
+    expect(screen.getByText("Project Rules")).toBeInTheDocument();
+    expect(screen.queryByText("Add Project Directory")).not.toBeInTheDocument();
+  });
+
   it("updates the selected rule when clicking a project rule item", async () => {
     useUIStore.setState({
       appModule: "rules",
@@ -323,5 +343,60 @@ describe("Sidebar", () => {
     expect(screen.queryByText("Resources")).not.toBeInTheDocument();
     expect(screen.queryByText("Account")).not.toBeInTheDocument();
     expect(screen.queryByText("PH")).not.toBeInTheDocument();
+  });
+
+  it("hides disabled home modules from the rail", async () => {
+    useSettingsStore.setState({
+      desktopHomeModules: ["skill"],
+    } as Partial<ReturnType<typeof useSettingsStore.getState>>);
+    useUIStore.setState({
+      appModule: "prompt",
+      viewMode: "prompt",
+      isSidebarCollapsed: false,
+    });
+
+    await act(async () => {
+      await renderWithI18n(
+        <Sidebar currentPage="home" onNavigate={vi.fn()} layout="rail" />,
+        { language: "en" },
+      );
+    });
+
+    expect(screen.queryByText("Prompts")).not.toBeInTheDocument();
+    expect(screen.getByText("Skills")).toBeInTheDocument();
+    expect(screen.queryByText("Rules")).not.toBeInTheDocument();
+    expect(useUIStore.getState().appModule).toBe("skill");
+  });
+
+  it("renders rail modules in the customized desktop order", async () => {
+    useSettingsStore.setState({
+      desktopHomeModules: ["rules", "skill", "prompt"],
+    } as Partial<ReturnType<typeof useSettingsStore.getState>>);
+
+    await act(async () => {
+      await renderWithI18n(
+        <Sidebar currentPage="home" onNavigate={vi.fn()} layout="rail" />,
+        { language: "en" },
+      );
+    });
+
+    const labels = screen
+      .getAllByRole("button")
+      .map((button) => button.textContent?.trim())
+      .filter((text): text is string =>
+        text === "Rules" || text === "Skills" || text === "Prompts",
+      );
+
+    expect(labels.slice(0, 3)).toEqual(["Rules", "Skills", "Prompts"]);
+  });
+
+  it("uses the combined shell width for the classic sidebar layout", async () => {
+    const { container } = await renderWithI18n(
+      <Sidebar currentPage="home" onNavigate={vi.fn()} layout="combined" />,
+      { language: "en" },
+    );
+
+    expect(container.querySelector("aside")).toHaveClass("w-[23rem]");
+    expect(screen.getByText("Prompts")).toBeInTheDocument();
   });
 });

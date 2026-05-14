@@ -5,6 +5,20 @@ import type {
   SkillVersion,
 } from "@prompthub/shared/types/skill";
 
+function normalizeSkillSafetyReport<T extends { safetyReport?: unknown }>(value: T): T {
+  if (!value.safetyReport || typeof value.safetyReport !== "object") {
+    return value;
+  }
+
+  return {
+    ...value,
+    safetyReport: {
+      ...(value.safetyReport as Record<string, unknown>),
+      scanMethod: "ai",
+    },
+  };
+}
+
 export const DB_BACKUP_VERSION = 1;
 
 export interface DatabaseBackup {
@@ -91,7 +105,9 @@ export function normalizeImportedBackup(
     settings: backup?.settings,
     settingsUpdatedAt: backup?.settingsUpdatedAt,
     rules: Array.isArray(backup?.rules) ? backup.rules : undefined,
-    skills: Array.isArray(backup?.skills) ? backup.skills : undefined,
+    skills: Array.isArray(backup?.skills)
+      ? backup.skills.map((skill) => normalizeSkillSafetyReport(skill))
+      : undefined,
     skillVersions: Array.isArray(backup?.skillVersions)
       ? backup.skillVersions
       : undefined,

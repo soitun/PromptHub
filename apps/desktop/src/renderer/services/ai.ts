@@ -238,10 +238,7 @@ function buildChatEndpointFromBase(resolved: ResolvedProtocol): string {
   }
 
   if (resolved.explicit) {
-    if (resolved.protocol === "anthropic") {
-      return baseUrl.endsWith("/messages") ? baseUrl : `${baseUrl}/messages`;
-    }
-    return baseUrl.endsWith("/chat/completions") ? baseUrl : `${baseUrl}/chat/completions`;
+    return baseUrl;
   }
 
   if (resolved.protocol === "gemini") {

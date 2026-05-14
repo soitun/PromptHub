@@ -146,4 +146,41 @@ describe("settings background image actions", () => {
 
     expect(useSettingsStore.getState().settingsUpdatedAt).toBe(initialUpdatedAt);
   });
+
+  it("toggles background image visibility without clearing the saved file", async () => {
+    const { useSettingsStore } = await import(
+      "../../../src/renderer/stores/settings.store"
+    );
+
+    useSettingsStore.getState().applyBackgroundImageSelection("wallpaper.png");
+    useSettingsStore.getState().setBackgroundImageEnabled(false);
+
+    expect(useSettingsStore.getState().backgroundImageEnabled).toBe(false);
+    expect(useSettingsStore.getState().backgroundImageFileName).toBe(
+      "wallpaper.png"
+    );
+  });
+
+  it("defaults background image visibility to enabled during migration", async () => {
+    localStorage.setItem(
+      "prompthub-settings",
+      JSON.stringify({
+        state: {
+          backgroundImageFileName: "wallpaper.png",
+          backgroundImageOpacity: 0.55,
+          backgroundImageBlur: 6,
+        },
+        version: 11,
+      })
+    );
+
+    const { useSettingsStore } = await import(
+      "../../../src/renderer/stores/settings.store"
+    );
+
+    expect(useSettingsStore.getState().backgroundImageEnabled).toBe(true);
+    expect(useSettingsStore.getState().backgroundImageFileName).toBe(
+      "wallpaper.png"
+    );
+  });
 });

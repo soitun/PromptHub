@@ -147,6 +147,8 @@ const WARN_PATTERNS = [
   },
 ];
 
+const SAFETY_SCAN_BLOCKED_SOURCE_ERROR = "SAFETY_SCAN_BLOCKED_SOURCE";
+
 interface PatternRule {
   code: string;
   title: string;
@@ -585,6 +587,39 @@ Analyze the provided skill content and output a JSON object with this EXACT sche
 9. **Network risks**: connecting to suspicious endpoints, opening reverse shells, tunneling
 10. **File system manipulation**: writing to system directories, modifying PATH, symlink attacks
 
+## Canonical finding codes
+Prefer these exact codes whenever they apply:
+- shell-pipe-exec
+- dangerous-delete
+- encoded-powershell
+- encoded-shell-bootstrap
+- privilege-escalation
+- system-persistence
+- secret-access
+- security-bypass
+- network-exfil
+- exec-bit
+- network-bootstrap
+- env-mutation
+- unknown-source
+- invalid-source-url
+- insecure-source-url
+- untrusted-source-host
+- internal-source
+- external-audits
+- persistence-file
+- high-risk-binary
+- script-file
+
+Additional code guidance:
+- Use unknown-source when the prompt does not include a source URL and the skill provenance is unclear.
+- Use invalid-source-url for malformed URLs.
+- Use insecure-source-url for non-HTTPS URLs.
+- Use untrusted-source-host when the source host is not github.com, raw.githubusercontent.com, or skills.sh.
+- Use internal-source when preflight validation says the source resolves to a blocked or internal address.
+- Use external-audits when marketplace audit metadata is present and it materially affects the review.
+- Use persistence-file, high-risk-binary, and script-file for repository-structure observations from the provided file tree.
+
 ## Level assignment rules:
 - "blocked": Contains obvious malicious patterns (pipe-to-shell, destructive delete, encoded execution, data exfiltration)
 - "high-risk": Contains patterns that could be exploited (sudo, credential access, persistence, security bypass instructions)
@@ -693,6 +728,7 @@ function parseAIReport(
 function buildAIUserPrompt(
   input: SkillSafetyScanInput,
   repoFiles: SkillLocalFileEntry[],
+  preflightFindings: SkillSafetyFinding[] = [],
 ): string {
   const parts: string[] = [];
 
@@ -702,6 +738,32 @@ function buildAIUserPrompt(
 
   if (input.sourceUrl) {
     parts.push(`## Source URL\n${input.sourceUrl}`);
+  }
+
+  if (input.contentUrl) {
+    parts.push(`## Content URL\n${input.contentUrl}`);
+  }
+
+  if (input.securityAudits?.length) {
+    parts.push(`## Marketplace Audit Metadata\n${input.securityAudits.join("\n")}`);
+  }
+
+  if (preflightFindings.length > 0) {
+    const preflightSummary = preflightFindings
+      .map((finding) => {
+        const pieces = [
+          `- code: ${finding.code}`,
+          `severity: ${finding.severity}`,
+          `title: ${finding.title}`,
+          `detail: ${finding.detail}`,
+        ];
+        if (finding.evidence) {
+          pieces.push(`evidence: ${finding.evidence}`);
+        }
+        return pieces.join(" | ");
+      })
+      .join("\n");
+    parts.push(`## Preflight Validation Findings\n${preflightSummary}`);
   }
 
   if (input.content) {
@@ -749,13 +811,14 @@ async function runAIScan(
   input: SkillSafetyScanInput,
   repoFiles: SkillLocalFileEntry[],
   checkedFileCount: number,
+  preflightFindings: SkillSafetyFinding[],
   aiConfig: SafetyScanAIConfig,
   deps: ScanDeps,
 ): Promise<SkillSafetyReport> {
   const aiChat = deps.aiChat ?? chatCompletion;
   const now = (deps.now ?? Date.now)();
 
-  const userPrompt = buildAIUserPrompt(input, repoFiles);
+  const userPrompt = buildAIUserPrompt(input, repoFiles, preflightFindings);
 
   const result = await aiChat(
     aiConfig,
@@ -777,78 +840,40 @@ export async function scanSkillSafety(
   input: SkillSafetyScanInput,
   deps: ScanDeps = {},
 ): Promise<SkillSafetyReport> {
-  const findings: SkillSafetyFinding[] = [];
+  if (
+    !input.aiConfig?.apiKey ||
+    !input.aiConfig?.apiUrl ||
+    !input.aiConfig?.model
+  ) {
+    throw new Error("AI_NOT_CONFIGURED");
+  }
+
   const resolveAddress = deps.resolveAddress ?? resolvePublicAddress;
   const readRepoFiles = deps.readRepoFiles ?? readRepoFilesFromPath;
-  const now = deps.now ?? Date.now;
-
-  await scanSourceUrls(input, findings, resolveAddress);
-
-  if (input.securityAudits?.length) {
-    addFinding(findings, {
-      code: "external-audits",
-      severity: "info",
-      title: "External marketplace audit metadata is available",
-      detail:
-        "The marketplace attached external security audit metadata. Treat it as a signal, not as a full guarantee.",
-      evidence: input.securityAudits.join("; "),
-    });
-  }
-
-  if (input.content) {
-    scanTextContent(findings, input.content, "SKILL.md");
-  }
 
   let checkedFileCount = input.content ? 1 : 0;
   let repoFiles: SkillLocalFileEntry[] = [];
   if (input.localRepoPath) {
     repoFiles = await readRepoFiles(input.localRepoPath);
-    checkedFileCount = Math.max(
-      checkedFileCount,
-      scanRepoFiles(repoFiles, findings),
-    );
+    checkedFileCount = Math.max(checkedFileCount, scanRepoFiles(repoFiles, []));
   }
 
-  // AI-first strategy: attempt AI scan when a valid config is provided.
-  // On any failure, fall back to the static result already computed above.
-  if (
-    input.aiConfig?.apiKey &&
-    input.aiConfig?.apiUrl &&
-    input.aiConfig?.model
-  ) {
-    try {
-      const aiReport = await runAIScan(
-        input,
-        repoFiles,
-        checkedFileCount,
-        input.aiConfig,
-        deps,
-      );
-      return aiReport;
-    } catch (error) {
-      console.warn(
-        "AI safety scan failed, falling back to static scan:",
-        error instanceof Error ? error.message : String(error),
-      );
-      // Fall through to static report below
-    }
+  // Preserve source validation as a hard preflight guard, but do not return a
+  // synthetic static report. AI remains the source of truth for the final
+  // report, while blocked internal sources fail before the model call.
+  const preflightFindings: SkillSafetyFinding[] = [];
+  await scanSourceUrls(input, preflightFindings, resolveAddress);
+
+  if (preflightFindings.some((finding) => finding.code === "internal-source")) {
+    throw new Error(SAFETY_SCAN_BLOCKED_SOURCE_ERROR);
   }
 
-  const dedupedFindings = dedupeFindings(findings);
-  const level = deriveLevel(dedupedFindings);
-
-  return {
-    level,
-    findings: dedupedFindings,
-    recommendedAction:
-      level === "blocked"
-        ? "block"
-        : level === "high-risk"
-          ? "review"
-          : "allow",
-    scannedAt: now(),
+  return runAIScan(
+    input,
+    repoFiles,
     checkedFileCount,
-    scanMethod: "static",
-    summary: buildSummary(level, dedupedFindings, checkedFileCount),
-  };
+    preflightFindings,
+    input.aiConfig,
+    deps,
+  );
 }

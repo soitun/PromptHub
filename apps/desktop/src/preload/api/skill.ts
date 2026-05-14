@@ -24,8 +24,15 @@ export const skillApi = {
     ipcRenderer.invoke(IPC_CHANNELS.SKILL_UPDATE, id, data),
   delete: (id: string) => ipcRenderer.invoke(IPC_CHANNELS.SKILL_DELETE, id),
   scanLocal: () => ipcRenderer.invoke(IPC_CHANNELS.SKILL_SCAN_LOCAL),
-  scanLocalPreview: (customPaths?: string[]) =>
-    ipcRenderer.invoke(IPC_CHANNELS.SKILL_SCAN_LOCAL_PREVIEW, customPaths),
+  scanLocalPreview: (
+    customPaths?: string[],
+    aiConfig?: SkillSafetyScanInput["aiConfig"],
+  ) =>
+    ipcRenderer.invoke(
+      IPC_CHANNELS.SKILL_SCAN_LOCAL_PREVIEW,
+      customPaths,
+      aiConfig,
+    ),
   scanSafety: (input: SkillSafetyScanInput): Promise<SkillSafetyReport> =>
     ipcRenderer.invoke(IPC_CHANNELS.SKILL_SCAN_SAFETY, input),
   saveSafetyReport: (

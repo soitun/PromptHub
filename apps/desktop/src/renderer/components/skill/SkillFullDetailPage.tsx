@@ -38,6 +38,7 @@ import "./SkillMarkdown.css";
 import {
   downloadSkillExport,
   downloadSkillZipExport,
+  formatSkillSafetyScanError,
   formatSkillTranslationError,
   getErrorMessage,
   getSafetyScanAIConfig,
@@ -532,10 +533,7 @@ export function SkillFullDetailPage({
       }
       return report;
     } catch (error) {
-      showToast(
-        `${t("skill.safetyScanFailed", "Safety scan failed")}: ${getErrorMessage(error)}`,
-        "error",
-      );
+      showToast(formatSkillSafetyScanError(error, t), "error");
       return null;
     } finally {
       setIsScanningSafety(false);
@@ -1196,7 +1194,7 @@ export function SkillFullDetailPage({
                   label: t("skill.safetyDimContent", "Content patterns"),
                   desc: t(
                     "skill.safetyDimContentDesc",
-                    "Static regex scan for shell injections, destructive commands, encoded payloads, privilege escalation, credential access, and suspicious network calls.",
+                    "AI review of SKILL.md instructions and suspicious repo files for dangerous commands, privilege escalation, secret access, prompt injection, and exfiltration behavior.",
                   ),
                   count: contentCount,
                 },
@@ -1205,7 +1203,7 @@ export function SkillFullDetailPage({
                   label: t("skill.safetyDimSource", "Source trust"),
                   desc: t(
                     "skill.safetyDimSourceDesc",
-                    "Validates source URL — HTTPS enforcement, known trusted hosts, and SSRF guard against internal addresses.",
+                    "Source provenance preflight plus AI context review for missing provenance, malformed URLs, custom hosts, and restricted internal addresses.",
                   ),
                   count: sourceCount,
                 },
@@ -1214,7 +1212,7 @@ export function SkillFullDetailPage({
                   label: t("skill.safetyDimRepo", "Repository structure"),
                   desc: t(
                     "skill.safetyDimRepoDesc",
-                    "Inspects the local repo file tree for binaries, executable scripts, and persistence-related files.",
+                    "Repository tree review for executable scripts, bundled binaries, persistence-related files, and other risky packaging signals surfaced to the AI scan.",
                   ),
                   count: repoCount,
                 },
@@ -1278,9 +1276,7 @@ export function SkillFullDetailPage({
               </span>
               <span>
                 {t("skill.safetyScanMethod", "Method")}:{" "}
-                {safetyReport.scanMethod === "ai"
-                  ? t("skill.safetyScanMethodAI", "AI-assisted")
-                  : t("skill.safetyScanMethodStatic", "Static analysis")}
+                {t("skill.safetyScanMethodAI", "AI-assisted")}
               </span>
               <span>
                 {t("skill.safetyScanTime", "Scanned")}:{" "}

@@ -30,4 +30,16 @@ describe("ai url helpers", () => {
       "https://api.example.com/v1/images/generations",
     );
   });
+
+  it("does not append chat endpoints when the url ends with #", () => {
+    expect(getApiEndpointPreview("https://api.example.com/custom-endpoint#")).toBe(
+      "https://api.example.com/custom-endpoint",
+    );
+  });
+
+  it("does not append anthropic endpoints when the url ends with #", () => {
+    expect(
+      getApiEndpointPreview("https://api.anthropic.com/custom/messages#", "anthropic"),
+    ).toBe("https://api.anthropic.com/custom/messages");
+  });
 });

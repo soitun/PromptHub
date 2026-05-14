@@ -349,7 +349,7 @@ export function TopBar({
             : skillSearchResults
       : promptSearchResults;
   const searchResultCount = searchResults.length;
-  const showSearchNavigation = !isProjectSkillView;
+  const showSearchNavigation = !isSkillView && !isProjectSkillView;
 
   const updateCreateMenuPosition = useCallback(() => {
     if (!createMenuRef.current) {
@@ -472,6 +472,10 @@ export function TopBar({
       setSearchQuery("");
       searchInputRef.current?.blur();
     } else if (e.key === "Enter" && searchResultCount > 0) {
+      if (isSkillView) {
+        e.preventDefault();
+        return;
+      }
       if (isProjectSkillView) {
         searchInputRef.current?.blur();
         return;
@@ -708,7 +712,7 @@ export function TopBar({
                           count: searchResultCount,
                           defaultValue: `${searchResultCount} results`,
                         })
-                    : t("header.noResults", "0 结果")}
+                    : t("header.noResults", "No results")}
                 </span>
                 {/* 上下导航按钮 */}
                 {showSearchNavigation && searchResultCount > 1 && (

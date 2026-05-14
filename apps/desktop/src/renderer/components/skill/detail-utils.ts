@@ -76,6 +76,29 @@ export function formatSkillTranslationError(
   return `${t("skill.translateFailed", "Translation failed")}: ${rawMessage}`;
 }
 
+export function formatSkillSafetyScanError(
+  error: unknown,
+  t: TFunction,
+): string {
+  const rawMessage = getErrorMessage(error);
+
+  if (rawMessage === "AI_NOT_CONFIGURED") {
+    return t(
+      "skill.configureAiFirst",
+      "Please configure an AI model in settings first",
+    );
+  }
+
+  if (rawMessage === "SAFETY_SCAN_BLOCKED_SOURCE") {
+    return t(
+      "skill.safetyScanBlockedSource",
+      "Safety scan blocked this source because it resolves to an internal or restricted address.",
+    );
+  }
+
+  return `${t("skill.safetyScanFailed", "Safety scan failed")}: ${rawMessage}`;
+}
+
 export interface SkillSourceMeta {
   kind: "github" | "remote" | "local";
   value: string;

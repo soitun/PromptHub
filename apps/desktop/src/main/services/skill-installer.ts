@@ -15,10 +15,12 @@
 import * as fs from "fs/promises";
 import * as path from "path";
 import type {
+  SafetyScanAIConfig,
   ScannedSkill,
   ScanLocalResult,
   SkillManifest,
 } from "@prompthub/shared/types";
+import { installSkillFromSource } from "../../../../../packages/core/src/skills/install-flow";
 import { initDatabase } from "@/main/database";
 import { SkillDB } from "@/main/database/skill";
 import { readGithubTokenSetting } from "@/main/settings/settings-readers";
@@ -353,24 +355,17 @@ export class SkillInstaller {
     db: SkillDB,
     options?: { name?: string },
   ): Promise<string> {
-    const trimmedSource = source.trim();
-    if (!trimmedSource) {
-      throw new Error("Skill source cannot be empty");
-    }
-
-    if (/^https?:\/\/github\.com\//i.test(trimmedSource)) {
-      return this.installFromGithub(trimmedSource, db);
-    }
-
-    if (/^https:\/\//i.test(trimmedSource)) {
-      const remoteContent = await this.fetchRemoteContent(trimmedSource);
-      return this.installFromSkillContent(remoteContent, db, {
-        name: options?.name,
-        sourceUrl: trimmedSource,
-      });
-    }
-
-    return this.installFromLocalPath(trimmedSource, db, options);
+    return installSkillFromSource(
+      source,
+      db,
+      {
+        fetchRemoteContent: this.fetchRemoteContent,
+        importFromJson: this.importFromJson,
+        installFromGithub: this.installFromGithub.bind(this),
+        installFromSkillContent: this.installFromSkillContent.bind(this),
+      },
+      options,
+    );
   }
 
   static async installFromLocalPath(
@@ -666,6 +661,7 @@ export class SkillInstaller {
   static async scanLocalPreview(
     customPaths?: string[],
     db?: SkillDB,
+    aiConfig?: SafetyScanAIConfig,
   ): Promise<ScannedSkill[]> {
     // Use a map keyed by skill folder path to deduplicate across platforms
     const skillMap = new Map<string, ScannedSkill>();
@@ -758,11 +754,14 @@ export class SkillInstaller {
                 filePath: skillMdPath,
                 localPath: skillFolderPath,
                 platforms: [platformName],
-                safetyReport: await scanSkillSafety({
-                  name: sanitized.name,
-                  content: sanitized.instructions || instructions,
-                  localRepoPath: skillFolderPath,
-                }),
+                safetyReport: aiConfig
+                  ? await scanSkillSafety({
+                      name: sanitized.name,
+                      content: sanitized.instructions || instructions,
+                      localRepoPath: skillFolderPath,
+                      aiConfig,
+                    })
+                  : undefined,
               });
             } catch (err) {
               console.warn(`Failed to parse skill at ${skillMdPath}:`, err);

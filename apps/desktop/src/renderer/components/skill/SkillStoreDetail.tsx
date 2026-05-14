@@ -25,6 +25,7 @@ import type {
   SkillSafetyReport,
 } from "@prompthub/shared/types";
 import {
+  formatSkillSafetyScanError,
   formatSkillTranslationError,
   getErrorMessage,
   groupSkillSafetyFindings,
@@ -194,10 +195,7 @@ export function SkillStoreDetail({
       }
       return report;
     } catch (error: unknown) {
-      showToast(
-        `${t("skill.safetyScanFailed", "Safety scan failed")}: ${getErrorMessage(error)}`,
-        "error",
-      );
+      showToast(formatSkillSafetyScanError(error, t), "error");
       return null;
     } finally {
       setIsScanningSafety(false);
@@ -375,8 +373,7 @@ export function SkillStoreDetail({
 
       if (autoScanBeforeInstall) {
         const report = await scanSafety();
-        const shouldBlockInstall =
-          report?.scanMethod === "ai" && report.level === "blocked";
+        const shouldBlockInstall = report?.level === "blocked";
         if (shouldBlockInstall) {
           showToast(
             t(
@@ -387,21 +384,9 @@ export function SkillStoreDetail({
           );
           return;
         }
-        if (report?.scanMethod === "ai" && report.level === "high-risk") {
+        if (report?.level === "high-risk") {
           setPendingHighRiskInstallReport(report);
           return;
-        }
-        if (
-          report?.scanMethod === "static" &&
-          (report.level === "blocked" || report.level === "high-risk")
-        ) {
-          showToast(
-            t(
-              "skill.safetyScanStaticReviewOnly",
-              "Static scan found potentially risky patterns. Review the safety report before installing, but installation is not blocked without AI confirmation.",
-            ),
-            "warning",
-          );
         }
       }
 

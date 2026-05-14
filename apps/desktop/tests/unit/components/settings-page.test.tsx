@@ -61,6 +61,7 @@ describe("SettingsPage", () => {
       webdavEnabled: true,
       selfHostedSyncEnabled: false,
       s3StorageEnabled: true,
+      desktopHomeModules: ["prompt", "skill", "rules"],
     });
 
     await act(async () => {
@@ -88,6 +89,7 @@ describe("SettingsPage", () => {
       webdavEnabled: false,
       selfHostedSyncEnabled: false,
       s3StorageEnabled: false,
+      desktopHomeModules: ["prompt", "skill", "rules"],
     });
 
     await act(async () => {
@@ -110,5 +112,27 @@ describe("SettingsPage", () => {
     });
 
     expect(screen.getByText("skill-content")).toBeInTheDocument();
+  });
+
+  it("keeps appearance as the place where desktop workspace controls live", async () => {
+    useSettingsStoreMock.mockReturnValue({
+      syncProvider: "manual",
+      webdavEnabled: false,
+      selfHostedSyncEnabled: false,
+      s3StorageEnabled: false,
+      desktopHomeModules: ["skill"],
+    });
+
+    await act(async () => {
+      await renderWithI18n(<SettingsPage onBack={vi.fn()} />, {
+        language: "en",
+      });
+    });
+
+    await act(async () => {
+      screen.getByRole("button", { name: "Appearance" }).click();
+    });
+
+    expect(screen.getByText("appearance-content")).toBeInTheDocument();
   });
 });

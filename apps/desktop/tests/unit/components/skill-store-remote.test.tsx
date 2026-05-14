@@ -80,7 +80,7 @@ describe("SkillStore remote loading", () => {
             recommendedAction: "allow",
             scannedAt: Date.now(),
             checkedFileCount: 1,
-            scanMethod: "static",
+            scanMethod: "ai",
           }),
         },
       },
@@ -126,7 +126,7 @@ describe("SkillStore remote loading", () => {
             recommendedAction: "allow",
             scannedAt: Date.now(),
             checkedFileCount: 1,
-            scanMethod: "static",
+            scanMethod: "ai",
           }),
         },
       },
@@ -167,7 +167,7 @@ describe("SkillStore remote loading", () => {
             recommendedAction: "allow",
             scannedAt: Date.now(),
             checkedFileCount: 1,
-            scanMethod: "static",
+            scanMethod: "ai",
           }),
         },
       },
@@ -202,7 +202,7 @@ describe("SkillStore remote loading", () => {
             recommendedAction: "allow",
             scannedAt: Date.now(),
             checkedFileCount: 1,
-            scanMethod: "static",
+            scanMethod: "ai",
           }),
         },
       },
@@ -301,7 +301,7 @@ describe("SkillStore remote loading", () => {
             recommendedAction: "allow",
             scannedAt: Date.now(),
             checkedFileCount: 1,
-            scanMethod: "static",
+            scanMethod: "ai",
           }),
         },
       },
@@ -386,7 +386,7 @@ describe("SkillStore remote loading", () => {
             recommendedAction: "allow",
             scannedAt: Date.now(),
             checkedFileCount: 1,
-            scanMethod: "static",
+            scanMethod: "ai",
           }),
         },
       },
@@ -466,7 +466,7 @@ describe("SkillStore remote loading", () => {
             recommendedAction: "allow",
             scannedAt: Date.now(),
             checkedFileCount: 1,
-            scanMethod: "static",
+            scanMethod: "ai",
           }),
         },
       },
@@ -534,7 +534,7 @@ describe("SkillStore remote loading", () => {
             recommendedAction: "allow",
             scannedAt: Date.now(),
             checkedFileCount: 1,
-            scanMethod: "static",
+            scanMethod: "ai",
           }),
         },
       },
@@ -587,7 +587,7 @@ describe("SkillStore remote loading", () => {
             recommendedAction: "allow",
             scannedAt: Date.now(),
             checkedFileCount: 1,
-            scanMethod: "static",
+            scanMethod: "ai",
           }),
         },
       },
@@ -627,14 +627,11 @@ describe("SkillStore remote loading", () => {
       await renderWithI18n(<SkillStore />, { language: "en" });
     });
 
-    const searchInput = screen.getByPlaceholderText("Search skills...");
-    expect(searchInput).toHaveValue("pdf");
-
-    fireEvent.change(searchInput, { target: { value: "canvas" } });
-    expect(useSkillStore.getState().storeSearchQuery).toBe("canvas");
+    expect(screen.queryByPlaceholderText("Search skills...")).not.toBeInTheDocument();
+    expect(useSkillStore.getState().storeSearchQuery).toBe("pdf");
   });
 
-  it("does not block install when only static scan reports high risk", async () => {
+  it("requires explicit confirmation before installing a high-risk skill", async () => {
     const installFromRegistry = vi.fn().mockResolvedValue({
       id: "installed",
       name: "PDF",
@@ -672,7 +669,7 @@ describe("SkillStore remote loading", () => {
             recommendedAction: "review",
             scannedAt: Date.now(),
             checkedFileCount: 2,
-            scanMethod: "static",
+            scanMethod: "ai",
           }),
         },
       },
@@ -698,12 +695,19 @@ describe("SkillStore remote loading", () => {
       getByText("Import to My Skills").click();
     });
 
+    expect(installRegistrySkill).not.toHaveBeenCalled();
+
+    await waitFor(() => {
+      expect(screen.getByText("High-Risk Skill Detected")).toBeInTheDocument();
+      expect(screen.getByText("static false positive")).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Add Anyway" }));
+    });
+
     expect(installRegistrySkill).toHaveBeenCalledWith(
       expect.objectContaining({ slug: "pdf" }),
-    );
-    expect(showToast).toHaveBeenCalledWith(
-      expect.stringContaining("Static scan found potentially risky patterns"),
-      "warning",
     );
   });
 

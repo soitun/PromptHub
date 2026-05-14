@@ -35,4 +35,22 @@ describe("skill-installer-export", () => {
     expect(exported).toContain("Use this skill for docx editing.");
     expect(exported).not.toContain("license: Proprietary\n---\n---");
   });
+
+  it("keeps an empty body empty when instructions only contain frontmatter", () => {
+    const exported = exportAsSkillMd({
+      name: "docx",
+      description: "Existing description",
+      instructions: [
+        "---",
+        "name: docx",
+        "description: Existing description",
+        "---",
+        "",
+      ].join("\n"),
+    });
+
+    expect(exported).toMatch(/^---[\s\S]*---\n$/);
+    expect(exported.match(/^---$/gm)).toHaveLength(2);
+    expect(exported).not.toContain("description: Existing description\n---\n\n---");
+  });
 });

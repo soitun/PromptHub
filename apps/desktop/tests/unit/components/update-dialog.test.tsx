@@ -6,9 +6,8 @@ import { renderWithI18n } from "../../helpers/i18n";
 import { installWindowMocks } from "../../helpers/window";
 
 const useSettingsStoreMock = vi.fn();
-const downloadCompressedBackupMock = vi.fn();
+const runPreUpgradeBackupMock = vi.fn();
 const getManualBackupStatusMock = vi.fn();
-const recordManualBackupMock = vi.fn();
 
 vi.mock("../../../src/renderer/stores/settings.store", () => ({
   useSettingsStore: (
@@ -17,13 +16,12 @@ vi.mock("../../../src/renderer/stores/settings.store", () => ({
     selector(useSettingsStoreMock()),
 }));
 
-vi.mock("../../../src/renderer/services/database-backup", () => ({
-  downloadCompressedBackup: () => downloadCompressedBackupMock(),
-}));
-
 vi.mock("../../../src/renderer/services/backup-status", () => ({
   getManualBackupStatus: () => getManualBackupStatusMock(),
-  recordManualBackup: (version: string) => recordManualBackupMock(version),
+}));
+
+vi.mock("../../../src/renderer/services/backup-orchestrator", () => ({
+  runPreUpgradeBackup: (version: string) => runPreUpgradeBackupMock(version),
 }));
 
 describe("UpdateDialog", () => {
@@ -52,7 +50,7 @@ describe("UpdateDialog", () => {
       lastManualBackupAt: null,
       lastManualBackupVersion: null,
     });
-    recordManualBackupMock.mockResolvedValue({
+    runPreUpgradeBackupMock.mockResolvedValue({
       lastManualBackupAt: "2026-04-13T10:00:00.000Z",
       lastManualBackupVersion: "0.5.1",
     });
@@ -97,8 +95,8 @@ describe("UpdateDialog", () => {
     );
 
     await waitFor(() => {
-      expect(downloadCompressedBackupMock).toHaveBeenCalledTimes(1);
-      expect(recordManualBackupMock).toHaveBeenCalledWith("0.5.1");
+      expect(runPreUpgradeBackupMock).toHaveBeenCalledTimes(1);
+      expect(runPreUpgradeBackupMock).toHaveBeenCalledWith("0.5.1");
     });
 
     await waitFor(() => {
@@ -162,8 +160,8 @@ describe("UpdateDialog", () => {
     );
 
     await waitFor(() => {
-      expect(downloadCompressedBackupMock).toHaveBeenCalledTimes(1);
-      expect(recordManualBackupMock).toHaveBeenCalledWith("0.5.1");
+      expect(runPreUpgradeBackupMock).toHaveBeenCalledTimes(1);
+      expect(runPreUpgradeBackupMock).toHaveBeenCalledWith("0.5.1");
     });
 
     await waitFor(() => {

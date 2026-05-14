@@ -1,13 +1,30 @@
 import { cloneElement, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import {
   SunIcon,
   MoonIcon,
   MonitorIcon,
   CheckIcon,
   ImageIcon,
   SlidersHorizontalIcon,
-  TrashIcon,
+  GripVerticalIcon,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
@@ -15,6 +32,8 @@ import {
   MORANDI_THEMES,
   FONT_SIZES,
   ThemeMode,
+  DESKTOP_HOME_MODULES,
+  type DesktopHomeModule,
   getRenderedBackgroundImageBlur,
   getRenderedBackgroundImageOpacity,
 } from "../../stores/settings.store";
@@ -28,6 +47,74 @@ interface BackgroundPreviewStageProps {
   renderedBackgroundBlur: number;
   imageAlt: string;
   emptyLabel: string;
+}
+
+interface DesktopModuleItemProps {
+  moduleId: DesktopHomeModule;
+  enabled: boolean;
+  label: string;
+  description: string;
+  enabledLabel: string;
+  disabledLabel: string;
+  onToggle: (moduleId: DesktopHomeModule) => void;
+}
+
+function DesktopModuleItem({
+  moduleId,
+  enabled,
+  label,
+  description,
+  enabledLabel,
+  disabledLabel,
+  onToggle,
+}: DesktopModuleItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: moduleId });
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+      }}
+      className={`flex items-center gap-3 px-4 py-3 ${
+        isDragging ? "z-10 opacity-70" : ""
+      }`}
+    >
+      <button
+        type="button"
+        aria-label={`${label} drag handle`}
+        className="cursor-grab rounded-lg border border-border p-2 text-muted-foreground transition-colors hover:bg-muted active:cursor-grabbing"
+        {...attributes}
+        {...listeners}
+      >
+        <GripVerticalIcon className="h-4 w-4" />
+      </button>
+      <div className="min-w-0 flex-1">
+        <div className="text-sm font-medium text-foreground">{label}</div>
+        <div className="mt-0.5 text-xs text-muted-foreground">{description}</div>
+      </div>
+      <button
+        type="button"
+        onClick={() => onToggle(moduleId)}
+        aria-pressed={enabled}
+        className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+          enabled
+            ? "bg-primary/10 text-primary"
+            : "bg-muted text-muted-foreground"
+        }`}
+      >
+        {enabled ? enabledLabel : disabledLabel}
+      </button>
+    </div>
+  );
 }
 
 function BackgroundPreviewStage({
@@ -103,8 +190,19 @@ export function AppearanceSettings() {
   const settings = useSettingsStore();
   const webRuntime = isWebRuntime();
   const [isPickingBackground, setIsPickingBackground] = useState(false);
+  const homeModules = settings.desktopHomeModules;
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
 
   const hasBackgroundImage = Boolean(settings.backgroundImageFileName);
+  const isBackgroundImageEnabled =
+    hasBackgroundImage && settings.backgroundImageEnabled;
   const backgroundOpacityPercent = useMemo(
     () => Math.round(settings.backgroundImageOpacity * 100),
     [settings.backgroundImageOpacity],
@@ -122,6 +220,49 @@ export function AppearanceSettings() {
     () => Math.round(renderedBackgroundOpacity * 100),
     [renderedBackgroundOpacity],
   );
+
+  const desktopModuleMeta: Record<
+    DesktopHomeModule,
+    { label: string; description: string }
+  > = {
+    prompt: {
+      label: t("common.prompts"),
+      description: t(
+        "settings.desktopModulePromptsDesc",
+        "Prompt editing, folders, tags and search",
+      ),
+    },
+    skill: {
+      label: t("common.skills"),
+      description: t(
+        "settings.desktopModuleSkillsDesc",
+        "My Skills, projects and store workflows",
+      ),
+    },
+    rules: {
+      label: t("rules.title", "Rules"),
+      description: t(
+        "settings.desktopModuleRulesDesc",
+        "Global and project rule workspaces",
+      ),
+    },
+  };
+
+  const handleDesktopModuleDragEnd = ({ active, over }: DragEndEvent) => {
+    if (!over || active.id === over.id) {
+      return;
+    }
+
+    const activeIndex = homeModules.indexOf(active.id as DesktopHomeModule);
+    const overIndex = homeModules.indexOf(over.id as DesktopHomeModule);
+    if (activeIndex === -1 || overIndex === -1) {
+      return;
+    }
+
+    settings.reorderDesktopHomeModules(
+      arrayMove(homeModules, activeIndex, overIndex),
+    );
+  };
 
   const handleSelectBackgroundImage = async () => {
     if (webRuntime || isPickingBackground) {
@@ -152,8 +293,8 @@ export function AppearanceSettings() {
     }
   };
 
-  const handleClearBackgroundImage = () => {
-    settings.setBackgroundImageFileName(undefined);
+  const handleToggleBackgroundImage = () => {
+    settings.setBackgroundImageEnabled(!settings.backgroundImageEnabled);
   };
 
   const themeModes: {
@@ -362,6 +503,99 @@ export function AppearanceSettings() {
       </SettingSection>
 
       {!webRuntime ? (
+        <SettingSection title={t("settings.desktopWorkspace", "Desktop workspace")}>
+          <div className="space-y-4 p-4">
+            <div>
+              <div className="mb-2 text-sm font-medium text-foreground">
+                {t("settings.homeModules", "Home modules")}
+              </div>
+              <div className="overflow-hidden rounded-2xl border border-border">
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDesktopModuleDragEnd}
+                >
+                  <SortableContext
+                    items={homeModules}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    {homeModules.map((moduleId, index) => {
+                      const moduleMeta = desktopModuleMeta[moduleId];
+                      return (
+                        <div
+                          key={moduleId}
+                          className={
+                            index < homeModules.length - 1
+                              ? "border-b border-border/70"
+                              : ""
+                          }
+                        >
+                          <DesktopModuleItem
+                            moduleId={moduleId}
+                            enabled
+                            label={moduleMeta.label}
+                            description={moduleMeta.description}
+                            enabledLabel={t("common.enabled", "Enabled")}
+                            disabledLabel={t("common.disabled", "Disabled")}
+                            onToggle={settings.toggleDesktopHomeModule}
+                          />
+                        </div>
+                      );
+                    })}
+                  </SortableContext>
+                </DndContext>
+              </div>
+              {DESKTOP_HOME_MODULES.some(
+                (moduleId) => !homeModules.includes(moduleId),
+              ) ? (
+                <div className="mt-3 grid gap-2 rounded-2xl border border-dashed border-border/70 p-3">
+                  {DESKTOP_HOME_MODULES.filter(
+                    (moduleId) => !homeModules.includes(moduleId),
+                  ).map((moduleId) => {
+                    const moduleMeta = desktopModuleMeta[moduleId];
+                    return (
+                      <div
+                        key={moduleId}
+                        className="flex items-center justify-between gap-3 rounded-xl bg-muted/30 px-3 py-2"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm font-medium text-foreground">
+                            {moduleMeta.label}
+                          </div>
+                          <div className="mt-0.5 text-xs text-muted-foreground">
+                            {moduleMeta.description}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => settings.toggleDesktopHomeModule(moduleId)}
+                          className="rounded-full bg-muted px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                        >
+                          {t("common.disabled", "Disabled")}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : null}
+              <p className="mt-2 text-xs text-muted-foreground">
+                {t(
+                  "settings.homeModulesHint",
+                  "At least one module stays enabled so the desktop home always has a reachable workspace.",
+                )}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {t(
+                  "settings.homeModulesReorderHint",
+                  "Drag enabled modules to reorder the desktop home rail.",
+                )}
+              </p>
+            </div>
+          </div>
+        </SettingSection>
+      ) : null}
+
+      {!webRuntime ? (
         <SettingSection
           title={t("settings.backgroundImage", "Background Image")}
         >
@@ -392,15 +626,30 @@ export function AppearanceSettings() {
                 </button>
                 <button
                   type="button"
-                  onClick={handleClearBackgroundImage}
+                  onClick={handleToggleBackgroundImage}
                   disabled={!hasBackgroundImage}
                   className="h-9 px-3 rounded-lg app-wallpaper-surface border border-border text-foreground text-sm hover:bg-accent/60 transition-colors disabled:opacity-40 inline-flex items-center gap-2"
                 >
-                  <TrashIcon className="w-4 h-4" />
-                  {t("settings.clearBackgroundImage", "Clear")}
+                  {isBackgroundImageEnabled
+                    ? t("settings.disableBackgroundImage", "Disable")
+                    : t("settings.enableBackgroundImage", "Enable")}
                 </button>
               </div>
             </div>
+
+            {hasBackgroundImage ? (
+              <p className="text-xs text-muted-foreground">
+                {isBackgroundImageEnabled
+                  ? t(
+                      "settings.backgroundImageEnabledHint",
+                      "Background image is currently enabled for the desktop shell.",
+                    )
+                  : t(
+                      "settings.backgroundImageDisabledHint",
+                      "Background image is saved but currently disabled.",
+                    )}
+              </p>
+            ) : null}
 
             <div className="rounded-2xl app-settings-subtle p-3 space-y-3">
               <div className="aspect-[16/9] w-full overflow-hidden rounded-xl app-settings-input relative">

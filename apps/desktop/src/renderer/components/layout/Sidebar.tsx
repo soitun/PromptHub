@@ -25,6 +25,10 @@ import { PlatformIcon } from '../ui/PlatformIcon';
 import { useToast } from '../ui/Toast';
 import { RULE_PLATFORM_ORDER } from '@prompthub/shared/constants/rules';
 import { TagManagerModal } from '../prompt/TagManagerModal';
+import {
+  DESKTOP_HOME_MODULES,
+  type DesktopHomeModule,
+} from '../../stores/settings.store';
 
 type PageType = 'home' | 'settings';
 type SidebarLayout = 'combined' | 'rail' | 'panel';
@@ -96,7 +100,7 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
   const [isMac, setIsMac] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isFolderModalOpen, setIsFolderModalOpen] = useState(false);
-  const [isTagManagerOpen, setIsTagManagerOpen] = useState(false);
+  const [tagManagerScope, setTagManagerScope] = useState<'prompt' | 'skill' | null>(null);
   const [editingFolder, setEditingFolder] = useState<Folder | null>(null);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [passwordFolder, setPasswordFolder] = useState<Folder | null>(null);
@@ -129,6 +133,7 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
     (state) => state.setSidebarPanelWidth,
   );
   const skillProjects = useSettingsStore((state) => state.skillProjects);
+  const desktopHomeModules = useSettingsStore((state) => state.desktopHomeModules);
   const addRuleProject = useRulesStore((state) => state.addProjectRule);
   const removeRuleProject = useRulesStore((state) => state.removeProjectRule);
   const ruleFiles = useRulesStore((state) => state.files);
@@ -183,7 +188,19 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
   const uniqueSkillTags = skillStats.uniqueUserTags;
   const runtimeCapabilities = getRuntimeCapabilities();
   const webRuntime = isWebRuntime();
+  const canAddRuleProject = !webRuntime;
   const activeModule = appModule === 'rules' ? 'rules' : viewMode;
+  const visibleDesktopModules = useMemo(
+    () =>
+      desktopHomeModules.filter((moduleId) =>
+        DESKTOP_HOME_MODULES.includes(moduleId),
+      ),
+    [desktopHomeModules],
+  );
+  const hasVisibleModule = visibleDesktopModules.length > 0;
+  const isPromptModuleVisible = visibleDesktopModules.includes('prompt');
+  const isSkillModuleVisible = visibleDesktopModules.includes('skill');
+  const isRulesModuleVisible = visibleDesktopModules.includes('rules');
   const ruleSidebarSections = useMemo(() => {
     const normalizedQuery = rulesSearchQuery.trim().toLowerCase();
     const matchesRuleSearch = (file: typeof ruleFiles[number]) => {
@@ -295,6 +312,7 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
     }));
   }, []);
   const showRail = layout !== 'panel';
+  const showPanel = layout !== 'rail';
   const railWidthClass = 'w-20';
   const combinedWidthClass = 'w-[23rem]';
   // Dynamic pane widths are delivered via a CSS custom property so the
@@ -317,48 +335,6 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
         : `border-r border-sidebar-border app-left-rail-glass app-wallpaper-panel-strong ${
             isCollapsed ? railWidthClass : combinedWidthClass
           }`;
-
-  const railNavItems: Array<{
-    key: 'prompt' | 'skill' | 'rules';
-    label: string;
-    icon: React.ReactNode;
-    active: boolean;
-    onClick: () => void;
-  }> = [
-    {
-      key: 'prompt',
-      label: t('common.prompts'),
-      icon: <CommandIcon className="h-5 w-5" />,
-      active: activeModule === 'prompt',
-      onClick: () => {
-        setAppModule('prompt');
-        closeTagPopover();
-        if (currentPage !== 'home') onNavigate('home');
-      },
-    },
-    {
-      key: 'skill',
-      label: t('common.skills'),
-      icon: <CuboidIcon className="h-5 w-5" />,
-      active: activeModule === 'skill',
-      onClick: () => {
-        setAppModule('skill');
-        closeTagPopover();
-        if (currentPage !== 'home') onNavigate('home');
-      },
-    },
-    {
-      key: 'rules',
-      label: t('rules.title', 'Rules'),
-      icon: <BookOpenIcon className="h-5 w-5" />,
-      active: activeModule === 'rules',
-      onClick: () => {
-        setAppModule('rules');
-        closeTagPopover();
-        if (currentPage !== 'home') onNavigate('home');
-      },
-    },
-  ];
 
   const confirmLeaveDirtySkillEditor = useCallback(() => {
     const hasUnsaved = (
@@ -405,10 +381,41 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
       return () => window.removeEventListener('resize', checkFullscreen);
     }, []);
 
-    useEffect(() => {
-      if (activeModule !== 'rules') {
-        return;
-      }
+  useEffect(() => {
+    if (!hasVisibleModule) {
+      return;
+    }
+
+    if (activeModule === 'prompt' && isPromptModuleVisible) {
+      return;
+    }
+
+    if (activeModule === 'skill' && isSkillModuleVisible) {
+      return;
+    }
+
+    if (activeModule === 'rules' && isRulesModuleVisible) {
+      return;
+    }
+
+    const fallbackModule = visibleDesktopModules[0];
+    if (fallbackModule) {
+      setAppModule(fallbackModule);
+    }
+  }, [
+    activeModule,
+    hasVisibleModule,
+    isPromptModuleVisible,
+    isRulesModuleVisible,
+    isSkillModuleVisible,
+    setAppModule,
+    visibleDesktopModules,
+  ]);
+
+  useEffect(() => {
+    if (activeModule !== 'rules') {
+      return;
+    }
       if (ruleFiles.length > 0) {
         return;
       }
@@ -423,7 +430,7 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
         }
       };
     }, []);
-  
+
     const closeTagPopover = useCallback(() => {
       setIsTagPopoverVisible(false);
       if (tagPopoverCloseTimerRef.current !== null) {
@@ -435,6 +442,58 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
         tagPopoverCloseTimerRef.current = null;
       }, 160);
     }, []);
+
+  const railNavItems = useMemo<Array<{
+    key: DesktopHomeModule;
+    label: string;
+    icon: React.ReactNode;
+    active: boolean;
+    onClick: () => void;
+  }>>(
+    () =>
+      visibleDesktopModules.map((moduleId) => {
+        if (moduleId === 'prompt') {
+          return {
+            key: moduleId,
+            label: t('common.prompts'),
+            icon: <CommandIcon className="h-5 w-5" />,
+            active: activeModule === 'prompt',
+            onClick: () => {
+              setAppModule('prompt');
+              closeTagPopover();
+              if (currentPage !== 'home') onNavigate('home');
+            },
+          };
+        }
+
+        if (moduleId === 'skill') {
+          return {
+            key: moduleId,
+            label: t('common.skills'),
+            icon: <CuboidIcon className="h-5 w-5" />,
+            active: activeModule === 'skill',
+            onClick: () => {
+              setAppModule('skill');
+              closeTagPopover();
+              if (currentPage !== 'home') onNavigate('home');
+            },
+          };
+        }
+
+        return {
+          key: moduleId,
+          label: t('rules.title', 'Rules'),
+          icon: <BookOpenIcon className="h-5 w-5" />,
+          active: activeModule === 'rules',
+          onClick: () => {
+            setAppModule('rules');
+            closeTagPopover();
+            if (currentPage !== 'home') onNavigate('home');
+          },
+        };
+      }),
+    [activeModule, closeTagPopover, currentPage, onNavigate, setAppModule, t, visibleDesktopModules],
+  );
   
     useEffect(() => {
       if (!isTagPopoverOpen) return;
@@ -616,8 +675,9 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
       </div>
       )}
 
+      {showPanel ? (
       <div className="relative flex min-w-0 flex-1 flex-col bg-sidebar-background/85">
-      {activeModule === 'prompt' ? (
+      {!hasVisibleModule ? null : activeModule === 'prompt' ? (
       <>
       {/* Navigation area - Fixed top */}
       <div className="flex-shrink-0 flex flex-col px-3 py-2">
@@ -812,9 +872,10 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
                 {!isTagsCollapsed && (
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => setIsTagManagerOpen(true)}
+                      onClick={() => setTagManagerScope('prompt')}
                       className="text-sidebar-foreground/50 hover:text-sidebar-foreground/80 transition-colors"
                       title={t('common.edit', 'Edit')}
+                      aria-label={t('common.edit', 'Edit')}
                     >
                       <SettingsIcon className="w-3.5 h-3.5" />
                     </button>
@@ -1183,6 +1244,14 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
                   </button>
                   {!isSkillTagsCollapsed && (
                     <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setTagManagerScope('skill')}
+                        className="text-sidebar-foreground/50 hover:text-sidebar-foreground/80 transition-colors"
+                        title={t('common.edit', 'Edit')}
+                        aria-label={t('common.edit', 'Edit')}
+                      >
+                        <SettingsIcon className="w-3.5 h-3.5" />
+                      </button>
                       {skillFilterTags.length > 0 && (
                         <button
                           onClick={() => clearSkillFilterTags()}
@@ -1433,7 +1502,7 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
                         </div>
                         ))}
 
-                        {section.id === 'project' ? (
+                        {section.id === 'project' && canAddRuleProject ? (
                           <button
                             type="button"
                             onClick={() => void handleAddRuleProject()}
@@ -1455,7 +1524,7 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
                           </button>
                         ) : null}
                       </div>
-                    ) : section.id === 'project' ? (
+                    ) : section.id === 'project' && canAddRuleProject ? (
                       <button
                         type="button"
                         onClick={() => void handleAddRuleProject()}
@@ -1477,10 +1546,13 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
             </div>
           </>
       )}
+      </div>
+      ) : null}
 
       <TagManagerModal
-        isOpen={isTagManagerOpen}
-        onClose={() => setIsTagManagerOpen(false)}
+        isOpen={tagManagerScope !== null}
+        onClose={() => setTagManagerScope(null)}
+        resourceType={tagManagerScope ?? 'prompt'}
       />
 
       <FolderModal
@@ -1510,7 +1582,6 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
           }}
         />
       )}
-       </div>
       {/* Drag-to-resize handle — only for the panel layout, hidden when */}
       {/* the panel itself is collapsed. Absolutely positioned so it */}
       {/* overlays the aside's right border instead of pushing layout. */}

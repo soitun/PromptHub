@@ -52,7 +52,7 @@ describe("skill safety i18n", () => {
       recommendedAction: "allow",
       scannedAt: Date.now(),
       checkedFileCount: 1,
-      scanMethod: "static",
+      scanMethod: "ai",
     };
 
     expect(getSkillSafetySummary(t, report)).toBe(

@@ -314,7 +314,8 @@ describe("TopBar", () => {
     });
 
     expect(selectSkill).not.toHaveBeenCalled();
-    expect(screen.getByText("1/1")).toBeInTheDocument();
+    expect(screen.getByText("1 results")).toBeInTheDocument();
+    expect(screen.queryByTitle("Next (Tab)")).not.toBeInTheDocument();
   });
 
   it("filters rules via the top bar search without mutating prompt search state", async () => {
@@ -352,6 +353,8 @@ describe("TopBar", () => {
   });
 
   it("uses the store search query when searching in the skill store catalog", async () => {
+    const selectRegistrySkill = vi.fn();
+
     useUIStore.setState({
       appModule: "skill",
       viewMode: "skill",
@@ -378,6 +381,7 @@ describe("TopBar", () => {
       ],
       remoteStoreEntries: {},
       selectedRegistrySlug: null,
+      selectRegistrySkill,
     } as Partial<ReturnType<typeof useSkillStore.getState>>);
 
     await act(async () => {
@@ -393,10 +397,18 @@ describe("TopBar", () => {
     expect(useSkillStore.getState().storeSearchQuery).toBe("pdf");
     expect(useSkillStore.getState().searchQuery).toBe("");
 
-    expect(screen.getByText("1/1")).toBeInTheDocument();
+    expect(screen.getByText("1 results")).toBeInTheDocument();
+    expect(screen.queryByTitle("Next (Tab)")).not.toBeInTheDocument();
+
+    fireEvent.keyDown(searchInput, { key: "Enter" });
+    fireEvent.keyDown(searchInput, { key: "Tab" });
+
+    expect(selectRegistrySkill).not.toHaveBeenCalled();
   });
 
   it("uses the regular skill search query in the distribution view", async () => {
+    const selectSkill = vi.fn();
+
     useUIStore.setState({
       appModule: "skill",
       viewMode: "skill",
@@ -423,6 +435,7 @@ describe("TopBar", () => {
           updated_at: 1,
         },
       ],
+      selectSkill,
     } as Partial<ReturnType<typeof useSkillStore.getState>>);
 
     await act(async () => {
@@ -437,7 +450,13 @@ describe("TopBar", () => {
 
     expect(useSkillStore.getState().searchQuery).toBe("pdf");
     expect(useSkillStore.getState().storeSearchQuery).toBe("");
-    expect(screen.getByText("1/1")).toBeInTheDocument();
+    expect(screen.getByText("1 results")).toBeInTheDocument();
+    expect(screen.queryByTitle("Next (Tab)")).not.toBeInTheDocument();
+
+    fireEvent.keyDown(searchInput, { key: "Enter" });
+    fireEvent.keyDown(searchInput, { key: "Tab" });
+
+    expect(selectSkill).not.toHaveBeenCalled();
   });
 
   it("navigates prompt search results with Tab and confirms selection with Enter", async () => {

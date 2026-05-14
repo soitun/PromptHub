@@ -25,7 +25,7 @@ export function exportAsSkillMd(skill: {
       ? `"${v.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`
       : v;
   const parsed = parseSkillMd(skill.instructions || "");
-  const bodyContent = parsed.body || skill.instructions || "";
+  const bodyContent = parsed ? parsed.body : skill.instructions || "";
 
   // Build YAML frontmatter
   const frontmatter: string[] = ["---"];

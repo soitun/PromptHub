@@ -1358,6 +1358,19 @@ describe("SkillInstaller.scanLocalPreview", () => {
     expect(results[0].version).toBe("2.5.0");
     expect(results[0].author).toBe("TestAuthor");
   });
+
+  it("still returns preview results without safety reports when AI is not configured", async () => {
+    await SkillInstaller.init();
+
+    const dir = path.join(tmpDir, "no-ai-scan-preview");
+    await createSkillDir(dir, "preview-only-skill");
+
+    const results = await SkillInstaller.scanLocalPreview([dir]);
+
+    expect(results).toHaveLength(1);
+    expect(results[0].name).toBe("preview-only-skill");
+    expect(results[0].safetyReport).toBeUndefined();
+  });
 });
 
 // ---------- P1-8: deleteRepoByPath TOCTOU fix ----------

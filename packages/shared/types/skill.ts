@@ -303,8 +303,8 @@ export interface SkillSafetyReport {
   recommendedAction: "allow" | "review" | "block";
   scannedAt: number;
   checkedFileCount: number;
-  /** Which method produced this report: "ai" or "static" */
-  scanMethod: "ai" | "static";
+  /** Desktop safety scans are AI-generated. */
+  scanMethod: "ai";
   /**
    * Numeric safety score 0-100 (higher = safer).
    * blocked=0-10, high-risk=20-40, warn=50-70, safe=80-100
@@ -331,7 +331,7 @@ export interface SkillSafetyScanInput {
   contentUrl?: string;
   localRepoPath?: string;
   securityAudits?: string[];
-  /** AI model config for intelligent scanning; omit to use static-only scan */
+  /** AI model config for safety scanning. Required for active safety scans. */
   aiConfig?: SafetyScanAIConfig;
 }
 

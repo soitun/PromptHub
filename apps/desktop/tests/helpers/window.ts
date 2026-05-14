@@ -92,7 +92,7 @@ export function createWindowApiMock(overrides?: DeepPartial<MockRecord>) {
           recommendedAction: "allow",
           scannedAt: Date.now(),
           checkedFileCount: 1,
-          scanMethod: "static",
+          scanMethod: "ai",
         }),
         installToPlatform: vi.fn().mockResolvedValue(undefined),
         uninstallFromPlatform: vi.fn().mockResolvedValue(undefined),

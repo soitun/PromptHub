@@ -1,6 +1,7 @@
 import { MinusIcon, SquareIcon, XIcon } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import appIconUrl from '../../../assets/icon.png';
 
 /**
  * Windows 自定义标题栏组件
@@ -37,9 +38,7 @@ export function TitleBar() {
     <div className="h-8 app-wallpaper-panel-strong flex items-center justify-between select-none titlebar-drag border-b border-border">
       {/* 应用图标和标题 */}
       <div className="flex items-center gap-2 px-3">
-        <div className="w-4 h-4 rounded bg-primary flex items-center justify-center">
-          <span className="text-white text-[10px] font-bold">P</span>
-        </div>
+        <img src={appIconUrl} alt="PromptHub" className="h-4 w-4 rounded-[4px]" />
         <span className="text-xs text-muted-foreground">PromptHub</span>
       </div>
 

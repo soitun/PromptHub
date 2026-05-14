@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  SearchIcon,
   Loader2Icon,
+  Link2Icon,
+  SearchIcon,
+  Settings2Icon,
   LayoutGridIcon,
   CodeIcon,
   SparklesIcon,
@@ -22,6 +24,7 @@ import {
 import { SkillStoreDetail } from "./SkillStoreDetail";
 import { SkillStoreCard } from "./SkillStoreCard";
 import { SkillStoreCustomSources } from "./SkillStoreCustomSources";
+import { SkillStoreSourceEditModal } from "./SkillStoreSourceEditModal";
 import { SkillStoreSourceForm } from "./SkillStoreSourceForm";
 import { parseFrontmatter } from "../../services/github-skill-store";
 import { useSkillStore } from "../../stores/skill.store";
@@ -33,7 +36,10 @@ import type {
   SkillStoreSource,
 } from "@prompthub/shared/types";
 import { SKILL_CATEGORIES } from "@prompthub/shared/constants/skill-registry";
-import { getSafetyScanAIConfig } from "./detail-utils";
+import {
+  formatSkillSafetyScanError,
+  getSafetyScanAIConfig,
+} from "./detail-utils";
 import { findInstalledRegistrySkill } from "../../services/skill-store-update";
 import { filterRegistrySkills } from "../../services/skill-store-search";
 import { useSkillStoreRemoteSync } from "./store-remote-sync";
@@ -84,9 +90,6 @@ export function SkillStore() {
   const setStoreCategory = useSkillStore((state) => state.setStoreCategory);
   const storeSearchQuery =
     useSkillStore((state) => state.storeSearchQuery) ?? "";
-  const setStoreSearchQuery = useSkillStore(
-    (state) => state.setStoreSearchQuery,
-  );
   const installRegistrySkill = useSkillStore(
     (state) => state.installRegistrySkill,
   );
@@ -121,6 +124,7 @@ export function SkillStore() {
     });
 
   const [installingSlug, setInstallingSlug] = useState<string | null>(null);
+  const [editingCustomSourceId, setEditingCustomSourceId] = useState<string | null>(null);
   const [sourceType, setSourceType] =
     useState<
       Extract<
@@ -227,16 +231,58 @@ export function SkillStore() {
     [skills],
   );
 
-  const renameCustomStoreSource = useCallback((id: string, name: string) => {
-    const trimmedName = name.trim();
-    if (!trimmedName) return;
+  const updateCustomStoreSource = useCallback(
+    (payload: {
+      id: string;
+      name: string;
+      type: Extract<SkillStoreSource["type"], "marketplace-json" | "git-repo" | "local-dir">;
+      url: string;
+    }) => {
+      const trimmedName = payload.name.trim();
+      const trimmedUrl = payload.url.trim();
+      if (!trimmedName || !trimmedUrl) {
+        return;
+      }
 
-    useSkillStore.setState((state) => ({
-      customStoreSources: state.customStoreSources.map((source) =>
-        source.id === id ? { ...source, name: trimmedName } : source,
-      ),
-    }));
-  }, []);
+      useSkillStore.setState((state) => ({
+        customStoreSources: state.customStoreSources.map((source) =>
+          source.id === payload.id
+            ? {
+                ...source,
+                name: trimmedName,
+                type: payload.type,
+                url: trimmedUrl,
+              }
+            : source,
+        ),
+      }));
+      setEditingCustomSourceId(null);
+    },
+    [],
+  );
+
+  const handleDeleteCustomSource = useCallback(
+    (sourceId: string) => {
+      removeCustomStoreSource(sourceId);
+      selectStoreSource("official");
+      setEditingCustomSourceId(null);
+    },
+    [removeCustomStoreSource, selectStoreSource],
+  );
+
+  const handleToggleCustomSource = useCallback(
+    (sourceId: string) => {
+      toggleCustomStoreSource(sourceId);
+    },
+    [toggleCustomStoreSource],
+  );
+
+  const handleRefreshCustomSource = useCallback(
+    (sourceId: string) => {
+      void loadStoreSource(sourceId, true);
+    },
+    [loadStoreSource],
+  );
 
   const installed = useMemo(
     () => sourceRegistrySkills.filter(isSkillInstalled),
@@ -265,8 +311,7 @@ export function SkillStore() {
           aiConfig: getSafetyScanAIConfig(aiModels),
         });
         const shouldBlockInstall =
-          report.scanMethod === "ai" &&
-          (report.level === "blocked" || report.level === "high-risk");
+          report.level === "blocked" || report.level === "high-risk";
         if (shouldBlockInstall) {
           showToast(
             t(
@@ -277,25 +322,13 @@ export function SkillStore() {
           );
           return;
         }
-        if (
-          report.scanMethod === "static" &&
-          (report.level === "blocked" || report.level === "high-risk")
-        ) {
-          showToast(
-            t(
-              "skill.safetyScanStaticReviewOnly",
-              "Static scan found potentially risky patterns. Review the safety report before installing, but installation is not blocked without AI confirmation.",
-            ),
-            "warning",
-          );
-        }
       }
       const result = await installRegistrySkill(skill);
       if (result) {
         showToast(`${t("skill.addedToLibrary")}: ${skill.name}`, "success");
       }
     } catch (error: unknown) {
-      showToast(getErrorMessage(error) || t("skill.updateFailed"), "error");
+      showToast(formatSkillSafetyScanError(error, t), "error");
     } finally {
       setTimeout(() => setInstallingSlug(null), 500);
     }
@@ -393,7 +426,7 @@ export function SkillStore() {
         title: selectedCustomSource.name,
         hint: selectedCustomSource.url,
         count: sourceRegistrySkills.length,
-        showCatalog: true,
+        showCatalog: false,
         canRefresh: true,
       };
     }
@@ -429,22 +462,22 @@ export function SkillStore() {
   return (
     <div className="flex-1 flex flex-col h-full app-wallpaper-section overflow-hidden">
       <div className="px-6 py-4 border-b border-border shrink-0 app-wallpaper-panel-strong z-10 flex items-start justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div>
+        <div className="min-w-0 space-y-1">
+          <div className="flex items-center gap-2">
             <h2 className="text-lg font-semibold">{sourceMeta.title}</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {sourceMeta.hint}
-            </p>
-          </div>
-          <span className="text-[11px] font-medium text-muted-foreground bg-accent/50 px-2 py-0.5 rounded-full border border-white/5">
-            {sourceMeta.count} {t("skill.skillsCount", "skills")}
-          </span>
-          {isRefreshingCachedSource && (
-            <span className="text-[11px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full border border-border inline-flex items-center gap-1">
-              <Loader2Icon className="w-3 h-3 animate-spin" />
-              {t("common.refreshing", "Refreshing")}
+            <span className="shrink-0 rounded-full bg-accent/50 px-2 py-0.5 text-[11px] font-medium text-muted-foreground border border-white/5">
+              {sourceMeta.count} {t("skill.skillsCount", "skills")}
             </span>
-          )}
+            {isRefreshingCachedSource && (
+              <span className="shrink-0 inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                <Loader2Icon className="h-3 w-3 animate-spin" />
+                {t("common.refreshing", "Refreshing")}
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {sourceMeta.hint}
+          </p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -460,18 +493,16 @@ export function SkillStore() {
               />
             </button>
           )}
-          {sourceMeta.showCatalog && (
-            <div className="relative w-64">
-              <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <input
-                type="text"
-                value={storeSearchQuery}
-                onChange={(e) => setStoreSearchQuery(e.target.value)}
-                placeholder={t("skill.searchStore", "Search skills...")}
-                className="w-full pl-9 pr-3 py-2 text-sm bg-accent/50 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all"
-              />
-            </div>
-          )}
+          {selectedCustomSource ? (
+            <button
+              type="button"
+              onClick={() => setEditingCustomSourceId(selectedCustomSource.id)}
+              className="inline-flex items-center gap-2 rounded-lg border border-border bg-accent/50 px-3 py-2 text-sm text-foreground hover:bg-accent transition-colors"
+            >
+              <Settings2Icon className="w-4 h-4" />
+              {t("common.edit", "Edit")}
+            </button>
+          ) : null}
         </div>
       </div>
 
@@ -766,27 +797,10 @@ export function SkillStore() {
 
         {(selectedStoreSourceId === "new-custom" || selectedCustomSource) && (
           <section className="space-y-4">
-            <div>
-              <h3 className="text-base font-semibold text-foreground">
-                {selectedCustomSource
-                  ? selectedCustomSource.name
-                  : t("skill.customStores", "My Stores")}
-              </h3>
-              <p className="text-sm text-muted-foreground mt-1">
-                {selectedCustomSource
-                  ? selectedCustomSource.url
-                  : t(
-                      "skill.customStoresHint",
-                      "Add your own store endpoints here. A later step can connect remote manifests or registries.",
-                    )}
-              </p>
-            </div>
-
             <SkillStoreCustomSources
               customStoreSources={customStoreSources}
               loadStoreSource={loadStoreSource}
               loadingSourceId={loadingSourceId}
-              renameCustomStoreSource={renameCustomStoreSource}
               remoteStoreEntries={remoteStoreEntries}
               removeCustomStoreSource={removeCustomStoreSource}
               selectStoreSource={selectStoreSource}
@@ -795,9 +809,40 @@ export function SkillStore() {
               t={t}
               toggleCustomStoreSource={toggleCustomStoreSource}
             />
+
+            {selectedCustomSource &&
+            !shouldShowInitialLoading &&
+            !currentRemoteError &&
+            sourceRegistrySkills.length === 0 ? (
+              <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-muted/20 px-6 py-20 text-center text-muted-foreground">
+                <Link2Icon className="mb-4 h-12 w-12 opacity-25" />
+                <h3 className="mb-1 text-lg font-semibold text-foreground">
+                  {t("skill.customStoreEmpty", "No skills in this custom store yet")}
+                </h3>
+                <p className="max-w-md text-sm leading-6 opacity-80">
+                  {t(
+                    "skill.customStoreEmptyHint",
+                    "This source is connected, but no skills were loaded yet. Try refreshing from the top right, or open Edit to adjust the source configuration.",
+                  )}
+                </p>
+              </div>
+            ) : null}
           </section>
         )}
       </div>
+
+      <SkillStoreSourceEditModal
+        isOpen={editingCustomSourceId !== null}
+        onClose={() => setEditingCustomSourceId(null)}
+        onDelete={handleDeleteCustomSource}
+        onSave={updateCustomStoreSource}
+        onToggleEnabled={handleToggleCustomSource}
+        onRefresh={handleRefreshCustomSource}
+        refreshingSourceId={loadingSourceId}
+        source={
+          customStoreSources.find((source) => source.id === editingCustomSourceId) ?? null
+        }
+      />
 
       {selectedDetailSkill && (
         <SkillStoreDetail

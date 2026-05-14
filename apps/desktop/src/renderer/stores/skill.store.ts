@@ -41,6 +41,7 @@ import {
 } from "../services/skill-store-update";
 import { scheduleAllSaveSync } from "../services/webdav-save-sync";
 import { useSettingsStore } from "./settings.store";
+import { getSafetyScanAIConfig } from "../components/skill/detail-utils";
 
 export type SkillFilterType =
   | "all"
@@ -846,8 +847,11 @@ export const useSkillStore = create<SkillState>()(
       scanLocalPreview: async (customPaths?: string[]) => {
         set({ isLoading: true, error: null });
         try {
+          const aiConfig = getSafetyScanAIConfig(
+            useSettingsStore.getState().aiModels,
+          );
           const scannedSkills =
-            await window.api.skill.scanLocalPreview(customPaths);
+            await window.api.skill.scanLocalPreview(customPaths, aiConfig);
           set({ isLoading: false });
           return scannedSkills;
         } catch (error) {

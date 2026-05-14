@@ -84,6 +84,13 @@ function normalizeCategory(value: unknown): Skill["category"] | undefined {
 }
 
 export function normalizeSkill(skill: Skill): Skill {
+  const safetyReport = skill.safetyReport
+    ? {
+        ...skill.safetyReport,
+        scanMethod: "ai" as const,
+      }
+    : undefined;
+
   return {
     ...skill,
     tags: normalizeStringArray(skill.tags),
@@ -107,6 +114,7 @@ export function normalizeSkill(skill: Skill): Skill {
     category: normalizeCategory(skill.category),
     registry_slug: normalizeNonEmptyString(skill.registry_slug),
     content_url: normalizeNonEmptyString(skill.content_url),
+    safetyReport,
   };
 }
 

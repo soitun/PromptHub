@@ -117,6 +117,21 @@ export function AboutSettings() {
           </div>
         </SettingSection>
 
+        {!webRuntime && (
+          <SettingSection title={t("settings.cliTitle")}>
+            <div className="px-4 py-3 text-sm text-muted-foreground space-y-2">
+              <p>{t("settings.cliStandaloneDesc")}</p>
+              <p>{t("settings.cliInstallHint")}</p>
+              <div className="rounded-lg bg-muted/60 px-3 py-2 font-mono text-xs text-foreground break-all">
+                npm install -g @prompthub/cli
+              </div>
+              <div className="rounded-lg bg-muted/60 px-3 py-2 font-mono text-xs text-foreground break-all">
+                pnpm add -g @prompthub/cli
+              </div>
+            </div>
+          </SettingSection>
+        )}
+
         {webRuntime ? (
           <SettingSection title={t("settings.checkUpdate")}>
             <SettingItem

@@ -9,6 +9,7 @@ import {
 } from "../../services/skill-repo-sync";
 import type {
   CreateSkillParams,
+  SkillSafetyScanInput,
   UpdateSkillParams,
 } from "@prompthub/shared/types";
 import type { SkillIPCContext } from "./shared";
@@ -211,13 +212,17 @@ export function registerSkillCrudHandlers({ db }: SkillIPCContext): void {
 
   ipcMain.handle(
     IPC_CHANNELS.SKILL_SCAN_LOCAL_PREVIEW,
-    async (_, customPaths?: string[]) => {
+    async (
+      _,
+      customPaths?: string[],
+      aiConfig?: SkillSafetyScanInput["aiConfig"],
+    ) => {
       if (customPaths !== undefined && !Array.isArray(customPaths)) {
         throw new Error(
           "skill:scanLocalPreview expects customPaths to be an array",
         );
       }
-      return SkillInstaller.scanLocalPreview(customPaths, db);
+      return SkillInstaller.scanLocalPreview(customPaths, db, aiConfig);
     },
   );
 

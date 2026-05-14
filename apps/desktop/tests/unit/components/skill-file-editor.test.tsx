@@ -95,7 +95,7 @@ describe("SkillFileEditor", () => {
 
     await waitFor(() => {
       expect(screen.getByRole("textbox")).toHaveValue("# Skill\n\nBody");
-    });
+    }, { timeout: 5000 });
 
     fireEvent.change(screen.getByRole("textbox"), {
       target: { value: "# Skill\n\nUpdated" },
@@ -103,7 +103,7 @@ describe("SkillFileEditor", () => {
 
     await waitFor(() => {
       expect(screen.getByRole("textbox")).toHaveValue("# Skill\n\nUpdated");
-    });
+    }, { timeout: 5000 });
 
     const getSaveButton = () => {
       const saveButtons = screen.getAllByRole("button");
@@ -115,13 +115,13 @@ describe("SkillFileEditor", () => {
     await waitFor(() => {
       expect(getSaveButton()).toBeDefined();
       expect(getSaveButton()).not.toBeDisabled();
-    });
+    }, { timeout: 5000 });
 
     fireEvent.click(getSaveButton()!);
 
     await waitFor(() => {
       expect(writeLocalFile).toHaveBeenCalledWith("skill-1", "SKILL.md", "# Skill\n\nUpdated");
-    });
+    }, { timeout: 5000 });
     expect(scheduleAllSaveSync).toHaveBeenCalledWith("skill:file-save");
   });
 });

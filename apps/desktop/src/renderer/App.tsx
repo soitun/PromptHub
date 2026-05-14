@@ -4,7 +4,6 @@ import { Sidebar, TopBar, MainContent, TitleBar } from "./components/layout";
 import { usePromptStore } from "./stores/prompt.store";
 import { useFolderStore } from "./stores/folder.store";
 import { useSettingsStore } from "./stores/settings.store";
-import { useUIStore } from "./stores/ui.store";
 import {
   getRenderedBackgroundImageBlur,
   getRenderedBackgroundImageOpacity,
@@ -66,6 +65,9 @@ function App() {
   const backgroundImageFileName = useSettingsStore(
     (state) => state.backgroundImageFileName,
   );
+  const backgroundImageEnabled = useSettingsStore(
+    (state) => state.backgroundImageEnabled,
+  );
   const backgroundImageOpacity = useSettingsStore(
     (state) => state.backgroundImageOpacity,
   );
@@ -74,7 +76,6 @@ function App() {
   );
   const debugMode = useSettingsStore((state) => state.debugMode);
   const shortcutModes = useSettingsStore((state) => state.shortcutModes);
-  const isSidebarCollapsed = useUIStore((state) => state.isSidebarCollapsed);
   const [currentPage, setCurrentPage] = useState<PageType>("home");
   const [isLoading, setIsLoading] = useState(true);
   const { showToast } = useToast();
@@ -137,7 +138,9 @@ function App() {
   );
   const normalizedBackgroundImageFileName = backgroundImageFileName?.trim();
   const hasBackgroundImage =
-    !isWebRuntime() && typeof normalizedBackgroundImageFileName === "string";
+    !isWebRuntime() &&
+    backgroundImageEnabled &&
+    typeof normalizedBackgroundImageFileName === "string";
   const renderedBackgroundBlur = getRenderedBackgroundImageBlur(backgroundImageBlur);
   const renderedBackgroundImageOpacity = getRenderedBackgroundImageOpacity(
     backgroundImageOpacity,
@@ -1063,11 +1066,11 @@ function App() {
 
               <div className="flex min-h-0 flex-1 overflow-hidden">
                 {currentPage === "home" ? (
-                  <Sidebar
-                    currentPage={currentPage}
-                    onNavigate={setCurrentPage}
-                    layout="panel"
-                  />
+                    <Sidebar
+                      currentPage={currentPage}
+                      onNavigate={setCurrentPage}
+                      layout="panel"
+                    />
                 ) : null}
 
                 <div className="flex min-w-0 flex-1 flex-col overflow-hidden">

@@ -57,9 +57,34 @@ const DEFAULT_BACKGROUND_IMAGE_OPACITY = 1;
 const DEFAULT_BACKGROUND_IMAGE_BLUR = 0;
 const LEGACY_BACKGROUND_IMAGE_BLUR_DEFAULT = 14;
 const LOCAL_IMAGE_PROTOCOL_PREFIX = "local-image://";
+export const DESKTOP_HOME_MODULES = ["prompt", "skill", "rules"] as const;
+export type DesktopHomeModule = (typeof DESKTOP_HOME_MODULES)[number];
 const createProjectRecordId = (): string =>
   `project_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 const normalizeProjectRecordPath = (value: string): string => value.trim();
+
+function normalizeDesktopHomeModule(value: unknown): DesktopHomeModule | null {
+  return typeof value === "string" && DESKTOP_HOME_MODULES.includes(value as DesktopHomeModule)
+    ? (value as DesktopHomeModule)
+    : null;
+}
+
+function normalizeDesktopHomeModules(value: unknown): DesktopHomeModule[] {
+  if (!Array.isArray(value)) {
+    return [...DESKTOP_HOME_MODULES];
+  }
+
+  const normalized = value
+    .map((item) => normalizeDesktopHomeModule(item))
+    .filter((item): item is DesktopHomeModule => item !== null);
+
+  const deduped = Array.from(new Set(normalized));
+  if (deduped.length === 0) {
+    return [...DESKTOP_HOME_MODULES];
+  }
+
+  return deduped;
+}
 
 function inferAIProtocol(provider: string | undefined, apiUrl: string | undefined): AIProtocol {
   const providerLower = (provider || "").trim().toLowerCase();
@@ -359,6 +384,7 @@ interface SettingsState {
   customThemeHex: string; // Custom theme color (HEX)
   settingsUpdatedAt: string; // Settings last update time (used for WebDAV/backup consistency check)
   fontSize: string;
+  backgroundImageEnabled: boolean;
   backgroundImageFileName?: string;
   backgroundImageOpacity: number;
   backgroundImageBlur: number;
@@ -442,6 +468,7 @@ interface SettingsState {
   isTagsSectionCollapsed: boolean;
   skillTagsSectionHeight: number;
   isSkillTagsSectionCollapsed: boolean;
+  desktopHomeModules: DesktopHomeModule[];
 
   // AI model configuration (legacy single model compatibility)
   // SECURITY NOTE: aiApiKey is stored in localStorage (plaintext).
@@ -481,6 +508,7 @@ interface SettingsState {
   setClipboardImportEnabled: (enabled: boolean) => void;
   setFontSize: (size: string) => void;
   applyBackgroundImageSelection: (fileName: string) => void;
+  setBackgroundImageEnabled: (enabled: boolean) => void;
   setBackgroundImageFileName: (fileName?: string) => void;
   setBackgroundImageOpacity: (opacity: number) => void;
   setBackgroundImageBlur: (blur: number) => void;
@@ -542,6 +570,8 @@ interface SettingsState {
   setIsTagsSectionCollapsed: (collapsed: boolean) => void;
   setSkillTagsSectionHeight: (height: number) => void;
   setIsSkillTagsSectionCollapsed: (collapsed: boolean) => void;
+  toggleDesktopHomeModule: (moduleId: DesktopHomeModule) => void;
+  reorderDesktopHomeModules: (modules: DesktopHomeModule[]) => void;
   setAiProvider: (provider: string) => void;
   setAiApiProtocol: (protocol: AIProtocol) => void;
   setAiApiKey: (key: string) => void;
@@ -696,6 +726,7 @@ export const useSettingsStore = create<SettingsState>()(
         customThemeHex: "#3b82f6",
         settingsUpdatedAt: new Date().toISOString(),
         fontSize: "medium",
+        backgroundImageEnabled: true,
         backgroundImageFileName: undefined,
         backgroundImageOpacity: DEFAULT_BACKGROUND_IMAGE_OPACITY,
         backgroundImageBlur: DEFAULT_BACKGROUND_IMAGE_BLUR,
@@ -762,6 +793,7 @@ export const useSettingsStore = create<SettingsState>()(
         isTagsSectionCollapsed: false,
         skillTagsSectionHeight: DEFAULT_TAGS_SECTION_HEIGHT,
         isSkillTagsSectionCollapsed: false,
+        desktopHomeModules: [...DESKTOP_HOME_MODULES],
         aiProvider: "openai",
         aiApiProtocol: "openai",
         aiApiKey: "",
@@ -893,6 +925,7 @@ export const useSettingsStore = create<SettingsState>()(
           const nextBlur = get().backgroundImageBlur;
 
           setTouched({
+            backgroundImageEnabled: true,
             backgroundImageFileName: normalized,
             backgroundImageOpacity: nextOpacity,
             backgroundImageBlur: nextBlur,
@@ -902,6 +935,12 @@ export const useSettingsStore = create<SettingsState>()(
             backgroundImageOpacity: nextOpacity,
             backgroundImageBlur: nextBlur,
           });
+        },
+        setBackgroundImageEnabled: (enabled) => {
+          if (get().backgroundImageEnabled === enabled) {
+            return;
+          }
+          setTouched({ backgroundImageEnabled: enabled });
         },
         setBackgroundImageFileName: (fileName) => {
           const normalized = normalizeBackgroundImageFileName(fileName);
@@ -1131,6 +1170,41 @@ export const useSettingsStore = create<SettingsState>()(
           setTouched({ skillTagsSectionHeight: height }),
         setIsSkillTagsSectionCollapsed: (collapsed) =>
           setTouched({ isSkillTagsSectionCollapsed: collapsed }),
+        toggleDesktopHomeModule: (moduleId) => {
+          const currentModules = get().desktopHomeModules;
+          if (
+            currentModules.includes(moduleId) &&
+            currentModules.length === 1
+          ) {
+            return;
+          }
+
+          const nextModules = currentModules.includes(moduleId)
+            ? currentModules.filter((item) => item !== moduleId)
+            : [...currentModules, moduleId];
+
+          const normalized = normalizeDesktopHomeModules(nextModules);
+          if (
+            normalized.length === currentModules.length &&
+            normalized.every((item, index) => item === currentModules[index])
+          ) {
+            return;
+          }
+
+          setTouched({ desktopHomeModules: normalized });
+        },
+        reorderDesktopHomeModules: (modules) => {
+          const normalized = normalizeDesktopHomeModules(modules);
+          const currentModules = get().desktopHomeModules;
+          if (
+            normalized.length === currentModules.length &&
+            normalized.every((item, index) => item === currentModules[index])
+          ) {
+            return;
+          }
+
+          setTouched({ desktopHomeModules: normalized });
+        },
         setAiProvider: (provider) => setTouched({ aiProvider: provider }),
         setAiApiProtocol: (protocol) => setTouched({ aiApiProtocol: protocol }),
         setAiApiKey: (key) => setTouched({ aiApiKey: key }),
@@ -1465,7 +1539,7 @@ export const useSettingsStore = create<SettingsState>()(
     },
     {
       name: "prompthub-settings",
-      version: 9,
+      version: 11,
       partialize: stripEphemeralSettings,
       merge: (persistedState, currentState) => {
         const next = {
@@ -1619,6 +1693,11 @@ export const useSettingsStore = create<SettingsState>()(
         if (typeof next.autoScanStoreSkillsBeforeInstall !== "boolean") {
           next.autoScanStoreSkillsBeforeInstall = false;
         }
+        if (typeof next.backgroundImageEnabled !== "boolean") {
+          next.backgroundImageEnabled = true;
+        }
+        next.desktopHomeModules = normalizeDesktopHomeModules(next.desktopHomeModules);
+        delete (next as Record<string, unknown>).desktopHomeLayout;
         if (typeof next.updateChannelExplicitlySet !== "boolean") {
           next.updateChannelExplicitlySet = false;
         }
