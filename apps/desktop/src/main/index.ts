@@ -58,11 +58,6 @@ import {
   getPromptsWorkspaceDir,
   getConfigDir,
 } from "./runtime-paths";
-import {
-  ensureDesktopCliInstalled,
-  extractDesktopCliArgs,
-} from "./desktop-cli";
-import { runCli } from "../cli/run";
 import { PromptDB } from "./database/prompt";
 import { FolderDB } from "./database/folder";
 import { bootstrapPromptWorkspace, writeRestoreMarker } from "./services/prompt-workspace";
@@ -134,8 +129,6 @@ protocol.registerSchemesAsPrivileged([
 ]);
 
 const isE2E = isE2EEnabled();
-const desktopCliArgs = extractDesktopCliArgs(process.argv);
-const isDesktopCliMode = desktopCliArgs !== null;
 configureE2ETestProfile();
 if (!isE2E) {
   const appDataPath = app.getPath("appData");
@@ -163,8 +156,7 @@ const isDev = shouldUseDevServer(app.isPackaged);
 
 // Single instance lock (prevent multiple instances)
 // 单实例锁定（防止多开）
-const gotTheLock =
-  isE2E || isDesktopCliMode ? true : app.requestSingleInstanceLock();
+const gotTheLock = isE2E ? true : app.requestSingleInstanceLock();
 
 if (!gotTheLock) {
   // Quit immediately if we fail to acquire the lock (another instance is running)
@@ -198,6 +190,11 @@ async function createWindow() {
 
   const isMac = process.platform === "darwin";
   const isWin = process.platform === "win32";
+  const windowIconPath = isWin
+    ? isDev
+      ? path.join(__dirname, "../../resources/icon.ico")
+      : path.join(process.resourcesPath, "icon.ico")
+    : undefined;
 
   mainWindow = new BrowserWindow({
     width: 1200,
@@ -218,6 +215,7 @@ async function createWindow() {
     // Dark background for Windows title bar
     // Windows 深色标题栏
     backgroundColor: "#1a1d23",
+    icon: windowIconPath,
     // Don't show immediately - wait for ready-to-show to check minimizeOnLaunch setting
     // 不立即显示 - 等待 ready-to-show 事件检查 minimizeOnLaunch 设置
     show: false,
@@ -1658,14 +1656,8 @@ app.whenReady().then(async () => {
     // Guard bootstrap here so the loser instance never continues into createWindow/loadFile.
     // Windows 上第二个实例在拿不到单实例锁后，仍可能先进入 whenReady() 再退出。
     // 这里再次拦截，确保失败实例不会继续执行 createWindow/loadFile。
-    if (!gotTheLock && !isE2E && !isDesktopCliMode) {
+    if (!gotTheLock && !isE2E) {
       app.quit();
-      return;
-    }
-
-    if (desktopCliArgs) {
-      const exitCode = await runCli(desktopCliArgs);
-      app.exit(exitCode);
       return;
     }
 
@@ -1915,12 +1907,6 @@ app.whenReady().then(async () => {
     // Register shortcuts IPC
     // 注册快捷键 IPC
     registerShortcutsIPC();
-
-    if (!isDev && !isE2E) {
-      void ensureDesktopCliInstalled(process.execPath).catch((error) => {
-        console.error("Failed to install desktop CLI command:", error);
-      });
-    }
 
     // Create main window
     // 创建窗口

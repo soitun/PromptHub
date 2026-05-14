@@ -1,21 +1,10 @@
 {
   "name": "@prompthub/desktop",
-  "version": "0.5.6-beta.1",
+  "version": "0.5.6-beta.2",
   "private": true,
   "description": "PromptHub Desktop - Electron application for AI prompt management",
   "main": "out/main/index.js",
-  "bin": {
-    "prompthub": "bin/prompthub.cjs"
-  },
-  "exports": {
-    ".": "./out/cli/prompthub.cjs"
-  },
-  "files": [
-    "bin",
-    "out/cli",
-    "README.md",
-    "LICENSE"
-  ],
+  "files": ["README.md", "LICENSE"],
   "engines": {
     "node": ">=22.0.0"
   },
@@ -32,22 +21,17 @@
   },
   "scripts": {
     "dev": "vite",
-    "cli:dev": "tsx src/cli/index.ts",
-    "cli:build": "vite build --config vite.cli.config.ts",
-    "prepare": "vite build --config vite.cli.config.ts",
-    "prepack": "vite build --config vite.cli.config.ts",
     "dev:web": "vite --config vite.web.config.ts",
-    "build": "vite build && vite build --config vite.cli.config.ts",
+    "build": "vite build",
     "preview": "vite preview",
     "electron:dev": "concurrently \"vite\" \"wait-on http://localhost:5173 out/main/index.js && electron out/main/index.js\"",
-    "electron:build": "vite build && vite build --config vite.cli.config.ts && electron-builder",
-    "electron:build:mac": "vite build && vite build --config vite.cli.config.ts && electron-builder --mac --x64 --arm64 --publish never",
-    "electron:build:win": "vite build && vite build --config vite.cli.config.ts && electron-builder --win --x64 --arm64 --publish never",
-    "electron:build:linux": "vite build && vite build --config vite.cli.config.ts && electron-builder --linux --x64 --publish never",
+    "electron:build": "vite build && electron-builder",
+    "electron:build:mac": "vite build && electron-builder --mac --x64 --arm64 --publish never",
+    "electron:build:win": "vite build && electron-builder --win --x64 --arm64 --publish never",
+    "electron:build:linux": "vite build && electron-builder --linux --x64 --publish never",
     "lint": "eslint . --ext ts,tsx,mts --report-unused-disable-directives --max-warnings 0",
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\"",
     "test": "vitest",
-    "test:cli": "vitest run tests/unit/cli/run.test.ts",
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",
     "test:i18n": "vitest run tests/unit/services/skill-locale-regression.test.ts tests/unit/components/skill-detail-utils.test.ts tests/unit/components/skill-i18n-smoke.test.tsx tests/unit/services/i18n-init.test.ts tests/unit/stores/settings-language.test.ts",

@@ -11,20 +11,17 @@ const externalModules = new Set([
 export default defineConfig({
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "src"),
-      "@shared": path.resolve(__dirname, "../../packages/shared"),
+      "@prompthub/core": path.resolve(__dirname, "../../packages/core/src"),
       "@prompthub/shared": path.resolve(__dirname, "../../packages/shared"),
       "@prompthub/db": path.resolve(__dirname, "../../packages/db/src"),
-      "@renderer": path.resolve(__dirname, "src/renderer"),
     },
   },
   build: {
-    outDir: "out/cli",
-    emptyOutDir: false,
+    outDir: "out",
     minify: false,
     target: "node22",
     lib: {
-      entry: path.resolve(__dirname, "src/cli/index.ts"),
+      entry: path.resolve(__dirname, "src/index.ts"),
       formats: ["cjs"],
       fileName: () => "prompthub.cjs",
     },

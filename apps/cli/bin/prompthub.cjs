@@ -5,8 +5,8 @@ const path = require("path");
 const { spawnSync } = require("child_process");
 
 const packageRoot = path.resolve(__dirname, "..");
-const builtCliEntry = path.join(packageRoot, "out", "cli", "prompthub.cjs");
-const sourceCliEntry = path.join(packageRoot, "src", "cli", "index.ts");
+const builtCliEntry = path.join(packageRoot, "out", "prompthub.cjs");
+const sourceCliEntry = path.join(packageRoot, "src", "index.ts");
 
 function runBuiltCli() {
   require(builtCliEntry);
@@ -27,7 +27,7 @@ function runSourceCli() {
     process.stderr.write(
       [
         "PromptHub CLI build output is missing.",
-        "Run `pnpm cli:build` or `pnpm build` before invoking `prompthub`.",
+        "Run `pnpm --filter @prompthub/cli build` before invoking `prompthub`.",
       ].join("\n") + "\n",
     );
     process.exit(1);

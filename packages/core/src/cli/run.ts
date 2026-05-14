@@ -1,14 +1,20 @@
 import fs from "fs";
 import path from "path";
 
-import { closeDatabase, initDatabase } from "../main/database";
-import { PromptDB } from "../main/database/prompt";
-import { SkillDB } from "../main/database/skill";
+import {
+  closeDatabase,
+  initDatabase,
+  PromptDB,
+  SkillDB,
+} from "../database";
 import {
   configureRuntimePaths,
   resetRuntimePaths,
-} from "../main/runtime-paths";
-import { SkillInstaller } from "../main/services/skill-installer";
+} from "../runtime-paths";
+import {
+  coreCliSkillService,
+  type CliSkillService,
+} from "./skill-cli-service";
 import type {
   CreatePromptDTO,
   Prompt,
@@ -36,9 +42,20 @@ export interface CliIO {
   stderr: CliWriter;
 }
 
+export interface CliRuntimeHooks {
+  configureRuntimePaths: typeof configureRuntimePaths;
+  resetRuntimePaths: typeof resetRuntimePaths;
+}
+
+export interface CliDatabaseHooks {
+  closeDatabase: typeof closeDatabase;
+  initDatabase: typeof initDatabase;
+}
+
 interface CliContext {
   io: CliIO;
   output: OutputFormat;
+  skills: CliSkillService;
 }
 
 class CliError extends Error {
@@ -555,6 +572,7 @@ function promptTableRows(prompts: Prompt[]): Array<Record<string, unknown>> {
 }
 
 async function skillTableRows(
+  skillService: CliSkillService,
   skills: Skill[],
 ): Promise<Array<Record<string, unknown>>> {
   return Promise.all(
@@ -566,7 +584,7 @@ async function skillTableRows(
       version: skill.version,
       favorite: skill.is_favorite,
       managedRepo: skill.local_repo_path
-        ? await SkillInstaller.isManagedRepoPath(skill.local_repo_path)
+        ? await skillService.isManagedRepoPath(skill.local_repo_path)
         : false,
       updatedAt: skill.updated_at,
     })),
@@ -576,6 +594,7 @@ async function skillTableRows(
 async function handlePromptCommand(
   args: string[],
   context: CliContext,
+  databaseHooks: CliDatabaseHooks,
 ): Promise<void> {
   if (args.length === 0 || takeFlag(args, "--help") || takeFlag(args, "-h")) {
     context.io.stdout(PROMPT_HELP);
@@ -583,7 +602,7 @@ async function handlePromptCommand(
   }
 
   const action = requirePositional(args, 0, "prompt 子命令");
-  const db = initDatabase();
+  const db = databaseHooks.initDatabase();
   const promptDb = new PromptDB(db);
 
   if (action === "list") {
@@ -652,11 +671,14 @@ async function handlePromptCommand(
   );
 }
 
-async function uninstallSkillFromPlatforms(skillName: string) {
-  const platforms = SkillInstaller.getSupportedPlatforms();
+async function uninstallSkillFromPlatforms(
+  skillService: CliSkillService,
+  skillName: string,
+) {
+  const platforms = skillService.getSupportedPlatforms();
   const settled = await Promise.allSettled(
     platforms.map((platform) =>
-      SkillInstaller.uninstallSkillMd(skillName, platform.id),
+      skillService.uninstallSkillMd(skillName, platform.id),
     ),
   );
 
@@ -686,15 +708,15 @@ async function handleSkillDelete(
 
   const uninstallResults = keepPlatformInstalls
     ? []
-    : await uninstallSkillFromPlatforms(skill.name);
+    : await uninstallSkillFromPlatforms(context.skills, skill.name);
 
   let purgedManagedRepo = false;
   if (
     purgeManagedRepo &&
     skill.local_repo_path &&
-    (await SkillInstaller.isManagedRepoPath(skill.local_repo_path))
+    (await context.skills.isManagedRepoPath(skill.local_repo_path))
   ) {
-    await SkillInstaller.deleteRepoByPath(skill.local_repo_path);
+    await context.skills.deleteRepoByPath(skill.local_repo_path);
     purgedManagedRepo = true;
   }
 
@@ -719,6 +741,7 @@ async function handleSkillDelete(
 async function handleSkillCommand(
   args: string[],
   context: CliContext,
+  databaseHooks: CliDatabaseHooks,
 ): Promise<void> {
   if (args.length === 0 || takeFlag(args, "--help") || takeFlag(args, "-h")) {
     context.io.stdout(SKILL_HELP);
@@ -726,12 +749,12 @@ async function handleSkillCommand(
   }
 
   const action = requirePositional(args, 0, "skill 子命令");
-  const db = initDatabase();
+  const db = databaseHooks.initDatabase();
   const skillDb = new SkillDB(db);
 
   if (action === "list") {
     const skills = skillDb.getAll();
-    emitSuccess(context, skills, await skillTableRows(skills));
+    emitSuccess(context, skills, await skillTableRows(context.skills, skills));
     return;
   }
 
@@ -754,7 +777,7 @@ async function handleSkillCommand(
     const installArgs = args.slice(2);
     const name = takeOption(installArgs, "--name");
     ensureNoUnknownOptions(installArgs);
-    const skillId = await SkillInstaller.installFromSource(source, skillDb, {
+    const skillId = await context.skills.installFromSource(source, skillDb, {
       name,
     });
     emitSuccess(context, skillDb.getById(skillId));
@@ -776,7 +799,7 @@ async function handleSkillCommand(
   }
 
   if (action === "scan") {
-    const scanned = await SkillInstaller.scanLocalPreview(args.slice(1));
+    const scanned = await context.skills.scanLocalPreview(args.slice(1), skillDb);
     emitSuccess(
       context,
       scanned,
@@ -800,7 +823,10 @@ async function handleSkillCommand(
   );
 }
 
-function configureCliRuntime(args: string[]): {
+function configureCliRuntime(
+  args: string[],
+  runtimeHooks: CliRuntimeHooks,
+): {
   args: string[];
   output: OutputFormat;
 } {
@@ -818,7 +844,7 @@ function configureCliRuntime(args: string[]): {
     );
   }
 
-  configureRuntimePaths({
+  runtimeHooks.configureRuntimePaths({
     ...(dataDir && { userDataPath: path.resolve(dataDir) }),
     ...(appDataDir && { appDataPath: path.resolve(appDataDir) }),
     exePath: process.execPath,
@@ -832,12 +858,25 @@ function configureCliRuntime(args: string[]): {
 export async function runCli(
   argv: string[],
   io: CliIO = defaultIO(),
+  runtimeHooks: CliRuntimeHooks = {
+    configureRuntimePaths,
+    resetRuntimePaths,
+  },
+  databaseHooks: CliDatabaseHooks = {
+    closeDatabase,
+    initDatabase,
+  },
+  skillService: CliSkillService = coreCliSkillService,
 ): Promise<number> {
   const restoreConsole = suppressConsoleNoise();
 
   try {
-    const configured = configureCliRuntime(argv);
-    const context: CliContext = { io, output: configured.output };
+    const configured = configureCliRuntime(argv, runtimeHooks);
+    const context: CliContext = {
+      io,
+      output: configured.output,
+      skills: skillService,
+    };
     const args = configured.args;
 
     if (args.length === 0 || args[0] === "--help" || args[0] === "-h") {
@@ -849,11 +888,11 @@ export async function runCli(
     const commandArgs = args.slice(1);
 
     if (resource === "prompt") {
-      await handlePromptCommand(commandArgs, context);
+      await handlePromptCommand(commandArgs, context, databaseHooks);
       return EXIT_CODES.OK;
     }
     if (resource === "skill") {
-      await handleSkillCommand(commandArgs, context);
+      await handleSkillCommand(commandArgs, context, databaseHooks);
       return EXIT_CODES.OK;
     }
 
@@ -871,11 +910,11 @@ export async function runCli(
             error instanceof Error ? error.message : String(error),
             EXIT_CODES.INTERNAL,
           );
-    emitError({ io, output: "json" }, cliError);
+    emitError({ io, output: "json", skills: skillService }, cliError);
     return cliError.exitCode;
   } finally {
     restoreConsole();
-    closeDatabase();
-    resetRuntimePaths();
+    databaseHooks.closeDatabase();
+    runtimeHooks.resetRuntimePaths();
   }
 }

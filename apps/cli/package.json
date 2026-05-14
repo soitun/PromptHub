@@ -1,0 +1,42 @@
+{
+  "name": "@prompthub/cli",
+  "version": "0.1.0",
+  "private": true,
+  "description": "PromptHub CLI - standalone command line product",
+  "type": "module",
+  "bin": {
+    "prompthub": "bin/prompthub.cjs"
+  },
+  "exports": {
+    ".": "./out/prompthub.cjs"
+  },
+  "files": [
+    "bin",
+    "out",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "vite build",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --ext ts --report-unused-disable-directives --max-warnings 0"
+  },
+  "dependencies": {
+    "@prompthub/core": "workspace:*",
+    "@prompthub/db": "workspace:*",
+    "@prompthub/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "eslint": "^9.0.0",
+    "tsx": "^4.20.3",
+    "typescript": "^5.6.0",
+    "vite": "^6.0.0",
+    "vitest": "^2.0.0"
+  }
+}
