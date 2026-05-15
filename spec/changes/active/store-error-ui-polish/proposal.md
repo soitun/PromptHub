@@ -8,6 +8,7 @@ Polish the desktop update/settings UI and the Skill Store remote-error experienc
 
 - The current preview-channel warning block breaks the visual rhythm of the About settings page and looks crowded against adjacent setting rows.
 - The Skill Store rate-limit error currently tells users to add a GitHub token in settings, but PromptHub does not provide that settings flow, which creates confusion.
+- The About settings page also lacks direct community-entry points, forcing users to leave the app and search manually for Discord / QQ channels.
 
 ## Scope
 
@@ -16,6 +17,7 @@ Polish the desktop update/settings UI and the Skill Store remote-error experienc
 - Refine the preview-channel enabled state presentation in the desktop About settings page.
 - Improve remote-store error banner layout in Skill Store.
 - Replace misleading GitHub token guidance with actionable retry / network guidance.
+- Add direct community entry links to the desktop About settings page.
 
 ### Out Of Scope
 

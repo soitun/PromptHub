@@ -10,9 +10,12 @@ Polished two desktop warning/error surfaces: the About settings preview-channel 
 - Kept the blocking preview opt-in modal as the primary high-emphasis warning step.
 - Restructured the Skill Store remote-error banner into a clearer title/body/action layout.
 - Updated GitHub rate-limit guidance in `SkillStore` and `CreateSkillModal` to recommend retrying later or switching networks.
+- Added a dedicated `Community` section to `AboutSettings` with a direct Discord link plus a QQ dual-path entry (`mqqapi` client jump + copyable group number) so users can reach the PromptHub community from inside the app without needing a separate invite webpage.
+- Refined `AboutSettings` information labeling so the open-source row now presents the concrete PromptHub repository path, the QQ entry uses a QQ-specific brand icon, and the previous `Author` section is presented as `Contact Author`.
+- Updated the root `README.md` community section to add a prominent Discord invite card and reposition QQ as an additional community channel instead of the only entry point.
 - Added shared GitHub store error mapping for three user-facing cases: rate limit, network failure, and invalid/missing repository.
 - Synced all 7 locale files for the new update-channel active-state copy and the corrected rate-limit message.
-- Added regression tests covering the new remote-store error categories and ensuring the UI no longer tells users to configure a GitHub token in settings.
+- Added regression tests covering the new remote-store error categories, the About settings community links, and ensuring the UI no longer tells users to configure a GitHub token in settings.
 
 ## Verification
 

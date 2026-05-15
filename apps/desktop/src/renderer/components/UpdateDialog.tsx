@@ -4,6 +4,7 @@ import { DownloadIcon, CheckCircleIcon, XIcon, Loader2Icon, RefreshCwIcon, Folde
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeSanitize from 'rehype-sanitize';
+import { Modal } from './ui/Modal';
 import { useSettingsStore } from '../stores/settings.store';
 import {
   getManualBackupStatus,
@@ -268,34 +269,55 @@ export function UpdateDialog({ isOpen, onClose, initialStatus }: UpdateDialogPro
     lastManualBackupVersion === currentVersion;
   const canInstallUpgrade =
     hasCurrentVersionManualBackup && hasAcknowledgedBackup;
+  const channelLabel = t(
+    updateChannel === 'preview'
+      ? 'settings.previewChannel'
+      : 'settings.stableChannel',
+  );
+  const isMacHomebrew = platform === 'darwin' && installSource === 'homebrew';
 
-  const renderBackupGate = () => (
-    <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
+  const primaryButtonClass =
+    'inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50';
+  const secondaryButtonClass =
+    'inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-background/80 px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted/60 disabled:cursor-not-allowed disabled:opacity-50';
+  const mutedButtonClass =
+    'inline-flex items-center justify-center gap-2 rounded-xl bg-muted px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted/80 disabled:cursor-not-allowed disabled:opacity-50';
+
+  const renderBackupGate = ({
+    showDescription,
+    showConfirmation,
+  }: {
+    showDescription: boolean;
+    showConfirmation: boolean;
+  }) => (
+    <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
       <div className="flex items-start gap-3">
         <ZapIcon className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
-        <div className="flex-1">
+        <div className="min-w-0 flex-1">
           <p className="text-sm font-medium text-foreground">
             {t('settings.backupRequiredForUpgrade')}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground whitespace-pre-line">
-            {t('settings.backupRequiredForUpgradeDesc')}
-          </p>
+          {showDescription ? (
+            <p className="mt-1 text-xs text-muted-foreground whitespace-pre-line">
+              {t('settings.backupRequiredForUpgradeDesc')}
+            </p>
+          ) : null}
           {hasCurrentVersionManualBackup && lastManualBackupAt ? (
             <p className="mt-2 text-xs text-green-600 dark:text-green-400">
               {t('settings.backupReadyForUpgrade', { time: lastManualBackupAt })}
             </p>
-          ) : (
+          ) : showConfirmation ? (
             <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">
               {t('settings.backupMissingForUpgrade', { version: currentVersion })}
             </p>
-          )}
+          ) : null}
         </div>
       </div>
-      <div className="mt-3 flex gap-2">
+      <div className="mt-3 flex flex-wrap gap-2">
         <button
           onClick={handleBackupBeforeUpgrade}
           disabled={isCreatingBackup}
-          className="flex items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium hover:bg-muted/60 transition-colors disabled:opacity-50"
+          className={secondaryButtonClass}
         >
           {isCreatingBackup ? (
             <Loader2Icon className="h-4 w-4 animate-spin" />
@@ -305,37 +327,54 @@ export function UpdateDialog({ isOpen, onClose, initialStatus }: UpdateDialogPro
           {t('settings.backupBeforeUpgrade')}
         </button>
       </div>
-      <label className="mt-3 flex items-start gap-2 text-xs text-foreground">
-        <input
-          type="checkbox"
-          checked={hasAcknowledgedBackup}
-          onChange={(event) => setHasAcknowledgedBackup(event.target.checked)}
-          className="mt-0.5 h-4 w-4 rounded border-border text-primary focus:ring-primary"
-        />
-        <span>{t('settings.backupConfirmUpgrade')}</span>
-      </label>
-      {!hasAcknowledgedBackup && (
-        <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">
-          {t('settings.backupConfirmRequired')}
-        </p>
-      )}
+      {showConfirmation ? (
+        <>
+          <label className="mt-3 flex items-start gap-2 text-xs text-foreground">
+            <input
+              type="checkbox"
+              checked={hasAcknowledgedBackup}
+              onChange={(event) => setHasAcknowledgedBackup(event.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-border text-primary focus:ring-primary"
+            />
+            <span>{t('settings.backupConfirmUpgrade')}</span>
+          </label>
+          {!hasAcknowledgedBackup && (
+            <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">
+              {t('settings.backupConfirmRequired')}
+            </p>
+          )}
+        </>
+      ) : null}
     </div>
+  );
+
+  const renderReleaseNotes = (releaseNotes: string) => (
+    <section className="rounded-xl border border-border/60 bg-muted/30">
+      <div className="border-b border-border/50 px-4 py-3">
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          {t('settings.releaseNotes')}
+        </p>
+      </div>
+      <div className="max-h-[240px] overflow-y-auto px-4 py-3">
+        <div className="prose prose-sm dark:prose-invert max-w-none break-words prose-headings:text-foreground prose-h1:text-base prose-h1:font-semibold prose-h2:text-sm prose-h2:font-semibold prose-h3:text-sm prose-h3:font-medium prose-p:my-2 prose-p:text-[13px] prose-p:text-foreground/85 prose-li:text-[13px] prose-li:text-foreground/85 prose-pre:overflow-x-auto prose-pre:border prose-pre:border-border prose-pre:bg-background/80 prose-code:text-primary">
+          <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
+            {releaseNotes}
+          </ReactMarkdown>
+        </div>
+      </div>
+    </section>
   );
 
   const renderContent = () => {
     if (!updateStatus) {
       return (
-        <div className="flex-1 flex flex-col items-center justify-center text-center py-8">
-          <p className="text-muted-foreground mb-4">
-            {t('settings.version')}: {currentVersion} · {t(
-              updateChannel === 'preview'
-                ? 'settings.previewChannel'
-                : 'settings.stableChannel',
-            )}
+        <div className="flex min-h-[320px] flex-col items-center justify-center text-center">
+          <p className="mb-4 text-sm text-muted-foreground">
+            {t('settings.version')}: {currentVersion || '...'}
           </p>
           <button
-            onClick={() => handleCheckUpdate(false)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors"
+            onClick={() => handleCheckUpdate(useUpdateMirror)}
+            className={primaryButtonClass}
           >
             <RefreshCwIcon className="w-4 h-4" />
             {t('settings.checkUpdate')}
@@ -347,55 +386,51 @@ export function UpdateDialog({ isOpen, onClose, initialStatus }: UpdateDialogPro
     switch (updateStatus.status) {
       case 'checking':
         return (
-          <div className="flex-1 flex flex-col items-center justify-center text-center py-8">
+          <div className="flex min-h-[320px] flex-col items-center justify-center text-center">
             <Loader2Icon className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
-            <p className="text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               {useMirror ? t('settings.usingMirrorSource') : t('settings.checking')}
             </p>
           </div>
         );
 
       case 'available':
-        const isMacHomebrew = platform === 'darwin' && installSource === 'homebrew';
         return (
-          <div className="py-4">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center">
+          <div className="space-y-4">
+            <div className="flex items-start gap-3 rounded-xl border border-border/60 bg-muted/20 p-4">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-green-500/10">
                 <DownloadIcon className="w-6 h-6 text-green-500" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <h3 className="font-semibold text-lg">{t('settings.updateAvailable')}</h3>
-                <p className="text-sm text-muted-foreground">
-                  {t('settings.updateAvailableDesc', { version: updateStatus.info.version })}
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {t('settings.version')}: {updateStatus.info.version}
                 </p>
               </div>
             </div>
             {updateStatus.info.releaseNotes && (
-              <div className="mb-4 p-4 rounded-lg bg-muted/50 flex-1 min-h-[200px] max-h-[350px] overflow-y-auto prose prose-sm dark:prose-invert max-w-none">
-                <p className="text-xs font-medium text-muted-foreground mb-2">
-                  {t('settings.releaseNotes')}
-                </p>
-                <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
-                  {updateStatus.info.releaseNotes}
-                </ReactMarkdown>
-              </div>
+              renderReleaseNotes(updateStatus.info.releaseNotes)
             )}
             {isMacHomebrew && (
-              <div className="mb-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+              <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-4">
                 <p className="text-sm text-amber-600 dark:text-amber-400 whitespace-pre-line">
                   {t('settings.homebrewUpdateHint')}
                 </p>
-                <pre className="mt-3 overflow-x-auto rounded bg-background/80 px-3 py-2 text-xs text-foreground border border-border">
+                <pre className="mt-3 overflow-x-auto rounded-xl bg-background/80 px-3 py-2 text-xs text-foreground border border-border">
                   brew update{`\n`}brew upgrade --cask prompthub
                 </pre>
               </div>
             )}
-            {renderBackupGate()}
-            <div className="flex gap-2">
+            {!isMacHomebrew &&
+              renderBackupGate({
+                showDescription: false,
+                showConfirmation: false,
+              })}
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <button
                 onClick={isMacHomebrew ? () => window.electron?.updater?.openReleases() : handleDownload}
                 disabled={isCreatingBackup}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                className={primaryButtonClass}
               >
                 {isMacHomebrew ? (
                   <>
@@ -411,7 +446,7 @@ export function UpdateDialog({ isOpen, onClose, initialStatus }: UpdateDialogPro
               </button>
               <button
                 onClick={onClose}
-                className="px-4 py-2 rounded-lg bg-muted hover:bg-muted/80 transition-colors"
+                className={mutedButtonClass}
               >
                 {t('settings.installLater')}
               </button>
@@ -421,7 +456,7 @@ export function UpdateDialog({ isOpen, onClose, initialStatus }: UpdateDialogPro
 
       case 'not-available':
         return (
-          <div className="flex-1 flex flex-col items-center justify-center text-center py-8">
+          <div className="flex min-h-[320px] flex-col items-center justify-center text-center">
             <CheckCircleIcon className="w-12 h-12 mx-auto mb-4 text-green-500" />
             <h3 className="font-semibold text-lg mb-1">{t('settings.noUpdate')}</h3>
             <p className="text-sm text-muted-foreground">
@@ -433,7 +468,7 @@ export function UpdateDialog({ isOpen, onClose, initialStatus }: UpdateDialogPro
       case 'downloading':
         const percent = updateStatus.progress?.percent || 0;
         return (
-          <div className="flex-1 flex flex-col items-center justify-center py-8">
+          <div className="flex min-h-[320px] flex-col items-center justify-center py-4">
             <div className="w-full max-w-md mb-4">
               <div className="flex justify-between text-sm mb-2">
                 <span>{t('settings.downloading')}</span>
@@ -456,39 +491,56 @@ export function UpdateDialog({ isOpen, onClose, initialStatus }: UpdateDialogPro
         const isMac = platform === 'darwin';
         const isMacHomebrewDownloaded = isMac && installSource === 'homebrew';
         return (
-          <div className="py-4">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center">
+          <div className="space-y-4">
+            <div className="flex items-start gap-3 rounded-xl border border-border/60 bg-muted/20 p-4">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-green-500/10">
                 <CheckCircleIcon className="w-6 h-6 text-green-500" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <h3 className="font-semibold text-lg">{t('settings.downloadComplete')}</h3>
-                <p className="text-sm text-muted-foreground">
-                  {isMac ? '' : t('settings.downloadCompleteDesc')}
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {t('settings.version')}: {updateStatus.info.version}
                 </p>
               </div>
             </div>
             {!isMac && (
-              <p className="text-xs text-muted-foreground mb-4">
+              <p className="text-xs text-muted-foreground">
                 {t('settings.installRestartHint')}
               </p>
             )}
             {isMac && !isMacHomebrewDownloaded && (
-              <div className="mb-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+              <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-4">
                 <p className="text-sm text-amber-600 dark:text-amber-400 whitespace-pre-line">
                   {t('settings.macManualInstall')}
                 </p>
               </div>
             )}
-            {renderBackupGate()}
+            {!isMacHomebrewDownloaded &&
+              renderBackupGate({
+                showDescription: true,
+                showConfirmation: true,
+              })}
             <div className="flex flex-col gap-2">
-              <div className="flex gap-2">
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                 <button
-                  onClick={handleInstall}
-                  disabled={isCreatingBackup || isInstalling || !canInstallUpgrade}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                  onClick={
+                    isMacHomebrewDownloaded
+                      ? () => window.electron?.updater?.openReleases()
+                      : handleInstall
+                  }
+                  disabled={
+                    isMacHomebrewDownloaded
+                      ? false
+                      : isCreatingBackup || isInstalling || !canInstallUpgrade
+                  }
+                  className={primaryButtonClass}
                 >
-                  {isMac ? (
+                  {isMacHomebrewDownloaded ? (
+                    <>
+                      <ExternalLinkIcon className="w-4 h-4" />
+                      {t('settings.openReleasesPage')}
+                    </>
+                  ) : isMac ? (
                     <>
                       <FolderOpenIcon className="w-4 h-4" />
                       {t('settings.openDownloadFolder')}
@@ -504,15 +556,15 @@ export function UpdateDialog({ isOpen, onClose, initialStatus }: UpdateDialogPro
                 </button>
                 <button
                   onClick={onClose}
-                  className="px-4 py-2 rounded-lg bg-muted hover:bg-muted/80 transition-colors"
+                  className={mutedButtonClass}
                 >
                   {t('settings.installLater')}
                 </button>
               </div>
-              {!isMac && (
+              {!isMac && !isMacHomebrewDownloaded && (
                 <button
                   onClick={() => window.electron?.updater?.openDownloadedUpdate?.()}
-                  className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-border hover:bg-muted/50 transition-colors text-sm"
+                  className={secondaryButtonClass}
                 >
                   <FolderOpenIcon className="w-4 h-4" />
                   {t('settings.openDownloadFolder')}
@@ -525,7 +577,7 @@ export function UpdateDialog({ isOpen, onClose, initialStatus }: UpdateDialogPro
       case 'error':
         const isHomebrewError = updateStatus.error === t('settings.homebrewUpdateRequired');
         return (
-          <div className="text-center py-6 flex flex-col h-full shrink-0">
+          <div className="flex min-h-[320px] flex-col text-center">
             <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-red-500/10 flex items-center justify-center">
               <XIcon className="w-6 h-6 text-red-500" />
             </div>
@@ -537,11 +589,11 @@ export function UpdateDialog({ isOpen, onClose, initialStatus }: UpdateDialogPro
             </p>
 
             {isHomebrewError && (
-              <div className="mb-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-left">
+              <div className="mb-4 rounded-xl border border-amber-500/20 bg-amber-500/10 p-4 text-left">
                 <p className="text-sm text-amber-600 dark:text-amber-400 whitespace-pre-line">
                   {t('settings.homebrewUpdateHint')}
                 </p>
-                <pre className="mt-3 overflow-x-auto rounded bg-background/80 px-3 py-2 text-xs text-foreground border border-border">
+                <pre className="mt-3 overflow-x-auto rounded-xl bg-background/80 px-3 py-2 text-xs text-foreground border border-border">
                   brew update{`\n`}brew upgrade --cask prompthub
                 </pre>
               </div>
@@ -552,7 +604,7 @@ export function UpdateDialog({ isOpen, onClose, initialStatus }: UpdateDialogPro
               <div className="mb-4">
                 <button
                   onClick={() => window.electron?.updater?.openDownloadedUpdate?.()}
-                  className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl bg-green-600 text-white hover:bg-green-700 transition-all text-sm font-medium shadow-sm active:scale-95"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-green-700"
                 >
                   <FolderOpenIcon className="w-4 h-4" />
                   {t('settings.openDownloadFolder')}
@@ -565,7 +617,7 @@ export function UpdateDialog({ isOpen, onClose, initialStatus }: UpdateDialogPro
                 <p className="text-xs text-muted-foreground mb-3">{t('settings.manualDownloadHint')}</p>
                 <button
                   onClick={() => window.electron?.updater?.openReleases()}
-                  className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl bg-background border border-border hover:bg-muted transition-all text-sm font-medium shadow-sm active:scale-95"
+                  className={`${secondaryButtonClass} w-full`}
                 >
                   <ExternalLinkIcon className="w-4 h-4 text-muted-foreground" />
                   {t('settings.manualDownload')}
@@ -578,45 +630,31 @@ export function UpdateDialog({ isOpen, onClose, initialStatus }: UpdateDialogPro
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
-      <div
-        className="w-full max-w-xl mx-4 p-6 rounded-2xl app-wallpaper-panel-strong border border-border shadow-xl min-h-[400px] flex flex-col"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <h2 className="text-lg font-semibold">{t('settings.checkUpdate')}</h2>
-            <span className="rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground">
-              {t(
-                updateChannel === 'preview'
-                  ? 'settings.previewChannel'
-                  : 'settings.stableChannel',
-              )}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => void handleCheckUpdate(useUpdateMirror, {
-                preserveVisibleStatus: isStableUpgradeState(updateStatus),
-              })}
-              disabled={isManualRefreshPending}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground disabled:opacity-50"
-            >
-              <RefreshCwIcon className={`h-3.5 w-3.5 ${isManualRefreshPending ? 'animate-spin' : ''}`} />
-              {t('settings.checkUpdate')}
-            </button>
-            <button
-              onClick={onClose}
-              className="p-1 rounded-lg hover:bg-muted transition-colors"
-            >
-              <XIcon className="w-5 h-5 text-muted-foreground" />
-            </button>
-          </div>
-        </div>
-        <div className="flex-1 flex flex-col">
-          {renderContent()}
-        </div>
-      </div>
-    </div>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={t('settings.checkUpdate')}
+      subtitle={`${t('settings.version')}: ${currentVersion || '...'}`}
+      size="xl"
+      headerActions={
+        <>
+          <span className="rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground">
+            {channelLabel}
+          </span>
+          <button
+            onClick={() => void handleCheckUpdate(useUpdateMirror, {
+              preserveVisibleStatus: isStableUpgradeState(updateStatus),
+            })}
+            disabled={isManualRefreshPending}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground disabled:opacity-50"
+          >
+            <RefreshCwIcon className={`h-3.5 w-3.5 ${isManualRefreshPending ? 'animate-spin' : ''}`} />
+            {t('settings.checkUpdate')}
+          </button>
+        </>
+      }
+    >
+      {renderContent()}
+    </Modal>
   );
 }

@@ -1,7 +1,7 @@
 import fs from "fs";
-import os from "os";
 import path from "path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { createRulesWorkspaceService } from "@prompthub/core";
 import { getPlatformById } from "@prompthub/shared/constants/platforms";
 
 import { closeDatabase, initDatabase, RuleDB } from "../../../src/main/database";
@@ -25,7 +25,7 @@ describe("rules workspace storage", () => {
   let tempDir: string;
 
   beforeEach(() => {
-    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "prompthub-rules-"));
+    tempDir = fs.mkdtempSync(path.join(process.env.TMPDIR || "/tmp", "prompthub-rules-"));
     configureRuntimePaths({ userDataPath: tempDir });
     initDatabase();
   });
@@ -35,6 +35,30 @@ describe("rules workspace storage", () => {
     resetRuntimePaths();
     fs.rmSync(tempDir, { recursive: true, force: true });
   });
+
+  function createGlobalRulesTestService() {
+    const homeDir = path.join(tempDir, "home");
+    fs.mkdirSync(homeDir, { recursive: true });
+
+    return createRulesWorkspaceService({
+      getRulesDir,
+      createRuleDb: () => new RuleDB(initDatabase()),
+      getPlatformGlobalRulePath: (platform) => {
+        if (platform.id === "claude") {
+          return path.join(homeDir, ".claude", "CLAUDE.md");
+        }
+
+        return path.join(homeDir, platform.id, "AGENTS.md");
+      },
+      getPlatformRootDir: (platform) => {
+        if (platform.id === "claude") {
+          return path.join(homeDir, ".claude");
+        }
+
+        return path.join(homeDir, platform.id);
+      },
+    });
+  }
 
   it("creates a managed project rule and indexes it in SQLite", async () => {
     const projectRoot = path.join(tempDir, "docs-site");
@@ -244,21 +268,22 @@ describe("rules workspace storage", () => {
   });
 
   it("deduplicates concurrent initial snapshots for global rules on first read", async () => {
+    const service = createGlobalRulesTestService();
     const platform = getPlatformById("claude");
     expect(platform).toBeDefined();
 
-    const globalRulePath = getPlatformGlobalRulePath(platform!);
+    const globalRulePath = path.join(tempDir, "home", ".claude", "CLAUDE.md");
     expect(globalRulePath).toBeTruthy();
 
     fs.mkdirSync(path.dirname(globalRulePath!), { recursive: true });
     fs.writeFileSync(globalRulePath!, "# Claude global rule\n\nFollow the house style.", "utf8");
 
     await Promise.all([
-      listRuleDescriptors(),
-      readRuleContent("claude-global"),
+      service.listRuleDescriptors(),
+      service.readRuleContent("claude-global"),
     ]);
 
-    const content = await readRuleContent("claude-global");
+    const content = await service.readRuleContent("claude-global");
     expect(content.versions).toHaveLength(1);
     expect(content.versions[0]).toEqual(
       expect.objectContaining({
@@ -266,5 +291,62 @@ describe("rules workspace storage", () => {
         content: "# Claude global rule\n\nFollow the house style.",
       }),
     );
+  });
+
+  it("skips missing version files and repairs the index instead of crashing", async () => {
+    const projectRoot = path.join(tempDir, "docs-site");
+    fs.mkdirSync(projectRoot, { recursive: true });
+
+    await createProjectRule({ id: "docs-site", name: "Docs Site", rootPath: projectRoot });
+    await saveRuleContent("project:docs-site", "# version-1");
+    await saveRuleContent("project:docs-site", "# version-2");
+
+    // Manually delete the latest version file (simulate disk corruption)
+    const versionDir = path.join(
+      getRulesDir(),
+      ".versions",
+      encodeURIComponent("project:docs-site"),
+    );
+    fs.rmSync(path.join(versionDir, "0002.md"), { force: true });
+
+    // readRuleContent should NOT throw; it should skip the missing file
+    const content = await readRuleContent("project:docs-site");
+    expect(content.versions).toHaveLength(1);
+    expect(content.versions[0]?.content).toBe("# version-1");
+
+    // The index should have been repaired on disk
+    const indexPath = path.join(versionDir, "index.json");
+    const repairedIndex = JSON.parse(fs.readFileSync(indexPath, "utf-8"));
+    expect(repairedIndex).toHaveLength(1);
+    expect(repairedIndex[0]?.fileName).toBe("0001.md");
+
+    // The DB version count should also be repaired
+    const db = new RuleDB(initDatabase());
+    expect(db.getById("project:docs-site")?.currentVersion).toBe(1);
+  });
+
+  it("does not create duplicate initial versions when re-materializing a global rule", async () => {
+    const service = createGlobalRulesTestService();
+    const platform = getPlatformById("claude");
+    expect(platform).toBeDefined();
+
+    const globalRulePath = path.join(tempDir, "home", ".claude", "CLAUDE.md");
+    expect(globalRulePath).toBeTruthy();
+
+    fs.mkdirSync(path.dirname(globalRulePath!), { recursive: true });
+    fs.writeFileSync(globalRulePath!, "# Claude global rule", "utf8");
+
+    // First materialization
+    await service.listRuleDescriptors();
+
+    // Delete the managed copy but keep versions
+    const managedPath = path.join(getRulesDir(), "global", "claude", "CLAUDE.md");
+    fs.rmSync(managedPath, { force: true });
+
+    // Re-materialize (e.g., a later scan)
+    await service.listRuleDescriptors();
+
+    const content = await service.readRuleContent("claude-global");
+    expect(content.versions).toHaveLength(1);
   });
 });

@@ -12,6 +12,7 @@ import { FolderDB } from '../database/folder';
 import { SkillDB } from '../database/skill';
 import { registerSecurityIPC } from './security.ipc';
 import { registerBackupIPC } from './backup.ipc';
+import { registerCliIPC } from './cli.ipc';
 import { IPC_CHANNELS } from '@prompthub/shared/constants/ipc-channels';
 
 const REBINDABLE_DB_CHANNELS = [
@@ -38,6 +39,8 @@ const REBINDABLE_DB_CHANNELS = [
   IPC_CHANNELS.FOLDER_INSERT_DIRECT,
   IPC_CHANNELS.SETTINGS_GET,
   IPC_CHANNELS.SETTINGS_SET,
+  IPC_CHANNELS.CLI_STATUS,
+  IPC_CHANNELS.CLI_INSTALL,
   IPC_CHANNELS.RULES_LIST,
   IPC_CHANNELS.RULES_SCAN,
   IPC_CHANNELS.RULES_READ,
@@ -140,6 +143,7 @@ export function registerAllIPC(
   registerIpcGroup("backup", () =>
     registerBackupIPC(setDbRef, (nextDb) => registerAllIPC(nextDb, setDbRef)),
   );
+  registerIpcGroup("cli", () => registerCliIPC());
   registerIpcGroup("skill", () => registerSkillIPC(skillDB));
   registerIpcGroup("image", () => registerImageIPC());
   registerIpcGroup("ai", () => registerAIIPC());

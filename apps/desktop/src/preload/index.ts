@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from "electron";
 import { IPC_CHANNELS } from "@prompthub/shared/constants/ipc-channels";
 import { aiApi } from "./api/ai";
+import { cliApi } from "./api/cli";
 import { folderApi } from "./api/folder";
 import { ioApi } from "./api/io";
 import { promptApi } from "./api/prompt";
@@ -10,6 +11,9 @@ import { skillApi } from "./api/skill";
 import { upgradeBackupApi } from "./api/upgrade-backup";
 import { versionApi } from "./api/version";
 import type {
+  CliInstallMethod,
+  CliInstallResult,
+  CliStatus,
   CreatePromptDTO,
   UpdatePromptDTO,
   SearchQuery,
@@ -104,6 +108,7 @@ const api = {
   upgradeBackup: upgradeBackupApi,
   io: ioApi,
   ai: aiApi,
+  cli: cliApi,
 
   // Listen to main process events (with whitelist)
   // 监听主进程事件（使用白名单）
@@ -249,6 +254,11 @@ contextBridge.exposeInMainWorld("electron", {
       // 兼容旧用法：移除所有监听
       ipcRenderer.removeAllListeners("updater:status");
     },
+  },
+  cli: {
+    getStatus: () => ipcRenderer.invoke(IPC_CHANNELS.CLI_STATUS) as Promise<CliStatus>,
+    install: (method?: CliInstallMethod) =>
+      ipcRenderer.invoke(IPC_CHANNELS.CLI_INSTALL, method) as Promise<CliInstallResult>,
   },
   // Images
   // 图片
@@ -508,6 +518,10 @@ declare global {
         openReleases: () => Promise<void>;
         onStatus: (callback: (status: any) => void) => void | (() => void);
         offStatus: () => void;
+      };
+      cli?: {
+        getStatus: () => Promise<CliStatus>;
+        install: (method?: CliInstallMethod) => Promise<CliInstallResult>;
       };
       selectImage?: () => Promise<string[]>;
       saveImage?: (paths: string[]) => Promise<string[]>;

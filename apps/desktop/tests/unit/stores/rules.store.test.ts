@@ -205,5 +205,63 @@ describe("rules store", () => {
     await useRulesStore.getState().saveCurrentRule();
 
     expect(scheduleAllSaveSync).toHaveBeenCalledWith("rules:save");
+    expect(useRulesStore.getState().selectedRuleId).toBe("claude-global");
+  });
+
+  it("ignores stale rule reads when the user switches selection before the first read resolves", async () => {
+    let resolveClaude: ((value: Awaited<ReturnType<typeof Promise.resolve>>) => void) | null = null;
+    const readMock = vi.fn((ruleId: string) => {
+      if (ruleId === "claude-global") {
+        return new Promise((resolve) => {
+          resolveClaude = resolve;
+        });
+      }
+
+      return Promise.resolve({
+        id: "gemini-global",
+        platformId: "gemini",
+        platformName: "Gemini CLI",
+        platformIcon: "gemini",
+        platformDescription: "Gemini rules",
+        name: "GEMINI.md",
+        description: "Gemini global rule file",
+        path: "/Users/test/.gemini/GEMINI.md",
+        exists: true,
+        group: "assistant",
+        content: "# Gemini rules",
+        versions: [],
+      });
+    });
+
+    installWindowMocks({
+      api: {
+        rules: {
+          read: readMock,
+        },
+      },
+    });
+
+    const selectClaude = useRulesStore.getState().selectRule("claude-global");
+    await useRulesStore.getState().selectRule("gemini-global");
+
+    resolveClaude?.({
+      id: "claude-global",
+      platformId: "claude",
+      platformName: "Claude Code",
+      platformIcon: "claude",
+      platformDescription: "Claude rules",
+      name: "CLAUDE.md",
+      description: "Claude global rule file",
+      path: "/Users/test/.claude/CLAUDE.md",
+      exists: true,
+      group: "assistant",
+      content: "# Claude rules",
+      versions: [],
+    });
+    await selectClaude;
+
+    expect(useRulesStore.getState().selectedRuleId).toBe("gemini-global");
+    expect(useRulesStore.getState().currentFile?.id).toBe("gemini-global");
+    expect(useRulesStore.getState().draftContent).toBe("# Gemini rules");
   });
 });

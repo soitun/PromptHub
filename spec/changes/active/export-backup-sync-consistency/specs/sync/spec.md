@@ -17,6 +17,12 @@
   - When web `/api/import` ingests that ZIP
   - Then the embedded JSON is sufficient to restore the exported records and settings without depending on undocumented ZIP-only reconstruction rules
 
+- Scenario: Update dialog manual backup reuses desktop full backup contract
+  - Given a desktop user clicks the manual backup action from the update dialog
+  - When PromptHub prepares the pre-upgrade backup artifact
+  - Then it creates the same local upgrade snapshot as before
+  - And the user-facing exported backup uses the desktop full ZIP backup contract instead of the legacy JSON-only backup download
+
 - Scenario: Snapshot fields stay aligned across flows
   - Given a workspace contains media references, rules, skills, and `settingsUpdatedAt`
   - When the user exports a backup, uploads to self-hosted sync, or imports through web

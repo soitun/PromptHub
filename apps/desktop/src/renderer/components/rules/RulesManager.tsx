@@ -368,7 +368,10 @@ export function RulesManager() {
                             tabIndex={0}
                             aria-pressed={isSelected}
                             onClick={() => {
-                              if (isCurrent) return;
+                              if (isCurrent) {
+                                setSelectedVersionId(null);
+                                return;
+                              }
                               setSelectedVersionId((currentId) =>
                                 currentId === version.id ? null : version.id,
                               );
@@ -376,7 +379,10 @@ export function RulesManager() {
                             onKeyDown={(e) => {
                               if (e.key === "Enter" || e.key === " ") {
                                 e.preventDefault();
-                                if (isCurrent) return;
+                                if (isCurrent) {
+                                  setSelectedVersionId(null);
+                                  return;
+                                }
                                 setSelectedVersionId((currentId) =>
                                   currentId === version.id ? null : version.id,
                                 );
@@ -384,7 +390,7 @@ export function RulesManager() {
                             }}
                             className={`group relative w-full rounded-xl border px-3 py-3 text-left transition-all ${
                               isCurrent
-                                ? "cursor-default border-border bg-card/60 opacity-75"
+                                ? "cursor-pointer border-border bg-card/60 opacity-75 hover:border-border/80 hover:bg-muted/40"
                                 : isSelected
                                   ? "cursor-pointer border-primary/50 bg-primary/8 shadow-sm ring-1 ring-primary/20"
                                   : "cursor-pointer border-border bg-card/60 hover:border-border/80 hover:bg-muted/60"

@@ -47,6 +47,10 @@ export const IPC_CHANNELS = {
   SETTINGS_GET: "settings:get",
   SETTINGS_SET: "settings:set",
 
+  // CLI
+  CLI_STATUS: "cli:status",
+  CLI_INSTALL: "cli:install",
+
   // Rules
   RULES_LIST: "rules:list",
   RULES_SCAN: "rules:scan",

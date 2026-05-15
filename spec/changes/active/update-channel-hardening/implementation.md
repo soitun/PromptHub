@@ -12,6 +12,9 @@
 - Updated release policy and public docs so `0.5.5-beta.1` is documented as a historical beta reissue that restores a machine-readable prerelease marker without replacing `0.5.5` as the current stable release.
 - Replaced the shared version-helper imports in `src/main/updater.ts` and `src/renderer/stores/settings.store.ts` with relative paths after CI showed that the main-process Vite sub-build did not resolve the top-level `@` alias consistently.
 - Tightened the preview-only contract for `0.5.5-beta.3`: preview checks no longer treat stable releases as fallback candidates, user-facing locale copy now explains that returning to stable requires turning the preview channel off, and additional regression coverage was added for prerelease feed selection plus beta/stable SemVer ordering.
+- Tightened `apps/desktop/src/renderer/components/UpdateDialog.tsx` so the update UI now reuses the shared `Modal` shell, keeps release notes inside a bounded scroll area, shortens the `available` state copy to version-focused guidance, and reserves installation acknowledgement UI for the `downloaded` state.
+- Removed the misleading in-app install backup gate from Homebrew-managed `available` / `downloaded` flows and kept those paths focused on Homebrew / Releases guidance instead.
+- Extended `apps/desktop/tests/unit/components/update-dialog.test.tsx` to lock in the lighter download-stage backup copy and the Homebrew-specific available-update behavior.
 
 ## Verification
 
@@ -21,6 +24,9 @@
 - `pnpm --filter @prompthub/desktop test -- --run tests/unit/main/updater.test.ts tests/unit/main/updater-real-scenario.test.ts tests/unit/components/about-settings.test.tsx tests/unit/components/update-dialog.test.tsx tests/unit/components/renderer-i18n-smoke.test.tsx tests/integration/components/main-content-inline-edit.integration.test.tsx tests/integration/components/main-content-large-dataset.integration.test.tsx tests/unit/cli/run.test.ts`
 - `pnpm --filter @prompthub/desktop lint`
 - `pnpm --filter @prompthub/desktop typecheck`
+- `pnpm --filter @prompthub/desktop build`
+- `pnpm --filter @prompthub/desktop test -- tests/unit/components/update-dialog.test.tsx --run`
+- `pnpm --filter @prompthub/desktop lint`
 - `pnpm --filter @prompthub/desktop build`
 
 ## Synced Docs

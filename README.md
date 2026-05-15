@@ -75,7 +75,7 @@
 - [许可证](#license)
 - [支持](#support)
 - [赞助支持](#sponsor)
-- [QQ 交流群](#qq-group)
+- [社区交流](#community)
 
 ---
 
@@ -346,14 +346,18 @@ node apps/cli/out/prompthub.cjs skill list
 
 ### 常用全局参数
 
+- `--version|-v`：输出当前 CLI 版本
 - `--output json|table`：切换 JSON 或表格输出
 - `--data-dir /path/to/user-data`：显式指定 PromptHub 的 `userData` 目录
 - `--app-data-dir /path/to/app-data`：显式指定应用数据根目录
 
 ### 支持的资源命令
 
-- `prompt list|get|create|update|delete|search`
-- `skill list|get|install|scan|delete|remove`
+- `prompt list|get|duplicate|versions|create-version|delete-version|diff|rollback|use|copy|list-tags|rename-tag|delete-tag|create|update|delete|search`
+- `folder list|get|create|update|delete|reorder`
+- `rules list|scan|read|versions|version-read|version-restore|save|rewrite|add-project|remove-project|version-delete|export|import`
+- `workspace export|import`
+- `skill list|get|install|versions|create-version|rollback|delete-version|export|platforms|platform-status|install-md|uninstall-md|repo-files|repo-read|repo-write|repo-delete|repo-mkdir|repo-rename|sync-from-repo|scan-safety|scan|delete|remove`
 
 ### 说明
 
@@ -677,11 +681,24 @@ If PromptHub is helpful to your work, feel free to buy the author a coffee!
 
 ---
 
-<div id="qq-group"></div>
+<div id="community"></div>
 
-## QQ 交流群
+## 社区交流
 
-欢迎加入 PromptHub QQ 交流群，一起反馈问题、交流使用方式和讨论新功能。
+欢迎加入 PromptHub 社群，一起反馈问题、交流使用方式和讨论新功能。
+
+<div align="center">
+  <a href="https://discord.gg/zmfWguWFB">
+    <img src="https://img.shields.io/badge/Discord-Join%20PromptHub%20Community-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Join PromptHub Discord Community" />
+  </a>
+  <p><strong>推荐优先加入 Discord 社群，获取公告、交流支持与新版本动态</strong></p>
+</div>
+
+<br/>
+
+### QQ 交流群
+
+如果你更习惯 QQ，也欢迎加入 PromptHub QQ 交流群：
 
 - 群号：`704298939`
 

@@ -87,10 +87,21 @@ describe("UpdateDialog", () => {
     expect(
       screen.getByText("Manual backup is required before in-app upgrade"),
     ).toBeInTheDocument();
+    expect(screen.getByText("Release Notes")).toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        "Confirm the backup acknowledgement before continuing with the upgrade.",
+      ),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        "I have backed up the relevant data and understand the app will close during installation.",
+      ),
+    ).not.toBeInTheDocument();
 
     fireEvent.click(
       screen.getByRole("button", {
-        name: "Create Extra Backup",
+        name: "Create Full Backup",
       }),
     );
 
@@ -102,6 +113,48 @@ describe("UpdateDialog", () => {
     await waitFor(() => {
       expect(downloadButton).not.toBeDisabled();
     });
+  });
+
+  it("hides install backup gating for Homebrew-managed available updates", async () => {
+    installWindowMocks({
+      electron: {
+        updater: {
+          check: vi.fn().mockResolvedValue({ success: true }),
+          download: vi.fn().mockResolvedValue(undefined),
+          install: vi.fn().mockResolvedValue({ success: true }),
+          getVersion: vi.fn().mockResolvedValue("0.5.1"),
+          getPlatform: vi.fn().mockResolvedValue("darwin"),
+          getInstallSource: vi.fn().mockResolvedValue("homebrew"),
+          onStatus: vi.fn((callback: (status: UpdateStatus) => void) => {
+            callback(availableStatus);
+            return vi.fn();
+          }),
+        },
+      },
+    });
+
+    await act(async () => {
+      await renderWithI18n(
+        <UpdateDialog isOpen={true} onClose={vi.fn()} initialStatus={availableStatus} />,
+        { language: "en" },
+      );
+    });
+
+    expect(
+      screen.getByRole("button", {
+        name: "Open Releases",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", {
+        name: "Create Full Backup",
+      }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "This PromptHub build was installed via Homebrew. Please upgrade it with Homebrew instead of the in-app DMG updater.",
+      ),
+    ).toBeInTheDocument();
   });
 
   it("requires a current-version manual backup and acknowledgement before allowing install", async () => {
@@ -155,7 +208,7 @@ describe("UpdateDialog", () => {
 
     fireEvent.click(
       screen.getByRole("button", {
-        name: "Create Extra Backup",
+        name: "Create Full Backup",
       }),
     );
 

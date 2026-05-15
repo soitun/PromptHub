@@ -27,6 +27,7 @@ dist/
 build/
 dist-electron/
 release/
+*.tgz
 
 # ========================
 # Lock files (pnpm only)

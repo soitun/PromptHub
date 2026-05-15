@@ -61,3 +61,36 @@ Desktop background update polling must not force the UI back into a transient ch
 - Given PromptHub already detected an available update
 - When a scheduled background check runs again
 - Then the top bar indicator and update dialog do not start flickering between `available` and `checking`
+
+### Requirement: Update dialog content must stay readable within desktop viewport constraints
+
+Desktop update dialogs must keep long release notes and upgrade guidance inside a bounded scrollable content area instead of letting the modal overflow the window.
+
+#### Scenario: User opens an available update with long release notes
+
+- Given PromptHub has detected an available update with markdown release notes
+- When the user opens the update dialog
+- Then the dialog uses a bounded modal layout that fits within the current desktop viewport
+- And release notes scroll inside the content area instead of forcing the whole dialog to overflow
+
+### Requirement: Download-stage UI must not show install-only backup confirmation copy
+
+Desktop update dialogs must keep the `available` state focused on download guidance and reserve install acknowledgement UI for the `downloaded` state where installation can actually start.
+
+#### Scenario: User views an available update before downloading
+
+- Given PromptHub detected an available update that has not been downloaded yet
+- When the update dialog renders the `available` state
+- Then it may still expose the manual backup shortcut
+- But it does not require the installation acknowledgement checkbox or install-only warning copy yet
+
+### Requirement: Homebrew-managed updates must not show in-app install gating
+
+Desktop update dialogs must not show manual-backup install gates for Homebrew-managed builds when the user cannot complete the upgrade inside PromptHub.
+
+#### Scenario: Homebrew user sees an available update
+
+- Given PromptHub is running from a Homebrew-managed installation
+- And PromptHub detects an available update
+- When the update dialog renders the `available` state
+- Then it guides the user to Homebrew / Releases instead of showing the in-app installation backup gate

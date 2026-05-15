@@ -190,6 +190,26 @@ export function createWindowElectronMock(overrides?: DeepPartial<MockRecord>) {
         onStatus: vi.fn(() => vi.fn()),
         offStatus: vi.fn(),
       },
+      cli: {
+        getStatus: vi.fn().mockResolvedValue({
+          installed: false,
+          command: "prompthub",
+          version: null,
+          packageManager: "pnpm",
+          packageManagerVersion: "9.15.0",
+          releaseTag: "v0.5.6-beta.2",
+          installCommand:
+            "pnpm add -g https://github.com/legeling/PromptHub/releases/download/v0.5.6-beta.2/prompthub-cli-0.5.6-beta.2.tgz",
+          installSource:
+            "https://github.com/legeling/PromptHub/releases/download/v0.5.6-beta.2/prompthub-cli-0.5.6-beta.2.tgz",
+        }),
+        install: vi.fn().mockResolvedValue({
+          success: true,
+          method: "pnpm",
+          command:
+            "pnpm add -g https://github.com/legeling/PromptHub/releases/download/v0.5.6-beta.2/prompthub-cli-0.5.6-beta.2.tgz",
+        }),
+      },
       selectImage: vi.fn(),
       saveImage: vi.fn(),
       saveImageBuffer: vi.fn(),

@@ -1,5 +1,4 @@
 import {
-  downloadBackup,
   downloadSelectiveExport,
 } from "./database-backup";
 import {
@@ -104,7 +103,7 @@ export async function runPreUpgradeBackup(
   currentVersion: string,
 ): Promise<ManualBackupStatus> {
   await createSnapshotIfPossible(currentVersion);
-  await downloadBackup();
+  await downloadExportFile();
   return recordManualBackup(currentVersion);
 }
 

@@ -12,6 +12,7 @@ const mainExternalModules = new Set([
 
 const aliases = {
   "@": path.resolve(__dirname, "src"),
+  "@prompthub/core": path.resolve(__dirname, "../../packages/core/src"),
   "@shared": path.resolve(__dirname, "../../packages/shared"),
   "@prompthub/shared": path.resolve(__dirname, "../../packages/shared"),
   "@prompthub/db": path.resolve(__dirname, "../../packages/db/src"),

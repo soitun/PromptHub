@@ -74,6 +74,9 @@ function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+let latestLoadFilesRequestId = 0;
+let latestSelectRuleRequestId = 0;
+
 export const useRulesStore = create<RulesState>((set, get) => ({
   files: [],
   selectedRuleId: null,
@@ -93,9 +96,13 @@ export const useRulesStore = create<RulesState>((set, get) => ({
       return;
     }
 
+    const requestId = ++latestLoadFilesRequestId;
     set({ isLoading: true, error: null });
     try {
       const files = options?.force ? await window.api.rules.scan() : await window.api.rules.list();
+      if (requestId !== latestLoadFilesRequestId) {
+        return;
+      }
       const selectedRuleId = get().selectedRuleId ?? files[0]?.id ?? null;
       set({ files, selectedRuleId, isLoading: false, hasLoadedFiles: true });
 
@@ -110,7 +117,9 @@ export const useRulesStore = create<RulesState>((set, get) => ({
         set({ currentFile: null, draftContent: "" });
       }
     } catch (error) {
-      set({ isLoading: false, error: getErrorMessage(error) });
+      if (requestId === latestLoadFilesRequestId) {
+        set({ isLoading: false, error: getErrorMessage(error) });
+      }
     }
   },
 
@@ -120,16 +129,22 @@ export const useRulesStore = create<RulesState>((set, get) => ({
       return;
     }
 
+    const requestId = ++latestSelectRuleRequestId;
     set({ selectedRuleId: ruleId, isLoading: true, error: null, aiSummary: null });
     try {
       const file = await window.api.rules.read(ruleId);
+      if (requestId !== latestSelectRuleRequestId || get().selectedRuleId !== ruleId) {
+        return;
+      }
       set({
         currentFile: file,
         draftContent: file.content,
         isLoading: false,
       });
     } catch (error) {
-      set({ isLoading: false, error: getErrorMessage(error) });
+      if (requestId === latestSelectRuleRequestId && get().selectedRuleId === ruleId) {
+        set({ isLoading: false, error: getErrorMessage(error) });
+      }
     }
   },
 
@@ -152,6 +167,7 @@ export const useRulesStore = create<RulesState>((set, get) => ({
         file.id === updated.id ? { ...file, exists: true, path: updated.path } : file,
       );
       set({
+        selectedRuleId: updated.id,
         currentFile: updated,
         files: nextFiles,
         draftContent: updated.content,

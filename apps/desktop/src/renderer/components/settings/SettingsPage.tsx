@@ -16,6 +16,7 @@ import {
   SearchIcon,
   CloudIcon,
   DownloadIcon,
+  TerminalSquareIcon,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { GeneralSettings } from "./GeneralSettings";
@@ -24,6 +25,7 @@ import { LanguageSettings } from "./LanguageSettings";
 import { SecuritySettings } from "./SecuritySettings";
 import { ShortcutsSettings } from "./ShortcutsSettings";
 import { AboutSettings } from "./AboutSettings";
+import { CLISettings } from "./CLISettings";
 import { DataSettings } from "./DataSettings";
 import type { DataSettingsSubsectionId } from "./DataSettings";
 import { AISettingsPrototype } from "./AISettingsPrototype";
@@ -47,6 +49,7 @@ const DESKTOP_SETTINGS_MENU = [
   { id: "ai", labelKey: "settings.ai", icon: BrainIcon },
   { id: "shortcuts", labelKey: "settings.shortcuts", icon: KeyboardIcon },
   { id: "security", labelKey: "settings.security", icon: KeyIcon },
+  { id: "cli", labelKey: "settings.cliTitle", icon: TerminalSquareIcon },
   { id: "about", labelKey: "settings.about", icon: InfoIcon },
 ];
 
@@ -168,6 +171,8 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
         return <ShortcutsSettings />;
       case "about":
         return <AboutSettings />;
+      case "cli":
+        return <CLISettings />;
     }
   };
   const activeSubmenu =

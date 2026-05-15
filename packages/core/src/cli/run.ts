@@ -3,6 +3,9 @@ import path from "path";
 
 import {
   closeDatabase,
+  FolderDB,
+  getDatabase,
+  isDatabaseEmpty,
   initDatabase,
   PromptDB,
   SkillDB,
@@ -11,17 +14,33 @@ import {
   configureRuntimePaths,
   resetRuntimePaths,
 } from "../runtime-paths";
+import { rewriteRuleWithAi } from "../rules-rewrite";
+import { coreRulesWorkspaceService } from "../rules-workspace";
 import {
   coreCliSkillService,
   type CliSkillService,
 } from "./skill-cli-service";
+import type { SkillPlatform } from "@prompthub/shared/constants/platforms";
 import type {
+  CreateFolderDTO,
+  Folder,
   CreatePromptDTO,
   Prompt,
+  PromptVersion,
+  RuleRewriteRequest,
+  RuleBackupRecord,
+  RuleFileDescriptor,
+  RuleFileId,
+  RuleVersionSnapshot,
   SearchQuery,
   Skill,
+  SkillFileSnapshot,
+  SkillSafetyReport,
+  UpdateFolderDTO,
   UpdatePromptDTO,
+  Variable,
 } from "@prompthub/shared/types";
+import { isRuleFileId } from "@prompthub/shared/types";
 
 type CliWriter = (message: string) => void;
 type OutputFormat = "json" | "table";
@@ -35,7 +54,43 @@ const EXIT_CODES = {
   INTERNAL: 10,
 } as const;
 
+const CLI_VERSION = "0.5.6-beta.2";
+
 type ExitCode = (typeof EXIT_CODES)[keyof typeof EXIT_CODES];
+
+type PromptDiffField =
+  | "systemPrompt"
+  | "systemPromptEn"
+  | "userPrompt"
+  | "userPromptEn"
+  | "variables"
+  | "aiResponse";
+
+interface PromptDiffResult {
+  from: PromptVersion;
+  to: PromptVersion;
+  fields: Array<{
+    field: PromptDiffField;
+    from: string;
+    to: string;
+  }>;
+}
+
+interface CliWorkspaceBundle {
+  kind: "prompthub-cli-workspace";
+  version: 1;
+  exportedAt: string;
+  prompts: Prompt[];
+  folders: Folder[];
+  versions: PromptVersion[];
+}
+
+interface CliRulesBundle {
+  kind: "prompthub-cli-rules";
+  version: 1;
+  exportedAt: string;
+  records: RuleBackupRecord[];
+}
 
 export interface CliIO {
   stdout: CliWriter;
@@ -56,6 +111,11 @@ interface CliContext {
   io: CliIO;
   output: OutputFormat;
   skills: CliSkillService;
+}
+
+interface SkillIdentifierResolution {
+  identifier: string;
+  skill: Skill;
 }
 
 class CliError extends Error {
@@ -120,23 +180,29 @@ const ROOT_HELP = [
   "",
   "资源:",
   "  prompt    管理 prompts",
+  "  folder    管理 folders",
+  "  rules     管理 rules",
+  "  workspace 管理工作区导入导出",
   "  skill     管理 skills",
   "",
   "全局参数:",
   "  --data-dir <dir>        指定 PromptHub userData 目录",
   "  --app-data-dir <dir>    指定 appData 根目录（读取 data-path.json 时使用）",
   "  --output, -o <format>   输出格式：json | table，默认 json",
+  "  --version, -v           显示 CLI 版本",
   "  --help, -h              显示帮助",
   "",
   "示例:",
   "  prompthub prompt list",
   "  prompthub --output table prompt search design --tags ui,landing",
   '  prompthub prompt create --title "Landing Hero" --user-prompt-file ./prompt.md',
+  "  prompthub rules list",
   "  prompthub skill install ~/.claude/skills/my-skill",
   "  prompthub skill delete my-skill --purge-managed-repo",
   "",
   "更多帮助:",
   "  prompthub prompt --help",
+  "  prompthub rules --help",
   "  prompthub skill --help",
 ].join("\n");
 
@@ -146,6 +212,17 @@ const PROMPT_HELP = [
   "用法:",
   "  prompthub prompt list",
   "  prompthub prompt get <id>",
+  "  prompthub prompt duplicate <id>",
+  "  prompthub prompt versions <id>",
+  "  prompthub prompt create-version <id> [--note <text>]",
+  "  prompthub prompt delete-version <id> <version-id>",
+  "  prompthub prompt diff <id> --from <n> --to <n>",
+  "  prompthub prompt rollback <id> --version <n>",
+  "  prompthub prompt use <id>",
+  "  prompthub prompt copy <id> [--var name=value]...",
+  "  prompthub prompt list-tags",
+  "  prompthub prompt rename-tag <old> <new>",
+  "  prompthub prompt delete-tag <tag>",
   "  prompthub prompt create --title <title> --user-prompt <text>",
   "  prompthub prompt update <id> [fields...]",
   "  prompthub prompt delete <id>",
@@ -153,21 +230,43 @@ const PROMPT_HELP = [
   "",
   "常用参数:",
   "  --title <text>",
+  "  --visibility private|shared",
   "  --description <text>",
   "  --user-prompt <text> | --user-prompt-file <file>",
+  "  --user-prompt-en <text> | --user-prompt-en-file <file>",
   "  --system-prompt <text> | --system-prompt-file <file>",
+  "  --system-prompt-en <text> | --system-prompt-en-file <file>",
+  "  --variables <json> | --variables-file <file>",
   "  --tags a,b",
+  "  --images a,b",
+  "  --videos a,b",
   "  --folder-id <id>",
   "  --prompt-type text|image|video",
   "  --favorite / --unfavorite",
   "  --pinned / --unpinned",
+  "  --scope private|shared|all",
+  "  --usage-count <n>",
+  "  --last-ai-response <text> | --last-ai-response-file <file>",
   "  --sort-by title|createdAt|updatedAt|usageCount",
   "  --sort-order asc|desc",
   "  --limit <n> --offset <n>",
+  "  --version <n>           用于 rollback 指定目标版本",
+  "  --from <n> / --to <n>   用于 diff 指定版本区间",
+  "  --note <text>           用于 create-version 添加版本备注",
   "",
   "示例:",
   "  prompthub prompt list",
   "  prompthub prompt get 2b8d...",
+  "  prompthub prompt duplicate 2b8d...",
+  "  prompthub prompt versions 2b8d...",
+  "  prompthub prompt create-version 2b8d... --note \"Before refactor\"",
+  "  prompthub prompt delete-version 2b8d... 91f1...",
+  "  prompthub prompt diff 2b8d... --from 1 --to 3",
+  "  prompthub prompt rollback 2b8d... --version 3",
+  "  prompthub prompt use 2b8d...",
+  "  prompthub prompt copy 2b8d... --var tone=direct --var audience=devs",
+  "  prompthub prompt list-tags",
+  "  prompthub prompt rename-tag seo marketing",
   '  prompthub prompt create --title "SEO Blog" --user-prompt-file ./seo.md --tags writing,seo',
   '  prompthub prompt update 2b8d... --favorite --title "SEO Blog v2"',
   "  prompthub --output table prompt search SEO --favorite",
@@ -181,6 +280,23 @@ const SKILL_HELP = [
   "  prompthub skill get <id|name>",
   "  prompthub skill install <github-url|local-dir|SKILL.md|json>",
   "  prompthub skill scan [custom-path...]",
+  "  prompthub skill versions <id|name>",
+  "  prompthub skill create-version <id|name> [--note <text>]",
+  "  prompthub skill rollback <id|name> --version <n>",
+  "  prompthub skill delete-version <id|name> <version-id>",
+  "  prompthub skill export <id|name> --format skillmd|json",
+  "  prompthub skill platforms",
+  "  prompthub skill platform-status <id|name>",
+  "  prompthub skill install-md <id|name> --platform <platform-id>",
+  "  prompthub skill uninstall-md <id|name> --platform <platform-id>",
+  "  prompthub skill repo-files <id|name>",
+  "  prompthub skill repo-read <id|name> --path <relative-path>",
+  "  prompthub skill repo-write <id|name> --path <relative-path> --content <text>",
+  "  prompthub skill repo-delete <id|name> --path <relative-path>",
+  "  prompthub skill repo-mkdir <id|name> --path <relative-path>",
+  "  prompthub skill repo-rename <id|name> --from <old> --to <new>",
+  "  prompthub skill sync-from-repo <id|name>",
+  "  prompthub skill scan-safety <id|name>",
   "  prompthub skill delete <id|name> [options]",
   "  prompthub skill remove <id|name> [options]",
   "",
@@ -194,14 +310,115 @@ const SKILL_HELP = [
   "",
   "安装参数:",
   "  --name <text>             本地 SKILL.md/目录缺少 frontmatter name 时手动指定",
+  "  --format skillmd|json     用于 export 指定导出格式",
+  "  --platform <platform-id>  指定目标平台",
+  "  --path <relative-path>    指定 repo 内相对路径",
+  "  --from <old> --to <new>   用于 repo-rename",
+  "  --content <text> | --content-file <file>",
+  "  --note <text>             用于 create-version 添加版本备注",
+  "  --version <n>             用于 rollback 指定目标版本",
   "",
   "示例:",
   "  prompthub skill list",
   "  prompthub skill install https://github.com/foo/bar",
   "  prompthub skill install ~/.claude/skills/writer --name writer",
+  "  prompthub skill versions writer",
+  "  prompthub skill export writer --format skillmd",
+  "  prompthub skill platform-status writer",
   "  prompthub skill delete writer --purge-managed-repo",
   "  prompthub skill remove writer --keep-platform-installs",
   "  prompthub --output table skill scan ~/.claude/skills",
+].join("\n");
+
+const FOLDER_HELP = [
+  "Folder 命令",
+  "",
+  "用法:",
+  "  prompthub folder list",
+  "  prompthub folder get <id>",
+  "  prompthub folder create --name <name>",
+  "  prompthub folder update <id> [fields...]",
+  "  prompthub folder delete <id>",
+  "  prompthub folder reorder --ids <id1,id2,...>",
+  "",
+  "常用参数:",
+  "  --name <text>",
+  "  --icon <emoji>",
+  "  --parent-id <id>",
+  "  --order <n>",
+  "  --private / --public",
+  "  --ids a,b,c",
+  "",
+  "示例:",
+  "  prompthub folder list",
+  "  prompthub folder create --name Writing --icon ✍️",
+  "  prompthub folder update 2b8d... --name Research --parent-id root-folder",
+  "  prompthub folder reorder --ids folder-a,folder-b,folder-c",
+].join("\n");
+
+const WORKSPACE_HELP = [
+  "Workspace 命令",
+  "",
+  "用法:",
+  "  prompthub workspace export --file <path>",
+  "  prompthub workspace import --file <path> [--force-clear]",
+  "",
+  "说明:",
+  "  当前仅覆盖 prompts、folders、versions 三类核心数据。",
+  "  import 默认要求目标数据库为空；使用 --force-clear 才会先清空现有核心数据。",
+  "",
+  "参数:",
+  "  --file <path>",
+  "  --force-clear",
+  "",
+  "示例:",
+  "  prompthub workspace export --file ./prompthub-workspace.json",
+  "  prompthub workspace import --file ./prompthub-workspace.json --force-clear",
+].join("\n");
+
+const RULES_HELP = [
+  "Rules 命令",
+  "",
+  "用法:",
+  "  prompthub rules list",
+  "  prompthub rules scan",
+  "  prompthub rules read <rule-id>",
+  "  prompthub rules versions <rule-id>",
+  "  prompthub rules version-read <rule-id> <version-id>",
+  "  prompthub rules version-restore <rule-id> <version-id>",
+  "  prompthub rules save <rule-id> --content <text>",
+  "  prompthub rules rewrite <rule-id> --instruction <text> --api-key <key> --api-url <url> --model <model>",
+  "  prompthub rules add-project --name <name> --root-path <path> [--id <id>]",
+  "  prompthub rules remove-project <project-id>",
+  "  prompthub rules version-delete <rule-id> <version-id>",
+  "  prompthub rules export --file <path>",
+  "  prompthub rules import --file <path> [--replace]",
+  "",
+  "常用参数:",
+  "  --content <text> | --content-file <file>",
+  "  --instruction <text> | --instruction-file <file>",
+  "  --api-key <text>",
+  "  --api-url <url>",
+  "  --model <text>",
+  "  --provider <text>",
+  "  --api-protocol openai|gemini|anthropic",
+  "  --name <text>",
+  "  --root-path <path>",
+  "  --id <text>",
+  "  --file <path>",
+  "  --replace",
+  "",
+  "示例:",
+  "  prompthub rules list",
+  "  prompthub rules scan",
+  "  prompthub rules versions claude-global",
+  "  prompthub rules version-read claude-global abc123",
+  "  prompthub rules version-restore claude-global abc123",
+  '  prompthub rules save claude-global --content "# Team Claude rules"',
+  '  prompthub rules rewrite claude-global --instruction "Tighten the tone" --api-key "$OPENAI_API_KEY" --api-url https://api.openai.com/v1 --model gpt-4o-mini',
+  '  prompthub rules add-project --name "Docs Site" --root-path ./docs-site',
+  "  prompthub rules remove-project docs-site",
+  "  prompthub rules export --file ./prompthub-rules.json",
 ].join("\n");
 
 function formatCell(value: unknown): string {
@@ -310,7 +527,12 @@ function takeOption(args: string[], name: string): string | undefined {
   if (index === -1) {
     return undefined;
   }
-  if (index === args.length - 1 || args[index + 1].startsWith("--")) {
+  const nextValue = args[index + 1];
+  const looksLikeOption =
+    nextValue?.startsWith("--") &&
+    !nextValue.includes("\n") &&
+    !nextValue.includes("\r");
+  if (index === args.length - 1 || looksLikeOption) {
     throw new CliError("USAGE_ERROR", `${name} 需要一个值`, EXIT_CODES.USAGE);
   }
   const [value] = args.splice(index, 2).slice(1);
@@ -349,6 +571,19 @@ function requirePositional(
   return value;
 }
 
+function requireRuleFileId(args: string[], index: number, label: string): RuleFileId {
+  const value = requirePositional(args, index, label);
+  if (!isRuleFileId(value)) {
+    throw new CliError(
+      "USAGE_ERROR",
+      `无效的 rule id: ${value}`,
+      EXIT_CODES.USAGE,
+    );
+  }
+
+  return value;
+}
+
 function parseCsv(value?: string): string[] | undefined {
   if (!value) {
     return undefined;
@@ -358,6 +593,21 @@ function parseCsv(value?: string): string[] | undefined {
     .map((item) => item.trim())
     .filter(Boolean);
   return items.length > 0 ? items : undefined;
+}
+
+function parseRepeatedOption(
+  args: string[],
+  name: string,
+): string[] {
+  const values: string[] = [];
+  while (true) {
+    const value = takeOption(args, name);
+    if (value === undefined) {
+      break;
+    }
+    values.push(value);
+  }
+  return values;
 }
 
 function parseNumberOption(
@@ -376,6 +626,84 @@ function parseNumberOption(
     );
   }
   return parsed;
+}
+
+function parsePositiveNumberOption(
+  value: string | undefined,
+  label: string,
+): number | undefined {
+  const parsed = parseNumberOption(value, label);
+  if (parsed !== undefined && parsed < 1) {
+    throw new CliError(
+      "USAGE_ERROR",
+      `${label} 必须是正整数`,
+      EXIT_CODES.USAGE,
+    );
+  }
+  return parsed;
+}
+
+function parsePromptVisibilityOption(
+  value: string | undefined,
+  label: string,
+): "private" | "shared" | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (value !== "private" && value !== "shared") {
+    throw new CliError(
+      "USAGE_ERROR",
+      `${label} 必须是 private|shared`,
+      EXIT_CODES.USAGE,
+    );
+  }
+  return value;
+}
+
+function parsePromptScopeOption(
+  value: string | undefined,
+): SearchQuery["scope"] | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (value !== "private" && value !== "shared" && value !== "all") {
+    throw new CliError(
+      "USAGE_ERROR",
+      "--scope 必须是 private|shared|all",
+      EXIT_CODES.USAGE,
+    );
+  }
+  return value;
+}
+
+function parsePromptVariablesMap(args: string[]): Record<string, string> {
+  const entries = parseRepeatedOption(args, "--var");
+  const result: Record<string, string> = {};
+
+  for (const entry of entries) {
+    const separatorIndex = entry.indexOf("=");
+    if (separatorIndex <= 0) {
+      throw new CliError(
+        "USAGE_ERROR",
+        "--var 需要 name=value 格式",
+        EXIT_CODES.USAGE,
+      );
+    }
+
+    const name = entry.slice(0, separatorIndex).trim();
+    const value = entry.slice(separatorIndex + 1);
+    if (!name) {
+      throw new CliError(
+        "USAGE_ERROR",
+        "--var 需要非空变量名",
+        EXIT_CODES.USAGE,
+      );
+    }
+
+    result[name] = value;
+  }
+
+  return result;
 }
 
 function readTextOption(
@@ -410,8 +738,249 @@ function readTextOption(
   return directValue;
 }
 
+function readJsonOption(
+  args: string[],
+  optionName: string,
+  fileOptionName: string,
+): unknown {
+  const raw = readTextOption(args, optionName, fileOptionName);
+  if (raw === undefined) {
+    return undefined;
+  }
+
+  try {
+    return JSON.parse(raw);
+  } catch (error) {
+    throw new CliError(
+      "USAGE_ERROR",
+      `${optionName} / ${fileOptionName} 需要合法 JSON`,
+      EXIT_CODES.USAGE,
+      { cause: error instanceof Error ? error.message : String(error) },
+    );
+  }
+}
+
+function readRequiredTextFile(filePath: string): string {
+  try {
+    return fs.readFileSync(path.resolve(filePath), "utf8");
+  } catch (error) {
+    throw new CliError(
+      "IO_ERROR",
+      `读取文件失败: ${filePath}`,
+      EXIT_CODES.IO,
+      { cause: error instanceof Error ? error.message : String(error) },
+    );
+  }
+}
+
+function writeRequiredTextFile(filePath: string, content: string): void {
+  try {
+    const resolved = path.resolve(filePath);
+    fs.mkdirSync(path.dirname(resolved), { recursive: true });
+    fs.writeFileSync(resolved, content, "utf8");
+  } catch (error) {
+    throw new CliError(
+      "IO_ERROR",
+      `写入文件失败: ${filePath}`,
+      EXIT_CODES.IO,
+      { cause: error instanceof Error ? error.message : String(error) },
+    );
+  }
+}
+
+function parseWorkspaceBundle(text: string): CliWorkspaceBundle {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch (error) {
+    throw new CliError(
+      "USAGE_ERROR",
+      "workspace import 需要合法 JSON 文件",
+      EXIT_CODES.USAGE,
+      { cause: error instanceof Error ? error.message : String(error) },
+    );
+  }
+
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    throw new CliError(
+      "USAGE_ERROR",
+      "workspace import 文件格式不正确",
+      EXIT_CODES.USAGE,
+    );
+  }
+
+  const record = parsed as Record<string, unknown>;
+  if (
+    record.kind !== "prompthub-cli-workspace" ||
+    record.version !== 1 ||
+    !Array.isArray(record.prompts) ||
+    !Array.isArray(record.folders) ||
+    !Array.isArray(record.versions)
+  ) {
+    throw new CliError(
+      "USAGE_ERROR",
+      "workspace import 文件格式不受支持",
+      EXIT_CODES.USAGE,
+    );
+  }
+
+  return record as unknown as CliWorkspaceBundle;
+}
+
+function parseRulesBundle(text: string): CliRulesBundle {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch (error) {
+    throw new CliError(
+      "USAGE_ERROR",
+      "rules import 需要合法 JSON 文件",
+      EXIT_CODES.USAGE,
+      { cause: error instanceof Error ? error.message : String(error) },
+    );
+  }
+
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    throw new CliError(
+      "USAGE_ERROR",
+      "rules import 文件格式不正确",
+      EXIT_CODES.USAGE,
+    );
+  }
+
+  const record = parsed as Record<string, unknown>;
+  if (
+    record.kind !== "prompthub-cli-rules" ||
+    record.version !== 1 ||
+    !Array.isArray(record.records)
+  ) {
+    throw new CliError(
+      "USAGE_ERROR",
+      "rules import 文件格式不受支持",
+      EXIT_CODES.USAGE,
+    );
+  }
+
+  return record as unknown as CliRulesBundle;
+}
+
+function parseVariableType(
+  value: unknown,
+  label: string,
+): Variable["type"] {
+  if (
+    value === "text" ||
+    value === "textarea" ||
+    value === "number" ||
+    value === "select"
+  ) {
+    return value;
+  }
+
+  throw new CliError(
+    "USAGE_ERROR",
+    `${label}.type 必须是 text|textarea|number|select`,
+    EXIT_CODES.USAGE,
+  );
+}
+
+function parseOptionalStringValue(
+  value: unknown,
+  label: string,
+): string | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (typeof value !== "string") {
+    throw new CliError(
+      "USAGE_ERROR",
+      `${label} 必须是字符串`,
+      EXIT_CODES.USAGE,
+    );
+  }
+  return value;
+}
+
+function parseOptionalStringArrayValue(
+  value: unknown,
+  label: string,
+): string[] | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (!Array.isArray(value) || value.some((item) => typeof item !== "string")) {
+    throw new CliError(
+      "USAGE_ERROR",
+      `${label} 必须是字符串数组`,
+      EXIT_CODES.USAGE,
+    );
+  }
+  return value;
+}
+
+function parseVariablesOption(args: string[]): Variable[] | undefined {
+  const value = readJsonOption(args, "--variables", "--variables-file");
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (!Array.isArray(value)) {
+    throw new CliError(
+      "USAGE_ERROR",
+      "--variables / --variables-file 必须是 JSON 数组",
+      EXIT_CODES.USAGE,
+    );
+  }
+
+  return value.map((item, index) => {
+    if (typeof item !== "object" || item === null || Array.isArray(item)) {
+      throw new CliError(
+        "USAGE_ERROR",
+        `variables[${index}] 必须是对象`,
+        EXIT_CODES.USAGE,
+      );
+    }
+
+    const record = item as Record<string, unknown>;
+    const name = parseOptionalStringValue(record.name, `variables[${index}].name`);
+    if (!name?.trim()) {
+      throw new CliError(
+        "USAGE_ERROR",
+        `variables[${index}].name 不能为空`,
+        EXIT_CODES.USAGE,
+      );
+    }
+    if (typeof record.required !== "boolean") {
+      throw new CliError(
+        "USAGE_ERROR",
+        `variables[${index}].required 必须是布尔值`,
+        EXIT_CODES.USAGE,
+      );
+    }
+
+    return {
+      name,
+      type: parseVariableType(record.type, `variables[${index}]`),
+      label: parseOptionalStringValue(record.label, `variables[${index}].label`),
+      defaultValue: parseOptionalStringValue(
+        record.defaultValue,
+        `variables[${index}].defaultValue`,
+      ),
+      options: parseOptionalStringArrayValue(
+        record.options,
+        `variables[${index}].options`,
+      ),
+      required: record.required,
+    };
+  });
+}
+
 function resolvePromptCreateArgs(args: string[]): CreatePromptDTO {
   const title = takeOption(args, "--title");
+  const visibility = parsePromptVisibilityOption(
+    takeOption(args, "--visibility"),
+    "--visibility",
+  );
   const description = takeOption(args, "--description");
   const promptType = takeOption(args, "--prompt-type") as
     | "text"
@@ -422,15 +991,28 @@ function resolvePromptCreateArgs(args: string[]): CreatePromptDTO {
   const source = takeOption(args, "--source");
   const notes = takeOption(args, "--notes");
   const tags = parseCsv(takeOption(args, "--tags"));
+  const images = parseCsv(takeOption(args, "--images"));
+  const videos = parseCsv(takeOption(args, "--videos"));
+  const variables = parseVariablesOption(args);
   const systemPrompt = readTextOption(
     args,
     "--system-prompt",
     "--system-prompt-file",
   );
+  const systemPromptEn = readTextOption(
+    args,
+    "--system-prompt-en",
+    "--system-prompt-en-file",
+  );
   const userPrompt = readTextOption(
     args,
     "--user-prompt",
     "--user-prompt-file",
+  );
+  const userPromptEn = readTextOption(
+    args,
+    "--user-prompt-en",
+    "--user-prompt-en-file",
   );
 
   ensureNoUnknownOptions(args);
@@ -451,6 +1033,7 @@ function resolvePromptCreateArgs(args: string[]): CreatePromptDTO {
   }
 
   return {
+    visibility,
     title: title.trim(),
     description,
     promptType,
@@ -458,13 +1041,22 @@ function resolvePromptCreateArgs(args: string[]): CreatePromptDTO {
     source,
     notes,
     tags,
+    images,
+    videos,
+    variables,
     systemPrompt,
+    systemPromptEn,
     userPrompt,
+    userPromptEn,
   };
 }
 
 function resolvePromptUpdateArgs(args: string[]): UpdatePromptDTO {
   const title = takeOption(args, "--title");
+  const visibility = parsePromptVisibilityOption(
+    takeOption(args, "--visibility"),
+    "--visibility",
+  );
   const description = takeOption(args, "--description");
   const promptType = takeOption(args, "--prompt-type") as
     | "text"
@@ -475,15 +1067,37 @@ function resolvePromptUpdateArgs(args: string[]): UpdatePromptDTO {
   const source = takeOption(args, "--source");
   const notes = takeOption(args, "--notes");
   const tags = parseCsv(takeOption(args, "--tags"));
+  const images = parseCsv(takeOption(args, "--images"));
+  const videos = parseCsv(takeOption(args, "--videos"));
+  const variables = parseVariablesOption(args);
   const systemPrompt = readTextOption(
     args,
     "--system-prompt",
     "--system-prompt-file",
   );
+  const systemPromptEn = readTextOption(
+    args,
+    "--system-prompt-en",
+    "--system-prompt-en-file",
+  );
   const userPrompt = readTextOption(
     args,
     "--user-prompt",
     "--user-prompt-file",
+  );
+  const userPromptEn = readTextOption(
+    args,
+    "--user-prompt-en",
+    "--user-prompt-en-file",
+  );
+  const usageCount = parseNumberOption(
+    takeOption(args, "--usage-count"),
+    "--usage-count",
+  );
+  const lastAiResponse = readTextOption(
+    args,
+    "--last-ai-response",
+    "--last-ai-response-file",
   );
   const favorite = takeFlag(args, "--favorite")
     ? true
@@ -499,6 +1113,7 @@ function resolvePromptUpdateArgs(args: string[]): UpdatePromptDTO {
   ensureNoUnknownOptions(args);
 
   const data: UpdatePromptDTO = {
+    ...(visibility !== undefined && { visibility }),
     ...(title !== undefined && { title }),
     ...(description !== undefined && { description }),
     ...(promptType !== undefined && { promptType }),
@@ -506,10 +1121,17 @@ function resolvePromptUpdateArgs(args: string[]): UpdatePromptDTO {
     ...(source !== undefined && { source }),
     ...(notes !== undefined && { notes }),
     ...(tags !== undefined && { tags }),
+    ...(images !== undefined && { images }),
+    ...(videos !== undefined && { videos }),
+    ...(variables !== undefined && { variables }),
     ...(systemPrompt !== undefined && { systemPrompt }),
+    ...(systemPromptEn !== undefined && { systemPromptEn }),
     ...(userPrompt !== undefined && { userPrompt }),
+    ...(userPromptEn !== undefined && { userPromptEn }),
     ...(favorite !== undefined && { isFavorite: favorite }),
     ...(pinned !== undefined && { isPinned: pinned }),
+    ...(usageCount !== undefined && { usageCount }),
+    ...(lastAiResponse !== undefined && { lastAiResponse }),
   };
 
   if (Object.keys(data).length === 0) {
@@ -526,6 +1148,7 @@ function resolvePromptUpdateArgs(args: string[]): UpdatePromptDTO {
 function resolvePromptSearchArgs(args: string[]): SearchQuery {
   const keyword =
     args[0] && !args[0].startsWith("--") ? args.shift() : undefined;
+  const scope = parsePromptScopeOption(takeOption(args, "--scope"));
   const folderId = takeOption(args, "--folder-id");
   const tags = parseCsv(takeOption(args, "--tags"));
   const sortBy = takeOption(args, "--sort-by") as SearchQuery["sortBy"];
@@ -544,6 +1167,7 @@ function resolvePromptSearchArgs(args: string[]): SearchQuery {
   ensureNoUnknownOptions(args);
 
   return {
+    scope,
     keyword,
     folderId,
     tags,
@@ -559,6 +1183,239 @@ function resolveSkill(skillDb: SkillDB, identifier: string) {
   return skillDb.getById(identifier) ?? skillDb.getByName(identifier);
 }
 
+function parseFolderIdsOption(args: string[]): string[] {
+  const ids = parseCsv(takeOption(args, "--ids"));
+  ensureNoUnknownOptions(args);
+
+  if (!ids || ids.length === 0) {
+    throw new CliError(
+      "USAGE_ERROR",
+      "folder reorder 需要 --ids",
+      EXIT_CODES.USAGE,
+    );
+  }
+
+  return ids;
+}
+
+function resolveFolderCreateArgs(args: string[]): CreateFolderDTO {
+  const name = takeOption(args, "--name");
+  const icon = takeOption(args, "--icon");
+  const parentId = takeOption(args, "--parent-id");
+  const isPrivate = takeFlag(args, "--private")
+    ? true
+    : takeFlag(args, "--public")
+      ? false
+      : undefined;
+  ensureNoUnknownOptions(args);
+
+  if (!name?.trim()) {
+    throw new CliError(
+      "USAGE_ERROR",
+      "folder create 需要 --name",
+      EXIT_CODES.USAGE,
+    );
+  }
+
+  return {
+    name: name.trim(),
+    icon,
+    parentId,
+    isPrivate,
+  };
+}
+
+function resolveFolderUpdateArgs(args: string[]): UpdateFolderDTO {
+  const name = takeOption(args, "--name");
+  const icon = takeOption(args, "--icon");
+  const parentId = takeOption(args, "--parent-id");
+  const order = parseNumberOption(takeOption(args, "--order"), "--order");
+  const isPrivate = takeFlag(args, "--private")
+    ? true
+    : takeFlag(args, "--public")
+      ? false
+      : undefined;
+  ensureNoUnknownOptions(args);
+
+  const data: UpdateFolderDTO = {
+    ...(name !== undefined && { name }),
+    ...(icon !== undefined && { icon }),
+    ...(parentId !== undefined && { parentId }),
+    ...(order !== undefined && { order }),
+    ...(isPrivate !== undefined && { isPrivate }),
+  };
+
+  if (Object.keys(data).length === 0) {
+    throw new CliError(
+      "USAGE_ERROR",
+      "folder update 至少需要一个更新字段",
+      EXIT_CODES.USAGE,
+    );
+  }
+
+  return data;
+}
+
+function resolveWorkspaceFileOption(
+  args: string[],
+  commandName: "export" | "import",
+): string {
+  const filePath = takeOption(args, "--file");
+  if (!filePath?.trim()) {
+    throw new CliError(
+      "USAGE_ERROR",
+      `workspace ${commandName} 需要 --file`,
+      EXIT_CODES.USAGE,
+    );
+  }
+  return filePath;
+}
+
+function resolveRulesFileOption(
+  args: string[],
+  commandName: "export" | "import",
+): string {
+  const filePath = takeOption(args, "--file");
+  if (!filePath?.trim()) {
+    throw new CliError(
+      "USAGE_ERROR",
+      `rules ${commandName} 需要 --file`,
+      EXIT_CODES.USAGE,
+    );
+  }
+
+  return filePath;
+}
+
+function normalizeProjectId(input: string): string {
+  return input.startsWith("project:") ? input.slice("project:".length) : input;
+}
+
+function createWorkspaceBundle(
+  promptDb: PromptDB,
+  folderDb: FolderDB,
+): CliWorkspaceBundle {
+  const prompts = promptDb.getAll();
+  const versions = prompts.flatMap((prompt) => promptDb.getVersions(prompt.id));
+
+  return {
+    kind: "prompthub-cli-workspace",
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    prompts,
+    folders: folderDb.getAll(),
+    versions,
+  };
+}
+
+function createRulesBundle(records: RuleBackupRecord[]): CliRulesBundle {
+  return {
+    kind: "prompthub-cli-rules",
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    records,
+  };
+}
+
+function formatRuleVersionSnapshot(
+  version: RuleVersionSnapshot,
+): Record<string, unknown> {
+  return {
+    id: version.id,
+    savedAt: version.savedAt,
+    source: version.source,
+    content: version.content,
+  };
+}
+
+function resolveSkillIdentifier(
+  skillDb: SkillDB,
+  identifier: string,
+): SkillIdentifierResolution {
+  const skill = resolveSkill(skillDb, identifier);
+  if (!skill) {
+    throw new CliError(
+      "NOT_FOUND",
+      `Skill 不存在: ${identifier}`,
+      EXIT_CODES.NOT_FOUND,
+    );
+  }
+
+  return { identifier, skill };
+}
+
+function resolveRuleRewriteArgs(
+  args: string[],
+  currentContent: string,
+  fileName: string,
+  platformName: string,
+): RuleRewriteRequest {
+  const instruction = readTextOption(args, "--instruction", "--instruction-file");
+  const apiKey = takeOption(args, "--api-key");
+  const apiUrl = takeOption(args, "--api-url");
+  const model = takeOption(args, "--model");
+  const provider = takeOption(args, "--provider") ?? "openai";
+  const apiProtocol = takeOption(args, "--api-protocol");
+  ensureNoUnknownOptions(args);
+
+  if (!instruction?.trim()) {
+    throw new CliError(
+      "USAGE_ERROR",
+      "rules rewrite 需要 --instruction 或 --instruction-file",
+      EXIT_CODES.USAGE,
+    );
+  }
+
+  if (!apiKey?.trim() || !apiUrl?.trim() || !model?.trim()) {
+    throw new CliError(
+      "USAGE_ERROR",
+      "rules rewrite 需要 --api-key、--api-url 和 --model",
+      EXIT_CODES.USAGE,
+    );
+  }
+
+  if (
+    apiProtocol !== undefined &&
+    apiProtocol !== "openai" &&
+    apiProtocol !== "gemini" &&
+    apiProtocol !== "anthropic"
+  ) {
+    throw new CliError(
+      "USAGE_ERROR",
+      "--api-protocol 必须是 openai|gemini|anthropic",
+      EXIT_CODES.USAGE,
+    );
+  }
+
+  return {
+    instruction: instruction.trim(),
+    currentContent,
+    fileName,
+    platformName,
+    aiConfig: {
+      apiKey: apiKey.trim(),
+      apiUrl: apiUrl.trim(),
+      model: model.trim(),
+      provider: provider.trim() || "openai",
+      apiProtocol:
+        apiProtocol === "gemini"
+          ? "gemini"
+          : apiProtocol === "anthropic"
+            ? "anthropic"
+            : "openai",
+    },
+  };
+}
+
+function clearWorkspaceCoreData(db: ReturnType<typeof getDatabase>): void {
+  const transaction = db.transaction(() => {
+    db.prepare("DELETE FROM prompt_versions").run();
+    db.prepare("DELETE FROM prompts").run();
+    db.prepare("DELETE FROM folders").run();
+  });
+  transaction();
+}
+
 function promptTableRows(prompts: Prompt[]): Array<Record<string, unknown>> {
   return prompts.map((prompt) => ({
     id: prompt.id,
@@ -569,6 +1426,166 @@ function promptTableRows(prompts: Prompt[]): Array<Record<string, unknown>> {
     tags: prompt.tags,
     updatedAt: prompt.updatedAt,
   }));
+}
+
+function folderTableRows(folders: Folder[]): Array<Record<string, unknown>> {
+  return folders.map((folder) => ({
+    id: folder.id,
+    name: folder.name,
+    icon: folder.icon,
+    parentId: folder.parentId,
+    order: folder.order,
+    private: folder.isPrivate ?? false,
+    updatedAt: folder.updatedAt,
+  }));
+}
+
+function promptVersionTableRows(
+  versions: PromptVersion[],
+): Array<Record<string, unknown>> {
+  return versions.map((version) => ({
+    id: version.id,
+    version: version.version,
+    note: version.note,
+    createdAt: version.createdAt,
+  }));
+}
+
+function promptTagTableRows(tags: string[]): Array<Record<string, unknown>> {
+  return tags.map((tag) => ({ tag }));
+}
+
+function ruleTableRows(
+  rules: RuleFileDescriptor[],
+): Array<Record<string, unknown>> {
+  return rules.map((rule) => ({
+    id: rule.id,
+    platform: rule.platformId,
+    name: rule.name,
+    group: rule.group,
+    syncStatus: rule.syncStatus,
+    exists: rule.exists,
+    projectRootPath: rule.projectRootPath ?? "",
+    path: rule.path,
+  }));
+}
+
+function ruleVersionTableRows(
+  versions: RuleVersionSnapshot[],
+): Array<Record<string, unknown>> {
+  return versions.map((version) => ({
+    id: version.id,
+    source: version.source,
+    savedAt: version.savedAt,
+    preview: version.content.split("\n")[0] ?? "",
+  }));
+}
+
+function promptDiffTableRows(
+  diff: PromptDiffResult,
+): Array<Record<string, unknown>> {
+  return diff.fields.map((field) => ({
+    field: field.field,
+    from: field.from,
+    to: field.to,
+  }));
+}
+
+function pushPromptDiff(
+  fields: PromptDiffResult["fields"],
+  field: PromptDiffField,
+  from: string | null | undefined,
+  to: string | null | undefined,
+): void {
+  const fromValue = from ?? "";
+  const toValue = to ?? "";
+  if (fromValue !== toValue) {
+    fields.push({ field, from: fromValue, to: toValue });
+  }
+}
+
+function diffPromptVersions(
+  from: PromptVersion,
+  to: PromptVersion,
+): PromptDiffResult {
+  const fields: PromptDiffResult["fields"] = [];
+  pushPromptDiff(fields, "systemPrompt", from.systemPrompt, to.systemPrompt);
+  pushPromptDiff(
+    fields,
+    "systemPromptEn",
+    from.systemPromptEn,
+    to.systemPromptEn,
+  );
+  pushPromptDiff(fields, "userPrompt", from.userPrompt, to.userPrompt);
+  pushPromptDiff(fields, "userPromptEn", from.userPromptEn, to.userPromptEn);
+  pushPromptDiff(
+    fields,
+    "variables",
+    JSON.stringify(from.variables),
+    JSON.stringify(to.variables),
+  );
+  pushPromptDiff(fields, "aiResponse", from.aiResponse, to.aiResponse);
+  return { from, to, fields };
+}
+
+function resolvePromptVersionDiffArgs(
+  args: string[],
+): { from: number; to: number } {
+  const from = parsePositiveNumberOption(takeOption(args, "--from"), "--from");
+  const to = parsePositiveNumberOption(takeOption(args, "--to"), "--to");
+  ensureNoUnknownOptions(args);
+
+  if (from === undefined || to === undefined) {
+    throw new CliError(
+      "USAGE_ERROR",
+      "prompt diff 需要 --from 和 --to",
+      EXIT_CODES.USAGE,
+    );
+  }
+
+  return { from, to };
+}
+
+function duplicatePrompt(promptDb: PromptDB, id: string): Prompt {
+  const existing = requirePrompt(promptDb, id);
+  return promptDb.create({
+    visibility: existing.visibility,
+    title: `${existing.title} (Copy)`,
+    description: existing.description ?? undefined,
+    promptType: existing.promptType,
+    systemPrompt: existing.systemPrompt ?? undefined,
+    systemPromptEn: existing.systemPromptEn ?? undefined,
+    userPrompt: existing.userPrompt,
+    userPromptEn: existing.userPromptEn ?? undefined,
+    variables: existing.variables,
+    tags: existing.tags,
+    folderId: existing.folderId ?? undefined,
+    images: existing.images,
+    videos: existing.videos,
+    source: existing.source ?? undefined,
+    notes: existing.notes ?? undefined,
+  });
+}
+
+function renderPromptCopy(prompt: Prompt, variables: Record<string, string>): string {
+  let content = prompt.userPrompt;
+  for (const [key, value] of Object.entries(variables)) {
+    content = content.replace(new RegExp(`\\{\\{${key}\\}\\}`, "g"), value);
+  }
+  return content;
+}
+
+function requirePrompt(promptDb: PromptDB, id: string): Prompt {
+  const prompt = promptDb.getById(id);
+  if (!prompt) {
+    throw new CliError(
+      "NOT_FOUND",
+      `Prompt 不存在: ${id}`,
+      EXIT_CODES.NOT_FOUND,
+    );
+  }
+
+  return prompt;
 }
 
 async function skillTableRows(
@@ -589,6 +1606,29 @@ async function skillTableRows(
       updatedAt: skill.updated_at,
     })),
   );
+}
+
+function skillVersionTableRows(
+  versions: import("@prompthub/shared/types").SkillVersion[],
+): Array<Record<string, unknown>> {
+  return versions.map((version) => ({
+    id: version.id,
+    version: version.version,
+    note: version.note,
+    createdAt: version.createdAt,
+  }));
+}
+
+function skillPlatformRows(
+  platforms: SkillPlatform[],
+  detected?: string[],
+): Array<Record<string, unknown>> {
+  const detectedSet = new Set(detected ?? []);
+  return platforms.map((platform) => ({
+    id: platform.id,
+    name: platform.name,
+    installed: detectedSet.has(platform.id),
+  }));
 }
 
 async function handlePromptCommand(
@@ -613,15 +1653,159 @@ async function handlePromptCommand(
 
   if (action === "get") {
     const id = requirePositional(args, 1, "prompt id");
-    const prompt = promptDb.getById(id);
-    if (!prompt) {
+    const prompt = requirePrompt(promptDb, id);
+    emitSuccess(context, prompt);
+    return;
+  }
+
+  if (action === "duplicate") {
+    const id = requirePositional(args, 1, "prompt id");
+    ensureNoUnknownOptions(args.slice(2));
+    emitSuccess(context, duplicatePrompt(promptDb, id));
+    return;
+  }
+
+  if (action === "versions") {
+    const id = requirePositional(args, 1, "prompt id");
+    ensureNoUnknownOptions(args.slice(2));
+    requirePrompt(promptDb, id);
+    const versions = promptDb.getVersions(id);
+    emitSuccess(context, versions, promptVersionTableRows(versions));
+    return;
+  }
+
+  if (action === "create-version") {
+    const id = requirePositional(args, 1, "prompt id");
+    const versionArgs = args.slice(2);
+    const note = takeOption(versionArgs, "--note");
+    ensureNoUnknownOptions(versionArgs);
+    requirePrompt(promptDb, id);
+    const createdVersion = promptDb.createVersion(id, note);
+    if (!createdVersion) {
       throw new CliError(
         "NOT_FOUND",
         `Prompt 不存在: ${id}`,
         EXIT_CODES.NOT_FOUND,
       );
     }
-    emitSuccess(context, prompt);
+    emitSuccess(context, createdVersion);
+    return;
+  }
+
+  if (action === "delete-version") {
+    const id = requirePositional(args, 1, "prompt id");
+    const versionId = requirePositional(args, 2, "version id");
+    ensureNoUnknownOptions(args.slice(3));
+    requirePrompt(promptDb, id);
+    if (!promptDb.deleteVersion(versionId)) {
+      throw new CliError(
+        "NOT_FOUND",
+        `Prompt 版本不存在: ${versionId}`,
+        EXIT_CODES.NOT_FOUND,
+      );
+    }
+    emitSuccess(context, { deleted: true, promptId: id, versionId });
+    return;
+  }
+
+  if (action === "diff") {
+    const id = requirePositional(args, 1, "prompt id");
+    const diffArgs = resolvePromptVersionDiffArgs(args.slice(2));
+    requirePrompt(promptDb, id);
+    const versions = promptDb.getVersions(id);
+    const fromVersion = versions.find((item) => item.version === diffArgs.from);
+    const toVersion = versions.find((item) => item.version === diffArgs.to);
+    if (!fromVersion || !toVersion) {
+      throw new CliError(
+        "NOT_FOUND",
+        `Prompt 版本不存在: ${id}@v${!fromVersion ? diffArgs.from : diffArgs.to}`,
+        EXIT_CODES.NOT_FOUND,
+      );
+    }
+    const diff = diffPromptVersions(fromVersion, toVersion);
+    emitSuccess(context, diff, promptDiffTableRows(diff));
+    return;
+  }
+
+  if (action === "rollback") {
+    const id = requirePositional(args, 1, "prompt id");
+    const rollbackArgs = args.slice(2);
+    const version = parseNumberOption(
+      takeOption(rollbackArgs, "--version"),
+      "--version",
+    );
+    ensureNoUnknownOptions(rollbackArgs);
+
+    if (version === undefined || version === 0) {
+      throw new CliError(
+        "USAGE_ERROR",
+        "prompt rollback 需要有效的 --version",
+        EXIT_CODES.USAGE,
+      );
+    }
+
+    requirePrompt(promptDb, id);
+    const rolledBack = promptDb.rollback(id, version);
+    if (!rolledBack) {
+      throw new CliError(
+        "NOT_FOUND",
+        `Prompt 版本不存在: ${id}@v${version}`,
+        EXIT_CODES.NOT_FOUND,
+      );
+    }
+
+    emitSuccess(context, rolledBack);
+    return;
+  }
+
+  if (action === "use") {
+    const id = requirePositional(args, 1, "prompt id");
+    ensureNoUnknownOptions(args.slice(2));
+    requirePrompt(promptDb, id);
+    promptDb.incrementUsage(id);
+    emitSuccess(context, requirePrompt(promptDb, id));
+    return;
+  }
+
+  if (action === "copy") {
+    const id = requirePositional(args, 1, "prompt id");
+    const copyArgs = args.slice(2);
+    const variables = parsePromptVariablesMap(copyArgs);
+    ensureNoUnknownOptions(copyArgs);
+
+    const prompt = requirePrompt(promptDb, id);
+    const content = renderPromptCopy(prompt, variables);
+    promptDb.incrementUsage(id);
+    emitSuccess(context, {
+      promptId: id,
+      content,
+      usageCount: requirePrompt(promptDb, id).usageCount,
+      variables,
+    });
+    return;
+  }
+
+  if (action === "list-tags") {
+    ensureNoUnknownOptions(args.slice(1));
+    const tags = promptDb.getAllTags();
+    emitSuccess(context, tags, promptTagTableRows(tags));
+    return;
+  }
+
+  if (action === "rename-tag") {
+    const oldTag = requirePositional(args, 1, "old tag");
+    const newTag = requirePositional(args, 2, "new tag");
+    ensureNoUnknownOptions(args.slice(3));
+    promptDb.renameTag(oldTag, newTag);
+    emitSuccess(context, { renamed: true, oldTag, newTag });
+    return;
+  }
+
+  if (action === "delete-tag") {
+    const tag = requirePositional(args, 1, "tag");
+    ensureNoUnknownOptions(args.slice(2));
+    promptDb.deleteTag(tag);
+    emitSuccess(context, { deleted: true, tag });
     return;
   }
 
@@ -738,6 +1922,360 @@ async function handleSkillDelete(
   });
 }
 
+async function handleFolderCommand(
+  args: string[],
+  context: CliContext,
+  databaseHooks: CliDatabaseHooks,
+): Promise<void> {
+  if (args.length === 0 || takeFlag(args, "--help") || takeFlag(args, "-h")) {
+    context.io.stdout(FOLDER_HELP);
+    return;
+  }
+
+  const action = requirePositional(args, 0, "folder 子命令");
+  const db = databaseHooks.initDatabase();
+  const folderDb = new FolderDB(db);
+
+  if (action === "list") {
+    const folders = folderDb.getAll();
+    emitSuccess(context, folders, folderTableRows(folders));
+    return;
+  }
+
+  if (action === "get") {
+    const id = requirePositional(args, 1, "folder id");
+    const folder = folderDb.getById(id);
+    if (!folder) {
+      throw new CliError(
+        "NOT_FOUND",
+        `Folder 不存在: ${id}`,
+        EXIT_CODES.NOT_FOUND,
+      );
+    }
+    emitSuccess(context, folder);
+    return;
+  }
+
+  if (action === "create") {
+    emitSuccess(context, folderDb.create(resolveFolderCreateArgs(args.slice(1))));
+    return;
+  }
+
+  if (action === "update") {
+    const id = requirePositional(args, 1, "folder id");
+    const updated = folderDb.update(id, resolveFolderUpdateArgs(args.slice(2)));
+    if (!updated) {
+      throw new CliError(
+        "NOT_FOUND",
+        `Folder 不存在: ${id}`,
+        EXIT_CODES.NOT_FOUND,
+      );
+    }
+    emitSuccess(context, updated);
+    return;
+  }
+
+  if (action === "delete") {
+    const id = requirePositional(args, 1, "folder id");
+    if (!folderDb.delete(id)) {
+      throw new CliError(
+        "NOT_FOUND",
+        `Folder 不存在: ${id}`,
+        EXIT_CODES.NOT_FOUND,
+      );
+    }
+    emitSuccess(context, { deleted: true, id });
+    return;
+  }
+
+  if (action === "reorder") {
+    const ids = parseFolderIdsOption(args.slice(1));
+    folderDb.reorder(ids);
+    emitSuccess(context, { reordered: true, ids });
+    return;
+  }
+
+  throw new CliError(
+    "USAGE_ERROR",
+    `不支持的 folder 子命令: ${action}`,
+    EXIT_CODES.USAGE,
+  );
+}
+
+async function handleWorkspaceCommand(
+  args: string[],
+  context: CliContext,
+  databaseHooks: CliDatabaseHooks,
+): Promise<void> {
+  if (args.length === 0 || takeFlag(args, "--help") || takeFlag(args, "-h")) {
+    context.io.stdout(WORKSPACE_HELP);
+    return;
+  }
+
+  const action = requirePositional(args, 0, "workspace 子命令");
+  const db = databaseHooks.initDatabase();
+  const promptDb = new PromptDB(db);
+  const folderDb = new FolderDB(db);
+
+  if (action === "export") {
+    const exportArgs = args.slice(1);
+    const filePath = resolveWorkspaceFileOption(exportArgs, "export");
+    ensureNoUnknownOptions(exportArgs);
+
+    const bundle = createWorkspaceBundle(promptDb, folderDb);
+    writeRequiredTextFile(filePath, toJson(bundle));
+    emitSuccess(context, {
+      exported: true,
+      filePath: path.resolve(filePath),
+      prompts: bundle.prompts.length,
+      folders: bundle.folders.length,
+      versions: bundle.versions.length,
+    });
+    return;
+  }
+
+  if (action === "import") {
+    const importArgs = args.slice(1);
+    const filePath = resolveWorkspaceFileOption(importArgs, "import");
+    const forceClear = takeFlag(importArgs, "--force-clear");
+    ensureNoUnknownOptions(importArgs);
+
+    const bundle = parseWorkspaceBundle(readRequiredTextFile(filePath));
+    const hasData = !isDatabaseEmpty(db);
+    if (hasData && !forceClear) {
+      throw new CliError(
+        "CONFLICT",
+        "目标数据库非空；如需覆盖请传入 --force-clear",
+        EXIT_CODES.CONFLICT,
+      );
+    }
+
+    if (forceClear) {
+      clearWorkspaceCoreData(db);
+    }
+
+    for (const folder of bundle.folders) {
+      folderDb.insertFolderDirect(folder);
+    }
+    for (const prompt of bundle.prompts) {
+      promptDb.insertPromptDirect(prompt);
+    }
+    for (const version of bundle.versions) {
+      promptDb.insertVersionDirect(version);
+    }
+
+    emitSuccess(context, {
+      imported: true,
+      filePath: path.resolve(filePath),
+      prompts: bundle.prompts.length,
+      folders: bundle.folders.length,
+      versions: bundle.versions.length,
+      forceCleared: forceClear,
+    });
+    return;
+  }
+
+  throw new CliError(
+    "USAGE_ERROR",
+    `不支持的 workspace 子命令: ${action}`,
+    EXIT_CODES.USAGE,
+  );
+}
+
+async function handleRulesCommand(
+  args: string[],
+  context: CliContext,
+): Promise<void> {
+  if (args.length === 0 || takeFlag(args, "--help") || takeFlag(args, "-h")) {
+    context.io.stdout(RULES_HELP);
+    return;
+  }
+
+  const action = requirePositional(args, 0, "rules 子命令");
+
+  if (action === "list") {
+    ensureNoUnknownOptions(args.slice(1));
+    const rules = await coreRulesWorkspaceService.listCachedRuleDescriptors();
+    emitSuccess(context, rules, ruleTableRows(rules));
+    return;
+  }
+
+  if (action === "scan") {
+    ensureNoUnknownOptions(args.slice(1));
+    const rules = await coreRulesWorkspaceService.scanRuleDescriptors();
+    emitSuccess(context, rules, ruleTableRows(rules));
+    return;
+  }
+
+  if (action === "read") {
+    const ruleId = requireRuleFileId(args, 1, "rule id");
+    ensureNoUnknownOptions(args.slice(2));
+    emitSuccess(context, await coreRulesWorkspaceService.readRuleContent(ruleId));
+    return;
+  }
+
+  if (action === "versions") {
+    const ruleId = requireRuleFileId(args, 1, "rule id");
+    ensureNoUnknownOptions(args.slice(2));
+    const rule = await coreRulesWorkspaceService.readRuleContent(ruleId);
+    emitSuccess(context, rule.versions, ruleVersionTableRows(rule.versions));
+    return;
+  }
+
+  if (action === "version-read") {
+    const ruleId = requireRuleFileId(args, 1, "rule id");
+    const versionId = requirePositional(args, 2, "version id");
+    ensureNoUnknownOptions(args.slice(3));
+    const rule = await coreRulesWorkspaceService.readRuleContent(ruleId);
+    const version = rule.versions.find((item) => item.id === versionId);
+    if (!version) {
+      throw new CliError(
+        "NOT_FOUND",
+        `Rule 版本不存在: ${ruleId}@${versionId}`,
+        EXIT_CODES.NOT_FOUND,
+      );
+    }
+    emitSuccess(context, formatRuleVersionSnapshot(version));
+    return;
+  }
+
+  if (action === "version-restore") {
+    const ruleId = requireRuleFileId(args, 1, "rule id");
+    const versionId = requirePositional(args, 2, "version id");
+    ensureNoUnknownOptions(args.slice(3));
+    const rule = await coreRulesWorkspaceService.readRuleContent(ruleId);
+    const version = rule.versions.find((item) => item.id === versionId);
+    if (!version) {
+      throw new CliError(
+        "NOT_FOUND",
+        `Rule 版本不存在: ${ruleId}@${versionId}`,
+        EXIT_CODES.NOT_FOUND,
+      );
+    }
+    emitSuccess(context, await coreRulesWorkspaceService.saveRuleContent(ruleId, version.content));
+    return;
+  }
+
+  if (action === "save") {
+    const ruleId = requireRuleFileId(args, 1, "rule id");
+    const saveArgs = args.slice(2);
+    const content = readTextOption(saveArgs, "--content", "--content-file");
+    ensureNoUnknownOptions(saveArgs);
+
+    if (content === undefined) {
+      throw new CliError(
+        "USAGE_ERROR",
+        "rules save 需要 --content 或 --content-file",
+        EXIT_CODES.USAGE,
+      );
+    }
+
+    emitSuccess(context, await coreRulesWorkspaceService.saveRuleContent(ruleId, content));
+    return;
+  }
+
+  if (action === "rewrite") {
+    const ruleId = requireRuleFileId(args, 1, "rule id");
+    const rule = await coreRulesWorkspaceService.readRuleContent(ruleId);
+    const rewritePayload = resolveRuleRewriteArgs(
+      args.slice(2),
+      rule.content,
+      rule.name,
+      rule.platformName,
+    );
+    emitSuccess(context, await rewriteRuleWithAi(rewritePayload));
+    return;
+  }
+
+  if (action === "add-project") {
+    const addArgs = args.slice(1);
+    const name = takeOption(addArgs, "--name");
+    const rootPath = takeOption(addArgs, "--root-path");
+    const id = takeOption(addArgs, "--id");
+    ensureNoUnknownOptions(addArgs);
+
+    if (!name?.trim() || !rootPath?.trim()) {
+      throw new CliError(
+        "USAGE_ERROR",
+        "rules add-project 需要 --name 和 --root-path",
+        EXIT_CODES.USAGE,
+      );
+    }
+
+    emitSuccess(
+      context,
+      await coreRulesWorkspaceService.createProjectRule({
+        ...(id?.trim() && { id: id.trim() }),
+        name: name.trim(),
+        rootPath: path.resolve(rootPath.trim()),
+      }),
+    );
+    return;
+  }
+
+  if (action === "remove-project") {
+    const projectId = requirePositional(args, 1, "project id");
+    ensureNoUnknownOptions(args.slice(2));
+    const normalizedProjectId = normalizeProjectId(projectId);
+    await coreRulesWorkspaceService.removeProjectRule(normalizedProjectId);
+    emitSuccess(context, {
+      removed: true,
+      projectId: normalizedProjectId,
+    });
+    return;
+  }
+
+  if (action === "version-delete") {
+    const ruleId = requireRuleFileId(args, 1, "rule id");
+    const versionId = requirePositional(args, 2, "version id");
+    ensureNoUnknownOptions(args.slice(3));
+    const versions = await coreRulesWorkspaceService.deleteRuleVersion(ruleId, versionId);
+    emitSuccess(context, versions, ruleVersionTableRows(versions));
+    return;
+  }
+
+  if (action === "export") {
+    const exportArgs = args.slice(1);
+    const filePath = resolveRulesFileOption(exportArgs, "export");
+    ensureNoUnknownOptions(exportArgs);
+
+    const records = await coreRulesWorkspaceService.exportRuleBackupRecords();
+    const bundle = createRulesBundle(records);
+    writeRequiredTextFile(filePath, toJson(bundle));
+    emitSuccess(context, {
+      exported: true,
+      filePath: path.resolve(filePath),
+      records: records.length,
+    });
+    return;
+  }
+
+  if (action === "import") {
+    const importArgs = args.slice(1);
+    const filePath = resolveRulesFileOption(importArgs, "import");
+    const replace = takeFlag(importArgs, "--replace");
+    ensureNoUnknownOptions(importArgs);
+
+    const bundle = parseRulesBundle(readRequiredTextFile(filePath));
+    await coreRulesWorkspaceService.importRuleBackupRecords(bundle.records, {
+      replace,
+    });
+    emitSuccess(context, {
+      imported: true,
+      filePath: path.resolve(filePath),
+      records: bundle.records.length,
+      replace,
+    });
+    return;
+  }
+
+  throw new CliError(
+    "USAGE_ERROR",
+    `不支持的 rules 子命令: ${action}`,
+    EXIT_CODES.USAGE,
+  );
+}
+
 async function handleSkillCommand(
   args: string[],
   context: CliContext,
@@ -760,14 +2298,7 @@ async function handleSkillCommand(
 
   if (action === "get") {
     const identifier = requirePositional(args, 1, "skill id 或 name");
-    const skill = resolveSkill(skillDb, identifier);
-    if (!skill) {
-      throw new CliError(
-        "NOT_FOUND",
-        `Skill 不存在: ${identifier}`,
-        EXIT_CODES.NOT_FOUND,
-      );
-    }
+    const { skill } = resolveSkillIdentifier(skillDb, identifier);
     emitSuccess(context, skill);
     return;
   }
@@ -784,16 +2315,297 @@ async function handleSkillCommand(
     return;
   }
 
-  if (action === "delete" || action === "remove") {
+  if (action === "versions") {
     const identifier = requirePositional(args, 1, "skill id 或 name");
-    const skill = resolveSkill(skillDb, identifier);
-    if (!skill) {
+    ensureNoUnknownOptions(args.slice(2));
+    const { skill } = resolveSkillIdentifier(skillDb, identifier);
+    const versions = skillDb.getVersions(skill.id);
+    emitSuccess(context, versions, skillVersionTableRows(versions));
+    return;
+  }
+
+  if (action === "create-version") {
+    const identifier = requirePositional(args, 1, "skill id 或 name");
+    const versionArgs = args.slice(2);
+    const note = takeOption(versionArgs, "--note");
+    ensureNoUnknownOptions(versionArgs);
+    const { skill } = resolveSkillIdentifier(skillDb, identifier);
+    const version = await context.skills.createVersion(skillDb, skill.id, note);
+    emitSuccess(context, version);
+    return;
+  }
+
+  if (action === "rollback") {
+    const identifier = requirePositional(args, 1, "skill id 或 name");
+    const rollbackArgs = args.slice(2);
+    const version = parsePositiveNumberOption(
+      takeOption(rollbackArgs, "--version"),
+      "--version",
+    );
+    ensureNoUnknownOptions(rollbackArgs);
+    if (version === undefined) {
+      throw new CliError(
+        "USAGE_ERROR",
+        "skill rollback 需要有效的 --version",
+        EXIT_CODES.USAGE,
+      );
+    }
+    const { skill } = resolveSkillIdentifier(skillDb, identifier);
+    const updated = await context.skills.rollbackVersion(skillDb, skill.id, version);
+    if (!updated) {
       throw new CliError(
         "NOT_FOUND",
-        `Skill 不存在: ${identifier}`,
+        `Skill 版本不存在: ${identifier}@v${version}`,
         EXIT_CODES.NOT_FOUND,
       );
     }
+    emitSuccess(context, updated);
+    return;
+  }
+
+  if (action === "delete-version") {
+    const identifier = requirePositional(args, 1, "skill id 或 name");
+    const versionId = requirePositional(args, 2, "version id");
+    ensureNoUnknownOptions(args.slice(3));
+    const { skill } = resolveSkillIdentifier(skillDb, identifier);
+    const deleted = await context.skills.deleteVersion(skillDb, skill.id, versionId);
+    if (!deleted) {
+      throw new CliError(
+        "NOT_FOUND",
+        `Skill 版本不存在: ${identifier}@${versionId}`,
+        EXIT_CODES.NOT_FOUND,
+      );
+    }
+    emitSuccess(context, { deleted: true, skillId: skill.id, versionId });
+    return;
+  }
+
+  if (action === "export") {
+    const identifier = requirePositional(args, 1, "skill id 或 name");
+    const exportArgs = args.slice(2);
+    const format = takeOption(exportArgs, "--format");
+    ensureNoUnknownOptions(exportArgs);
+    if (format !== "skillmd" && format !== "json") {
+      throw new CliError(
+        "USAGE_ERROR",
+        "skill export 需要 --format skillmd|json",
+        EXIT_CODES.USAGE,
+      );
+    }
+    const { skill } = resolveSkillIdentifier(skillDb, identifier);
+    context.io.stdout(
+      format === "skillmd"
+        ? context.skills.exportAsSkillMd(skill)
+        : context.skills.exportAsJson(skill),
+    );
+    return;
+  }
+
+  if (action === "platforms") {
+    ensureNoUnknownOptions(args.slice(1));
+    const platforms = context.skills.getSupportedPlatforms();
+    const detected = await context.skills.detectInstalledPlatforms();
+    emitSuccess(
+      context,
+      platforms.map((platform) => ({
+        id: platform.id,
+        name: platform.name,
+        installed: detected.includes(platform.id),
+      })),
+      skillPlatformRows(platforms, detected),
+    );
+    return;
+  }
+
+  if (action === "platform-status") {
+    const identifier = requirePositional(args, 1, "skill id 或 name");
+    ensureNoUnknownOptions(args.slice(2));
+    const { skill } = resolveSkillIdentifier(skillDb, identifier);
+    emitSuccess(context, await context.skills.getSkillMdInstallStatus(skill.name));
+    return;
+  }
+
+  if (action === "install-md") {
+    const identifier = requirePositional(args, 1, "skill id 或 name");
+    const installArgs = args.slice(2);
+    const platformId = takeOption(installArgs, "--platform");
+    ensureNoUnknownOptions(installArgs);
+    if (!platformId?.trim()) {
+      throw new CliError(
+        "USAGE_ERROR",
+        "skill install-md 需要 --platform",
+        EXIT_CODES.USAGE,
+      );
+    }
+    const { skill } = resolveSkillIdentifier(skillDb, identifier);
+    await context.skills.installSkillMd(
+      skill.name,
+      skill.instructions || skill.content || "",
+      platformId.trim(),
+    );
+    emitSuccess(context, {
+      installed: true,
+      skillId: skill.id,
+      platformId: platformId.trim(),
+    });
+    return;
+  }
+
+  if (action === "uninstall-md") {
+    const identifier = requirePositional(args, 1, "skill id 或 name");
+    const uninstallArgs = args.slice(2);
+    const platformId = takeOption(uninstallArgs, "--platform");
+    ensureNoUnknownOptions(uninstallArgs);
+    if (!platformId?.trim()) {
+      throw new CliError(
+        "USAGE_ERROR",
+        "skill uninstall-md 需要 --platform",
+        EXIT_CODES.USAGE,
+      );
+    }
+    const { skill } = resolveSkillIdentifier(skillDb, identifier);
+    await context.skills.uninstallSkillMd(skill.name, platformId.trim());
+    emitSuccess(context, {
+      uninstalled: true,
+      skillId: skill.id,
+      platformId: platformId.trim(),
+    });
+    return;
+  }
+
+  if (action === "repo-files") {
+    const identifier = requirePositional(args, 1, "skill id 或 name");
+    ensureNoUnknownOptions(args.slice(2));
+    const { skill } = resolveSkillIdentifier(skillDb, identifier);
+    const files = await context.skills.listLocalFiles(skillDb, skill.id);
+    emitSuccess(context, files);
+    return;
+  }
+
+  if (action === "repo-read") {
+    const identifier = requirePositional(args, 1, "skill id 或 name");
+    const readArgs = args.slice(2);
+    const relativePath = takeOption(readArgs, "--path");
+    ensureNoUnknownOptions(readArgs);
+    if (!relativePath?.trim()) {
+      throw new CliError(
+        "USAGE_ERROR",
+        "skill repo-read 需要 --path",
+        EXIT_CODES.USAGE,
+      );
+    }
+    const { skill } = resolveSkillIdentifier(skillDb, identifier);
+    emitSuccess(
+      context,
+      await context.skills.readLocalFile(skillDb, skill.id, relativePath.trim()),
+    );
+    return;
+  }
+
+  if (action === "repo-write") {
+    const identifier = requirePositional(args, 1, "skill id 或 name");
+    const writeArgs = args.slice(2);
+    const relativePath = takeOption(writeArgs, "--path");
+    const content = readTextOption(writeArgs, "--content", "--content-file");
+    ensureNoUnknownOptions(writeArgs);
+    if (!relativePath?.trim() || content === undefined) {
+      throw new CliError(
+        "USAGE_ERROR",
+        "skill repo-write 需要 --path 和 --content/--content-file",
+        EXIT_CODES.USAGE,
+      );
+    }
+    const { skill } = resolveSkillIdentifier(skillDb, identifier);
+    await context.skills.writeLocalFile(skillDb, skill.id, relativePath.trim(), content);
+    emitSuccess(context, { written: true, skillId: skill.id, path: relativePath.trim() });
+    return;
+  }
+
+  if (action === "repo-delete") {
+    const identifier = requirePositional(args, 1, "skill id 或 name");
+    const deleteArgs = args.slice(2);
+    const relativePath = takeOption(deleteArgs, "--path");
+    ensureNoUnknownOptions(deleteArgs);
+    if (!relativePath?.trim()) {
+      throw new CliError(
+        "USAGE_ERROR",
+        "skill repo-delete 需要 --path",
+        EXIT_CODES.USAGE,
+      );
+    }
+    const { skill } = resolveSkillIdentifier(skillDb, identifier);
+    await context.skills.deleteLocalFile(skillDb, skill.id, relativePath.trim());
+    emitSuccess(context, { deleted: true, skillId: skill.id, path: relativePath.trim() });
+    return;
+  }
+
+  if (action === "repo-mkdir") {
+    const identifier = requirePositional(args, 1, "skill id 或 name");
+    const mkdirArgs = args.slice(2);
+    const relativePath = takeOption(mkdirArgs, "--path");
+    ensureNoUnknownOptions(mkdirArgs);
+    if (!relativePath?.trim()) {
+      throw new CliError(
+        "USAGE_ERROR",
+        "skill repo-mkdir 需要 --path",
+        EXIT_CODES.USAGE,
+      );
+    }
+    const { skill } = resolveSkillIdentifier(skillDb, identifier);
+    await context.skills.createLocalDir(skillDb, skill.id, relativePath.trim());
+    emitSuccess(context, { created: true, skillId: skill.id, path: relativePath.trim() });
+    return;
+  }
+
+  if (action === "repo-rename") {
+    const identifier = requirePositional(args, 1, "skill id 或 name");
+    const renameArgs = args.slice(2);
+    const oldPath = takeOption(renameArgs, "--from");
+    const newPath = takeOption(renameArgs, "--to");
+    ensureNoUnknownOptions(renameArgs);
+    if (!oldPath?.trim() || !newPath?.trim()) {
+      throw new CliError(
+        "USAGE_ERROR",
+        "skill repo-rename 需要 --from 和 --to",
+        EXIT_CODES.USAGE,
+      );
+    }
+    const { skill } = resolveSkillIdentifier(skillDb, identifier);
+    await context.skills.renameLocalPath(skillDb, skill.id, oldPath.trim(), newPath.trim());
+    emitSuccess(context, {
+      renamed: true,
+      skillId: skill.id,
+      from: oldPath.trim(),
+      to: newPath.trim(),
+    });
+    return;
+  }
+
+  if (action === "sync-from-repo") {
+    const identifier = requirePositional(args, 1, "skill id 或 name");
+    ensureNoUnknownOptions(args.slice(2));
+    const { skill } = resolveSkillIdentifier(skillDb, identifier);
+    emitSuccess(context, await context.skills.syncFromRepo(skillDb, skill.id));
+    return;
+  }
+
+  if (action === "scan-safety") {
+    const identifier = requirePositional(args, 1, "skill id 或 name");
+    ensureNoUnknownOptions(args.slice(2));
+    const { skill } = resolveSkillIdentifier(skillDb, identifier);
+    const report = await context.skills.scanSafety({
+      name: skill.name,
+      content: skill.instructions || skill.content,
+      sourceUrl: skill.source_url,
+      localRepoPath: skill.local_repo_path,
+    });
+    emitSuccess(context, report);
+    return;
+  }
+
+  if (action === "delete" || action === "remove") {
+    const identifier = requirePositional(args, 1, "skill id 或 name");
+    const { skill } = resolveSkillIdentifier(skillDb, identifier);
     await handleSkillDelete(skillDb, skill, args.slice(2), context);
     return;
   }
@@ -879,6 +2691,11 @@ export async function runCli(
     };
     const args = configured.args;
 
+    if (args[0] === "--version" || args[0] === "-v") {
+      io.stdout(CLI_VERSION);
+      return EXIT_CODES.OK;
+    }
+
     if (args.length === 0 || args[0] === "--help" || args[0] === "-h") {
       io.stdout(ROOT_HELP);
       return EXIT_CODES.OK;
@@ -889,6 +2706,18 @@ export async function runCli(
 
     if (resource === "prompt") {
       await handlePromptCommand(commandArgs, context, databaseHooks);
+      return EXIT_CODES.OK;
+    }
+    if (resource === "folder") {
+      await handleFolderCommand(commandArgs, context, databaseHooks);
+      return EXIT_CODES.OK;
+    }
+    if (resource === "rules") {
+      await handleRulesCommand(commandArgs, context);
+      return EXIT_CODES.OK;
+    }
+    if (resource === "workspace") {
+      await handleWorkspaceCommand(commandArgs, context, databaseHooks);
       return EXIT_CODES.OK;
     }
     if (resource === "skill") {

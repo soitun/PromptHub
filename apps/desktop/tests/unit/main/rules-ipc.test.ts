@@ -12,7 +12,7 @@ const saveRuleContentMock = vi.fn();
 const createProjectRuleMock = vi.fn();
 const removeProjectRuleMock = vi.fn();
 const importRuleBackupRecordsMock = vi.fn();
-const chatCompletionMock = vi.fn();
+const rewriteRuleWithAiMock = vi.fn();
 
 vi.mock("electron", () => ({
   ipcMain: {
@@ -31,8 +31,8 @@ vi.mock("../../../src/main/services/rules-workspace", () => ({
   importRuleBackupRecords: importRuleBackupRecordsMock,
 }));
 
-vi.mock("../../../src/main/services/ai-client", () => ({
-  chatCompletion: chatCompletionMock,
+vi.mock("@prompthub/core", () => ({
+  rewriteRuleWithAi: rewriteRuleWithAiMock,
 }));
 
 type RegisteredHandlers = Record<string, (...args: unknown[]) => Promise<unknown>>;
@@ -66,7 +66,7 @@ describe("rules IPC", () => {
     createProjectRuleMock.mockReset();
     removeProjectRuleMock.mockReset();
     importRuleBackupRecordsMock.mockReset();
-    chatCompletionMock.mockReset();
+    rewriteRuleWithAiMock.mockReset();
   });
 
   it("registers list/read/save handlers and forwards valid payloads", async () => {
@@ -177,7 +177,10 @@ describe("rules IPC", () => {
   });
 
   it("rewrites rules through AI when a valid payload is provided", async () => {
-    chatCompletionMock.mockResolvedValue({ content: "# Rewritten rule" });
+    rewriteRuleWithAiMock.mockResolvedValue({
+      content: "# Rewritten rule",
+      summary: "AI rewrite generated a new draft.",
+    });
     const { handlers, IPC_CHANNELS } = await setupRulesIpc();
 
     await expect(
@@ -198,13 +201,19 @@ describe("rules IPC", () => {
       summary: "AI rewrite generated a new draft.",
     });
 
-    expect(chatCompletionMock).toHaveBeenCalledWith(
-      expect.objectContaining({ apiKey: "test-key" }),
-      expect.arrayContaining([
-        expect.objectContaining({ role: "system" }),
-        expect.objectContaining({ role: "user" }),
-      ]),
-      expect.objectContaining({ temperature: 0.3, maxTokens: 4096 }),
+    expect(rewriteRuleWithAiMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        instruction: "Tighten the wording",
+        currentContent: "# Old rule",
+        fileName: "CLAUDE.md",
+        platformName: "Claude Code",
+        aiConfig: expect.objectContaining({
+          apiKey: "test-key",
+          apiUrl: "https://api.openai.com/v1",
+          model: "gpt-4o-mini",
+          provider: "openai",
+        }),
+      }),
     );
   });
 });

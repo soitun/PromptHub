@@ -80,6 +80,19 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Pack standalone CLI tarball
+        if: matrix.platform == 'linux'
+        shell: bash
+        run: |
+          pnpm pack:cli
+          CLI_TARBALL=$(find apps/cli -maxdepth 1 -name "prompthub-cli-*.tgz" | head -n 1)
+          if [ -z "$CLI_TARBALL" ]; then
+            echo "CLI tarball was not generated"
+            exit 1
+          fi
+          mkdir -p apps/desktop/upload_dist
+          cp "$CLI_TARBALL" apps/desktop/upload_dist/
+
       - name: Clean previous build artifacts
         shell: bash
         working-directory: apps/desktop
@@ -243,6 +256,7 @@ jobs:
             copy_if_exists "dist/PromptHub-${VERSION}-x64.AppImage"
             copy_if_exists "dist/PromptHub-${VERSION}-amd64.deb"
             copy_if_exists "dist/latest-linux.yml"
+            copy_if_exists "upload_dist/prompthub-cli-${VERSION}.tgz"
           fi
 
           echo "Prepared upload bundle:"
@@ -374,6 +388,7 @@ jobs:
           copy_unique "PromptHub-Setup-${VERSION}-x64.exe"
           copy_unique "PromptHub-Setup-${VERSION}-arm64.exe"
           copy_unique "PromptHub-${VERSION}-amd64.deb"
+          copy_unique "prompthub-cli-${VERSION}.tgz"
           copy_unique "latest.yml"
           copy_unique "latest-x64.yml"
           copy_unique "latest-arm64.yml"

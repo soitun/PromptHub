@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, type SVGProps } from "react";
 import {
   GithubIcon,
   MailIcon,
@@ -7,20 +7,47 @@ import {
   RefreshCwIcon,
   CheckCircleIcon,
   ArrowUpCircleIcon,
+  CopyIcon,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useSettingsStore } from "../../stores/settings.store";
 import { SettingSection, SettingItem, ToggleSwitch } from "./shared";
 import { Modal } from "../ui/Modal";
+import { useToast } from "../ui/Toast";
 import appIconUrl from "../../../assets/icon.png";
 import { isWebRuntime } from "../../runtime";
 
 type UpdateCheckState = "idle" | "checking" | "latest" | "available";
 
+function DiscordBrandIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
+      <path
+        fill="currentColor"
+        d="M20.317 4.3698A19.7913 19.7913 0 0 0 15.8851 3a13.081 13.081 0 0 0-.6983 1.4186 18.27 18.27 0 0 0-5.4741 0A13.096 13.096 0 0 0 9.0149 3a19.7363 19.7363 0 0 0-4.435 1.3729C1.5331 8.9822.7058 13.4788 1.111 17.9423a19.944 19.944 0 0 0 5.9722 3.0306 14.093 14.093 0 0 0 1.2746-2.0671 12.42 12.42 0 0 1-1.9953-1.0287c.1663-.1205.3298-.2461.4882-.3767 3.8446 1.8025 8.0226 1.8025 11.8267 0 .1597.1306.3232.2562.4882.3767a12.298 12.298 0 0 1-2.0006 1.0304 14.078 14.078 0 0 0 1.2746 2.0654 19.902 19.902 0 0 0 5.9742-3.029c.4722-5.1774-.8109-9.6328-3.1222-13.5725ZM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.4195 0-1.3338.9555-2.4195 2.1569-2.4195 1.2105 0 2.1758 1.0952 2.1569 2.4195 0 1.3338-.9555 2.4195-2.1569 2.4195Zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.4195 0-1.3338.9555-2.4195 2.1569-2.4195 1.2105 0 2.1758 1.0952 2.1569 2.4195 0 1.3338-.9464 2.4195-2.1569 2.4195Z"
+      />
+    </svg>
+  );
+}
+
+function QQBrandIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
+      <path
+        fill="currentColor"
+        d="M21.395 15.035a40 40 0 0 0-.803-2.264l-1.079-2.695c.001-.032.014-.562.014-.836C19.526 4.632 17.351 0 12 0S4.474 4.632 4.474 9.241c0 .274.013.804.014.836l-1.08 2.695a39 39 0 0 0-.802 2.264c-1.021 3.283-.69 4.643-.438 4.673.54.065 2.103-2.472 2.103-2.472 0 1.469.756 3.387 2.394 4.771-.612.188-1.363.479-1.845.835-.434.32-.379.646-.301.778.343.578 5.883.369 7.482.189 1.6.18 7.14.389 7.483-.189.078-.132.132-.458-.301-.778-.483-.356-1.233-.646-1.846-.836 1.637-1.384 2.393-3.302 2.393-4.771 0 0 1.563 2.537 2.103 2.472.251-.03.581-1.39-.438-4.673"
+      />
+    </svg>
+  );
+}
+
 export function AboutSettings() {
   const { t } = useTranslation();
   const settings = useSettingsStore();
+  const { showToast } = useToast();
   const webRuntime = isWebRuntime();
+  const qqGroupNumber = "704298939";
+  const qqGroupLink = "mqqapi://card/show_pslcard?src_type=internal&version=1&uin=704298939&card_type=group&source=qrcode";
 
   // Get application version
   // 获取应用版本号
@@ -85,6 +112,16 @@ export function AboutSettings() {
     setIsPreviewConfirmOpen(false);
   };
 
+  const handleCopyQQGroup = async () => {
+    try {
+      await navigator.clipboard.writeText(qqGroupNumber);
+      showToast(t("settings.communityQQCopied", { group: qqGroupNumber }), "success");
+    } catch (error) {
+      console.error("Failed to copy QQ group number:", error);
+      showToast(t("common.error", "Error"), "error");
+    }
+  };
+
   return (
     <>
       <div className="space-y-6">
@@ -116,21 +153,6 @@ export function AboutSettings() {
             </p>
           </div>
         </SettingSection>
-
-        {!webRuntime && (
-          <SettingSection title={t("settings.cliTitle")}>
-            <div className="px-4 py-3 text-sm text-muted-foreground space-y-2">
-              <p>{t("settings.cliStandaloneDesc")}</p>
-              <p>{t("settings.cliInstallHint")}</p>
-              <div className="rounded-lg bg-muted/60 px-3 py-2 font-mono text-xs text-foreground break-all">
-                pnpm --filter @prompthub/cli dev -- --help
-              </div>
-              <div className="rounded-lg bg-muted/60 px-3 py-2 font-mono text-xs text-foreground break-all">
-                pnpm build:cli && node apps/cli/out/prompthub.cjs --help
-              </div>
-            </div>
-          </SettingSection>
-        )}
 
         {webRuntime ? (
           <SettingSection title={t("settings.checkUpdate")}>
@@ -229,14 +251,18 @@ export function AboutSettings() {
         )}
 
         <SettingSection title={t("settings.openSource")}>
-          <SettingItem label="GitHub" description={t("settings.viewOnGithub")}>
+          <SettingItem
+            label={t("settings.projectRepository")}
+            description={t("settings.projectRepositoryDesc")}
+          >
             <a
               href="https://github.com/legeling/PromptHub"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-primary text-sm hover:underline"
+              className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
             >
-              GitHub
+              <GithubIcon className="h-4 w-4" />
+              github.com/legeling/PromptHub
             </a>
           </SettingItem>
           <SettingItem
@@ -255,7 +281,48 @@ export function AboutSettings() {
           </SettingItem>
         </SettingSection>
 
-        <SettingSection title={t("settings.author")}>
+        <SettingSection title={t("settings.communityTitle")}> 
+          <SettingItem
+            label={t("settings.communityDiscord")}
+            description={t("settings.communityDiscordDesc")}
+          >
+            <a
+              href="https://discord.gg/zmfWguWFB"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex h-9 items-center gap-2 rounded-xl bg-[#5865F2] px-4 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[#4752C4]"
+            >
+              <DiscordBrandIcon className="h-4 w-4" />
+              Discord
+            </a>
+          </SettingItem>
+          <SettingItem
+            label={t("settings.communityQQ")}
+            description={t("settings.communityQQDesc", { group: qqGroupNumber })}
+          >
+            <div className="flex items-center gap-2">
+              <a
+                href={qqGroupLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex h-9 items-center gap-2 rounded-xl bg-[#12B7F5] px-4 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[#0ea5e9]"
+              >
+                <QQBrandIcon className="h-4 w-4" />
+                QQ
+              </a>
+              <button
+                type="button"
+                onClick={() => void handleCopyQQGroup()}
+                className="inline-flex h-9 items-center gap-2 rounded-xl border border-border bg-background px-3.5 text-sm font-medium text-foreground transition-colors hover:bg-muted/60"
+              >
+                <CopyIcon className="w-4 h-4" />
+                {t("settings.communityQQCopy")}
+              </button>
+            </div>
+          </SettingItem>
+        </SettingSection>
+
+        <SettingSection title={t("settings.contactAuthor")}>
           <div className="px-4 py-3 space-y-3">
             <a
               href="https://github.com/legeling"

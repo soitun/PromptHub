@@ -18,6 +18,8 @@
     "noFallthroughCasesInSwitch": true,
     "baseUrl": ".",
     "paths": {
+      "@prompthub/core": ["../../packages/core/src/index.ts"],
+      "@prompthub/core/*": ["../../packages/core/src/*"],
       "@/*": ["src/*"],
       "@shared/*": ["../../packages/shared/*"],
       "@prompthub/shared/*": ["../../packages/shared/*"],

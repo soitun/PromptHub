@@ -295,14 +295,18 @@ node apps/cli/out/prompthub.cjs skill list
 
 ### Common options
 
+- `--version|-v`
 - `--output json|table`
 - `--data-dir /path/to/user-data`
 - `--app-data-dir /path/to/app-data`
 
 ### Supported commands
 
-- `prompt list|get|create|update|delete|search`
-- `skill list|get|install|scan|delete|remove`
+- `prompt list|get|duplicate|versions|create-version|delete-version|diff|rollback|use|copy|list-tags|rename-tag|delete-tag|create|update|delete|search`
+- `folder list|get|create|update|delete|reorder`
+- `rules list|scan|read|versions|version-read|version-restore|save|rewrite|add-project|remove-project|version-delete|export|import`
+- `workspace export|import`
+- `skill list|get|install|versions|create-version|rollback|delete-version|export|platforms|platform-status|install-md|uninstall-md|repo-files|repo-read|repo-write|repo-delete|repo-mkdir|repo-rename|sync-from-repo|scan-safety|scan|delete|remove`
 
 ### Notes
 

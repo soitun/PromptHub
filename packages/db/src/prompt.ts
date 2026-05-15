@@ -7,6 +7,7 @@ import type {
   SearchQuery,
   PromptVersion,
   PromptType,
+  ResourceVisibility,
 } from "@prompthub/shared/types";
 
 interface PromptRow {
@@ -63,14 +64,15 @@ export class PromptDB {
 
     const stmt = this.db.prepare(`
       INSERT INTO prompts (
-        id, title, description, prompt_type, system_prompt, system_prompt_en, user_prompt,
+        id, visibility, title, description, prompt_type, system_prompt, system_prompt_en, user_prompt,
         user_prompt_en, variables, tags, folder_id, images, videos, source, notes,
         last_ai_response, is_favorite, current_version, usage_count, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     stmt.run(
       id,
+      data.visibility || "private",
       data.title,
       data.description || null,
       data.promptType || "text",
@@ -140,6 +142,10 @@ export class PromptDB {
     if (data.title !== undefined) {
       updates.push("title = ?");
       values.push(data.title);
+    }
+    if (data.visibility !== undefined) {
+      updates.push("visibility = ?");
+      values.push(data.visibility);
     }
     if (data.description !== undefined) {
       updates.push("description = ?");
@@ -240,6 +246,7 @@ export class PromptDB {
       ...existingPrompt,
       updatedAt: new Date(now).toISOString(),
       ...(data.title !== undefined && { title: data.title }),
+      ...(data.visibility !== undefined && { visibility: data.visibility }),
       ...(data.description !== undefined && { description: data.description }),
       ...(data.promptType !== undefined && { promptType: data.promptType }),
       ...(data.systemPrompt !== undefined && {
@@ -303,6 +310,11 @@ export class PromptDB {
         " AND rowid IN (SELECT rowid FROM prompts_fts WHERE prompts_fts MATCH ?)";
       // Escape FTS5 special characters by wrapping in double quotes
       params.push(`"${query.keyword.replace(/"/g, '""')}"`);
+    }
+
+    if (query.scope && query.scope !== "all") {
+      sql += " AND visibility = ?";
+      params.push(query.scope);
     }
 
     if (query.folderId) {
@@ -486,17 +498,18 @@ export class PromptDB {
     this.db
       .prepare(
         `INSERT OR REPLACE INTO prompts (
-          id, title, description, prompt_type, system_prompt, system_prompt_en, user_prompt,
+          id, visibility, title, description, prompt_type, system_prompt, system_prompt_en, user_prompt,
           user_prompt_en, variables, tags, folder_id, images, videos, is_favorite, is_pinned,
           current_version, usage_count, source, notes, last_ai_response, created_at, updated_at
         ) VALUES (
-          @id, @title, @description, @prompt_type, @system_prompt, @system_prompt_en, @user_prompt,
+          @id, @visibility, @title, @description, @prompt_type, @system_prompt, @system_prompt_en, @user_prompt,
           @user_prompt_en, @variables, @tags, @folder_id, @images, @videos, @is_favorite, @is_pinned,
           @current_version, @usage_count, @source, @notes, @last_ai_response, @created_at, @updated_at
         )`,
       )
       .run({
         "@id": prompt.id,
+        "@visibility": prompt.visibility ?? "private",
         "@title": prompt.title,
         "@description": prompt.description ?? null,
         "@prompt_type": prompt.promptType ?? "text",
@@ -658,7 +671,7 @@ export class PromptDB {
     return {
       id: row.id,
       ownerUserId: row.owner_user_id ?? undefined,
-      visibility: (row.visibility as import("@prompthub/shared/types").ResourceVisibility) ?? "private",
+      visibility: (row.visibility as ResourceVisibility) ?? "private",
       title: row.title,
       description: row.description,
       promptType: row.prompt_type || "text",

@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { RulesManager } from "../../../src/renderer/components/rules/RulesManager";
 import { useRulesStore } from "../../../src/renderer/stores/rules.store";
 import { useSettingsStore } from "../../../src/renderer/stores/settings.store";
+import { useUIStore } from "../../../src/renderer/stores/ui.store";
 import { renderWithI18n } from "../../helpers/i18n";
 import { installWindowMocks } from "../../helpers/window";
 
@@ -35,6 +36,11 @@ describe("RulesManager", () => {
       aiApiUrl: "https://api.openai.com/v1",
       aiModel: "gpt-4o-mini",
       aiModels: [],
+    });
+    useUIStore.setState({
+      appModule: "rules",
+      viewMode: "prompt",
+      isSidebarCollapsed: false,
     });
   });
 
@@ -269,6 +275,79 @@ describe("RulesManager", () => {
     expect(showToast).toHaveBeenCalledWith("Snapshot restored to draft", "success");
   });
 
+  it("returns to the draft view when clicking the current saved snapshot card", async () => {
+    installWindowMocks({
+      api: {
+        rules: {
+          list: vi.fn().mockResolvedValue([
+            {
+              id: "gemini-global",
+              platformId: "gemini",
+              platformName: "Gemini CLI",
+              platformIcon: "gemini",
+              platformDescription: "Gemini rules",
+              name: "GEMINI.md",
+              description: "Gemini global rule file",
+              path: "/Users/test/.gemini/GEMINI.md",
+              exists: true,
+              group: "assistant",
+            },
+          ]),
+          read: vi.fn().mockResolvedValue({
+            id: "gemini-global",
+            platformId: "gemini",
+            platformName: "Gemini CLI",
+            platformIcon: "gemini",
+            platformDescription: "Gemini rules",
+            name: "GEMINI.md",
+            description: "Gemini global rule file",
+            path: "/Users/test/.gemini/GEMINI.md",
+            exists: true,
+            group: "assistant",
+            content: "adwd1",
+            versions: [
+              {
+                id: "current-saved",
+                savedAt: "2026-05-15T08:27:24.000Z",
+                content: "adwd1",
+                source: "manual-save",
+              },
+              {
+                id: "older",
+                savedAt: "2026-05-15T07:12:56.000Z",
+                content: "old snapshot",
+                source: "manual-save",
+              },
+            ],
+          }),
+        },
+      },
+    });
+
+    await act(async () => {
+      await renderWithI18n(<RulesManager />, { language: "en" });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue("adwd1")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getAllByText(/old snapshot/i)[0]);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Back to Draft" })).toBeInTheDocument();
+    });
+
+    fireEvent.click(
+      screen.getByText((_, node) => node?.textContent?.trim() === "✓ Current"),
+    );
+
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: "Back to Draft" })).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Save and overwrite file" })).toBeInTheDocument();
+    });
+  });
+
   it("renders a single editable rule textarea for the current draft", async () => {
     installWindowMocks({
       api: {
@@ -316,5 +395,91 @@ describe("RulesManager", () => {
 
     expect(editor).toHaveLength(1);
     expect(editor[0]).not.toHaveAttribute("readonly");
+  });
+
+  it("keeps the selected rules item stable after saving the current draft", async () => {
+    const saveMock = vi.fn().mockResolvedValue({
+      id: "gemini-global",
+      platformId: "gemini",
+      platformName: "Gemini CLI",
+      platformIcon: "gemini",
+      platformDescription: "Gemini rules",
+      name: "GEMINI.md",
+      description: "Gemini global rule file",
+      path: "/Users/test/.gemini/GEMINI.md",
+      exists: true,
+      group: "assistant",
+      content: "# Gemini rules updated",
+      versions: [],
+    });
+
+    installWindowMocks({
+      api: {
+        rules: {
+          list: vi.fn().mockResolvedValue([
+            {
+              id: "gemini-global",
+              platformId: "gemini",
+              platformName: "Gemini CLI",
+              platformIcon: "gemini",
+              platformDescription: "Gemini rules",
+              name: "GEMINI.md",
+              description: "Gemini global rule file",
+              path: "/Users/test/.gemini/GEMINI.md",
+              exists: true,
+              group: "assistant",
+            },
+            {
+              id: "openclaw-global",
+              platformId: "openclaw",
+              platformName: "OpenClaw",
+              platformIcon: "openclaw",
+              platformDescription: "OpenClaw rules",
+              name: "SOUL.md",
+              description: "OpenClaw persona file",
+              path: "/Users/test/.openclaw/SOUL.md",
+              exists: true,
+              group: "assistant",
+            },
+          ]),
+          read: vi.fn().mockResolvedValue({
+            id: "gemini-global",
+            platformId: "gemini",
+            platformName: "Gemini CLI",
+            platformIcon: "gemini",
+            platformDescription: "Gemini rules",
+            name: "GEMINI.md",
+            description: "Gemini global rule file",
+            path: "/Users/test/.gemini/GEMINI.md",
+            exists: true,
+            group: "assistant",
+            content: "# Gemini rules",
+            versions: [],
+          }),
+          save: saveMock,
+        },
+      },
+    });
+
+    await act(async () => {
+      await renderWithI18n(<RulesManager />, { language: "en" });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue("# Gemini rules")).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByDisplayValue("# Gemini rules"), {
+      target: { value: "# Gemini rules updated" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save and overwrite file" }));
+
+    await waitFor(() => {
+      expect(saveMock).toHaveBeenCalledWith("gemini-global", "# Gemini rules updated");
+    });
+
+    expect(useRulesStore.getState().selectedRuleId).toBe("gemini-global");
+    expect(screen.getByText("Gemini CLI")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("# Gemini rules updated")).toBeInTheDocument();
   });
 });

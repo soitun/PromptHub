@@ -262,8 +262,17 @@ PromptHub bietet sowohl GUI als auch CLI. Die CLI eignet sich für Skripte, Batc
 > ⚠️ **Aktueller Status**
 >
 > - Die Desktop-App installiert den Befehl `prompthub` nicht automatisch
-> - Dieses Repository bietet derzeit einen standalone CLI-Einstieg aus dem Quellcode sowie ein gebautes Bundle
-> - Solange die Veröffentlichung als eigenständiges Paket noch nicht abgeschlossen ist, verwenden Sie bitte eine der folgenden Methoden
+> - Dieses Repository bietet derzeit einen standalone CLI-Einstieg aus dem Quellcode, ein gebautes Bundle und einen lokalen Pack/Install-Flow
+> - Wenn Sie einen globalen `prompthub`-Befehl benötigen, erstellen Sie das CLI-Tarball im Repository und installieren Sie es lokal
+
+### Lokal packen und global installieren
+
+```bash
+pnpm pack:cli
+pnpm add -g ./apps/cli/prompthub-cli-*.tgz
+prompthub --help
+prompthub prompt list
+```
 
 ### Aus dem Quellcode ausführen
 
@@ -292,14 +301,17 @@ node apps/cli/out/prompthub.cjs skill list
 
 ### Unterstützte Befehle
 
-- `prompt list|get|create|update|delete|search`
+- `prompt list|get|duplicate|versions|create-version|delete-version|diff|rollback|use|list-tags|rename-tag|delete-tag|create|update|delete|search`
+- `folder list|get|create|update|delete|reorder`
+- `rules list|scan|read|save|rewrite|add-project|remove-project|version-delete|export|import`
+- `workspace export|import`
 - `skill list|get|install|scan|delete|remove`
 
 ### Hinweise
 
 - Die CLI liest und schreibt direkt in die lokale PromptHub-Datenbank und das verwaltete Skill-Repository
 - Die Desktop-App zeigt derzeit nur CLI-Hinweise in den Einstellungen an und installiert keinen Shell-Wrapper
-- Verwenden Sie `apps/cli` aktuell über den Quellcode-Einstieg oder das gebaute Bundle
+- `apps/cli` kann jetzt auch als lokal gepacktes globales Tarball installiert werden
 
 ## 🌐 Self-Hosted Web
 

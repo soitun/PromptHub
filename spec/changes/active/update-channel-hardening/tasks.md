@@ -9,6 +9,7 @@
 - [x] 5. Update release workflow / docs to match the chosen preview strategy
 - [x] 6. Add or update regression tests
 - [x] 7. Update `implementation.md`
+- [x] 8. Tighten desktop update dialog layout and state-specific backup copy so long release notes and Homebrew flows do not overflow or show irrelevant install gating
 
 ## Verification
 

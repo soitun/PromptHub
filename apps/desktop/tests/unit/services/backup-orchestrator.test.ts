@@ -120,8 +120,18 @@ describe("backup-orchestrator", () => {
     const status = await runPreUpgradeBackup("0.5.5");
 
     expect(createUpgradeBackup).toHaveBeenCalledWith({ fromVersion: "0.5.5" });
-    expect(downloadBackup).toHaveBeenCalledTimes(1);
-    expect(downloadSelectiveExport).not.toHaveBeenCalled();
+    expect(downloadSelectiveExport).toHaveBeenCalledWith({
+      prompts: true,
+      folders: true,
+      versions: true,
+      images: true,
+      videos: true,
+      aiConfig: true,
+      settings: true,
+      rules: true,
+      skills: true,
+    });
+    expect(downloadBackup).not.toHaveBeenCalled();
     expect(recordManualBackup).toHaveBeenCalledWith("0.5.5");
     expect(status.lastManualBackupVersion).toBe("0.5.5");
   });

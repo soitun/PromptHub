@@ -3,3 +3,7 @@ export * from "./database";
 export * from "./cli/run";
 export * from "./cli/skill-cli-service";
 export * from "./skills/install-flow";
+export * from "./platform-paths";
+export * from "./rules-workspace";
+export * from "./ai-client";
+export * from "./rules-rewrite";

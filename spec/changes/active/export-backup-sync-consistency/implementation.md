@@ -23,6 +23,7 @@
 - Desktop locale coverage for the sync-source chooser and renamed provider menu labels is now present in all 7 locales.
 - Desktop regression coverage now also guards two provider-switch hazards that would have produced real user-facing sync conflicts: disabling the active provider must force `syncProvider` back to `manual`, and switching the active provider must cancel stale save-sync timers from the previous provider before they can upload.
 - Desktop full backup UI no longer exports the legacy `.phub.gz` envelope from the primary Settings action. The `Full backup` button now reuses the same full ZIP export contract as selective export (all scopes enabled), while restore remains compatible with `.json`, `.zip`, and legacy `.phub.gz` files.
+- Desktop update-dialog manual backup now also reuses that same full ZIP export contract: the pre-upgrade backup action still records a local rollback snapshot, but the user-facing download is no longer the legacy JSON-only `prompthub-backup-*.json` flow.
 - Desktop self-hosted E2E coverage now matches the shipped runtime behavior: startup auto-sync assertions expect replace-mode pull semantics, startup-sync tests explicitly disable `minimizeOnLaunch` so hidden-launch gating does not suppress the startup pull, and the live self-hosted settings test enters the `Self-Hosted PromptHub` data submenu before clicking manual connection/upload/download actions.
 - Desktop release verification is green again: the full `pnpm test:release` gate now passes end-to-end after rechecking the full unit suite, current self-hosted smoke semantics, and the desktop build + smoke Playwright path.
 - Desktop main-process production builds now keep `@aws-sdk/client-s3` external instead of bundling the Smithy CommonJS chain through Vite. This removes the build-time `[commonjs] Cannot read properties of undefined (reading 'resolved')` failure that appeared while transforming `@smithy/core` during desktop production builds.
@@ -76,3 +77,5 @@
 ## Follow-up
 
 - Renderer build output still reports the generic large-chunk warning (`index-*.js` > 500 kB). This no longer reflects sync/export architectural duplication, but it remains a bundle-size optimization opportunity if startup performance becomes a priority.
+- Rules workspace version reading now tolerates missing `.md` snapshot files (ENOENT) by skipping them and repairing the `index.json` on the fly. This fixes the "export/backup fails when a rule history file is missing" bug and prevents the UI from crashing when deleting versions.
+- `ensureGlobalRuleMaterialized` and `createProjectRule` now guard against creating duplicate initial "create" versions when called more than once for the same rule.

@@ -38,6 +38,9 @@ vi.mock("../../../src/renderer/components/settings/ShortcutsSettings", () => ({
 vi.mock("../../../src/renderer/components/settings/AboutSettings", () => ({
   AboutSettings: () => <div>about-content</div>,
 }));
+vi.mock("../../../src/renderer/components/settings/CLISettings", () => ({
+  CLISettings: () => <div>cli-content</div>,
+}));
 vi.mock("../../../src/renderer/components/settings/DataSettings", () => ({
   DataSettings: () => <div>data-content</div>,
 }));
@@ -105,6 +108,7 @@ describe("SettingsPage", () => {
     expect(nav).toHaveTextContent("Agent Management");
     expect(nav).not.toHaveTextContent("Platform Preview");
     expect(nav).toHaveTextContent("Security");
+    expect(nav).toHaveTextContent("PromptHub CLI");
     expect(nav.parentElement).not.toHaveClass("app-left-rail-glass");
 
     await act(async () => {
@@ -134,5 +138,27 @@ describe("SettingsPage", () => {
     });
 
     expect(screen.getByText("appearance-content")).toBeInTheDocument();
+  });
+
+  it("opens the dedicated CLI settings page from the desktop navigation", async () => {
+    useSettingsStoreMock.mockReturnValue({
+      syncProvider: "manual",
+      webdavEnabled: false,
+      selfHostedSyncEnabled: false,
+      s3StorageEnabled: false,
+      desktopHomeModules: ["skill"],
+    });
+
+    await act(async () => {
+      await renderWithI18n(<SettingsPage onBack={vi.fn()} />, {
+        language: "en",
+      });
+    });
+
+    await act(async () => {
+      screen.getByRole("button", { name: "PromptHub CLI" }).click();
+    });
+
+    expect(screen.getByText("cli-content")).toBeInTheDocument();
   });
 });

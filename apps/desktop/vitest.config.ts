@@ -14,6 +14,7 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "src"),
       "@renderer": path.resolve(__dirname, "src/renderer"),
+      "@prompthub/core": path.resolve(__dirname, "../../packages/core/src"),
       "@shared": path.resolve(__dirname, "../../packages/shared"),
       "@prompthub/shared": path.resolve(__dirname, "../../packages/shared"),
       "@prompthub/db": path.resolve(__dirname, "../../packages/db/src"),

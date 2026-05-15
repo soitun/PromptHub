@@ -30,3 +30,21 @@ PromptHub desktop MUST stop exposing and packaging any CLI entry once `apps/cli`
 - **WHEN** the desktop application is installed or launched
 - **THEN** it does not install a `prompthub` shell wrapper or desktop CLI bin
 - **AND** desktop only surfaces standalone CLI guidance in Settings.
+
+### Requirement: Desktop Settings Must Expose Standalone CLI Installation
+
+PromptHub desktop MUST surface the standalone CLI through a dedicated Settings entry instead of burying it inside the About page, and the install action must use a real release artifact that users can install with npm or pnpm.
+
+#### Scenario: User opens the CLI settings page
+
+- **WHEN** the user navigates to desktop Settings
+- **THEN** they can open a dedicated `PromptHub CLI` section
+- **AND** that section shows whether the `prompthub` command is already installed
+- **AND** it shows the exact install source and one-click install command based on the current release tarball
+
+#### Scenario: User installs CLI from desktop Settings
+
+- **GIVEN** the current release includes a CLI tarball asset
+- **WHEN** the user clicks one-click install with npm or pnpm
+- **THEN** desktop invokes the corresponding global package-manager install command against the GitHub release tarball
+- **AND** it does not require building the CLI from repository source code inside the settings flow

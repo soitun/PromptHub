@@ -1,6 +1,6 @@
 {
   "name": "@prompthub/desktop",
-  "version": "0.5.6-beta.2",
+  "version": "0.5.6",
   "private": true,
   "description": "PromptHub Desktop - Electron application for AI prompt management",
   "main": "out/main/index.js",
@@ -56,6 +56,7 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@playwright/test": "^1.57.0",
+    "@prompthub/core": "workspace:*",
     "@prompthub/db": "workspace:*",
     "@prompthub/shared": "workspace:*",
     "@testing-library/jest-dom": "^6.9.1",

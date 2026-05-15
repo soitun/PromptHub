@@ -262,8 +262,17 @@ PromptHub incluye GUI y CLI. La CLI es útil para scripts, operaciones por lotes
 > ⚠️ **Estado actual**
 >
 > - La app de escritorio no instala automáticamente el comando `prompthub`
-> - Este repositorio ofrece ahora una entrada standalone CLI desde código fuente y un bundle compilado
-> - Mientras no termine la publicación del paquete independiente, usa uno de los métodos siguientes
+> - Este repositorio ofrece ahora una entrada standalone CLI desde código fuente, un bundle compilado y un flujo local de pack/install
+> - Si necesitas un comando global `prompthub`, genera el tarball de CLI desde el repositorio e instálalo localmente
+
+### Empaquetar localmente e instalar globalmente
+
+```bash
+pnpm pack:cli
+pnpm add -g ./apps/cli/prompthub-cli-*.tgz
+prompthub --help
+prompthub prompt list
+```
 
 ### Ejecutar desde el código fuente
 
@@ -292,14 +301,17 @@ node apps/cli/out/prompthub.cjs skill list
 
 ### Comandos compatibles
 
-- `prompt list|get|create|update|delete|search`
+- `prompt list|get|duplicate|versions|create-version|delete-version|diff|rollback|use|list-tags|rename-tag|delete-tag|create|update|delete|search`
+- `folder list|get|create|update|delete|reorder`
+- `rules list|scan|read|save|rewrite|add-project|remove-project|version-delete|export|import`
+- `workspace export|import`
 - `skill list|get|install|scan|delete|remove`
 
 ### Notas
 
 - La CLI lee y escribe directamente la base de datos local de PromptHub y el repositorio de skills gestionado
 - La app de escritorio ahora solo muestra la guía de CLI en Ajustes y no instala ningún wrapper de shell
-- Por ahora, usa `apps/cli` desde el código fuente o mediante el bundle compilado
+- `apps/cli` ahora también puede instalarse como tarball global generado localmente desde el repositorio
 
 ## 🌐 Web autoalojada
 

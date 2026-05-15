@@ -1,4 +1,4 @@
-import { act, fireEvent, screen, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Sidebar } from "../../../src/renderer/components/layout/Sidebar";
@@ -320,6 +320,126 @@ describe("Sidebar", () => {
     expect(screen.queryByText("Claude Code")).not.toBeInTheDocument();
     expect(screen.queryByText("Gemini CLI")).not.toBeInTheDocument();
     expect(screen.queryByText("Docs Site")).not.toBeInTheDocument();
+  });
+
+  it("does not let a stale initial rules read override a later user selection", async () => {
+    useUIStore.setState({
+      appModule: "rules",
+      viewMode: "prompt",
+      isSidebarCollapsed: false,
+    });
+    useRulesStore.setState({
+      files: [],
+      selectedRuleId: null,
+      currentFile: null,
+      draftContent: "",
+      hasLoadedFiles: false,
+    } as Partial<ReturnType<typeof useRulesStore.getState>>);
+
+    let resolveClaudeRead:
+      | ((value: {
+          id: "claude-global";
+          platformId: "claude";
+          platformName: "Claude Code";
+          platformIcon: "claude";
+          platformDescription: "Claude rules";
+          name: "CLAUDE.md";
+          description: "Claude global rule file";
+          path: "/Users/test/.claude/CLAUDE.md";
+          exists: true;
+          group: "assistant";
+          content: "# Claude rules";
+          versions: [];
+        }) => void)
+      | null = null;
+
+    installWindowMocks({
+      api: {
+        rules: {
+          list: vi.fn().mockResolvedValue([
+            {
+              id: "claude-global",
+              platformId: "claude",
+              platformName: "Claude Code",
+              platformIcon: "claude",
+              platformDescription: "Claude rules",
+              name: "CLAUDE.md",
+              description: "Claude global rule file",
+              path: "/Users/test/.claude/CLAUDE.md",
+              exists: true,
+              group: "assistant",
+            },
+            {
+              id: "gemini-global",
+              platformId: "gemini",
+              platformName: "Gemini CLI",
+              platformIcon: "gemini",
+              platformDescription: "Gemini rules",
+              name: "GEMINI.md",
+              description: "Gemini global rule file",
+              path: "/Users/test/.gemini/GEMINI.md",
+              exists: true,
+              group: "assistant",
+            },
+          ]),
+          read: vi.fn((ruleId: string) => {
+            if (ruleId === "claude-global") {
+              return new Promise((resolve) => {
+                resolveClaudeRead = resolve as typeof resolveClaudeRead;
+              });
+            }
+
+            return Promise.resolve({
+              id: "gemini-global",
+              platformId: "gemini",
+              platformName: "Gemini CLI",
+              platformIcon: "gemini",
+              platformDescription: "Gemini rules",
+              name: "GEMINI.md",
+              description: "Gemini global rule file",
+              path: "/Users/test/.gemini/GEMINI.md",
+              exists: true,
+              group: "assistant",
+              content: "# Gemini rules",
+              versions: [],
+            });
+          }),
+        },
+      },
+    });
+
+    await act(async () => {
+      await renderWithI18n(
+        <Sidebar currentPage="home" onNavigate={vi.fn()} />,
+        { language: "en" },
+      );
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /Gemini CLI/i }));
+    });
+
+    await act(async () => {
+      resolveClaudeRead?.({
+        id: "claude-global",
+        platformId: "claude",
+        platformName: "Claude Code",
+        platformIcon: "claude",
+        platformDescription: "Claude rules",
+        name: "CLAUDE.md",
+        description: "Claude global rule file",
+        path: "/Users/test/.claude/CLAUDE.md",
+        exists: true,
+        group: "assistant",
+        content: "# Claude rules",
+        versions: [],
+      });
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(useRulesStore.getState().selectedRuleId).toBe("gemini-global");
+    });
   });
 
   it("hides the secondary module menu when the shell is collapsed", async () => {

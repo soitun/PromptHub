@@ -1,6 +1,6 @@
 export const RELEASE_VERSION = "0.5.6-beta.2";
 export const RELEASE_TAG = "v0.5.6-beta.2";
-export const RELEASE_DATE = "2026-05-14";
+export const RELEASE_DATE = "2026-05-12";
 
 export const HERO_VERSION_BADGE = {
   zh: "v0.5.6-beta.2 版已发布",
