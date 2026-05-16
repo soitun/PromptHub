@@ -1,4 +1,4 @@
-import { useState, useCallback, memo, useMemo } from 'react';
+import { useState, useCallback, memo, useEffect, useMemo, useRef } from 'react';
 import { motion, LayoutGroup } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { Prompt } from '@prompthub/shared/types';
@@ -17,6 +17,7 @@ import {
   ChevronDownIcon,
   ChevronRightIcon
 } from 'lucide-react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { useFolderStore } from '../../stores/folder.store';
 import { usePromptStore } from '../../stores/prompt.store';
 
@@ -372,14 +373,6 @@ export function PromptKanbanView({
     [pinnedCards],
   );
 
-  // Grid columns based on user preference (max 4 columns)
-  // Use md breakpoint for 3 cols, lg for 4 cols to be more responsive
-  const gridColsClass = {
-    2: 'grid-cols-1 sm:grid-cols-2',
-    3: 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3',
-    4: 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4',
-  }[kanbanColumns || 3];
-
   if (prompts.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
@@ -486,42 +479,201 @@ export function PromptKanbanView({
       )}
 
       {/* Unpinned Cards Grid */}
-      <div className="flex-1 overflow-y-auto p-4">
-        <LayoutGroup>
-          <div className={`grid ${gridColsClass} gap-4 pb-20`}>
-            {unpinnedPrompts.map(prompt => (
-              <motion.div 
-                key={prompt.id}
-                layout
-                layoutId={prompt.id}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ 
-                  layout: { type: "spring", stiffness: 300, damping: 30 },
-                  opacity: { duration: 0.2 }
+      <UnpinnedKanbanGrid
+        prompts={unpinnedPrompts}
+        kanbanColumnPreference={kanbanColumns || 3}
+        folderNameMap={folderNameMap}
+        uncategorizedLabel={uncategorizedLabel}
+        onPin={handlePin}
+        onCopy={onCopy}
+        onEdit={onEdit}
+        onAiTest={onAiTest}
+        onToggleFavorite={onToggleFavorite}
+        onViewDetail={onViewDetail}
+        onContextMenu={onContextMenu}
+      />
+    </div>
+  );
+}
+
+// Tailwind breakpoints used to mirror the responsive grid that the kanban
+// preference produces. Keeping this colocated avoids circular imports.
+// 这里复用 Tailwind 默认断点，让虚拟化的列数和原始响应式 grid 一致；放在本
+// 文件内避免和 PromptGalleryView 互相 import。
+const KANBAN_BREAKPOINTS = {
+  sm: 640,
+  md: 768,
+  lg: 1024,
+} as const;
+
+const UNPINNED_CARD_HEIGHT = 280; // h-[280px] from KanbanCard
+const KANBAN_GAP_PX = 16; // gap-4
+const KANBAN_PADDING_PX = 16; // p-4
+const KANBAN_BOTTOM_GUTTER = 80; // pb-20
+
+function getKanbanColumns(preference: 2 | 3 | 4, width: number): number {
+  if (preference === 2) {
+    if (width >= KANBAN_BREAKPOINTS.sm) return 2;
+    return 1;
+  }
+  if (preference === 3) {
+    if (width >= KANBAN_BREAKPOINTS.md) return 3;
+    if (width >= KANBAN_BREAKPOINTS.sm) return 2;
+    return 1;
+  }
+  if (preference === 4) {
+    if (width >= KANBAN_BREAKPOINTS.lg) return 4;
+    if (width >= KANBAN_BREAKPOINTS.md) return 3;
+    if (width >= KANBAN_BREAKPOINTS.sm) return 2;
+    return 1;
+  }
+  return 3;
+}
+
+interface UnpinnedKanbanGridProps {
+  prompts: Prompt[];
+  kanbanColumnPreference: 2 | 3 | 4;
+  folderNameMap: Map<string, string>;
+  uncategorizedLabel: string;
+  onPin: (promptId: string) => void;
+  onCopy: (prompt: Prompt) => void;
+  onEdit: (prompt: Prompt) => void;
+  onAiTest: (prompt: Prompt) => void;
+  onToggleFavorite: (promptId: string) => void;
+  onViewDetail: (prompt: Prompt) => void;
+  onContextMenu: (e: React.MouseEvent, prompt: Prompt) => void;
+}
+
+/**
+ * Virtualized grid for the kanban unpinned section. Cards have a fixed height
+ * (280 px) so estimateSize is exact; we still call measureElement to handle
+ * future variant heights without revisiting the math.
+ *
+ * The original layout wrapped each card in a framer-motion `motion.div` with
+ * layout animations. With virtualization, mount/unmount churn would force
+ * those animations to fire constantly during scroll, which both costs frames
+ * and looks jittery. Layout animations are kept for the pinned section (≤ 4
+ * items) where they remain meaningful.
+ */
+function UnpinnedKanbanGrid({
+  prompts,
+  kanbanColumnPreference,
+  folderNameMap,
+  uncategorizedLabel,
+  onPin,
+  onCopy,
+  onEdit,
+  onAiTest,
+  onToggleFavorite,
+  onViewDetail,
+  onContextMenu,
+}: UnpinnedKanbanGridProps) {
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  useEffect(() => {
+    const node = scrollRef.current;
+    if (!node) return;
+    const update = () => {
+      setContainerWidth(Math.max(0, node.clientWidth - KANBAN_PADDING_PX * 2));
+    };
+    update();
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(update);
+    observer.observe(node);
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
+  const columns = useMemo(
+    () => Math.max(1, getKanbanColumns(kanbanColumnPreference, containerWidth || 1)),
+    [kanbanColumnPreference, containerWidth],
+  );
+  const rowCount = useMemo(
+    () => Math.ceil(prompts.length / columns),
+    [prompts.length, columns],
+  );
+
+  const rowVirtualizer = useVirtualizer({
+    count: rowCount,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => UNPINNED_CARD_HEIGHT + KANBAN_GAP_PX,
+    overscan: 4,
+    getItemKey: (rowIndex) => {
+      const firstPromptId = prompts[rowIndex * columns]?.id;
+      return firstPromptId ? `${firstPromptId}__${columns}` : `row-${rowIndex}-${columns}`;
+    },
+  });
+
+  const virtualRows = rowVirtualizer.getVirtualItems();
+  const totalHeight = rowVirtualizer.getTotalSize();
+
+  return (
+    <div ref={scrollRef} className="flex-1 overflow-y-auto">
+      <div
+        style={{
+          position: 'relative',
+          height: `${totalHeight + KANBAN_BOTTOM_GUTTER}px`,
+          paddingLeft: `${KANBAN_PADDING_PX}px`,
+          paddingRight: `${KANBAN_PADDING_PX}px`,
+          paddingTop: `${KANBAN_PADDING_PX}px`,
+          paddingBottom: `${KANBAN_BOTTOM_GUTTER}px`,
+        }}
+      >
+        {virtualRows.map((virtualRow) => {
+          const rowStart = virtualRow.index * columns;
+          const rowItems = prompts.slice(rowStart, rowStart + columns);
+          return (
+            <div
+              key={virtualRow.key}
+              data-index={virtualRow.index}
+              ref={rowVirtualizer.measureElement}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: KANBAN_PADDING_PX,
+                right: KANBAN_PADDING_PX,
+                transform: `translateY(${virtualRow.start + KANBAN_PADDING_PX}px)`,
+              }}
+            >
+              <div
+                className="grid"
+                style={{
+                  gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+                  gap: `${KANBAN_GAP_PX}px`,
                 }}
-                onContextMenu={(e) => onContextMenu(e, prompt)}
               >
-                <KanbanCard
-                  prompt={prompt}
-                  isPinned={false}
-                  isExpanded={false}
-                  onPin={() => handlePin(prompt.id)}
-                  onUnpin={() => {}}
-                  onExpand={() => {}}
-                  onCollapse={() => {}}
-                  onCopy={() => onCopy(prompt)}
-                  onEdit={() => onEdit(prompt)}
-                  onAiTest={() => onAiTest(prompt)}
-                  onToggleFavorite={() => onToggleFavorite(prompt.id)}
-                  onViewDetail={() => onViewDetail(prompt)}
-                  folderName={prompt.folderId ? (folderNameMap.get(prompt.folderId) || uncategorizedLabel) : uncategorizedLabel}
-                />
-              </motion.div>
-            ))}
-          </div>
-        </LayoutGroup>
+                {rowItems.map((prompt) => (
+                  <div
+                    key={prompt.id}
+                    onContextMenu={(e) => onContextMenu(e, prompt)}
+                  >
+                    <KanbanCard
+                      prompt={prompt}
+                      isPinned={false}
+                      isExpanded={false}
+                      onPin={() => onPin(prompt.id)}
+                      onUnpin={() => {}}
+                      onExpand={() => {}}
+                      onCollapse={() => {}}
+                      onCopy={() => onCopy(prompt)}
+                      onEdit={() => onEdit(prompt)}
+                      onAiTest={() => onAiTest(prompt)}
+                      onToggleFavorite={() => onToggleFavorite(prompt.id)}
+                      onViewDetail={() => onViewDetail(prompt)}
+                      folderName={
+                        prompt.folderId
+                          ? folderNameMap.get(prompt.folderId) || uncategorizedLabel
+                          : uncategorizedLabel
+                      }
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

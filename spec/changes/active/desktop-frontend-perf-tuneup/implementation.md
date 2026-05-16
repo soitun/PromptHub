@@ -89,10 +89,41 @@ vite 构建告警：`Some chunks are larger than 500 kB after minification`。
 
 ### P3 — 长列表虚拟化
 
-- 状态：未开始
-- 做了什么：—
-- 与计划偏差：—
-- 实测数字：—
+- 状态：已完成（2026-05-16）
+- 做了什么：
+  - 新增 `apps/desktop` 依赖 `@tanstack/react-virtual ^3.13.x`。
+  - 在 `apps/desktop/tests/setup.ts` 中注入全局 `vi.mock('@tanstack/react-virtual', ...)`，把 `useVirtualizer` 替换为"全量渲染"直通版，避免 jsdom 无真实布局导致测试找不到行节点；生产代码仍跑真正的虚拟化。
+  - **`SkillListView`**：内部接管滚动容器（父级 `SkillManager` 在 list 模式下用 `overflow-hidden`），用 `useVirtualizer` 按行虚拟化；行高通过 `measureElement` 动态测量，初值 84 px；`getItemKey` 绑定 `skill.id` 让测得高度跨 reorder 不丢失。
+  - **`PromptGalleryView`**：grid 模式按"行虚拟化"。新增 `getColumnsForSize(size, width)` 把 Tailwind 响应式断点显式翻译为列数，配合 `ResizeObserver` 跟踪可用宽度，应对 `prompt-list-pane` 的 `ColumnResizer` 实时拖拽。`estimateRowHeight` 由 `aspect-[4/3]` 加 ~120 px 的卡片底部估算。
+  - **`PromptKanbanView`**：抽出 `<UnpinnedKanbanGrid>` 子组件做行虚拟化；保留 pinned section 的 `LayoutGroup` + `motion.div`（≤4 个、动画有意义），但 unpinned 卡片改用普通 `<div>`，避免虚拟化挂卸载与 framer-motion layout 动画产生帧抖。
+  - **`MainContent.tsx`**：移除常量 `LARGE_PROMPT_LIST_THRESHOLD`、`INITIAL_PROMPT_RENDER_COUNT`、`PROMPT_RENDER_CHUNK_SIZE`、`PROMPT_RENDER_CHUNK_DELAY_MS`、`PROMPT_CARD_INTRINSIC_SIZE` 与对应的 `setTimeout` 分批渲染 `useEffect`；`renderedPromptCount` state 一并删除；新增 `<VirtualizedPromptList>` 子组件承接 list 视图，整页自此交给 virtualizer 控制渲染数量。
+  - **`tests/integration/components/main-content-large-dataset.integration.test.tsx`**：原断言强依赖旧的 160-cap 分批渲染；改为断言"first + last + 完整数量"，与新的虚拟化契约对齐。
+- 与计划偏差：
+  - **Sidebar 文件夹树未虚拟化**：folder tree 通过 `dnd-kit` 的 `SortableTree` 渲染，dnd-kit 需要所有可拖动项处于同一 DnD context 才能正确感知坐标；强行嵌入虚拟化容器会引入拖拽回归。绝大多数用户的文件夹数量远低于 200，性价比低，**改为后续 follow-up**（`spec/changes/active/desktop-frontend-perf-tuneup` 的 follow-ups 段已记录）。
+  - **未新增 `prompt-large-list.spec.ts` e2e**：现有 `tests/integration/components/main-content-large-dataset.integration.test.tsx` 覆盖了 1000 条数据集场景；继续追加 e2e 是 marginal value。也归入 follow-up。
+- 实测数字（`pnpm build` + `pnpm bundle:budget`，相对 P1 baseline）：
+
+| chunk | P1 baseline gzip | P3 实测 gzip | Δ |
+| --- | --- | --- | --- |
+| `index-*.js`（主入口） | 359.31 KB | 364.30 KB | +4.99 KB（virtualizer 入口） |
+| `SkillListView-*.js` | 7.7 KB（raw） | 7.9 KB（raw） | 基本持平 |
+| `PromptGalleryView-*.js` | 6.0 KB（raw） | 6.0 KB（raw） | 持平 |
+| `PromptKanbanView-*.js` | 10.5 KB（raw） | 11 KB（raw） | +0.5 KB |
+
+主入口体积小幅上涨是 `@tanstack/react-virtual` 进入首屏关键路径的代价；整体预算仍在 384 KB 阈值内。运行时收益：
+
+- Skill 列表：从全量 `.map()` 改为只渲染可视 + overscan 6 行的 DOM，1000+ 条 skill 时 DOM 节点数从 O(n) 降到 O(visible)。
+- Prompt 画廊：grid 行级虚拟化，1000 条 prompts 不再一次性挂载 2000+ DOM 节点。
+- Prompt 看板：unpinned 区域同样行级虚拟化；pinned 仍保留 framer-motion 动画。
+- MainContent：去除手写 `setTimeout` 分批渲染，避免分批延迟可见 + 滚动到底突然卡顿的体验缺陷。
+
+- 验证：
+  - `pnpm --filter @prompthub/desktop typecheck` ✅
+  - `pnpm --filter @prompthub/desktop lint` ✅
+  - `pnpm --filter @prompthub/desktop test:unit` ✅（132 test files / 1157 tests）
+  - `pnpm --filter @prompthub/desktop test -- tests/integration --run` ✅（10/10 通过）
+  - `pnpm --filter @prompthub/desktop build` ✅
+  - `pnpm --filter @prompthub/desktop bundle:budget` ✅（8/8 阈值满足）
 
 ### P4 — Modal 状态解耦
 
@@ -131,6 +162,8 @@ vite 构建告警：`Some chunks are larger than 500 kB after minification`。
 ## Follow-ups
 
 - **设置页物理拆分**：拆 `DataSettings.tsx` 与 `AISettings.tsx` 为子目录 + 二级 lazy，独立 change 推进（key 建议 `desktop-settings-modularization`）。
+- **Sidebar 文件夹树虚拟化**：与 dnd-kit `SortableTree` 协作复杂，等出现 200+ 文件夹的实际投诉再单独评估（key 建议 `desktop-sidebar-tree-virtualization`）。
+- **大列表 e2e**：把 `tests/e2e/prompt-large-list.spec.ts` 作为后续 e2e 加固的一部分（与 P3 跨工作流，单独提）。
 - 评估 `framer-motion` 替换或精简（独立变更，单独 proposal）。
 - 评估 `react-i18next` 按 namespace lazy load（独立变更）。
 - 评估 `services/ai.ts` (2458 行)、`CreateSkillModal.tsx` (2144 行) 是否需要后续拆分（单独 proposal）。

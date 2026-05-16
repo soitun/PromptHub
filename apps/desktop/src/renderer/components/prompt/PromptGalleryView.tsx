@@ -1,7 +1,8 @@
-import { memo, useMemo, useState } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Prompt } from '@prompthub/shared/types';
-import { ImageIcon, FolderIcon, HashIcon, MoreHorizontalIcon, StarIcon, EditIcon, TrashIcon, CopyIcon, PlayIcon, HistoryIcon, VideoIcon } from 'lucide-react';
+import { ImageIcon, FolderIcon, StarIcon, PlayIcon, VideoIcon } from 'lucide-react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { useFolderStore } from '../../stores/folder.store';
 import { usePromptStore } from '../../stores/prompt.store';
 import { resolveLocalImageSrc, resolveLocalVideoSrc } from '../../utils/media-url';
@@ -67,7 +68,7 @@ const GalleryCard = memo(({
     const [imageError, setImageError] = useState(false);
     const [videoError, setVideoError] = useState(false);
     const highlightClassName = 'bg-primary/15 text-primary rounded px-0.5';
-    
+
     // Determine media source: prioritize image, then video
     // 确定媒体源：优先图片，其次视频
     const hasImage = prompt.images && prompt.images.length > 0 && !imageError;
@@ -174,6 +175,57 @@ const GalleryCard = memo(({
         </div>
     );
 });
+GalleryCard.displayName = 'GalleryCard';
+
+type GallerySize = 'small' | 'medium' | 'large';
+
+// Tailwind default breakpoints. Mapped manually so the virtualized layout
+// matches the responsive grid that production CSS produces.
+// Tailwind 默认断点。这里手动映射，使虚拟化的列数和原本响应式 grid 保持一致。
+const TAILWIND_BREAKPOINTS = {
+    sm: 640,
+    md: 768,
+    lg: 1024,
+    xl: 1280,
+    '2xl': 1536,
+} as const;
+
+function getColumnsForSize(size: GallerySize, width: number): number {
+    if (size === 'small') {
+        if (width >= TAILWIND_BREAKPOINTS['2xl']) return 8;
+        if (width >= TAILWIND_BREAKPOINTS.xl) return 6;
+        if (width >= TAILWIND_BREAKPOINTS.lg) return 5;
+        if (width >= TAILWIND_BREAKPOINTS.md) return 4;
+        return 3;
+    }
+    if (size === 'large') {
+        if (width >= TAILWIND_BREAKPOINTS.xl) return 4;
+        if (width >= TAILWIND_BREAKPOINTS.lg) return 3;
+        if (width >= TAILWIND_BREAKPOINTS.md) return 2;
+        if (width >= TAILWIND_BREAKPOINTS.sm) return 2;
+        return 1;
+    }
+    // medium (default)
+    if (width >= TAILWIND_BREAKPOINTS['2xl']) return 6;
+    if (width >= TAILWIND_BREAKPOINTS.xl) return 5;
+    if (width >= TAILWIND_BREAKPOINTS.lg) return 4;
+    if (width >= TAILWIND_BREAKPOINTS.md) return 3;
+    return 2;
+}
+
+// Estimated row height while measureElement hasn't run yet. The card uses
+// `aspect-[4/3]` plus ~70px of footer content, so we approximate that.
+// virtualizer 第一次渲染前用来估高的值。卡片是 aspect-[4/3] 加约 70px 的底部
+// 内容，所以这里粗略估算一下。
+function estimateRowHeight(columnWidth: number): number {
+    const mediaHeight = (columnWidth / 4) * 3;
+    return Math.round(mediaHeight + 120);
+}
+
+const GAP_PX = 16; // gap-4
+const PADDING_X = 16; // p-4 horizontal padding
+const PADDING_Y = 16; // p-4 vertical padding
+const BOTTOM_GUTTER = 80; // pb-20
 
 export function PromptGalleryView({
     prompts,
@@ -190,7 +242,7 @@ export function PromptGalleryView({
 }: PromptGalleryViewProps & { onContextMenu: (e: React.MouseEvent, prompt: Prompt) => void }) {
     const { t } = useTranslation();
     const folders = useFolderStore(state => state.folders);
-    const galleryImageSize = usePromptStore(state => state.galleryImageSize);
+    const galleryImageSize = (usePromptStore(state => state.galleryImageSize) ?? 'medium') as GallerySize;
     const uncategorizedLabel = t('folder.uncategorized');
     const videoLabel = t('prompt.videoLabel', 'Video');
     const folderNameMap = useMemo(
@@ -205,6 +257,56 @@ export function PromptGalleryView({
         return 'font-semibold text-sm leading-snug break-words whitespace-pre-wrap';
     }, [galleryImageSize]);
 
+    const scrollParentRef = useRef<HTMLDivElement | null>(null);
+    const [containerWidth, setContainerWidth] = useState(0);
+
+    // Track the inner content width (scroll container minus padding) so the
+    // column count tracks real layout. We can't read this once on mount because
+    // the parent panel can be resized via the ColumnResizer.
+    // 监听内容容器宽度（去掉内边距），以便列数能跟随真实布局变化；不能只在
+    // mount 时算一次，因为父级 prompt list pane 可以拖动调整宽度。
+    useEffect(() => {
+        const node = scrollParentRef.current;
+        if (!node) return;
+        const update = () => {
+            const inner = Math.max(0, node.clientWidth - PADDING_X * 2);
+            setContainerWidth(inner);
+        };
+        update();
+        if (typeof ResizeObserver === 'undefined') return;
+        const observer = new ResizeObserver(update);
+        observer.observe(node);
+        return () => {
+            observer.disconnect();
+        };
+    }, []);
+
+    const columns = useMemo(
+        () => Math.max(1, getColumnsForSize(galleryImageSize, containerWidth || 1)),
+        [galleryImageSize, containerWidth],
+    );
+
+    const rowCount = useMemo(
+        () => Math.ceil(prompts.length / columns),
+        [prompts.length, columns],
+    );
+
+    const columnWidth = useMemo(() => {
+        if (containerWidth <= 0) return 240;
+        return Math.max(0, (containerWidth - GAP_PX * (columns - 1)) / columns);
+    }, [containerWidth, columns]);
+
+    const rowVirtualizer = useVirtualizer({
+        count: rowCount,
+        getScrollElement: () => scrollParentRef.current,
+        estimateSize: () => estimateRowHeight(columnWidth) + GAP_PX,
+        overscan: 4,
+        getItemKey: (rowIndex) => {
+            const firstPromptId = prompts[rowIndex * columns]?.id;
+            return firstPromptId ? `${firstPromptId}__${columns}` : `row-${rowIndex}-${columns}`;
+        },
+    });
+
     if (prompts.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
@@ -214,35 +316,68 @@ export function PromptGalleryView({
         );
     }
 
-    const gridCols = {
-        small: 'grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8',
-        medium: 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6',
-        large: 'grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4',
-    }[galleryImageSize || 'medium'];
+    const virtualRows = rowVirtualizer.getVirtualItems();
+    const totalHeight = rowVirtualizer.getTotalSize();
 
     return (
-        <div className="h-full overflow-y-auto p-4 content-start">
-            <div className={`grid ${gridCols} gap-4 pb-20`}>
-                {prompts.map(prompt => (
-                    <div
-                        key={prompt.id}
-                        onContextMenu={(e) => onContextMenu(e, prompt)}
-                        className="h-full"
-                    >
-                        <GalleryCard
-                            prompt={prompt}
-                            onSelect={() => onViewDetail(prompt)}
-                            onToggleFavorite={(e) => {
-                                e.stopPropagation();
-                                onToggleFavorite(prompt.id);
+        <div ref={scrollParentRef} className="h-full overflow-y-auto">
+            <div
+                style={{
+                    height: `${totalHeight + BOTTOM_GUTTER}px`,
+                    paddingLeft: `${PADDING_X}px`,
+                    paddingRight: `${PADDING_X}px`,
+                    paddingTop: `${PADDING_Y}px`,
+                    paddingBottom: `${BOTTOM_GUTTER}px`,
+                    position: 'relative',
+                }}
+            >
+                {virtualRows.map((virtualRow) => {
+                    const rowStart = virtualRow.index * columns;
+                    const rowItems = prompts.slice(rowStart, rowStart + columns);
+                    return (
+                        <div
+                            key={virtualRow.key}
+                            data-index={virtualRow.index}
+                            ref={rowVirtualizer.measureElement}
+                            style={{
+                                position: 'absolute',
+                                top: 0,
+                                left: PADDING_X,
+                                right: PADDING_X,
+                                transform: `translateY(${virtualRow.start + PADDING_Y}px)`,
                             }}
-                            folderName={prompt.folderId ? (folderNameMap.get(prompt.folderId) || uncategorizedLabel) : uncategorizedLabel}
-                            highlightTerms={highlightTerms}
-                            videoLabel={videoLabel}
-                            titleClassName={titleClassName}
-                        />
-                    </div>
-                ))}
+                        >
+                            <div
+                                className="grid"
+                                style={{
+                                    gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+                                    gap: `${GAP_PX}px`,
+                                }}
+                            >
+                                {rowItems.map((prompt) => (
+                                    <div
+                                        key={prompt.id}
+                                        onContextMenu={(e) => onContextMenu(e, prompt)}
+                                        className="h-full"
+                                    >
+                                        <GalleryCard
+                                            prompt={prompt}
+                                            onSelect={() => onViewDetail(prompt)}
+                                            onToggleFavorite={(e) => {
+                                                e.stopPropagation();
+                                                onToggleFavorite(prompt.id);
+                                            }}
+                                            folderName={prompt.folderId ? (folderNameMap.get(prompt.folderId) || uncategorizedLabel) : uncategorizedLabel}
+                                            highlightTerms={highlightTerms}
+                                            videoLabel={videoLabel}
+                                            titleClassName={titleClassName}
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    );
+                })}
             </div>
         </div>
     );

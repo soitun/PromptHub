@@ -811,7 +811,13 @@ export function SkillManager() {
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto scrollbar-hide">
+        <div
+          className={
+            viewMode === "list"
+              ? "flex-1 overflow-hidden scrollbar-hide"
+              : "flex-1 overflow-y-auto scrollbar-hide"
+          }
+        >
           {viewMode === "list" ? (
             /* List View */
             /* 列表视图 */

@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef, Children, isValidElement, cloneElement, memo, lazy, Suspense, type CSSProperties } from 'react';
 import { flushSync } from 'react-dom';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { usePromptStore, ViewMode } from '../../stores/prompt.store';
 import { useFolderStore } from '../../stores/folder.store';
 import { useSettingsStore } from '../../stores/settings.store';
@@ -58,11 +59,7 @@ import {
   sortVisiblePrompts,
 } from '../../services/prompt-filter';
 
-const LARGE_PROMPT_LIST_THRESHOLD = 160;
-const INITIAL_PROMPT_RENDER_COUNT = 160;
-const PROMPT_RENDER_CHUNK_SIZE = 160;
-const PROMPT_RENDER_CHUNK_DELAY_MS = 24;
-const PROMPT_CARD_INTRINSIC_SIZE = "76px";
+const PROMPT_CARD_ESTIMATED_HEIGHT = 76;
 const MAX_AI_TEST_IMAGES = 8;
 const MAX_AI_TEST_IMAGE_BYTES = 10 * 1024 * 1024;
 const SUPPORTED_AI_TEST_IMAGE_MIME_TYPES = new Set([
@@ -158,10 +155,6 @@ const PromptCard = memo(function PromptCard({
     <div
       onClick={onSelect}
       onContextMenu={onContextMenu}
-      style={{
-        contentVisibility: 'auto',
-        containIntrinsicSize: PROMPT_CARD_INTRINSIC_SIZE,
-      }}
       className={`
         w-full text-left px-3 py-2.5 rounded-lg cursor-pointer
         transition-all duration-200 animate-in fade-in slide-in-from-left-2
@@ -201,6 +194,92 @@ const PromptCard = memo(function PromptCard({
     </div>
   );
 });
+
+interface VirtualizedPromptListProps {
+  prompts: Prompt[];
+  selectedPromptIdSet: Set<string>;
+  highlightTerms: string[];
+  onSelect: (prompt: Prompt, event: React.MouseEvent) => void;
+  onContextMenu: (event: React.MouseEvent, prompt: Prompt) => void;
+}
+
+/**
+ * Virtualized list of prompt cards. Replaces the previous chunked-render
+ * scheme that progressively painted more cards via setTimeout.
+ *
+ * The component owns its own scroll element so the parent pane can stay
+ * `overflow-hidden`. Heights are dynamically measured because card height
+ * varies with title wrapping and the optional description line. We seed
+ * estimateSize with a typical card height so initial scrollbar geometry is
+ * roughly correct before measurement runs.
+ *
+ * 虚拟化的 prompt 列表，替代以前的"setTimeout 分批渲染"补丁。
+ * 组件自带滚动容器，父级保持 overflow-hidden 即可；卡片高度因标题换行与
+ * 描述显示而异，所以使用 measureElement 动态测量；estimateSize 给一个典型
+ * 高度让初始滚动条几何大致正确。
+ */
+function VirtualizedPromptList({
+  prompts,
+  selectedPromptIdSet,
+  highlightTerms,
+  onSelect,
+  onContextMenu,
+}: VirtualizedPromptListProps) {
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+
+  const rowVirtualizer = useVirtualizer({
+    count: prompts.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => PROMPT_CARD_ESTIMATED_HEIGHT,
+    overscan: 8,
+    getItemKey: (index) => prompts[index]?.id ?? `__missing-${index}`,
+  });
+
+  const virtualItems = rowVirtualizer.getVirtualItems();
+  const totalHeight = rowVirtualizer.getTotalSize();
+
+  return (
+    <div ref={scrollRef} className="flex-1 overflow-y-auto">
+      <div
+        style={{
+          position: 'relative',
+          height: `${totalHeight + 24}px`,
+          paddingLeft: 12,
+          paddingRight: 12,
+          paddingTop: 12,
+        }}
+      >
+        {virtualItems.map((virtualRow) => {
+          const prompt = prompts[virtualRow.index];
+          if (!prompt) return null;
+          return (
+            <div
+              key={virtualRow.key}
+              data-index={virtualRow.index}
+              ref={rowVirtualizer.measureElement}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 12,
+                right: 12,
+                transform: `translateY(${virtualRow.start}px)`,
+                paddingBottom: 8,
+              }}
+            >
+              <PromptCard
+                prompt={prompt}
+                isSelected={selectedPromptIdSet.has(prompt.id)}
+                onSelect={(e) => onSelect(prompt, e)}
+                onContextMenu={(e) => onContextMenu(e, prompt)}
+                highlightTerms={highlightTerms}
+              />
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 type DetailInlineEditDraft = {
   title: string;
@@ -271,12 +350,6 @@ function PromptSkillMainContent() {
 
   const [copied, setCopied] = useState(false);
   const [shared, setShared] = useState(false);
-  const [renderedPromptCount, setRenderedPromptCount] = useState(() => {
-    if (viewMode === 'list') {
-      return prompts.length;
-    }
-    return Math.min(prompts.length, INITIAL_PROMPT_RENDER_COUNT);
-  });
 
   const [selectedModelIds, setSelectedModelIds] = useState<string[]>([]);
   const [isVariableModalOpen, setIsVariableModalOpen] = useState(false);
@@ -1075,67 +1148,13 @@ function PromptSkillMainContent() {
     [filteredPrompts, sortBy, sortOrder],
   );
 
-  useEffect(() => {
-    const targetCount =
-      viewMode === 'list' || sortedPrompts.length <= LARGE_PROMPT_LIST_THRESHOLD
-        ? sortedPrompts.length
-        : Math.min(sortedPrompts.length, INITIAL_PROMPT_RENDER_COUNT);
-
-    if (viewMode === 'list' || sortedPrompts.length <= LARGE_PROMPT_LIST_THRESHOLD) {
-      if (renderedPromptCount !== targetCount) {
-        setRenderedPromptCount(targetCount);
-      }
-      return;
-    }
-
-    let cancelled = false;
-    let nextTimer: number | null = null;
-
-    if (renderedPromptCount !== targetCount) {
-      setRenderedPromptCount(targetCount);
-    }
-
-    const scheduleNextChunk = () => {
-      nextTimer = window.setTimeout(() => {
-        if (cancelled) return;
-
-        setRenderedPromptCount((current) => {
-          if (current >= sortedPrompts.length) {
-            return current;
-          }
-
-          const nextCount = Math.min(
-            sortedPrompts.length,
-            current + PROMPT_RENDER_CHUNK_SIZE,
-          );
-
-          if (nextCount < sortedPrompts.length) {
-            scheduleNextChunk();
-          }
-
-          return nextCount;
-        });
-      }, PROMPT_RENDER_CHUNK_DELAY_MS);
-    };
-
-    if (INITIAL_PROMPT_RENDER_COUNT < sortedPrompts.length) {
-      scheduleNextChunk();
-    }
-
-    return () => {
-      cancelled = true;
-      if (nextTimer !== null) {
-        window.clearTimeout(nextTimer);
-      }
-    };
-  }, [renderedPromptCount, sortedPrompts, viewMode]);
-
-  const visiblePrompts = useMemo(() => {
-    if (viewMode === 'list') {
-      return sortedPrompts;
-    }
-    return sortedPrompts.slice(0, renderedPromptCount);
-  }, [renderedPromptCount, sortedPrompts, viewMode]);
+  // Sorted prompts feed both the inline list (which uses @tanstack/react-virtual)
+  // and the gallery / kanban views (which virtualize internally). All consumers
+  // can now safely receive the full sorted set without manual chunking.
+  // 排序后的 prompt 列表：list 视图通过 @tanstack/react-virtual 虚拟化，gallery /
+  // kanban 视图各自内部虚拟化。三个消费方都可以安全地拿到完整数据，不再需要
+  // 手写的分批渲染补丁。
+  const visiblePrompts = sortedPrompts;
 
   const selectedPrompt = prompts.find((p) => p.id === selectedId);
 
@@ -1692,8 +1711,8 @@ function PromptSkillMainContent() {
 
           {/* List content */}
           {/* 列表内容 */}
-          <div className="flex-1 overflow-y-auto">
-            {sortedPrompts.length === 0 ? (
+          {sortedPrompts.length === 0 ? (
+            <div className="flex-1 overflow-y-auto">
               <div className="flex flex-col items-center justify-center h-full p-8 text-center">
                 <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
                   <SparklesIcon className="w-8 h-8 text-primary" />
@@ -1701,21 +1720,16 @@ function PromptSkillMainContent() {
                 <p className="text-lg font-medium text-foreground mb-1">{t('prompt.noPrompts')}</p>
                 <p className="text-sm text-muted-foreground">{t('prompt.addFirst')}</p>
               </div>
-            ) : (
-              <div className="p-3 space-y-2">
-                {visiblePrompts.map((prompt) => (
-                  <PromptCard
-                    key={prompt.id}
-                    prompt={prompt}
-                    isSelected={selectedPromptIdSet.has(prompt.id)}
-                    onSelect={(e) => handleSelectPrompt(prompt, e)}
-                    onContextMenu={(e) => handleContextMenu(e, prompt)}
-                    highlightTerms={highlightTerms}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
+            </div>
+          ) : (
+            <VirtualizedPromptList
+              prompts={visiblePrompts}
+              selectedPromptIdSet={selectedPromptIdSet}
+              highlightTerms={highlightTerms}
+              onSelect={handleSelectPrompt}
+              onContextMenu={handleContextMenu}
+            />
+          )}
           {/* Drag-to-resize handle for the prompt list pane (#119) */}
           {/* Prompt 列表栏的拖拽手柄 (#119) */}
           <div className="absolute inset-y-0 right-0 z-10 flex">
