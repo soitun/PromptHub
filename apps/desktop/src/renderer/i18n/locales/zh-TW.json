@@ -482,6 +482,13 @@
     "fontSmall": "小",
     "fontMedium": "中",
     "fontLarge": "大",
+    "motion": {
+      "title": "動畫",
+      "desc": "控制桌面端動畫的播放強度。選擇 \"標準\" 會覆蓋系統的 \"減少動態效果\" 設定。",
+      "off": "關閉",
+      "reduced": "減弱",
+      "standard": "標準"
+    },
     "dataSubmenuBasic": "基礎資料設定",
     "dataSubmenuCloudBackup": "雲端備份設定",
     "syncProviderTitle": "目前同步來源",

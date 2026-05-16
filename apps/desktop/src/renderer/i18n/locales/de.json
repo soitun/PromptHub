@@ -482,6 +482,13 @@
     "fontSmall": "Klein",
     "fontMedium": "Mittel",
     "fontLarge": "Groß",
+    "motion": {
+      "title": "Animation",
+      "desc": "Steuert die Animationsintensität im Desktop-Renderer. \"Standard\" überschreibt die System-Einstellung \"Bewegung reduzieren\".",
+      "off": "Aus",
+      "reduced": "Reduziert",
+      "standard": "Standard"
+    },
     "dataSubmenuBasic": "Grundlegende Dateneinstellungen",
     "dataSubmenuCloudBackup": "Cloud-Backup-Einstellungen",
     "syncProviderTitle": "Aktuelle Synchronisationsquelle",

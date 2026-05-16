@@ -482,6 +482,13 @@
     "fontSmall": "小",
     "fontMedium": "中",
     "fontLarge": "大",
+    "motion": {
+      "title": "アニメーション",
+      "desc": "デスクトップレンダラーのアニメーション量を制御します。\"標準\" を選ぶとシステムの \"視差効果を減らす\" 設定を上書きします。",
+      "off": "オフ",
+      "reduced": "控えめ",
+      "standard": "標準"
+    },
     "dataSubmenuBasic": "基本データ設定",
     "dataSubmenuCloudBackup": "クラウドバックアップ設定",
     "syncProviderTitle": "現在の同期元",

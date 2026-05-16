@@ -502,6 +502,41 @@ export function AppearanceSettings() {
         </div>
       </SettingSection>
 
+      <SettingSection title={t("settings.motion.title", "Motion")}>
+        <div className="space-y-3 p-4">
+          <p className="text-xs text-muted-foreground">
+            {t(
+              "settings.motion.desc",
+              "Control how much animation the desktop renderer plays. 'Standard' overrides the system 'reduce motion' setting.",
+            )}
+          </p>
+          <div className="grid grid-cols-3 gap-3">
+            {(
+              [
+                { id: "off", labelKey: "settings.motion.off", fallback: "Off" },
+                { id: "reduced", labelKey: "settings.motion.reduced", fallback: "Reduced" },
+                { id: "standard", labelKey: "settings.motion.standard", fallback: "Standard" },
+              ] as const
+            ).map((option) => {
+              const selected = settings.motionPreference === option.id;
+              return (
+                <button
+                  key={option.id}
+                  onClick={() => settings.setMotionPreference(option.id)}
+                  className={`py-2.5 px-4 rounded-xl text-[13px] font-medium transition-all duration-200 ${
+                    selected
+                      ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
+                      : "app-settings-subtle text-foreground hover:shadow"
+                  } hover:-translate-y-0.5 active:translate-y-0`}
+                >
+                  {t(option.labelKey, option.fallback)}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </SettingSection>
+
       {!webRuntime ? (
         <SettingSection title={t("settings.desktopWorkspace", "Desktop workspace")}>
           <div className="space-y-4 p-4">

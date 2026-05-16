@@ -533,6 +533,25 @@ function App() {
     return () => mediaQuery.removeEventListener("change", syncSystemTheme);
   }, []);
 
+  // Mirror motion preference to <html data-motion>. CSS in globals.css
+  // reads this attribute to scale motion durations or disable them
+  // entirely. Initial value comes from the persisted settings store, so
+  // the UI never flashes the wrong motion mode.
+  // 把动画偏好同步到 <html data-motion>。globals.css 通过该属性决定
+  // 整体动画时长缩放或彻底关闭，初值来自持久化的 settings store，避免
+  // 启动时闪现错误状态。
+  useEffect(() => {
+    const apply = (preference: "off" | "reduced" | "standard"): void => {
+      document.documentElement.dataset.motion = preference;
+    };
+    apply(useSettingsStore.getState().motionPreference);
+    return useSettingsStore.subscribe((state, prev) => {
+      if (state.motionPreference !== prev.motionPreference) {
+        apply(state.motionPreference);
+      }
+    });
+  }, []);
+
   useEffect(() => {
     // Apply persisted theme settings
     // 应用保存的主题设置

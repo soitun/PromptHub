@@ -482,6 +482,13 @@
     "fontSmall": "Pequeño",
     "fontMedium": "Mediano",
     "fontLarge": "Grande",
+    "motion": {
+      "title": "Animación",
+      "desc": "Controla la cantidad de animación en la interfaz de escritorio. \"Estándar\" anula la configuración del sistema \"Reducir movimiento\".",
+      "off": "Desactivado",
+      "reduced": "Reducido",
+      "standard": "Estándar"
+    },
     "dataSubmenuBasic": "Ajustes básicos de datos",
     "dataSubmenuCloudBackup": "Ajustes de copia en la nube",
     "syncProviderTitle": "Fuente de sincronización actual",

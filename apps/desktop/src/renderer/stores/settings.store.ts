@@ -390,6 +390,16 @@ interface SettingsState {
   backgroundImageBlur: number;
   renderMarkdown: boolean; // Default use Markdown rendering in detail page
   editorMarkdownPreview: boolean; // Editor default enable preview
+  /**
+   * Motion preference applied to the renderer.
+   * - "off": animations effectively disabled (~0.01ms)
+   * - "reduced": ~60% of standard speed
+   * - "standard": full motion (overrides OS-level reduced-motion)
+   * Default "standard".
+   * 桌面端动画偏好。off 关闭、reduced 弱化（约 60% 速度）、standard 全速且
+   * 显式覆盖系统的 reduced-motion 设置。默认 standard。
+   */
+  motionPreference: "off" | "reduced" | "standard";
 
   // General settings
   autoSave: boolean;
@@ -513,6 +523,7 @@ interface SettingsState {
   setBackgroundImageOpacity: (opacity: number) => void;
   setBackgroundImageBlur: (blur: number) => void;
   setRenderMarkdown: (enabled: boolean) => void;
+  setMotionPreference: (preference: "off" | "reduced" | "standard") => void;
   setEditorMarkdownPreview: (enabled: boolean) => void;
   setAutoSave: (enabled: boolean) => void;
   setShowLineNumbers: (enabled: boolean) => void;
@@ -731,6 +742,7 @@ export const useSettingsStore = create<SettingsState>()(
         backgroundImageOpacity: DEFAULT_BACKGROUND_IMAGE_OPACITY,
         backgroundImageBlur: DEFAULT_BACKGROUND_IMAGE_BLUR,
         renderMarkdown: true,
+        motionPreference: "standard",
         editorMarkdownPreview: false,
         autoSave: true,
         showLineNumbers: false,
@@ -901,6 +913,7 @@ export const useSettingsStore = create<SettingsState>()(
           );
         },
         setRenderMarkdown: (enabled) => setTouched({ renderMarkdown: enabled }),
+        setMotionPreference: (preference) => setTouched({ motionPreference: preference }),
         setEditorMarkdownPreview: (enabled) =>
           setTouched({ editorMarkdownPreview: enabled }),
 

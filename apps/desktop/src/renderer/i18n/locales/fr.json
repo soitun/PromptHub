@@ -482,6 +482,13 @@
     "fontSmall": "Petit",
     "fontMedium": "Moyen",
     "fontLarge": "Grand",
+    "motion": {
+      "title": "Animation",
+      "desc": "Contrôle l'intensité des animations dans le bureau. \"Standard\" remplace le réglage système \"Réduire les animations\".",
+      "off": "Désactivé",
+      "reduced": "Réduit",
+      "standard": "Standard"
+    },
     "dataSubmenuBasic": "Paramètres de base des données",
     "dataSubmenuCloudBackup": "Paramètres de sauvegarde cloud",
     "syncProviderTitle": "Source de synchronisation actuelle",

@@ -483,6 +483,13 @@
     "fontSmall": "Small",
     "fontMedium": "Medium",
     "fontLarge": "Large",
+    "motion": {
+      "title": "Motion",
+      "desc": "Control how much animation the desktop renderer plays. 'Standard' overrides the system 'reduce motion' setting on this machine.",
+      "off": "Off",
+      "reduced": "Reduced",
+      "standard": "Standard"
+    },
     "dataSubmenuBasic": "Basic data settings",
     "dataSubmenuCloudBackup": "Cloud backup settings",
     "syncProviderTitle": "Current sync source",

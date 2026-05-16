@@ -52,7 +52,22 @@ bundle 体积（gzip，本变更前一次 build）：
 
 ### C2 — Motion components + 用户偏好
 
-- 状态：未开始
+- 状态：已完成（2026-05-16）
+- 做了什么：
+  - 4 个 motion primitive：`Pressable`（按下微反馈，统一 `active:scale-press-in`）、`Reveal`（入场/出场，意图驱动）、`Collapsible`（CSS-only `grid-rows` 折叠）、`ViewTransition`（cross-fade，基于 `key` + `tailwindcss-animate`）。
+  - `apps/desktop/src/renderer/components/ui/motion/index.ts`：统一导出。
+  - `settings.store.ts`：加 `motionPreference: 'off' | 'reduced' | 'standard'`（默认 `'standard'`）和 `setMotionPreference`；走现有 `prompthub-settings` localStorage 持久化。
+  - `App.tsx`：新增 useEffect，把 `motionPreference` 同步到 `<html data-motion>`，初值取自 store，避免启动闪现。`useSettingsStore.subscribe` 监听变化。
+  - `AppearanceSettings.tsx`：在 fontSize section 之后插入 Motion section，3 档分段控件。
+  - 7 个 locale 文件加 `settings.motion.{title,desc,off,reduced,standard}` 5 个 key。
+  - 单测 `tests/unit/components/motion-primitives.test.tsx`：8 个用例覆盖 4 个组件的关键行为（class 应用、状态切换、event 转发、durationToken 覆盖、`activeKey` remount）。
+- 偏差：无。
+- 实测：
+  - 主入口 364.31 → 365.04 KB（+0.73 KB，加入 4 个组件 + motionPreference state + 同步 effect）
+  - SettingsPage 49.07 → 49.26 KB（+0.19 KB，AppearanceSettings 加 Motion section）
+  - CSS gzip 19.59 → 19.80 KB（+0.21 KB）
+  - test:unit 1157 → 1165（+8 motion 用例）
+  - 全部预算通过。typecheck / lint / build 全绿。
 
 ### C3 — 仓库迁移到 token
 

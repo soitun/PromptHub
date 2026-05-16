@@ -484,6 +484,13 @@
     "fontSmall": "小",
     "fontMedium": "中",
     "fontLarge": "大",
+    "motion": {
+      "title": "动画",
+      "desc": "控制桌面端动画的播放强度。选择 \"标准\" 会覆盖系统的 \"减少动态效果\" 设置。",
+      "off": "关闭",
+      "reduced": "减弱",
+      "standard": "标准"
+    },
     "dataSubmenuBasic": "基础数据设置",
     "dataSubmenuCloudBackup": "云备份设置",
     "syncProviderTitle": "当前同步源",
