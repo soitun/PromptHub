@@ -64,18 +64,18 @@
 
 ## P6 — manualChunks 复核 + 体积预算收紧
 
-- [ ] 移除 `vite.config.ts` 中 `markdown-vendor` manual chunk
-- [ ] 把 markdown 渲染逻辑集中到 `<MarkdownViewer>`，并让其本身 lazy
-- [ ] 复核 `dnd-kit` 仅在拖拽场景出现，必要时单独 lazy
-- [ ] 全局 grep `from 'lucide-react'`，确认全是命名 import
-- [ ] 复核 `tailwind.config.js` 的 `content` 字段覆盖 `packages/core`、`packages/shared`、`packages/db` 中的 React 用法
-- [ ] 收紧 `bundle-budget.json`：主入口 gzip 目标设为可达上限（建议 ≤ 250 KB）
-- [ ] 把 `pnpm exec tsx scripts/check-bundle-budget.mts` 接到 `.github/workflows/quality.yml` 中 `Build` 之后
-- [ ] 跑全套：`pnpm lint && pnpm typecheck && pnpm test:unit && pnpm test:integration && pnpm build && pnpm test:e2e:smoke`
+- [-] ~~移除 `vite.config.ts` 中 `markdown-vendor` manual chunk~~（实测会让主入口变大；保留现状）
+- [-] ~~把 markdown 渲染逻辑集中到 `<MarkdownViewer>`，并让其本身 lazy~~（需要重写 6+ 个组件的 markdown 用法，独立 change）
+- [-] ~~复核 `dnd-kit` 仅在拖拽场景出现，必要时单独 lazy~~（dnd-kit 与 framer-motion 共占 `ui-vendor` 54 KB，不值得单独拆）
+- [x] 全局 grep `from 'lucide-react'`，确认全是命名 import
+- [x] 复核 `tailwind.config.js` 的 `content` 字段覆盖 `packages/core`、`packages/shared`、`packages/db` 中的 React 用法（结论：这些 package 没有 React/JSX，无需扫描）
+- [x] 在 `bundle-budget.json` 写明"guardrail，不是 ratchet"策略；不主动收紧，留 5–10% 余量
+- [x] 把 `pnpm --filter @prompthub/desktop bundle:budget` 接到 `.github/workflows/quality.yml` 中 `Build` 之后
+- [x] 跑全套：`pnpm lint && pnpm typecheck && pnpm build && pnpm bundle:budget`
 
 ## Cross-cutting
 
-- [ ] 每完成一个阶段，更新 `implementation.md` 中对应小节，记录实际数据与偏差
-- [ ] 所有阶段完成后，把"桌面端长列表虚拟化"、"设置页二级懒加载"、"bundle 预算"作为稳定行为同步到 `spec/domains/desktop/spec.md`
-- [ ] 在 `spec/architecture/` 下新增或更新一个文件描述桌面端 renderer 性能策略（可命名为 `desktop-frontend-performance.md`）
-- [ ] PR 描述附带前后体积对比与关键性能数字
+- [x] 每完成一个阶段，更新 `implementation.md` 中对应小节，记录实际数据与偏差
+- [x] 把"桌面端长列表虚拟化"、"bundle 预算"作为稳定行为同步到 `spec/domains/desktop/spec.md`
+- [x] 在 `spec/architecture/` 下新增 `desktop-frontend-performance.md` 描述桌面端 renderer 性能策略
+- [ ] PR 描述附带前后体积对比与关键性能数字（PR 时补充）

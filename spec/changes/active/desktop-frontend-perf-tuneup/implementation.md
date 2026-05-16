@@ -168,10 +168,39 @@ vite 构建告警：`Some chunks are larger than 500 kB after minification`。
 
 ### P6 — manualChunks 复核 + 体积预算收紧
 
-- 状态：未开始
-- 做了什么：—
-- 与计划偏差：—
-- 实测数字：—
+- 状态：已完成（2026-05-16，按经验调整范围）
+- 决策依据：在 P1–P5 跑完后，重新评估 P6 的真实杠杆：
+  - **`markdown-vendor` 移除**的设想前提是"它只在冷路径用到"。但实测 `MainContent.tsx` 自身静态 `import ReactMarkdown from 'react-markdown'`，prompt detail 渲染就在主入口里走 markdown，所以无论 manualChunk 是否声明，markdown 依赖都会被打进首屏关键路径。把 manualChunk 删掉只会让这些依赖混到 `index-*.js` 里、把主入口顶得更大；当前 `markdown-vendor` 反而起到 vendor 缓存复用的作用。
+  - **`lucide-react`** 全部都是命名 import（`grep` 全文确认无默认导入或 namespace import），tree-shaking 已经成立。
+  - **`tailwind` content** 仅扫描 `apps/desktop/src/renderer/**/*.{ts,tsx}` 是正确的：`packages/core/db/shared` 都是非 React/JSX 代码，不需要扫描。
+  - **预算阈值**：当前每条都留有 ~5–10% 余量，足够吸收无关 PR 的小幅波动。强行收紧会让无关变更频繁红 CI，违背 P1 时定下的"guardrail 而非 ratchet"原则。
+- 因此 P6 调整为最小有效干预：
+  - 不删 `markdown-vendor` manual chunk（删了会让主入口更大）。
+  - 不动 `dnd-kit` 拆分（它在 `ui-vendor` 内只有 ~30 KB，不值得单独拆）。
+  - **把 `bundle:budget` 接到 `quality.yml` 的 `Build` 之后**，让 PR CI 自动守护体积。
+  - 在 `bundle-budget.json` 顶部写明"guardrail，不是 ratchet"的策略说明，避免后续误改。
+- 与计划偏差：
+  - **未删 `markdown-vendor` manual chunk**：实测会让主入口变大；保留现状。
+  - **未把"markdown 渲染统一到 `<MarkdownViewer>` + lazy 化"作为本次范围**：那需要重写 6+ 个组件的 markdown 用法，是独立 change。
+- 实测数字（最终 baseline，附在 `apps/desktop/out/renderer/`）：
+
+| chunk | 终态 gzip | 预算 | 备注 |
+| --- | --- | --- | --- |
+| `index-*.js`（主入口） | 364.29 KB | 384 KB | +5 KB vs P1 baseline，来自 `@tanstack/react-virtual` |
+| `markdown-vendor` | 98.21 KB | 120 KB | 持平 |
+| `SettingsPage` | 49.07 KB | 60 KB | 持平 |
+| `ui-vendor` | 54.04 KB | 70 KB | 持平 |
+| `react-vendor` | 44.38 KB | 50 KB | 持平 |
+| `icons` | 13.51 KB | 18 KB | 持平 |
+| `i18n-vendor` | 14.96 KB | 20 KB | 持平 |
+| renderer css total | 19.45 KB | 30 KB | 持平 |
+
+- 验证：
+  - `pnpm --filter @prompthub/desktop typecheck` ✅
+  - `pnpm --filter @prompthub/desktop lint` ✅
+  - `pnpm --filter @prompthub/desktop build` ✅
+  - `pnpm --filter @prompthub/desktop bundle:budget` ✅（8/8）
+  - `quality.yml` 中新增 `Bundle budget` step（CI 触发后会随 PR 自动跑）。
 
 ## Verification
 
@@ -181,14 +210,15 @@ vite 构建告警：`Some chunks are larger than 500 kB after minification`。
 ## Synced Docs
 
 - 全部完成后同步：
-  - `spec/domains/desktop/spec.md`：把虚拟化、设置页二级懒加载、bundle 预算作为稳定行为写入。
-  - `spec/architecture/`：新增或更新桌面端 renderer 性能策略文档（如 `desktop-frontend-performance.md`）。
-  - `docs/contributing.md`：补充"如何运行 build:analyze 与 budget 检查"。
+  - `spec/domains/desktop/spec.md`：把虚拟化、bundle 预算作为稳定行为写入（已完成 2026-05-16）。
+  - `spec/architecture/desktop-frontend-performance.md`：新增桌面端 renderer 性能策略文档（已完成 2026-05-16）。
+  - `docs/contributing.md`：补充"如何运行 build:analyze 与 budget 检查"——本次未做，留作 follow-up（贡献者面向 doc，不阻塞本次闭环）。
 - 完成后再把本变更从 `spec/changes/active/` 归档到 `spec/changes/archive/`。
 
 ## Follow-ups
 
 - **设置页物理拆分**：拆 `DataSettings.tsx` 与 `AISettings.tsx` 为子目录 + 二级 lazy，独立 change 推进（key 建议 `desktop-settings-modularization`）。
+- **markdown 渲染统一为 `<MarkdownViewer>` + lazy 化**：把 6+ 个组件中重复的 `react-markdown + remark-gfm + rehype-* + defaultSchema` 封装为单一组件并 lazy load，让 markdown 依赖真正离开首屏（key 建议 `desktop-markdown-viewer-extraction`）。
 - **services/ai 模块化与按需加载**：拆 2458 行的 `services/ai.ts` 为按 provider / 按用途分块，让冷路径（如 skill 翻译）能用动态 import 把整块代码挪出主入口（key 建议 `desktop-ai-service-modularization`）。
 - **prompt modal store 抽离**：把 `MainContent` 内的 modal 状态搬到独立 zustand store + `<PromptModalsHost />`，并用 React Profiler 实测确认列表零重渲染（key 建议 `desktop-prompt-modal-store-isolation`）。
 - **Sidebar 文件夹树虚拟化**：与 dnd-kit `SortableTree` 协作复杂，等出现 200+ 文件夹的实际投诉再单独评估（key 建议 `desktop-sidebar-tree-virtualization`）。

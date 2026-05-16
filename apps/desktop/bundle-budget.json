@@ -1,5 +1,5 @@
 {
-  "$comment": "Bundle size budgets for the desktop renderer. Sizes are gzipped bytes, measured at apps/desktop/out/renderer/. Each phase of spec/changes/active/desktop-frontend-perf-tuneup tightens the relevant entries; do not loosen without updating that change folder.",
+  "$comment": "Bundle size budgets for the desktop renderer. Sizes are gzipped bytes, measured at apps/desktop/out/renderer/. Budgets sit ~5-10% above the actual baseline so organic small changes do not red-flag the CI; they are intentionally NOT a hard ratchet. Tighten an entry only when a deliberate optimization landed and we want to lock in the win.",
   "rendererOutDir": "out/renderer",
   "entries": [
     {

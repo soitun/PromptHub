@@ -60,6 +60,23 @@
 
 - 桌面端更新弹窗中的手动升级前备份动作必须在弹窗内处理失败路径；如果预升级快照或导出步骤失败，界面必须进入可见错误态，而不是把 Promise rejection 泄漏到事件处理器外。
 
+### 10. Renderer List Virtualization
+
+- 桌面端 renderer 必须用 `@tanstack/react-virtual` 把以下四个长列表场景控制在 O(visible) 量级：
+  - 技能列表视图（`SkillListView`）
+  - Prompt 画廊视图（`PromptGalleryView`）
+  - Prompt 看板视图（`PromptKanbanView` 的 unpinned 区域）
+  - Prompt 详情列表（`MainContent` 内 list 模式）
+- 桌面端 renderer 不应再使用基于 `setTimeout` 的"分批渲染"补丁来缓解长列表卡顿；该补丁已被虚拟化替代。
+- 当组件测试运行在 jsdom 中时，`tests/setup.ts` 必须 mock `@tanstack/react-virtual` 为"全量渲染"直通版，否则 jsdom 的零布局会让虚拟化拒绝渲染任何行；生产代码继续使用真实虚拟化。
+
+### 11. Renderer Bundle Budget
+
+- 桌面端 renderer 必须维护 `apps/desktop/bundle-budget.json` 中声明的体积阈值（gzip 字节）；阈值是 guardrail，不是 ratchet，整体保留 5–10% 余量。
+- `apps/desktop/scripts/check-bundle-budget.mts` 必须能在零额外依赖的环境下执行，并在任意阈值被突破时以非零退出码失败。
+- `quality.yml` 工作流必须在 `Build` 之后运行 `bundle:budget` 步骤，确保 PR 不会无声地把 renderer 主入口或主要 chunk 顶过预算。
+- 当一次有意的优化让某个 chunk 体积下降并希望把成果固化时，才应在该 PR 中收紧对应阈值。
+
 ## Stable Scenarios
 
 ### Scenario: Contributor changes desktop runtime behavior
