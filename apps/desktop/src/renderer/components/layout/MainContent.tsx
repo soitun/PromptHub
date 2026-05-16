@@ -245,16 +245,23 @@ const VirtualizedPromptList = memo(function VirtualizedPromptList({
 
   const virtualItems = rowVirtualizer.getVirtualItems();
   const totalHeight = rowVirtualizer.getTotalSize();
+  // Match the previous `<div className="p-3 space-y-2">` layout: 12px gutter
+  // around the list and 8px gap between cards. Padding lives on the spacer
+  // wrapper rather than the inner box because absolutely positioned children
+  // ignore their parent's padding.
+  // 还原原来 `<div className="p-3 space-y-2">` 的视觉：列表四周 12px 间距、
+  // 卡片之间 8px gap。padding 写在外层 spacer 上，因为绝对定位的子元素不会
+  // 受父级 padding 影响，需要靠 top/left/height 自己处理上下左右间距。
+  const LIST_PADDING_X = 12;
+  const LIST_PADDING_TOP = 12;
+  const LIST_PADDING_BOTTOM = 12;
 
   return (
     <div ref={scrollRef} className="flex-1 overflow-y-auto">
       <div
         style={{
           position: 'relative',
-          height: `${totalHeight + 24}px`,
-          paddingLeft: 12,
-          paddingRight: 12,
-          paddingTop: 12,
+          height: `${totalHeight + LIST_PADDING_TOP + LIST_PADDING_BOTTOM}px`,
         }}
       >
         {virtualItems.map((virtualRow) => {
@@ -268,9 +275,9 @@ const VirtualizedPromptList = memo(function VirtualizedPromptList({
               style={{
                 position: 'absolute',
                 top: 0,
-                left: 12,
-                right: 12,
-                transform: `translateY(${virtualRow.start}px)`,
+                left: LIST_PADDING_X,
+                right: LIST_PADDING_X,
+                transform: `translateY(${virtualRow.start + LIST_PADDING_TOP}px)`,
                 paddingBottom: 8,
               }}
             >
