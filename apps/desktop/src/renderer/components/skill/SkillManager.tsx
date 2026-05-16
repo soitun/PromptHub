@@ -849,7 +849,7 @@ export function SkillManager() {
             /* 画廊视图 */
             <div className="p-6">
               {filteredSkills.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-muted-foreground animate-in fade-in zoom-in-95 duration-500 py-20">
+                <div className="h-full flex flex-col items-center justify-center text-muted-foreground animate-in fade-in zoom-in-95 duration-slow py-20">
                   <div className="p-8 bg-accent/30 rounded-full mb-6 relative">
                     <CuboidIcon className="w-20 h-20 opacity-20" />
                     <div className="absolute inset-0 border-4 border-primary/10 rounded-full animate-pulse" />

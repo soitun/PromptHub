@@ -325,7 +325,7 @@ export function PromptDetailModal({
                   <LocalImage
                     src={img}
                     alt={`image-${index}`}
-                    className="max-w-[200px] max-h-[200px] object-cover hover:scale-105 transition-transform duration-300 cursor-pointer"
+                    className="max-w-[200px] max-h-[200px] object-cover hover:scale-105 transition-transform duration-smooth cursor-pointer"
                     fallbackClassName="w-[200px] h-[150px]"
                     onClick={() => setPreviewImage(img)}
                   />

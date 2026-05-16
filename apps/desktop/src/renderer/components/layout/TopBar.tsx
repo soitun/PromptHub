@@ -796,7 +796,7 @@ export function TopBar({
                     }
                   }
                 }}
-                className={`flex items-center gap-1.5 h-full text-sm font-medium active:scale-95 transition-transform ${
+                className={`flex items-center gap-1.5 h-full text-sm font-medium active:scale-press-in transition-transform ${
                   appModule === "prompt"
                     ? "pl-3 pr-2 border-r border-primary-foreground/20"
                     : "px-3"
@@ -846,7 +846,7 @@ export function TopBar({
                     <div
                       ref={createMenuDropdownRef}
                       role="menu"
-                      className="fixed mt-1 w-48 rounded-lg border border-border app-wallpaper-panel-strong p-1 z-[9999] animate-in fade-in zoom-in-95 duration-100"
+                      className="fixed mt-1 w-48 rounded-lg border border-border app-wallpaper-panel-strong p-1 z-[9999] animate-in fade-in zoom-in-95 duration-instant"
                       style={{
                         top: createMenuPosition.top,
                         right: createMenuPosition.right,

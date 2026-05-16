@@ -29,14 +29,14 @@ export function Checkbox({ checked, onChange, label, className = '', disabled = 
         <span
           className={`
             inline-flex h-4 w-4 items-center justify-center rounded border border-border bg-background
-            transition-colors duration-200
+            transition-colors duration-base
             peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-primary/50
             ${checked ? 'bg-primary border-primary' : 'hover:border-primary/50'}
           `}
           aria-hidden="true"
         >
           <svg
-            className={`h-3 w-3 text-primary-foreground transition-opacity duration-200 ${checked ? 'opacity-100' : 'opacity-0'}`}
+            className={`h-3 w-3 text-primary-foreground transition-opacity duration-base ${checked ? 'opacity-100' : 'opacity-0'}`}
             viewBox="0 0 12 12"
             fill="none"
           >

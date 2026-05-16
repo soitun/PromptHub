@@ -73,7 +73,7 @@ export function ResizableHeader({
           <div 
             className={`
               absolute top-1 bottom-1 left-1/2 -translate-x-1/2 w-0.5 rounded-full
-              transition-all duration-150
+              transition-all duration-quick
               ${isResizing ? 'bg-primary w-1' : isHovering ? 'bg-primary/70' : 'bg-transparent'}
             `}
           />

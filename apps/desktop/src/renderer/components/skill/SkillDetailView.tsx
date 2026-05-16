@@ -222,7 +222,7 @@ export function SkillDetailView() {
   };
 
   return (
-    <div className="flex flex-col h-full app-wallpaper-panel border-l border-border animate-in slide-in-from-right duration-300 w-full md:w-[500px] lg:w-[650px] shadow-2xl relative z-30">
+    <div className="flex flex-col h-full app-wallpaper-panel border-l border-border animate-in slide-in-from-right duration-smooth w-full md:w-[500px] lg:w-[650px] shadow-2xl relative z-30">
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-border sticky top-0 app-wallpaper-surface z-10">
         <div className="flex items-center gap-4">
@@ -244,21 +244,21 @@ export function SkillDetailView() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setIsEditModalOpen(true)}
-            className="p-2.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-full transition-all active:scale-95"
+            className="p-2.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-full transition-all active:scale-press-in"
             title={t("skill.edit", "Edit Skill")}
           >
             <PencilIcon className="w-5 h-5" />
           </button>
           <button
             onClick={() => setIsFileEditorOpen(true)}
-            className="p-2.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-full transition-all active:scale-95"
+            className="p-2.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-full transition-all active:scale-press-in"
             title={t("skill.fileEditor", "File Editor")}
           >
             <FolderOpenIcon className="w-5 h-5" />
           </button>
           <button
             onClick={() => selectSkill(null)}
-            className="p-2.5 text-muted-foreground hover:text-foreground hover:bg-accent rounded-full transition-all active:scale-95"
+            className="p-2.5 text-muted-foreground hover:text-foreground hover:bg-accent rounded-full transition-all active:scale-press-in"
           >
             <XIcon className="w-6 h-6" />
           </button>
@@ -540,7 +540,7 @@ export function SkillDetailView() {
           </>
         ) : (
           /* Source Tab: Raw Config & Metadata */
-          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-smooth">
             <section className="space-y-4">
               <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-[0.2em]">
                 {t("skill.metadata").toUpperCase()}

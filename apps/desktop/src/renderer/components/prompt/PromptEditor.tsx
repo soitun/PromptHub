@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Textarea, Input, Button } from '../ui';
-import { SaveIcon, XIcon, HashIcon, PlayIcon, CopyIcon, ImageIcon } from 'lucide-react';
+import { SaveIcon, XIcon, HashIcon, PlayIcon, CopyIcon, ImageIcon, Loader2Icon } from 'lucide-react';
 import type { Prompt } from '@prompthub/shared/types';
 import { useSettingsStore } from '../../stores/settings.store';
 import { useShallow } from 'zustand/react/shallow';
@@ -330,7 +330,7 @@ export function PromptEditor({ prompt, onSave, onCancel }: PromptEditorProps) {
                 >
                   {isDownloadingImage ? (
                     <>
-                      <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                      <Loader2Icon className="w-3 h-3 animate-spin" />
                       {t('common.loading', '加载中...')}
                     </>
                   ) : (

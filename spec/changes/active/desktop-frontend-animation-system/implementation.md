@@ -71,7 +71,19 @@ bundle 体积（gzip，本变更前一次 build）：
 
 ### C3 — 仓库迁移到 token
 
-- 状态：未开始
+- 状态：已完成（2026-05-16）
+- 做了什么：
+  - 全仓 perl `\b`-边界替换：
+    - `duration-100 → duration-instant` (4 处)
+    - `duration-150 → duration-quick` (13 处)
+    - `duration-200 → duration-base` (~70 处)
+    - `duration-300 → duration-smooth` (17 处)
+    - `duration-500 → duration-slow` (3 处)
+  - 全仓 `active:scale-90 / active:scale-95 → active:scale-press-in` (24 处)，统一按下力度。
+  - `PromptEditor.tsx`：手写 `<span className="border-2 border-white/30 border-t-white rounded-full animate-spin">` 改为 `<Loader2Icon className="w-3 h-3 animate-spin" />`，与仓库其它 11 处 spinner 风格一致；同步加 `Loader2Icon` 到 lucide-react 命名 import。
+  - 验证 `tests/` 目录下无 duration 裸值需要迁移。
+- 偏差：无。`duration-0`（1 处）保留，因为它语义上是"立即（无过渡）"，token 体系里的"instant"指 80ms 微动效，两者不等价。
+- 实测：1165/1165 测试通过；主入口 365.04 → 365.07 KB（+0.03 KB，几乎无影响，class 名称变化对 gzip 不敏感）；bundle 全绿。
 
 ### C4 — 补齐缺失动画
 

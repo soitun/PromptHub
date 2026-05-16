@@ -44,14 +44,14 @@ export function CollapsibleThinking({
     const hasContent = content && content.length > 0;
 
     return (
-        <div className={`rounded-xl border border-border/50 bg-muted/20 overflow-hidden transition-all duration-200 ${className}`}>
+        <div className={`rounded-xl border border-border/50 bg-muted/20 overflow-hidden transition-all duration-base ${className}`}>
             {/* Header / 头部 */}
             <button
                 onClick={() => setIsExpanded(!isExpanded)}
                 className="w-full flex items-center gap-2 px-3 py-2 hover:bg-muted/50 transition-colors group"
             >
                 {/* Expand/Collapse Icon / 展开/折叠图标 */}
-                <span className="text-muted-foreground transition-transform duration-200">
+                <span className="text-muted-foreground transition-transform duration-base">
                     {isExpanded ? (
                         <ChevronDownIcon className="w-4 h-4" />
                     ) : (
@@ -89,7 +89,7 @@ export function CollapsibleThinking({
 
             {/* Content / 内容 */}
             <div
-                className={`overflow-hidden transition-all duration-300 ease-in-out ${isExpanded ? 'max-h-60 opacity-100' : 'max-h-0 opacity-0'
+                className={`overflow-hidden transition-all duration-smooth ease-in-out ${isExpanded ? 'max-h-60 opacity-100' : 'max-h-0 opacity-0'
                     }`}
             >
                 <div

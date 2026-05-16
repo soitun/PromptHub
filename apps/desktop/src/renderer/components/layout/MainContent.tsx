@@ -157,7 +157,7 @@ const PromptCard = memo(function PromptCard({
       onContextMenu={onContextMenu}
       className={`
         w-full text-left px-3 py-2.5 rounded-lg cursor-pointer
-        transition-all duration-200 animate-in fade-in slide-in-from-left-2
+        transition-all duration-base animate-in fade-in slide-in-from-left-2
         ${isSelected
           ? 'bg-primary text-white'
           : 'prompt-list-card bg-card hover:bg-accent'
@@ -1603,7 +1603,7 @@ function PromptSkillMainContent() {
     const layoutClass = layout === 'col' ? 'flex flex-col' : 'flex overflow-hidden';
     return `absolute inset-0 ${layoutClass} transition-opacity ease-out ${
       isActive
-        ? 'opacity-100 z-10 pointer-events-auto duration-200'
+        ? 'opacity-100 z-10 pointer-events-auto duration-base'
         : 'opacity-0 z-0 pointer-events-none duration-0'
     }`;
   }, [viewMode]);
@@ -1756,7 +1756,7 @@ function PromptSkillMainContent() {
         {/* Prompt 详情 - iOS 风格 */}
         <div className="flex-1 flex flex-col overflow-hidden">
           {selectedPrompt ? (
-            <div key={selectedPrompt.id} className="flex-1 flex flex-col overflow-hidden animate-in fade-in slide-in-from-right-3 duration-200">
+            <div key={selectedPrompt.id} className="flex-1 flex flex-col overflow-hidden animate-in fade-in slide-in-from-right-3 duration-base">
               <div className="flex-1 overflow-y-auto">
                 <div className="max-w-5xl mx-auto px-6 py-4">
                   {/* Title section */}
@@ -1795,19 +1795,19 @@ function PromptSkillMainContent() {
                       <button
                         onClick={() => toggleFavorite(selectedPrompt.id)}
                         className={`
-                      p-2.5 rounded-xl transition-all duration-200
+                      p-2.5 rounded-xl transition-all duration-base
                       ${selectedPrompt.isFavorite
                             ? 'text-yellow-500 bg-yellow-500/10'
                             : 'text-muted-foreground hover:bg-accent hover:text-foreground'
                           }
-                      active:scale-95
+                      active:scale-press-in
                     `}
                       >
                         <StarIcon className={`w-5 h-5 ${selectedPrompt.isFavorite ? 'fill-current' : ''}`} />
                       </button>
                       <button
                         onClick={() => handleSharePrompt(selectedPrompt)}
-                        className={`p-2.5 rounded-xl transition-all duration-200 ${shared ? 'text-green-500 bg-green-500/10' : 'text-muted-foreground hover:bg-accent hover:text-foreground'} active:scale-95`}
+                        className={`p-2.5 rounded-xl transition-all duration-base ${shared ? 'text-green-500 bg-green-500/10' : 'text-muted-foreground hover:bg-accent hover:text-foreground'} active:scale-press-in`}
                         title={t('prompt.shareJSON', '分享为 JSON')}
                       >
                          {shared ? <CheckIcon className="w-5 h-5" /> : <Share2Icon className="w-5 h-5" />}
@@ -1843,7 +1843,7 @@ function PromptSkillMainContent() {
                           onClick={() => setEditingPrompt(selectedPrompt)}
                           aria-label={t('prompt.editPrompt')}
                           title={t('prompt.editPrompt')}
-                          className="p-2.5 rounded-xl text-muted-foreground hover:bg-accent hover:text-foreground transition-all duration-200 active:scale-95"
+                          className="p-2.5 rounded-xl text-muted-foreground hover:bg-accent hover:text-foreground transition-all duration-base active:scale-press-in"
                         >
                           <EditIcon className="w-5 h-5" />
                         </button>
@@ -1873,7 +1873,7 @@ function PromptSkillMainContent() {
                             <LocalImage
                               src={img}
                               alt={`image-${index}`}
-                              className="max-w-[160px] max-h-[160px] object-cover hover:scale-105 transition-transform duration-300 cursor-pointer"
+                              className="max-w-[160px] max-h-[160px] object-cover hover:scale-105 transition-transform duration-smooth cursor-pointer"
                               fallbackClassName="w-[160px] h-[120px]"
                               onClick={() => setPreviewImage(img)}
                             />
@@ -1952,7 +1952,7 @@ function PromptSkillMainContent() {
                         onClick={() => setShowEnglish(!showEnglish)}
                         disabled={isDetailInlineEditing}
                         className={
-                          `flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ` +
+                          `flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-medium transition-all duration-base active:scale-press-in disabled:opacity-50 disabled:cursor-not-allowed ` +
                           (showEnglish
                             ? 'bg-primary text-white'
                             : 'bg-accent text-muted-foreground hover:text-foreground')

@@ -89,7 +89,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               key={toast.id}
               className={`
                 flex items-center gap-3 px-5 py-3.5 rounded-2xl border shadow-2xl pointer-events-auto
-                animate-in slide-in-from-right-10 fade-in duration-300
+                animate-in slide-in-from-right-10 fade-in duration-smooth
                 backdrop-blur-md
                 ${getBgColor(toast.type)}
               `}

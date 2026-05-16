@@ -688,7 +688,7 @@ export function SkillFullDetailPage({
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full app-wallpaper-section overflow-hidden animate-in fade-in slide-in-from-right-4 duration-300">
+    <div className="flex-1 flex flex-col h-full app-wallpaper-section overflow-hidden animate-in fade-in slide-in-from-right-4 duration-smooth">
       {/* Header with back button */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-border sticky top-0 app-wallpaper-panel-strong z-10">
         <div className="flex items-center gap-4">
@@ -702,7 +702,7 @@ export function SkillFullDetailPage({
                 selectSkill(null);
               });
             }}
-            className="p-2 -ml-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-all active:scale-95"
+            className="p-2 -ml-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-all active:scale-press-in"
             title={t("common.back", "Back")}
           >
             <ArrowLeftIcon className="w-5 h-5" />
@@ -746,7 +746,7 @@ export function SkillFullDetailPage({
               </button>
               <button
                 onClick={() => toggleFavorite(selectedSkill.id)}
-                className={`p-2.5 rounded-full transition-all active:scale-95 ${
+                className={`p-2.5 rounded-full transition-all active:scale-press-in ${
                   selectedSkill.is_favorite
                     ? "text-yellow-500 hover:text-yellow-600"
                     : "text-muted-foreground hover:text-yellow-500 hover:bg-yellow-500/10"
@@ -763,21 +763,21 @@ export function SkillFullDetailPage({
               </button>
               <button
                 onClick={() => setIsVersionHistoryOpen(true)}
-                className="p-2.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-full transition-all active:scale-95"
+                className="p-2.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-full transition-all active:scale-press-in"
                 title={t("skill.versionHistory", "Version History")}
               >
                 <HistoryIcon className="w-5 h-5" />
               </button>
               <button
                 onClick={() => setIsEditModalOpen(true)}
-                className="p-2.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-full transition-all active:scale-95"
+                className="p-2.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-full transition-all active:scale-press-in"
                 title={t("skill.edit", "Edit Skill")}
               >
                 <PencilIcon className="w-5 h-5" />
               </button>
               <button
                 onClick={handleDelete}
-                className="p-2.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full transition-all active:scale-95"
+                className="p-2.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full transition-all active:scale-press-in"
                 title={t("common.delete", "Delete")}
               >
                 <TrashIcon className="w-5 h-5" />
@@ -962,7 +962,7 @@ export function SkillFullDetailPage({
       {showBackToTop && activeTab !== "files" && (
         <button
           onClick={scrollToTop}
-          className="absolute bottom-6 left-1/2 z-20 inline-flex -translate-x-1/2 items-center gap-2 rounded-full border border-border app-wallpaper-surface px-4 py-2 text-sm font-medium text-foreground shadow-lg transition-all duration-200 hover:-translate-x-1/2 hover:-translate-y-0.5 hover:border-primary/30 hover:bg-accent hover:text-primary hover:shadow-xl"
+          className="absolute bottom-6 left-1/2 z-20 inline-flex -translate-x-1/2 items-center gap-2 rounded-full border border-border app-wallpaper-surface px-4 py-2 text-sm font-medium text-foreground shadow-lg transition-all duration-base hover:-translate-x-1/2 hover:-translate-y-0.5 hover:border-primary/30 hover:bg-accent hover:text-primary hover:shadow-xl"
         >
           <ArrowUpIcon className="w-4 h-4" />
           {t("common.backToTop", "Back to Top")}

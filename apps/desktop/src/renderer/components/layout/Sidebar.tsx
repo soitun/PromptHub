@@ -57,7 +57,7 @@ const NavItem = memo(function NavItem({ icon, label, count, active, onClick, col
         onClick={onClick}
         title={label}
         className={`
-          flex items-center rounded-lg transition-all duration-300 relative group
+          flex items-center rounded-lg transition-all duration-smooth relative group
           ${collapsed ? 'h-10 w-10 justify-center' : 'w-full justify-start gap-3 px-3 py-2'}
           ${active
             ? 'bg-primary text-white shadow-sm'
@@ -65,7 +65,7 @@ const NavItem = memo(function NavItem({ icon, label, count, active, onClick, col
           }
         `}
       >
-        <span className={`flex shrink-0 items-center justify-center transition-transform duration-300 ${collapsed ? 'w-5 h-5 group-hover:scale-110' : 'w-4 h-4'}`}>
+        <span className={`flex shrink-0 items-center justify-center transition-transform duration-smooth ${collapsed ? 'w-5 h-5 group-hover:scale-110' : 'w-4 h-4'}`}>
           {icon}
         </span>
         {!collapsed && (
@@ -327,7 +327,7 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
     layout === 'rail'
       ? `${railWidthClass} border-r border-sidebar-border/60 bg-sidebar-accent/25`
       : layout === 'panel'
-        ? `border-r border-sidebar-border bg-sidebar-background/85 app-wallpaper-panel-strong transition-[opacity,transform] duration-300 ease-out ${
+        ? `border-r border-sidebar-border bg-sidebar-background/85 app-wallpaper-panel-strong transition-[opacity,transform] duration-smooth ease-out ${
             isCollapsed
               ? 'w-0 -translate-x-4 opacity-0 pointer-events-none border-r-0'
               : 'w-[var(--sidebar-panel-width)] translate-x-0 opacity-100'
@@ -622,7 +622,7 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
   return (
     <aside
       ref={sidebarRef}
-      className={`relative z-20 flex shrink-0 overflow-hidden transition-all duration-300 ease-in-out ${asideClassName}`}
+      className={`relative z-20 flex shrink-0 overflow-hidden transition-all duration-smooth ease-in-out ${asideClassName}`}
       style={panelStyle}
     >
       {showRail && (
@@ -692,7 +692,7 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
                     selectFolder(null);
                     if (currentPage !== 'home') onNavigate('home');
                   }}
-                  className={`flex flex-col items-center justify-center py-2 rounded-md transition-all duration-200 ${
+                  className={`flex flex-col items-center justify-center py-2 rounded-md transition-all duration-base ${
                     selectedFolderId === null && currentPage === 'home' && promptTypeFilter === 'all'
                       ? 'app-wallpaper-surface-strong shadow-sm text-primary'
                       : 'text-muted-foreground hover:bg-sidebar-accent app-background-mode-image:hover:bg-foreground/10 hover:text-foreground'
@@ -708,7 +708,7 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
                     selectFolder(null);
                     if (currentPage !== 'home') onNavigate('home');
                   }}
-                  className={`flex flex-col items-center justify-center py-2 rounded-md transition-all duration-200 ${
+                  className={`flex flex-col items-center justify-center py-2 rounded-md transition-all duration-base ${
                     selectedFolderId === null && currentPage === 'home' && promptTypeFilter === 'text'
                       ? 'app-wallpaper-surface-strong shadow-sm text-primary'
                       : 'text-muted-foreground hover:bg-sidebar-accent app-background-mode-image:hover:bg-foreground/10 hover:text-foreground'
@@ -724,7 +724,7 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
                     selectFolder(null);
                     if (currentPage !== 'home') onNavigate('home');
                   }}
-                  className={`flex flex-col items-center justify-center py-2 rounded-md transition-all duration-200 ${
+                  className={`flex flex-col items-center justify-center py-2 rounded-md transition-all duration-base ${
                     selectedFolderId === null && currentPage === 'home' && promptTypeFilter === 'image'
                       ? 'app-wallpaper-surface-strong shadow-sm text-primary'
                       : 'text-muted-foreground hover:bg-sidebar-accent app-background-mode-image:hover:bg-foreground/10 hover:text-foreground'
@@ -894,7 +894,7 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
 
             {!isCollapsed ? (
               !isTagsCollapsed && (
-                <div className="flex-1 overflow-y-auto px-6 pb-4 scrollbar-hide animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <div className="flex-1 overflow-y-auto px-6 pb-4 scrollbar-hide animate-in fade-in slide-in-from-bottom-2 duration-smooth">
                   <div className="flex flex-wrap gap-1.5 pt-1">
                     {(showAllTags ? uniqueTags : uniqueTags.slice(0, 8)).map((tag, index) => (
                       <button
@@ -904,7 +904,7 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
                           if (currentPage !== 'home') onNavigate('home');
                         }}
                         style={{ animationDelay: `${index * 30}ms`, animationFillMode: 'both' }}
-                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-colors duration-200 animate-in fade-in slide-in-from-left-1 ${filterTags.includes(tag) && currentPage === 'home'
+                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-colors duration-base animate-in fade-in slide-in-from-left-1 ${filterTags.includes(tag) && currentPage === 'home'
                           ? 'bg-primary text-white'
                           : 'bg-sidebar-accent text-sidebar-foreground/70 hover:bg-primary hover:text-white'
                           }`}
@@ -929,7 +929,7 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
                     }
                   }}
                   title={t('nav.tags')}
-                  className={`w-10 h-10 flex flex-col items-center justify-center rounded-lg transition-colors duration-200 ${filterTags.length > 0 && currentPage === 'home'
+                  className={`w-10 h-10 flex flex-col items-center justify-center rounded-lg transition-colors duration-base ${filterTags.length > 0 && currentPage === 'home'
                     ? 'bg-primary text-white'
                     : 'bg-sidebar-accent text-sidebar-foreground/70 hover:bg-primary hover:text-white'
                     }`}
@@ -948,7 +948,7 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
       {isTagPopoverOpen && (
         <div
           ref={tagPopoverRef}
-          className={`fixed z-[9999] transition-all duration-150 ${
+          className={`fixed z-[9999] transition-all duration-quick ${
             tagPopoverPos.bottom !== undefined ? 'origin-bottom-left' : 'origin-top-left'
           } ${isTagPopoverVisible ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-1'}`}
           style={{ 
@@ -1275,7 +1275,7 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
 
               {!isCollapsed ? (
                 !isSkillTagsCollapsed && (
-                  <div className="flex-1 overflow-y-auto px-6 pb-4 scrollbar-hide animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <div className="flex-1 overflow-y-auto px-6 pb-4 scrollbar-hide animate-in fade-in slide-in-from-bottom-2 duration-smooth">
                     <div className="flex flex-wrap gap-1.5 pt-1">
                       {(showAllSkillTags ? uniqueSkillTags : uniqueSkillTags.slice(0, 8)).map((tag, index) => (
                         <button
@@ -1286,7 +1286,7 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
                             if (currentPage !== 'home') onNavigate('home');
                           }}
                           style={{ animationDelay: `${index * 30}ms`, animationFillMode: 'both' }}
-                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-colors duration-200 animate-in fade-in slide-in-from-left-1 ${
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-colors duration-base animate-in fade-in slide-in-from-left-1 ${
                             skillFilterTags.includes(tag) && currentPage === 'home'
                               ? 'bg-primary text-white'
                               : 'bg-sidebar-accent text-sidebar-foreground/70 hover:bg-primary hover:text-white'
@@ -1312,7 +1312,7 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
                       }
                     }}
                     title={t('nav.tags')}
-                    className={`w-10 h-10 flex flex-col items-center justify-center rounded-lg transition-colors duration-200 ${
+                    className={`w-10 h-10 flex flex-col items-center justify-center rounded-lg transition-colors duration-base ${
                       skillFilterTags.length > 0 && currentPage === 'home'
                         ? 'bg-primary text-white'
                         : 'bg-sidebar-accent text-sidebar-foreground/70 hover:bg-primary hover:text-white'
@@ -1333,7 +1333,7 @@ export function Sidebar({ currentPage, onNavigate, layout = 'combined' }: Sideba
         {storeView !== 'projects' && isTagPopoverOpen && (
           <div
             ref={tagPopoverRef}
-            className={`fixed z-[9999] transition-all duration-150 ${
+            className={`fixed z-[9999] transition-all duration-quick ${
               tagPopoverPos.bottom !== undefined ? 'origin-bottom-left' : 'origin-top-left'
             } ${isTagPopoverVisible ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-1'}`}
             style={{ 

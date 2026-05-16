@@ -60,7 +60,7 @@ export function PrivateFolderUnlockModal({
 
       {/* Modal content */}
       {/* 弹窗内容 */}
-      <div className="relative app-wallpaper-panel-strong rounded-xl w-full max-w-sm mx-4 overflow-hidden border border-border animate-in fade-in zoom-in-95 duration-200">
+      <div className="relative app-wallpaper-panel-strong rounded-xl w-full max-w-sm mx-4 overflow-hidden border border-border animate-in fade-in zoom-in-95 duration-base">
         {/* Title bar */}
         {/* 标题栏 */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">

@@ -54,7 +54,7 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
     return createPortal(
         <div
             ref={menuRef}
-            className="fixed z-[99999] min-w-[160px] py-1 bg-popover rounded-md border border-border shadow-lg animate-in fade-in zoom-in-95 duration-100"
+            className="fixed z-[99999] min-w-[160px] py-1 bg-popover rounded-md border border-border shadow-lg animate-in fade-in zoom-in-95 duration-instant"
             style={{ left: x, top: y }}
             onContextMenu={(e) => e.preventDefault()}
         >

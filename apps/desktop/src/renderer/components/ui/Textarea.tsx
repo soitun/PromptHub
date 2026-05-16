@@ -217,7 +217,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           'flex rounded-xl overflow-hidden',
           'bg-muted/50 border-0',
           'focus-within:ring-2 focus-within:ring-primary/30 focus-within:bg-background',
-          'transition-all duration-200',
+          'transition-all duration-base',
           error && 'ring-2 ring-destructive/50'
         )}>
           {/* Line numbers */}

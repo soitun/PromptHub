@@ -97,7 +97,7 @@ export function Modal({
   const modalContent = (
     <div
       className={clsx(
-        "fixed inset-0 z-[9999] flex items-center justify-center transition-all duration-200 ease-in-out",
+        "fixed inset-0 z-[9999] flex items-center justify-center transition-all duration-base ease-in-out",
         // In fullscreen mode, use p-16 (64px) to move the entire modal box away from traffic lights
         isFullscreen ? "p-16" : "p-4",
       )}
@@ -106,7 +106,7 @@ export function Modal({
       {/* Backdrop */}
       <div
         className={clsx(
-          "absolute inset-0 bg-background/60 backdrop-blur-md transition-opacity duration-200",
+          "absolute inset-0 bg-background/60 backdrop-blur-md transition-opacity duration-base",
           isAnimating ? "opacity-100" : "opacity-0",
         )}
         onClick={closeOnBackdrop ? onClose : undefined}
@@ -117,7 +117,7 @@ export function Modal({
         className={clsx(
           "relative app-wallpaper-panel-strong shadow-[0_0_100px_-20px_rgba(0,0,0,0.6)] border border-border",
           "overflow-hidden flex flex-col rounded-2xl",
-          "transition-all duration-200 ease-out", // Faster transition without bounce
+          "transition-all duration-base ease-out", // Faster transition without bounce
           // Mount/Unmount animation states (opacity + scale + drift)
           isAnimating
             ? "opacity-100 scale-100 translate-y-0"
@@ -151,7 +151,7 @@ export function Modal({
                   <div className="w-[1px] h-4 bg-border mx-1" />
                   <button
                     onClick={onClose}
-                    className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent transition-all duration-200"
+                    className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent transition-all duration-base"
                   >
                     <XIcon className="w-5 h-5" />
                   </button>

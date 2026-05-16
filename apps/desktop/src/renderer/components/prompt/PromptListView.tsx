@@ -49,7 +49,7 @@ export function PromptListView({
           onContextMenu={(e) => onContextMenu(e, prompt)}
           className={`
             flex items-center gap-3 px-3 py-2.5 border-b border-border/50 cursor-pointer
-            transition-colors duration-150
+            transition-colors duration-quick
             ${selectedId === prompt.id
               ? 'bg-primary/10 border-l-2 border-l-primary'
               : 'hover:bg-accent/50'

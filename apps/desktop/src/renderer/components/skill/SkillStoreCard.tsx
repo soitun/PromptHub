@@ -72,7 +72,7 @@ export function SkillStoreCard({
           <button
             onClick={(e) => onQuickInstall?.(skill, e)}
             disabled={isInstallingThis}
-            className="p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-all active:scale-90 disabled:opacity-50"
+            className="p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-all active:scale-press-in disabled:opacity-50"
             title={t("skill.install", "Install")}
           >
             {isInstallingThis ? (

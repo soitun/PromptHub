@@ -37,7 +37,7 @@ export function ImagePreviewModal({ isOpen, onClose, imageSrc }: ImagePreviewMod
     if (!isOpen || !imageSrc) return null;
 
     return createPortal(
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/90 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/90 backdrop-blur-sm animate-in fade-in duration-base">
             {/* Close button */}
             <button
                 onClick={onClose}

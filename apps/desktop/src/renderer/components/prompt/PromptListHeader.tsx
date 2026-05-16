@@ -199,7 +199,7 @@ export function PromptListHeader({ count }: PromptListHeaderProps) {
           {/* Sliding indicator */}
           {/* 滑动指示器 */}
           <div
-            className="absolute h-full bg-primary rounded-[3px] transition-all duration-200 ease-out"
+            className="absolute h-full bg-primary rounded-[3px] transition-all duration-base ease-out"
             style={{
               width: 'calc(100% / 4)',
               left: viewMode === 'card' ? '0%' 
@@ -210,7 +210,7 @@ export function PromptListHeader({ count }: PromptListHeaderProps) {
           />
           <button
             onClick={() => setViewMode('card')}
-            className={`relative z-10 p-1.5 transition-colors duration-200 ${viewMode === 'card'
+            className={`relative z-10 p-1.5 transition-colors duration-base ${viewMode === 'card'
               ? 'text-white'
               : 'text-muted-foreground hover:text-foreground'
               }`}
@@ -220,7 +220,7 @@ export function PromptListHeader({ count }: PromptListHeaderProps) {
           </button>
           <button
             onClick={() => setViewMode('gallery')}
-            className={`relative z-10 p-1.5 transition-colors duration-200 ${viewMode === 'gallery'
+            className={`relative z-10 p-1.5 transition-colors duration-base ${viewMode === 'gallery'
               ? 'text-white'
               : 'text-muted-foreground hover:text-foreground'
               }`}
@@ -230,7 +230,7 @@ export function PromptListHeader({ count }: PromptListHeaderProps) {
           </button>
           <button
             onClick={() => setViewMode('kanban')}
-            className={`relative z-10 p-1.5 transition-colors duration-200 ${viewMode === 'kanban'
+            className={`relative z-10 p-1.5 transition-colors duration-base ${viewMode === 'kanban'
               ? 'text-white'
               : 'text-muted-foreground hover:text-foreground'
               }`}
@@ -240,7 +240,7 @@ export function PromptListHeader({ count }: PromptListHeaderProps) {
           </button>
           <button
             onClick={() => setViewMode('list')}
-            className={`relative z-10 p-1.5 transition-colors duration-200 ${viewMode === 'list'
+            className={`relative z-10 p-1.5 transition-colors duration-base ${viewMode === 'list'
               ? 'text-white'
               : 'text-muted-foreground hover:text-foreground'
               }`}

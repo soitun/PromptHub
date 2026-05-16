@@ -53,7 +53,7 @@ export function UnsavedChangesDialog({
 
       {/* Dialog */}
       {/* 对话框 */}
-      <div className="relative app-wallpaper-panel-strong rounded-xl shadow-2xl border border-border w-full max-w-md p-6 animate-in fade-in zoom-in-95 duration-200">
+      <div className="relative app-wallpaper-panel-strong rounded-xl shadow-2xl border border-border w-full max-w-md p-6 animate-in fade-in zoom-in-95 duration-base">
         {/* Icon */}
         {/* 图标 */}
         <div className="flex justify-center mb-4">

@@ -67,7 +67,7 @@ export function ConfirmDialog({
 
       {/* Dialog */}
       {/* 对话框 */}
-      <div className="relative app-wallpaper-panel-strong rounded-xl shadow-2xl border border-border w-full max-w-sm p-6 animate-in fade-in zoom-in-95 duration-200">
+      <div className="relative app-wallpaper-panel-strong rounded-xl shadow-2xl border border-border w-full max-w-sm p-6 animate-in fade-in zoom-in-95 duration-base">
         {/* Icon */}
         {/* 图标 */}
         {variant === 'destructive' && (

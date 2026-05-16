@@ -560,7 +560,7 @@ export function FolderModal({ isOpen, onClose, folder }: FolderModalProps) {
             </button>
 
             {isPrivate && (
-              <div className="pl-6 animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="pl-6 animate-in fade-in slide-in-from-top-2 duration-base">
                 {!securityStatus.configured ? (
                   <p className="text-xs text-destructive">{t('folder.privateNeedPasswordInline', '请到"设置 - 安全"设置主密码后再开启私密。')}</p>
                 ) : (

@@ -104,7 +104,7 @@ const KanbanCard = memo(({
   return (
     <div
       className={`
-        group relative flex flex-col app-wallpaper-panel rounded-xl border transition-all duration-300
+        group relative flex flex-col app-wallpaper-panel rounded-xl border transition-all duration-smooth
         ${isPinned 
           ? 'border-primary/50 shadow-lg shadow-primary/10 ring-2 ring-primary/20' 
           : 'border-border hover:border-primary/30 hover:shadow-md'

@@ -257,7 +257,7 @@ export function SkillListView({
     const webSkillLibraryMode =
       !runtimeCapabilities.skillDistribution && !runtimeCapabilities.skillStore;
     return (
-      <div className="h-full flex flex-col items-center justify-center text-muted-foreground animate-in fade-in zoom-in-95 duration-500 py-20">
+      <div className="h-full flex flex-col items-center justify-center text-muted-foreground animate-in fade-in zoom-in-95 duration-slow py-20">
         <div className="p-8 bg-accent/30 rounded-full mb-6 relative">
           <CuboidIcon className="w-20 h-20 opacity-20" />
           <div className="absolute inset-0 border-4 border-primary/10 rounded-full animate-pulse" />
@@ -480,7 +480,7 @@ export function SkillListView({
                         e.stopPropagation();
                         onQuickInstall(skill);
                       }}
-                      className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-all active:scale-90"
+                      className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-all active:scale-press-in"
                       title={t("skill.quickInstall", "快速安装")}
                     >
                       <DownloadIcon className="w-4 h-4" />
@@ -491,7 +491,7 @@ export function SkillListView({
                       e.stopPropagation();
                       toggleFavorite(skill.id);
                     }}
-                    className={`p-2 rounded-lg transition-all active:scale-90 ${
+                    className={`p-2 rounded-lg transition-all active:scale-press-in ${
                       skill.is_favorite
                         ? "text-yellow-500 hover:text-yellow-600"
                         : "text-muted-foreground hover:text-yellow-500 hover:bg-yellow-500/10"
@@ -513,7 +513,7 @@ export function SkillListView({
                         onRequestDelete(skill.id, skill.name);
                       }
                     }}
-                    className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-all active:scale-90"
+                    className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-all active:scale-press-in"
                     title={t("common.delete")}
                   >
                     <TrashIcon className="w-4 h-4" />

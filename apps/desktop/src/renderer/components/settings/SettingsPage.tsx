@@ -209,7 +209,7 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
             <button
               key={item.id}
               onClick={() => setActiveSection(item.id)}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] transition-all duration-150 ${
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] transition-all duration-quick ${
                 activeSection === item.id
                   ? "bg-primary text-white shadow-sm"
                   : "text-foreground/80 hover:bg-muted/70"
@@ -243,7 +243,7 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
                         ? ` ${t("common.enabled")}`
                         : ""
                     }`}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] transition-all duration-150 ${
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] transition-all duration-quick ${
                       activeDataSubsection === item.id
                         ? "bg-primary text-white shadow-sm"
                         : "text-foreground/80 hover:bg-muted/70"
@@ -292,7 +292,7 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
           </h1>
           <div
             key={activeSection}
-            className="animate-in fade-in slide-in-from-bottom-2 duration-200"
+            className="animate-in fade-in slide-in-from-bottom-2 duration-base"
           >
             {renderContent()}
           </div>

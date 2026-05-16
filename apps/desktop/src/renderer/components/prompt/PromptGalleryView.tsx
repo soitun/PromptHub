@@ -78,7 +78,7 @@ const GalleryCard = memo(({
 
     return (
         <div
-            className="group relative flex flex-col app-wallpaper-panel rounded-xl overflow-hidden border border-border hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer h-full"
+            className="group relative flex flex-col app-wallpaper-panel rounded-xl overflow-hidden border border-border hover:shadow-lg transition-all duration-smooth hover:-translate-y-1 cursor-pointer h-full"
             onClick={onSelect}
         >
             {/* Image / Video / Placeholder Area */}
@@ -88,7 +88,7 @@ const GalleryCard = memo(({
                     <img
                         src={imageSrc}
                         alt={prompt.title}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                        className="w-full h-full object-cover transition-transform duration-slow group-hover:scale-110"
                         loading="lazy"
                         onError={() => setImageError(true)}
                     />
@@ -128,7 +128,7 @@ const GalleryCard = memo(({
 
                 {/* Helper Actions Overlay */}
                 {/* 快捷操作浮层 */}
-                <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-base">
                     <button
                         onClick={onToggleFavorite}
                         className={`p-1.5 rounded-full backdrop-blur-md bg-black/20 hover:bg-black/40 transition-colors ${prompt.isFavorite ? 'text-yellow-400' : 'text-white'

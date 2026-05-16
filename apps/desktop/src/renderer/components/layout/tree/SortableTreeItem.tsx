@@ -63,14 +63,14 @@ export const SortableTreeItem = forwardRef<HTMLLIElement, SortableTreeItemProps>
         ref={setNodeRef}
         style={style}
         data-tree-item
-        className={`list-none box-border mb-0.5 relative select-none transition-opacity duration-150 ${isDragging ? 'z-50 opacity-0' : 'opacity-100'}`}
+        className={`list-none box-border mb-0.5 relative select-none transition-opacity duration-quick ${isDragging ? 'z-50 opacity-0' : 'opacity-100'}`}
         {...props}
       >
         <div
           {...attributes}
           {...listeners}
           className={`
-            group/folder relative flex items-center transition-[background-color] duration-200 rounded-lg min-h-[32px] cursor-default
+            group/folder relative flex items-center transition-[background-color] duration-base rounded-lg min-h-[32px] cursor-default
             ${isActive
               ? 'bg-sidebar-accent text-sidebar-foreground'
               : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
@@ -95,7 +95,7 @@ export const SortableTreeItem = forwardRef<HTMLLIElement, SortableTreeItemProps>
                 >
                   <ChevronRightIcon
                     className={`
-                      w-4 h-4 transition-transform duration-200 text-sidebar-foreground/40
+                      w-4 h-4 transition-transform duration-base text-sidebar-foreground/40
                       ${isExpanded ? 'rotate-90' : ''}
                     `}
                   />

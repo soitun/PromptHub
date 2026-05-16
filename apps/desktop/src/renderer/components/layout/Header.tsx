@@ -54,7 +54,7 @@ export function Header() {
               bg-muted/50 border-0
               text-sm placeholder:text-muted-foreground
               focus:outline-none focus:ring-2 focus:ring-primary/30 focus:bg-background
-              transition-all duration-200
+              transition-all duration-base
             "
           />
         </div>
@@ -69,7 +69,7 @@ export function Header() {
             flex items-center gap-2 h-9 px-4 rounded-lg
             bg-primary text-white text-sm font-medium
             hover:bg-primary/90
-            transition-colors duration-150
+            transition-colors duration-quick
           "
         >
           <PlusIcon className="w-4 h-4" />
@@ -83,7 +83,7 @@ export function Header() {
             p-2 rounded-lg
             text-muted-foreground hover:text-foreground
             hover:bg-accent
-            transition-colors duration-150
+            transition-colors duration-quick
           "
         >
           {isDark ? <SunIcon className="w-5 h-5" /> : <MoonIcon className="w-5 h-5" />}
@@ -96,7 +96,7 @@ export function Header() {
             p-2 rounded-lg
             text-muted-foreground hover:text-foreground
             hover:bg-accent
-            transition-colors duration-150
+            transition-colors duration-quick
           "
         >
           <SettingsIcon className="w-5 h-5" />

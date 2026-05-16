@@ -208,7 +208,7 @@ export function EditSkillModal({
 
       {/* Modal */}
       <div
-        className={`relative app-wallpaper-panel-strong rounded-2xl shadow-2xl border border-border overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col transition-all ${
+        className={`relative app-wallpaper-panel-strong rounded-2xl shadow-2xl border border-border overflow-hidden animate-in fade-in zoom-in-95 duration-base flex flex-col transition-all ${
           isFullscreen ? "w-[95vw] h-[95vh]" : "w-full max-w-2xl max-h-[90vh]"
         }`}
       >
@@ -384,7 +384,7 @@ export function EditSkillModal({
                 onChange={(e) => setTagInput(e.target.value)}
                 onKeyDown={handleTagKeyDown}
                 placeholder={t("skill.enterTagHint", "输入新标签后按回车")}
-                className="flex-1 h-10 px-4 rounded-xl bg-muted/50 border-0 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:bg-background transition-all duration-200"
+                className="flex-1 h-10 px-4 rounded-xl bg-muted/50 border-0 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:bg-background transition-all duration-base"
               />
               <button
                 type="button"

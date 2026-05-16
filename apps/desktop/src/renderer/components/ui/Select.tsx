@@ -135,7 +135,7 @@ export function Select({
           w-full h-10 px-3 rounded-lg bg-muted border-0 text-sm text-left
           flex items-center justify-between gap-2
           focus:outline-none focus:ring-2 focus:ring-primary/30
-          transition-all duration-150
+          transition-all duration-quick
           ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-muted/80'}
           ${isOpen ? 'ring-2 ring-primary/30' : ''}
         `}
@@ -144,7 +144,7 @@ export function Select({
           {displayLabel}
         </span>
         <ChevronDownIcon
-          className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${
+          className={`w-4 h-4 text-muted-foreground transition-transform duration-base ${
             isOpen ? 'rotate-180' : ''
           }`}
         />
@@ -159,7 +159,7 @@ export function Select({
               className="
                 fixed min-w-[180px]
                 bg-popover border border-border rounded-lg shadow-lg
-                overflow-hidden animate-in fade-in-0 zoom-in-95 duration-150
+                overflow-hidden animate-in fade-in-0 zoom-in-95 duration-quick
               "
               style={{
                 top: dropdownStyle.top,
@@ -235,7 +235,7 @@ function OptionItem({
       className={`
         w-full px-3 py-2 text-sm text-left
         flex items-center justify-between gap-2
-        transition-colors duration-100
+        transition-colors duration-instant
         ${isSelected 
           ? 'bg-primary/10 text-primary font-medium' 
           : 'text-foreground hover:bg-muted/50'

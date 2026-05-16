@@ -301,7 +301,7 @@ export function SortableTree({
         {/* Yuque-style 精准指示线 */}
         {activeId && overId && projected && overIndex !== -1 && (
           <div 
-            className="absolute left-0 right-0 h-0.5 bg-primary z-50 pointer-events-none flex items-center transition-all duration-100 ease-out"
+            className="absolute left-0 right-0 h-0.5 bg-primary z-50 pointer-events-none flex items-center transition-all duration-instant ease-out"
             style={{
               top: (overIndex + (activeIndex < overIndex ? 1 : 0)) * itemHeight - 1,
               left: (projected.depth * indentationWidth) + 12,

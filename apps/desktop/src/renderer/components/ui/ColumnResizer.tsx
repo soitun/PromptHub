@@ -199,7 +199,7 @@ export function ColumnResizer({
       data-testid="column-resizer"
     >
       <div
-        className={`pointer-events-none absolute inset-y-0 left-1/2 w-px -translate-x-1/2 transition-colors duration-150 ${
+        className={`pointer-events-none absolute inset-y-0 left-1/2 w-px -translate-x-1/2 transition-colors duration-quick ${
           isDragging
             ? "bg-primary/80"
             : "bg-border/40 group-hover:bg-primary/60"

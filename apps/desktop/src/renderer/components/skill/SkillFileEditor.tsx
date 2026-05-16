@@ -1347,7 +1347,7 @@ export function SkillFileEditor({
       />
 
       {/* Modal */}
-      <div className="relative app-wallpaper-panel-strong rounded-2xl shadow-2xl border border-border overflow-hidden animate-in fade-in zoom-in-95 duration-200 skill-file-editor">
+      <div className="relative app-wallpaper-panel-strong rounded-2xl shadow-2xl border border-border overflow-hidden animate-in fade-in zoom-in-95 duration-base skill-file-editor">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-3 border-b border-border shrink-0">
           <h2 className="text-base font-semibold flex items-center gap-2">

@@ -795,7 +795,7 @@ export function AiTestModal({
         onClick={onClose}
       />
       <aside
-        className={`absolute right-0 top-0 flex h-full flex-col border-l border-border app-wallpaper-panel-strong shadow-[-24px_0_80px_-40px_rgba(0,0,0,0.65)] transition-all duration-200 ${isExpanded
+        className={`absolute right-0 top-0 flex h-full flex-col border-l border-border app-wallpaper-panel-strong shadow-[-24px_0_80px_-40px_rgba(0,0,0,0.65)] transition-all duration-base ${isExpanded
           ? 'w-[min(1120px,88vw)]'
           : 'w-[min(640px,100vw)]'
           }`}

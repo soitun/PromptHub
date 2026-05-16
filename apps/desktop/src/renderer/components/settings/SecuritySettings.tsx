@@ -233,7 +233,7 @@ export function SecuritySettings() {
                 </button>
               </div>
               {showChangePwd && (
-                <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-base">
                   <PasswordInput
                     value={oldPwd}
                     onChange={setOldPwd}

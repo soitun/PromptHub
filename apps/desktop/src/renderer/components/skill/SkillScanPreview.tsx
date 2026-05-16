@@ -207,8 +207,8 @@ export function SkillScanPreview({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-in fade-in duration-200">
-      <div className="app-wallpaper-panel-strong rounded-xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-in fade-in duration-base">
+      <div className="app-wallpaper-panel-strong rounded-xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-base">
         {/* Header */}
         <div className="h-14 px-6 border-b border-border flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">

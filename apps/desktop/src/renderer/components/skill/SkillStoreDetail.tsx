@@ -483,7 +483,7 @@ export function SkillStoreDetail({
       />
 
       {/* Modal */}
-      <div className="relative w-full max-w-2xl max-h-[85vh] app-wallpaper-panel-strong border border-border rounded-2xl shadow-2xl flex flex-col animate-in fade-in zoom-in-95 duration-200">
+      <div className="relative w-full max-w-2xl max-h-[85vh] app-wallpaper-panel-strong border border-border rounded-2xl shadow-2xl flex flex-col animate-in fade-in zoom-in-95 duration-base">
         {/* Header */}
         <div className="flex items-start gap-3 p-5 border-b border-border shrink-0">
           <SkillIcon
@@ -881,7 +881,7 @@ export function SkillStoreDetail({
               <button
                 onClick={handleInstall}
                 disabled={isInstalling}
-                className="px-6 py-2.5 bg-primary text-white rounded-xl text-sm font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-all disabled:opacity-50 flex items-center gap-2 active:scale-95"
+                className="px-6 py-2.5 bg-primary text-white rounded-xl text-sm font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-all disabled:opacity-50 flex items-center gap-2 active:scale-press-in"
               >
                 {isInstalling ? (
                   <>

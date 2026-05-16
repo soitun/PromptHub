@@ -85,14 +85,14 @@ export function ToggleSwitch({
     <button
       onClick={handleClick}
       disabled={disabled}
-      className={`relative w-12 h-7 rounded-full transition-all duration-200 flex-shrink-0 border-2 ${
+      className={`relative w-12 h-7 rounded-full transition-all duration-base flex-shrink-0 border-2 ${
         isChecked
           ? "bg-primary border-primary"
           : "bg-muted border-border dark:bg-primary/20 dark:border-primary/40"
       } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
     >
       <span
-        className={`absolute top-0.5 w-5 h-5 rounded-full transition-all duration-200 ${
+        className={`absolute top-0.5 w-5 h-5 rounded-full transition-all duration-base ${
           isChecked ? "bg-white" : "bg-muted-foreground/50 dark:bg-primary/60"
         }`}
         style={{ left: isChecked ? "22px" : "2px" }}

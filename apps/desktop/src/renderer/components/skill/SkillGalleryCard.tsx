@@ -131,7 +131,7 @@ function SkillGalleryCardComponent({
                   event.stopPropagation();
                   onQuickInstall(skill);
                 }}
-                className="opacity-0 group-hover:opacity-100 p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-all active:scale-90"
+                className="opacity-0 group-hover:opacity-100 p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-all active:scale-press-in"
                 title={t("skill.quickInstall", "快速安装")}
               >
                 <DownloadIcon className="w-4 h-4" />
@@ -142,7 +142,7 @@ function SkillGalleryCardComponent({
                 event.stopPropagation();
                 onToggleFavorite(skill.id);
               }}
-              className={`p-2 rounded-lg transition-all active:scale-90 ${
+              className={`p-2 rounded-lg transition-all active:scale-press-in ${
                 skill.is_favorite
                   ? "text-yellow-500 hover:text-yellow-600"
                   : "opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-yellow-500 hover:bg-yellow-500/10"
@@ -162,7 +162,7 @@ function SkillGalleryCardComponent({
                 event.stopPropagation();
                 onDelete(skill);
               }}
-              className="opacity-0 group-hover:opacity-100 p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-all active:scale-90"
+              className="opacity-0 group-hover:opacity-100 p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-all active:scale-press-in"
               title={t("skill.delete", "删除")}
             >
               <TrashIcon className="w-4 h-4" />

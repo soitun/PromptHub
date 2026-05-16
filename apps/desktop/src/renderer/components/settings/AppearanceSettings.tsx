@@ -331,7 +331,7 @@ export function AppearanceSettings() {
                 <button
                   key={mode.id}
                   onClick={() => settings.setThemeMode(mode.id)}
-                  className={`relative flex-1 h-10 rounded-xl text-[13px] font-medium transition-all duration-200 ${
+                  className={`relative flex-1 h-10 rounded-xl text-[13px] font-medium transition-all duration-base ${
                     selected
                       ? "app-settings-segment-active"
                       : "app-settings-segment"
@@ -339,7 +339,7 @@ export function AppearanceSettings() {
                 >
                   <span className="inline-flex items-center justify-center gap-2">
                     <span
-                      className={`transition-transform duration-200 ${selected ? "scale-105" : ""}`}
+                      className={`transition-transform duration-base ${selected ? "scale-105" : ""}`}
                     >
                       {cloneElement(mode.icon as any, {
                         className: "w-4 h-4",
@@ -386,7 +386,7 @@ export function AppearanceSettings() {
                 >
                   <button
                     onClick={() => settings.setThemeColor(theme.id)}
-                    className={`relative h-10 w-10 flex-shrink-0 rounded-full transition-all duration-200 ${
+                    className={`relative h-10 w-10 flex-shrink-0 rounded-full transition-all duration-base ${
                       selected
                         ? "ring-2 ring-primary ring-offset-2 ring-offset-background"
                         : "hover:opacity-90"
@@ -410,7 +410,7 @@ export function AppearanceSettings() {
             <div className="flex-1 flex justify-center min-w-0">
               <button
                 onClick={() => settings.setThemeColor("custom")}
-                className={`relative h-10 w-10 flex-shrink-0 rounded-full transition-all duration-200 ${
+                className={`relative h-10 w-10 flex-shrink-0 rounded-full transition-all duration-base ${
                   settings.themeColor === "custom"
                     ? "ring-2 ring-primary ring-offset-2 ring-offset-background"
                     : "hover:opacity-95"
@@ -430,7 +430,7 @@ export function AppearanceSettings() {
 
           {/* 仅在选择自定义时展开 */}
           {settings.themeColor === "custom" && (
-            <div className="mt-4 p-4 rounded-xl app-settings-subtle animate-in fade-in slide-in-from-bottom-2 duration-200">
+            <div className="mt-4 p-4 rounded-xl app-settings-subtle animate-in fade-in slide-in-from-bottom-2 duration-base">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <div className="text-sm font-medium">
@@ -486,7 +486,7 @@ export function AppearanceSettings() {
               <button
                 key={size.id}
                 onClick={() => settings.setFontSize(size.id)}
-                className={`py-2.5 px-4 rounded-xl text-[13px] font-medium transition-all duration-200 ${
+                className={`py-2.5 px-4 rounded-xl text-[13px] font-medium transition-all duration-base ${
                   settings.fontSize === size.id
                     ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
                     : "app-settings-subtle text-foreground hover:shadow"
@@ -523,7 +523,7 @@ export function AppearanceSettings() {
                 <button
                   key={option.id}
                   onClick={() => settings.setMotionPreference(option.id)}
-                  className={`py-2.5 px-4 rounded-xl text-[13px] font-medium transition-all duration-200 ${
+                  className={`py-2.5 px-4 rounded-xl text-[13px] font-medium transition-all duration-base ${
                     selected
                       ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
                       : "app-settings-subtle text-foreground hover:shadow"
