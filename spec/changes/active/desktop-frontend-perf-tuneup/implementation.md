@@ -41,10 +41,36 @@ vite 构建告警：`Some chunks are larger than 500 kB after minification`。
 
 ### P1 — Bundle 可观测性
 
-- 状态：未开始
-- 做了什么：—
-- 与计划偏差：—
-- 实测数字：—
+- 状态：已完成（2026-05-16）
+- 做了什么：
+  - 新增 `apps/desktop` devDependency `rollup-plugin-visualizer`。
+  - `apps/desktop/vite.config.ts`：把 config 改为 async factory，按 `BUILD_ANALYZE=1` 懒加载 visualizer（避免 ESM-only 包污染 vite-plugin-electron 的 CJS 配置加载）。
+  - 新增 `apps/desktop/package.json` 脚本：`build:analyze`、`bundle:budget`。
+  - 新增 `apps/desktop/scripts/check-bundle-budget.mts`：零外部依赖，按 glob 比对 gzipped 大小，超阈值非 0 退出。
+  - 新增 `apps/desktop/bundle-budget.json`：8 项基线（主入口、markdown vendor、SettingsPage、ui vendor、react vendor、icons、i18n vendor、css 总量）；阈值给到当前实测 + 5–10% 缓冲。
+  - 根 `.gitignore` 新增 `apps/desktop/dist-stats/`。
+- 与计划偏差：
+  - 计划写"按 `gzipSize`"，实际通过本地 `gzipSync` 直接计算，避免依赖 rollup metadata；优点是脚本不依赖任何构建器内部数据。
+  - `bundle-budget.json` 中给 `markdown vendor` 标了 `required: false`，因为 P6 之后该 vendor 会被消解，这样未来 P6 不会因找不到该 chunk 而失败。
+- 实测数字（baseline + budget）：
+
+| chunk | actual gzip | budget |
+| --- | --- | --- |
+| `index-*.js` | 359.31 KB | 384 KB |
+| `markdown-vendor` | 98.21 KB | 120 KB |
+| `SettingsPage` | 49.07 KB | 60 KB |
+| `ui-vendor` | 54.04 KB | 70 KB |
+| `react-vendor` | 44.38 KB | 50 KB |
+| `icons` | 13.51 KB | 18 KB |
+| `i18n-vendor` | 14.96 KB | 20 KB |
+| renderer css total | 19.48 KB | 30 KB |
+
+- 验证：
+  - `pnpm --filter @prompthub/desktop build` ✅
+  - `pnpm --filter @prompthub/desktop build:analyze` ✅（`apps/desktop/dist-stats/renderer.html` 1.5 MB treemap）
+  - `pnpm --filter @prompthub/desktop bundle:budget` ✅（8/8 通过）
+  - `pnpm --filter @prompthub/desktop typecheck` ✅
+  - `pnpm --filter @prompthub/desktop lint` ✅
 
 ### P2 — 设置页拆分
 

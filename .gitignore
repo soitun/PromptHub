@@ -85,6 +85,11 @@ playwright-report/
 .eslintcache
 
 # ========================
+# Bundle analysis output
+# ========================
+apps/desktop/dist-stats/
+
+# ========================
 # Database (local dev databases)
 # ========================
 *.db

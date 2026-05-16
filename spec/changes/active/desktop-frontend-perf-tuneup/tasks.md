@@ -4,14 +4,14 @@
 
 ## P1 — Bundle 可观测性
 
-- [ ] 添加 `rollup-plugin-visualizer` 到 `apps/desktop` devDependencies
-- [ ] `vite.config.ts` 增加 `BUILD_ANALYZE=1` 分支，启用 visualizer
-- [ ] `apps/desktop/package.json` 增加 `build:analyze` 脚本
-- [ ] 写 `apps/desktop/scripts/check-bundle-budget.mts`
-- [ ] 写 `apps/desktop/bundle-budget.json`（初版宽松基线）
-- [ ] `.gitignore` 增加 `apps/desktop/dist-stats/`
-- [ ] 本地跑一次 `pnpm --filter @prompthub/desktop build:analyze` 并确认 treemap 可读
-- [ ] 把 P1 的实测基线（主入口 gzip、各 vendor chunk）记录到 `implementation.md`
+- [x] 添加 `rollup-plugin-visualizer` 到 `apps/desktop` devDependencies
+- [x] `vite.config.ts` 增加 `BUILD_ANALYZE=1` 分支，启用 visualizer
+- [x] `apps/desktop/package.json` 增加 `build:analyze` 脚本
+- [x] 写 `apps/desktop/scripts/check-bundle-budget.mts`
+- [x] 写 `apps/desktop/bundle-budget.json`（初版宽松基线）
+- [x] `.gitignore` 增加 `apps/desktop/dist-stats/`
+- [x] 本地跑一次 `pnpm --filter @prompthub/desktop build:analyze` 并确认 treemap 可读
+- [x] 把 P1 的实测基线（主入口 gzip、各 vendor chunk）记录到 `implementation.md`
 
 ## P2 — 设置页拆分
 

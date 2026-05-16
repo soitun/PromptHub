@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react";
 import electron from "vite-plugin-electron";
 import renderer from "vite-plugin-electron-renderer";
 import path from "path";
+import type { Plugin } from "vite";
 
 const mainExternalModules = new Set([
   "node-sqlite3-wasm",
@@ -19,7 +20,30 @@ const aliases = {
   "@renderer": path.resolve(__dirname, "src/renderer"),
 };
 
-export default defineConfig({
+// When BUILD_ANALYZE=1 is set, emit a treemap report alongside the renderer
+// build for offline inspection. The report is written to dist-stats/ and is
+// gitignored. We load rollup-plugin-visualizer lazily because it ships ESM
+// only; importing it eagerly breaks vite-plugin-electron's CJS config loader.
+// 当 BUILD_ANALYZE=1 时，在 renderer 构建产物旁生成 treemap 报告，便于离线
+// 体积审计。报告写入 dist-stats/，已加入 .gitignore。visualizer 仅提供 ESM，
+// 因此需要按需懒加载，避免污染 vite-plugin-electron 的 CJS 配置加载链路。
+const isBundleAnalyze = process.env.BUILD_ANALYZE === "1";
+
+async function resolveAnalyzePlugins(): Promise<Plugin[]> {
+  if (!isBundleAnalyze) return [];
+  const { visualizer } = await import("rollup-plugin-visualizer");
+  return [
+    visualizer({
+      filename: path.resolve(__dirname, "dist-stats/renderer.html"),
+      template: "treemap",
+      gzipSize: true,
+      brotliSize: true,
+      open: false,
+    }) as Plugin,
+  ];
+}
+
+export default defineConfig(async () => ({
   plugins: [
     react(),
     electron([
@@ -67,6 +91,7 @@ export default defineConfig({
       },
     ]),
     renderer(),
+    ...(await resolveAnalyzePlugins()),
   ],
   resolve: {
     alias: aliases,
@@ -113,4 +138,4 @@ export default defineConfig({
       },
     },
   },
-});
+}));
