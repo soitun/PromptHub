@@ -11,6 +11,7 @@ import {
   FolderIcon,
   FolderOpenIcon,
   HistoryIcon,
+  Loader2Icon,
   MinusIcon,
   PlusIcon,
   RotateCcwIcon,
@@ -164,9 +165,12 @@ export function RulesManager() {
 
   return (
     <>
-    <div className="flex h-full min-h-0 bg-background">
+    <div className="flex h-full min-h-0 bg-background animate-in fade-in duration-base ease-enter">
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className="grid min-h-0 flex-1 grid-cols-[minmax(280px,340px)_minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)]">
+        <div
+          key={currentFile?.id ?? "rules-empty"}
+          className="grid min-h-0 flex-1 grid-cols-[minmax(280px,340px)_minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)] animate-in fade-in slide-in-from-bottom-1 duration-base ease-enter"
+        >
           {/* Middle Header */}
           <div className="border-b border-r border-border bg-muted/20 px-5 py-4">
             <div className="flex items-start justify-between gap-3">
@@ -494,7 +498,10 @@ export function RulesManager() {
                 </div>
               ) : isPreviewingVersion && versionDiff ? (
                 /* Diff view: selected version → current draft */
-                <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+                <div
+                  key="diff"
+                  className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm animate-in fade-in zoom-in-95 duration-base ease-enter"
+                >
                   {/* Diff toolbar */}
                   <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border/70 bg-muted/30 px-4 py-2.5 text-xs">
                     <div className="flex items-center gap-3">
@@ -567,14 +574,14 @@ export function RulesManager() {
                 </div>
               ) : (
                 /* Normal editor */
-                <div className={`flex h-full min-h-0 flex-col overflow-hidden rounded-xl border bg-card shadow-sm transition-colors ${isRewriting ? "border-primary/40" : "border-border"}`}>
+                <div
+                  key="editor"
+                  className={`flex h-full min-h-0 flex-col overflow-hidden rounded-xl border bg-card shadow-sm transition-colors animate-in fade-in zoom-in-95 duration-base ease-enter ${isRewriting ? "border-primary/40" : "border-border"}`}
+                >
                   <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border/70 bg-muted/30 px-4 py-2.5 text-xs">
                     {isRewriting ? (
                       <span className="flex items-center gap-1.5 text-primary">
-                        <svg className="h-3 w-3 animate-spin" viewBox="0 0 24 24" fill="none">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-                        </svg>
+                        <Loader2Icon className="h-3 w-3 animate-spin" />
                         {t("rules.aiRewriteWorking", "Generating draft...")}
                       </span>
                     ) : (
