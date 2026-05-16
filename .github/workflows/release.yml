@@ -253,7 +253,17 @@ jobs:
             copy_if_exists "dist/PromptHub-${VERSION}-x64.AppImage"
             copy_if_exists "dist/PromptHub-${VERSION}-amd64.deb"
             copy_if_exists "dist/latest-linux.yml"
-            copy_if_exists "upload_dist/prompthub-cli-${VERSION}.tgz"
+            # CLI tarball was already staged into upload_dist by the
+            # earlier "Pack standalone CLI tarball" step, so we just
+            # assert it's present rather than re-copying it onto itself
+            # (which fails with "are the same file").
+            # CLI tarball 在更早的 "Pack standalone CLI tarball" step 里
+            # 就已经放进 upload_dist；这里只断言存在，不再 cp，避免与
+            # 自己同路径相互覆盖触发 "are the same file" 错误。
+            if [ ! -f "upload_dist/prompthub-cli-${VERSION}.tgz" ]; then
+              echo "Expected CLI tarball not found: upload_dist/prompthub-cli-${VERSION}.tgz"
+              exit 1
+            fi
           fi
 
           echo "Prepared upload bundle:"
