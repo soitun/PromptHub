@@ -162,3 +162,30 @@ bundle 体积（gzip，本变更前一次 build）：
 - **ESLint 自定义规则禁裸 duration**：等出现回归再加（key 建议 `desktop-motion-lint-enforcement`）。
 - **View Transition API 试点**：未来如果 Electron 把 Chromium 升到稳定支持，可在视图切换中考虑（key 建议 `desktop-view-transition-api`）。
 - **完整动画演示页**：在设置页或开发者工具区做一个"动画实验场"，展示所有 motion 组件的视觉效果，帮助 review。
+
+## Post-merge hotfixes (2026-05-16)
+
+C1–C6 进入仓库后，本地 Electron 实测发现下面 5 个真实问题，分别独立 commit 修复并落档：
+
+1. **`fix(motion): stop revert!important from killing all animations`** — C1 中 `html[data-motion="standard"] *, *::before, *::after { transition-duration: revert !important; }` 把所有过渡时长 revert 到浏览器默认 0s，所有动画在默认 motionPreference 下被强制归零。改用 `@media (prefers-reduced-motion: reduce) { html:not([data-motion="standard"]) * { ... } }` 让 standard 档根本不进降级路径。
+2. **`fix(motion): map gallery/kanban columns by container width`** — P3 用 Tailwind viewport 断点决定列数，但 prompt list pane 可被 ColumnResizer 拖窄，容器宽度 ≠ viewport，于是显示了错误的列数。改成"目标列宽 / 容器宽度"模型，每个 size 给一个目标列宽（small 150 / medium 240 / large 340 / kanban 280），列数按 `floor((width + gap) / (target + gap))` 在 min/max 内 clamp。
+3. **`fix(motion): restore VirtualizedPromptList top gutter`** — `paddingTop: 12` 写在 spacer 上对绝对定位子元素无效，第一张卡片紧贴顶部 toolbar。改用 `transform: translateY(start + 12)` 把上方 12px 还原；下方对应 `LIST_PADDING_BOTTOM = 12` 也还回来。
+4. **`fix(toast): collision-proof ids and exit-animation guard`** — `Date.now().toString()` 在同一毫秒内 showToast 会撞 id；3s auto-dismiss 与手动关闭可能让 removeToast double-fire。改用 `Date.now() + monotonic counter`，并把 auto-dismiss timer 单独放进 `autoDismissTimers` Map，进入退出动画后不允许再次触发。
+5. **`feat(motion): animate rules editor/diff and agent switches`** — Rules 切 agent / 切 editor↔diff 没有视觉过渡。给 RulesManager 根加 `animate-in fade-in`、grid 加 `key={currentFile?.id}` 触发切换动画、editor / diff 分支各自有稳定 key；同时把 C3 漏掉的手写 SVG spinner 换成 `Loader2Icon`。
+
+期间还加固了 token 体系：把 Tailwind 的 `transitionDuration / transitionTimingFunction / animationDuration / animationTimingFunction` 全部改成 `var(--motion-duration-*) / var(--motion-easing-*)`，让 `[data-motion="reduced"]` 改 CSS 变量后能 cascade 到 Tailwind utility，3 档偏好对所有 transition / animation 都真实生效（之前只对手写 CSS 生效）。
+
+最终 baseline：
+
+| chunk | 终态 gzip | 预算 |
+| --- | --- | --- |
+| `index-*.js`（主入口） | 365.30 KB | 384 KB |
+| `markdown-vendor` | 98.69 KB | 120 KB |
+| `SettingsPage` | 49.26 KB | 60 KB |
+| `ui-vendor`（仅 dnd-kit） | 16.35 KB | 22 KB |
+| `react-vendor` | 44.38 KB | 50 KB |
+| `icons` | 13.51 KB | 18 KB |
+| `i18n-vendor` | 14.96 KB | 20 KB |
+| renderer css total | 19.76 KB | 30 KB |
+
+测试：1165 unit / 10 integration 全绿。
