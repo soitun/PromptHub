@@ -179,38 +179,39 @@ GalleryCard.displayName = 'GalleryCard';
 
 type GallerySize = 'small' | 'medium' | 'large';
 
-// Tailwind default breakpoints. Mapped manually so the virtualized layout
-// matches the responsive grid that production CSS produces.
-// Tailwind 默认断点。这里手动映射，使虚拟化的列数和原本响应式 grid 保持一致。
-const TAILWIND_BREAKPOINTS = {
-    sm: 640,
-    md: 768,
-    lg: 1024,
-    xl: 1280,
-    '2xl': 1536,
-} as const;
+const GAP_PX = 16; // gap-4
+const PADDING_X = 16; // p-4 horizontal padding
+const PADDING_Y = 16; // p-4 vertical padding
+const BOTTOM_GUTTER = 80; // pb-20
+
+// Target column widths chosen so the visible column count matches what the
+// previous Tailwind responsive grid produced for typical viewport sizes:
+// - small  ~150px columns (was grid-cols-3 .. 2xl:grid-cols-8)
+// - medium ~240px columns (was grid-cols-2 .. 2xl:grid-cols-6)
+// - large  ~340px columns (was grid-cols-1 .. xl:grid-cols-4)
+// We size by container width because the gallery can live inside a resizable
+// pane (ColumnResizer); the original Tailwind grid sized by viewport, which
+// gave wrong column counts when the pane was narrowed.
+// 目标列宽：使容器在常见尺寸下显示的列数与原本 Tailwind 响应式 grid 一致。
+// 用容器宽度计算（而非 viewport），因为画廊所在面板可以被 ColumnResizer
+// 拖动，原 Tailwind 视口断点在面板变窄时会算错列数。
+const TARGET_COLUMN_WIDTH: Record<GallerySize, number> = {
+    small: 150,
+    medium: 240,
+    large: 340,
+};
+
+const COLUMN_LIMITS: Record<GallerySize, { min: number; max: number }> = {
+    small: { min: 3, max: 8 },
+    medium: { min: 2, max: 6 },
+    large: { min: 1, max: 4 },
+};
 
 function getColumnsForSize(size: GallerySize, width: number): number {
-    if (size === 'small') {
-        if (width >= TAILWIND_BREAKPOINTS['2xl']) return 8;
-        if (width >= TAILWIND_BREAKPOINTS.xl) return 6;
-        if (width >= TAILWIND_BREAKPOINTS.lg) return 5;
-        if (width >= TAILWIND_BREAKPOINTS.md) return 4;
-        return 3;
-    }
-    if (size === 'large') {
-        if (width >= TAILWIND_BREAKPOINTS.xl) return 4;
-        if (width >= TAILWIND_BREAKPOINTS.lg) return 3;
-        if (width >= TAILWIND_BREAKPOINTS.md) return 2;
-        if (width >= TAILWIND_BREAKPOINTS.sm) return 2;
-        return 1;
-    }
-    // medium (default)
-    if (width >= TAILWIND_BREAKPOINTS['2xl']) return 6;
-    if (width >= TAILWIND_BREAKPOINTS.xl) return 5;
-    if (width >= TAILWIND_BREAKPOINTS.lg) return 4;
-    if (width >= TAILWIND_BREAKPOINTS.md) return 3;
-    return 2;
+    if (width <= 0) return COLUMN_LIMITS[size].min;
+    const target = TARGET_COLUMN_WIDTH[size];
+    const raw = Math.floor((width + GAP_PX) / (target + GAP_PX));
+    return Math.max(COLUMN_LIMITS[size].min, Math.min(COLUMN_LIMITS[size].max, raw));
 }
 
 // Estimated row height while measureElement hasn't run yet. The card uses
@@ -221,11 +222,6 @@ function estimateRowHeight(columnWidth: number): number {
     const mediaHeight = (columnWidth / 4) * 3;
     return Math.round(mediaHeight + 120);
 }
-
-const GAP_PX = 16; // gap-4
-const PADDING_X = 16; // p-4 horizontal padding
-const PADDING_Y = 16; // p-4 vertical padding
-const BOTTOM_GUTTER = 80; // pb-20
 
 export function PromptGalleryView({
     prompts,

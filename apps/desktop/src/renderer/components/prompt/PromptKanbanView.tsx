@@ -487,15 +487,12 @@ export function PromptKanbanView({
   );
 }
 
-// Tailwind breakpoints used to mirror the responsive grid that the kanban
-// preference produces. Keeping this colocated avoids circular imports.
-// 这里复用 Tailwind 默认断点，让虚拟化的列数和原始响应式 grid 一致；放在本
-// 文件内避免和 PromptGalleryView 互相 import。
-const KANBAN_BREAKPOINTS = {
-  sm: 640,
-  md: 768,
-  lg: 1024,
-} as const;
+// Kanban target column widths chosen to roughly match the previous
+// Tailwind viewport-based grid, but driven by container width so the
+// resizable pane stays visually consistent.
+// 看板目标列宽：用容器宽度而非 viewport 决定列数，避免父级面板尺寸变化
+// 时列数与原 Tailwind 响应式 grid 不一致。
+const KANBAN_TARGET_COLUMN_WIDTH = 280;
 
 const UNPINNED_CARD_HEIGHT = 280; // h-[280px] from KanbanCard
 const KANBAN_GAP_PX = 16; // gap-4
@@ -503,22 +500,9 @@ const KANBAN_PADDING_PX = 16; // p-4
 const KANBAN_BOTTOM_GUTTER = 80; // pb-20
 
 function getKanbanColumns(preference: 2 | 3 | 4, width: number): number {
-  if (preference === 2) {
-    if (width >= KANBAN_BREAKPOINTS.sm) return 2;
-    return 1;
-  }
-  if (preference === 3) {
-    if (width >= KANBAN_BREAKPOINTS.md) return 3;
-    if (width >= KANBAN_BREAKPOINTS.sm) return 2;
-    return 1;
-  }
-  if (preference === 4) {
-    if (width >= KANBAN_BREAKPOINTS.lg) return 4;
-    if (width >= KANBAN_BREAKPOINTS.md) return 3;
-    if (width >= KANBAN_BREAKPOINTS.sm) return 2;
-    return 1;
-  }
-  return 3;
+  if (width <= 0) return 1;
+  const raw = Math.floor((width + KANBAN_GAP_PX) / (KANBAN_TARGET_COLUMN_WIDTH + KANBAN_GAP_PX));
+  return Math.max(1, Math.min(preference, raw));
 }
 
 interface UnpinnedKanbanGridProps {
