@@ -103,7 +103,19 @@ bundle 体积（gzip，本变更前一次 build）：
 
 ### C5 — 卸 framer-motion
 
-- 状态：未开始
+- 状态：已完成（2026-05-16）
+- 做了什么：
+  - `PromptKanbanView.tsx`：移除 `motion / LayoutGroup` import；pinned section 的 `<motion.div layout layoutId initial animate exit>` 改为 `<Reveal intent="enter" variant="fade-zoom">`，保留入场效果但放弃 `layoutId` 跨 key 的 spring 动画（仓库其它地方都没用，简约风一致更重要）。
+  - 更新 `UnpinnedKanbanGrid` 的注释，反映新现实。
+  - `pnpm --filter @prompthub/desktop remove framer-motion`：从 devDependencies 卸载。
+  - `vite.config.ts`：从 `ui-vendor` manualChunk 中移除 `framer-motion`。
+  - `bundle-budget.json`：把 `ui vendor` 阈值从 70 KB → 22 KB，并改 entry name 为 `ui vendor (dnd-kit)`。
+- 偏差：无。
+- 实测：
+  - **`ui-vendor`：54.04 → 16.35 KB gzip（-37.69 KB）** — 本变更最大的单点收益。
+  - 主入口：365.23 KB（持平；framer-motion 之前在 ui-vendor，不在主入口）。
+  - 其它 chunk 持平。
+  - 测试 1165/1165 全绿。typecheck / lint / build / bundle:budget 全绿。
 
 ### C6 — 同步稳定文档
 

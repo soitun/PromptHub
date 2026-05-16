@@ -1,5 +1,4 @@
 import { useState, useCallback, memo, useEffect, useMemo, useRef } from 'react';
-import { motion, LayoutGroup } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { Prompt } from '@prompthub/shared/types';
 import {
@@ -20,6 +19,7 @@ import {
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useFolderStore } from '../../stores/folder.store';
 import { usePromptStore } from '../../stores/prompt.store';
+import { Reveal } from '../ui/motion';
 
 interface PromptKanbanViewProps {
   prompts: Prompt[];
@@ -430,49 +430,40 @@ export function PromptKanbanView({
           {/* Pinned cards - collapsible */}
           {!isPinnedSectionCollapsed && (
             <div className="px-4 pb-4">
-              <LayoutGroup id="pinned">
-                <div className={`grid gap-4 ${
-                  pinnedPrompts.length === 1 ? 'grid-cols-1' :
-                  pinnedPrompts.length === 2 ? 'grid-cols-1 sm:grid-cols-2' :
-                  pinnedPrompts.length === 3 ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3' :
-                  'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4'
-                }`}>
-                  {pinnedPrompts.map(prompt => {
-                    const cardState = pinnedCardStateMap.get(prompt.id);
-                    return (
-                      <motion.div 
-                        key={prompt.id}
-                        layout
-                        layoutId={`pinned-${prompt.id}`}
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.9 }}
-                        transition={{ 
-                          layout: { type: "spring", stiffness: 300, damping: 30 },
-                          opacity: { duration: 0.2 }
-                        }}
-                        onContextMenu={(e) => onContextMenu(e, prompt)}
-                      >
-                        <KanbanCard
-                          prompt={prompt}
-                          isPinned={true}
-                          isExpanded={cardState?.isExpanded || false}
-                          onPin={() => {}}
-                          onUnpin={() => handleUnpin(prompt.id)}
-                          onExpand={() => handleExpand(prompt.id)}
-                          onCollapse={() => handleCollapse(prompt.id)}
-                          onCopy={() => onCopy(prompt)}
-                          onEdit={() => onEdit(prompt)}
-                          onAiTest={() => onAiTest(prompt)}
-                          onToggleFavorite={() => onToggleFavorite(prompt.id)}
-                          onViewDetail={() => onViewDetail(prompt)}
-                          folderName={prompt.folderId ? (folderNameMap.get(prompt.folderId) || uncategorizedLabel) : uncategorizedLabel}
-                        />
-                      </motion.div>
-                    );
-                  })}
-                </div>
-              </LayoutGroup>
+              <div className={`grid gap-4 ${
+                pinnedPrompts.length === 1 ? 'grid-cols-1' :
+                pinnedPrompts.length === 2 ? 'grid-cols-1 sm:grid-cols-2' :
+                pinnedPrompts.length === 3 ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3' :
+                'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4'
+              }`}>
+                {pinnedPrompts.map(prompt => {
+                  const cardState = pinnedCardStateMap.get(prompt.id);
+                  return (
+                    <Reveal
+                      key={prompt.id}
+                      intent="enter"
+                      variant="fade-zoom"
+                      onContextMenu={(e) => onContextMenu(e, prompt)}
+                    >
+                      <KanbanCard
+                        prompt={prompt}
+                        isPinned={true}
+                        isExpanded={cardState?.isExpanded || false}
+                        onPin={() => {}}
+                        onUnpin={() => handleUnpin(prompt.id)}
+                        onExpand={() => handleExpand(prompt.id)}
+                        onCollapse={() => handleCollapse(prompt.id)}
+                        onCopy={() => onCopy(prompt)}
+                        onEdit={() => onEdit(prompt)}
+                        onAiTest={() => onAiTest(prompt)}
+                        onToggleFavorite={() => onToggleFavorite(prompt.id)}
+                        onViewDetail={() => onViewDetail(prompt)}
+                        folderName={prompt.folderId ? (folderNameMap.get(prompt.folderId) || uncategorizedLabel) : uncategorizedLabel}
+                      />
+                    </Reveal>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
@@ -549,11 +540,11 @@ interface UnpinnedKanbanGridProps {
  * (280 px) so estimateSize is exact; we still call measureElement to handle
  * future variant heights without revisiting the math.
  *
- * The original layout wrapped each card in a framer-motion `motion.div` with
- * layout animations. With virtualization, mount/unmount churn would force
- * those animations to fire constantly during scroll, which both costs frames
- * and looks jittery. Layout animations are kept for the pinned section (≤ 4
- * items) where they remain meaningful.
+ * Earlier revisions used framer-motion `motion.div` with layout animations
+ * here, which churned on every virtualization mount/unmount during scroll.
+ * Both pinned and unpinned grids now rely on `tailwindcss-animate` plus the
+ * shared `<Reveal>` primitive (pinned only), keeping motion lightweight and
+ * predictable across virtualized scrolling.
  */
 function UnpinnedKanbanGrid({
   prompts,

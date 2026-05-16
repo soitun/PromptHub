@@ -22,10 +22,10 @@
       "$baseline": "50 KB on 2026-05-16. P2 should reduce this materially via second-level lazy loading."
     },
     {
-      "name": "ui vendor (framer-motion + dnd-kit)",
+      "name": "ui vendor (dnd-kit)",
       "pattern": "assets/ui-vendor-*.js",
-      "maxGzipBytes": 71680,
-      "$baseline": "55 KB on 2026-05-16."
+      "maxGzipBytes": 22528,
+      "$baseline": "16.35 KB on 2026-05-16 after framer-motion was removed; budget locks in the ~38 KB savings with a small headroom."
     },
     {
       "name": "react vendor",

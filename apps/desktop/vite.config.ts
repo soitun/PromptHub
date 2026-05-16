@@ -115,7 +115,6 @@ export default defineConfig(async () => ({
           // UI/Animation libraries
           // UI/动画库
           "ui-vendor": [
-            "framer-motion",
             "@dnd-kit/core",
             "@dnd-kit/sortable",
             "@dnd-kit/utilities",
