@@ -58,21 +58,25 @@ module.exports = {
         sm: 'calc(var(--radius) - 4px)',
       },
       // Motion tokens — see src/renderer/styles/motion-tokens.ts for the
-      // single source of truth. Keep these in sync with that file.
-      // 动画 token：source of truth 是 src/renderer/styles/motion-tokens.ts，
-      // 修改时两边一起改。
+      // single source of truth. The utilities resolve to CSS variables so
+      // the [data-motion="reduced"] override in globals.css can rescale
+      // them at runtime; raw ms values remain in motion-tokens.ts for any
+      // imperative JS that needs the numbers.
+      // 动画 token：source of truth 是 src/renderer/styles/motion-tokens.ts。
+      // utility 解析到 CSS 变量，让 globals.css 的 reduced 档可以在运行时
+      // 缩放它们；motion-tokens.ts 保留具体毫秒值供命令式 JS 使用。
       transitionDuration: {
-        instant: '80ms',
-        quick: '120ms',
-        base: '180ms',
-        smooth: '280ms',
-        slow: '420ms',
+        instant: 'var(--motion-duration-instant)',
+        quick: 'var(--motion-duration-quick)',
+        base: 'var(--motion-duration-base)',
+        smooth: 'var(--motion-duration-smooth)',
+        slow: 'var(--motion-duration-slow)',
       },
       transitionTimingFunction: {
-        standard: 'cubic-bezier(0.4, 0.0, 0.2, 1)',
-        enter: 'cubic-bezier(0.0, 0.0, 0.2, 1)',
-        exit: 'cubic-bezier(0.4, 0.0, 1, 1)',
-        emphasized: 'cubic-bezier(0.2, 0.0, 0, 1)',
+        standard: 'var(--motion-easing-standard)',
+        enter: 'var(--motion-easing-enter)',
+        exit: 'var(--motion-easing-exit)',
+        emphasized: 'var(--motion-easing-emphasized)',
       },
       scale: {
         'press-in': '0.95',
@@ -81,17 +85,17 @@ module.exports = {
         'media-zoom': '1.08',
       },
       animationDuration: {
-        instant: '80ms',
-        quick: '120ms',
-        base: '180ms',
-        smooth: '280ms',
-        slow: '420ms',
+        instant: 'var(--motion-duration-instant)',
+        quick: 'var(--motion-duration-quick)',
+        base: 'var(--motion-duration-base)',
+        smooth: 'var(--motion-duration-smooth)',
+        slow: 'var(--motion-duration-slow)',
       },
       animationTimingFunction: {
-        standard: 'cubic-bezier(0.4, 0.0, 0.2, 1)',
-        enter: 'cubic-bezier(0.0, 0.0, 0.2, 1)',
-        exit: 'cubic-bezier(0.4, 0.0, 1, 1)',
-        emphasized: 'cubic-bezier(0.2, 0.0, 0, 1)',
+        standard: 'var(--motion-easing-standard)',
+        enter: 'var(--motion-easing-enter)',
+        exit: 'var(--motion-easing-exit)',
+        emphasized: 'var(--motion-easing-emphasized)',
       },
     },
   },

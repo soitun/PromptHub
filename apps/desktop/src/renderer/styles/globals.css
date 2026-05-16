@@ -264,12 +264,19 @@
 }
 
 /* OS-level accessibility default. Users who turn on "Reduce motion" at the
- * OS level get near-instant transitions globally; the in-app preference
- * "standard" can override this back on. */
+ * OS level get near-instant transitions globally — UNLESS they have explicitly
+ * picked "Standard" in the in-app motion preference, in which case we want
+ * the app to keep animating on this machine. We scope the media query with
+ * :not([data-motion="standard"]) so the override is *not applied at all*
+ * when the user opts in, instead of trying (and failing) to revert it.
+ *
+ * 系统级 a11y 默认。如果用户在 OS 中开启了 "减少动态效果"，所有动画近乎瞬切；
+ * 但如果用户在应用内显式选择了 "标准" 档，则跳过这条降级（用 :not() 限定作用
+ * 范围，而不是用 revert 撤销，因为 revert 会回到浏览器默认的 0s）。 */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  html:not([data-motion="standard"]) *,
+  html:not([data-motion="standard"]) *::before,
+  html:not([data-motion="standard"]) *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
@@ -279,8 +286,12 @@
 
 /* In-app motion preference. The renderer mirrors settings.motionPreference
  * onto <html data-motion="..."> at startup and on change.
- * 应用内动画偏好。settings.motionPreference 由 renderer 在启动和变化时
- * 同步到 <html data-motion="...">。 */
+ *   - "standard": full motion (default; also opts out of OS-level reduced-
+ *     motion via the :not() selector above)
+ *   - "reduced": durations scale to ~60%; achieved by overriding the CSS
+ *     variables consumed by handwritten transitions/animations
+ *   - "off": forces near-instant durations on every element
+ * 应用内动画偏好。 */
 html[data-motion="off"] *,
 html[data-motion="off"] *::before,
 html[data-motion="off"] *::after {
@@ -290,23 +301,18 @@ html[data-motion="off"] *::after {
 }
 
 html[data-motion="reduced"] {
-  /* Roughly 60% of standard speed; crisp but still hint of motion. */
+  /* Roughly 60% of standard speed; crisp but still hint of motion.
+   * The Tailwind utility classes (duration-base, etc.) resolve to
+   * var(--motion-duration-*), so overriding the variables here
+   * automatically rescales every utility-driven transition / animation
+   * in addition to any handwritten CSS that reads the variables.
+   * Tailwind utility 编译成 var(--motion-duration-*)，所以这里改变量会
+   * 同时对 utility-driven 与手写 CSS 的过渡 / 动画都生效。 */
   --motion-duration-instant: 50ms;
   --motion-duration-quick: 80ms;
   --motion-duration-base: 110ms;
   --motion-duration-smooth: 170ms;
   --motion-duration-slow: 250ms;
-}
-
-/* When the user explicitly picks "standard" in-app, override the OS-level
- * reduced-motion default so they actually see animations on this machine. */
-html[data-motion="standard"] *,
-html[data-motion="standard"] *::before,
-html[data-motion="standard"] *::after {
-  animation-duration: revert !important;
-  animation-iteration-count: revert !important;
-  transition-duration: revert !important;
-  scroll-behavior: revert !important;
 }
 
 /* Selected text color */
