@@ -39,15 +39,28 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   // 用 ref 记录定时器，避免 React strict-mode 双挂载与快速替换造成游离
   // setTimeout；以 toast id 为 key。
   const exitTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const autoDismissTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  // Monotonic counter so two showToast calls inside the same millisecond
+  // still get distinct ids (Date.now().toString() alone collides under
+  // batched user actions).
+  // 单调递增计数器，避免同一毫秒内连续 showToast 出现重复 id 与 React key
+  // 冲突（仅靠 Date.now() 在批量操作下会撞 id）。
+  const idCounter = useRef(0);
 
   const removeToast = useCallback((id: string) => {
-    // First mark leaving so the exit animation plays.
-    // 先把 toast 标为 leaving，触发退场动画。
+    // Clear any pending auto-dismiss so we do not double-fire removeToast.
+    // 清掉自动消失的定时器，避免之后再次触发 removeToast。
+    const auto = autoDismissTimers.current.get(id);
+    if (auto) {
+      clearTimeout(auto);
+      autoDismissTimers.current.delete(id);
+    }
+    // Already leaving? Don't restart the exit animation timer.
+    // 已经处于退场状态就不再重置定时器，避免动画抖动。
+    if (exitTimers.current.has(id)) return;
     setToasts((prev) =>
       prev.map((toast) => (toast.id === id ? { ...toast, leaving: true } : toast)),
     );
-    const existing = exitTimers.current.get(id);
-    if (existing) clearTimeout(existing);
     const timer = setTimeout(() => {
       setToasts((prev) => prev.filter((toast) => toast.id !== id));
       exitTimers.current.delete(id);
@@ -56,7 +69,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const showToast = useCallback((message: string, type: ToastType = 'success', sendSystemNotification = false) => {
-    const id = Date.now().toString();
+    idCounter.current += 1;
+    const id = `${Date.now()}-${idCounter.current}`;
     setToasts((prev) => [...prev, { id, message, type }]);
 
     // Send system notification (if enabled and requested)
@@ -68,15 +82,22 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
     // Auto-dismiss after 3 seconds via the same exit-animation pipeline.
     // 3 秒后自动通过同一个退场动画管线消失。
-    setTimeout(() => removeToast(id), 3000);
+    const dismiss = setTimeout(() => {
+      autoDismissTimers.current.delete(id);
+      removeToast(id);
+    }, 3000);
+    autoDismissTimers.current.set(id, dismiss);
   }, [enableNotifications, removeToast]);
 
   // Clean up timers on unmount.
   useEffect(() => {
-    const timers = exitTimers.current;
+    const exit = exitTimers.current;
+    const auto = autoDismissTimers.current;
     return () => {
-      timers.forEach((timer) => clearTimeout(timer));
-      timers.clear();
+      exit.forEach((timer) => clearTimeout(timer));
+      exit.clear();
+      auto.forEach((timer) => clearTimeout(timer));
+      auto.clear();
     };
   }, []);
 
