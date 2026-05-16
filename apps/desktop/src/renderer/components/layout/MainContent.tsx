@@ -213,12 +213,20 @@ interface VirtualizedPromptListProps {
  * estimateSize with a typical card height so initial scrollbar geometry is
  * roughly correct before measurement runs.
  *
+ * Wrapped in React.memo so that re-renders triggered by modal toggles or
+ * AI workbench state in the parent do not cascade into the (potentially
+ * thousands-strong) list — only changes to the shallow-equal prop set
+ * actually invalidate the list view.
+ *
  * 虚拟化的 prompt 列表，替代以前的"setTimeout 分批渲染"补丁。
  * 组件自带滚动容器，父级保持 overflow-hidden 即可；卡片高度因标题换行与
  * 描述显示而异，所以使用 measureElement 动态测量；estimateSize 给一个典型
  * 高度让初始滚动条几何大致正确。
+ *
+ * 用 React.memo 包裹，避免父级 modal 开关或 AI 工作区状态变化把上千条卡片
+ * 列表全量重渲染；只有真正影响展示的 props 变化才会触发列表重新渲染。
  */
-function VirtualizedPromptList({
+const VirtualizedPromptList = memo(function VirtualizedPromptList({
   prompts,
   selectedPromptIdSet,
   highlightTerms,
@@ -279,7 +287,7 @@ function VirtualizedPromptList({
       </div>
     </div>
   );
-}
+});
 
 type DetailInlineEditDraft = {
   title: string;
@@ -1485,10 +1493,10 @@ function PromptSkillMainContent() {
 
   // Context menu anchor (also used by table view)
   // 处理 AI 测试使用次数增加并缓存结果
-  const handleContextMenu = (e: React.MouseEvent, prompt: Prompt) => {
+  const handleContextMenu = useCallback((e: React.MouseEvent, prompt: Prompt) => {
     e.preventDefault();
     setContextMenu({ x: e.clientX, y: e.clientY, prompt });
-  };
+  }, []);
 
   // Memoize context menu items to avoid re-creating the array on every render
   // 使用 useMemo 缓存右键菜单项，避免每次渲染都重新创建数组

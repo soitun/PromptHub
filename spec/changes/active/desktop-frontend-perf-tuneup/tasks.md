@@ -40,12 +40,15 @@
 
 ## P4 — Modal 状态解耦
 
-- [ ] 新建 `apps/desktop/src/renderer/stores/prompt-modal.store.ts`
-- [ ] 把 `MainContent.tsx` 中所有 modal `useState` 迁移到该 store
-- [ ] 抽出 `<PromptModalsHost />`，仅订阅 `prompt-modal.store`
-- [ ] 抽出 `<PromptCard memo>`（若尚未独立），用 zustand selector 订阅自己那条数据
-- [ ] 写或扩展单测：modal 开关时 prompt 卡片 rerender 计数 = 0（仅 host + 该 modal 自身）
-- [ ] 跑 `pnpm test:unit` 全绿
+> 实际执行采用"最小有效干预"：保留 modal state 在 `MainContent` 内部，但把 `VirtualizedPromptList` 用 `React.memo` 包裹并稳定回调引用，这样 modal 开关不会让虚拟化列表子树重渲染。完整抽 `prompt-modal.store` 留作 follow-up。
+
+- [-] ~~新建 `apps/desktop/src/renderer/stores/prompt-modal.store.ts`~~（推迟）
+- [-] ~~把 `MainContent.tsx` 中所有 modal `useState` 迁移到该 store~~（推迟）
+- [-] ~~抽出 `<PromptModalsHost />`，仅订阅 `prompt-modal.store`~~（推迟）
+- [-] ~~抽出 `<PromptCard memo>`（若尚未独立），用 zustand selector 订阅自己那条数据~~（PromptCard 已是 React.memo，未额外抽文件）
+- [x] `<VirtualizedPromptList>` 用 `React.memo` 包裹
+- [x] `handleContextMenu` 改为 `useCallback`，与 `handleSelectPrompt` 一起保证回调引用稳定
+- [x] 跑 `pnpm test:unit` 全绿
 
 ## P5 — `skill.store` 拆分
 

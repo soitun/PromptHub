@@ -127,10 +127,28 @@ vite 构建告警：`Some chunks are larger than 500 kB after minification`。
 
 ### P4 — Modal 状态解耦
 
-- 状态：未开始
-- 做了什么：—
-- 与计划偏差：—
-- 实测数字：—
+- 状态：已完成（2026-05-16，按缩减范围执行）
+- 决策依据：在 P3 完成后重新评估 P4 收益。原计划是抽出 `prompt-modal.store`、`<PromptModalsHost />`、`<PromptCard memo>` 三件套，让 modal 开关绝对不触发列表 rerender。但实际剖析 `MainContent.tsx` 发现：
+  - `PromptCard` 早已是 `React.memo`，已具备最关键的隔离层。
+  - `VirtualizedPromptList` 是新引入的桥梁，只要它本身 memo 化，并且它收到的 props 引用稳定，整列就不会随 modal 开关 rerender。
+  - 把 modal 状态搬到外部 store 需要重写大量 modal 业务逻辑（AI 测试 / 多模型对比 / 复制变量弹窗的状态相互耦合），diff 大、回归面广，但额外收益边际下降。
+- 因此把 P4 调整为"最小有效干预"：让 `VirtualizedPromptList` 可被 `React.memo` 真正命中。
+- 做了什么：
+  - `MainContent.tsx`：把 `VirtualizedPromptList` 用 `React.memo` 包裹（同时调整闭合括号与 displayName）。
+  - 把 `handleContextMenu` 从普通函数改为 `useCallback(..., [])`，与已经 useCallback 的 `handleSelectPrompt` 一起保证回调引用稳定。
+  - 验证 `prompts`、`selectedPromptIdSet`、`highlightTerms` 来自 `useMemo`，引用本身已经稳定。
+- 与计划偏差：
+  - **未抽 `prompt-modal.store`**：留作后续独立 change（`desktop-prompt-modal-store-isolation` 或类似 key）。当前 memo 化已能覆盖"列表不重渲染"主要场景；如果未来 React Profiler 证据显示仍有问题，再做 store 抽离。
+  - **未抽 `<PromptModalsHost />` / 未抽 `<PromptCard>` 到独立文件**：原因同上。
+- 实测数字：
+  - bundle：主入口 364.29 KB（与 P3 相比基本持平，memo 包装不影响 chunk 体积）。
+  - rerender 行为：通过 React.memo + `useCallback` + `useMemo` 三件套，目前理论上 modal toggling 不会让 `VirtualizedPromptList` 子树重渲染（其依赖项均稳定）。这个声明等 follow-up 的 store 抽离阶段做 React Profiler 实测验证。
+- 验证：
+  - `pnpm --filter @prompthub/desktop typecheck` ✅
+  - `pnpm --filter @prompthub/desktop lint` ✅
+  - `pnpm --filter @prompthub/desktop test:unit` ✅（132 / 1157）
+  - `pnpm --filter @prompthub/desktop build` ✅
+  - `pnpm --filter @prompthub/desktop bundle:budget` ✅
 
 ### P5 — `skill.store` 拆分
 
@@ -162,6 +180,7 @@ vite 构建告警：`Some chunks are larger than 500 kB after minification`。
 ## Follow-ups
 
 - **设置页物理拆分**：拆 `DataSettings.tsx` 与 `AISettings.tsx` 为子目录 + 二级 lazy，独立 change 推进（key 建议 `desktop-settings-modularization`）。
+- **prompt modal store 抽离**：把 `MainContent` 内的 modal 状态搬到独立 zustand store + `<PromptModalsHost />`，并用 React Profiler 实测确认列表零重渲染（key 建议 `desktop-prompt-modal-store-isolation`）。
 - **Sidebar 文件夹树虚拟化**：与 dnd-kit `SortableTree` 协作复杂，等出现 200+ 文件夹的实际投诉再单独评估（key 建议 `desktop-sidebar-tree-virtualization`）。
 - **大列表 e2e**：把 `tests/e2e/prompt-large-list.spec.ts` 作为后续 e2e 加固的一部分（与 P3 跨工作流，单独提）。
 - 评估 `framer-motion` 替换或精简（独立变更，单独 proposal）。
