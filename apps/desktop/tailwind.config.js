@@ -57,6 +57,42 @@ module.exports = {
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
       },
+      // Motion tokens — see src/renderer/styles/motion-tokens.ts for the
+      // single source of truth. Keep these in sync with that file.
+      // 动画 token：source of truth 是 src/renderer/styles/motion-tokens.ts，
+      // 修改时两边一起改。
+      transitionDuration: {
+        instant: '80ms',
+        quick: '120ms',
+        base: '180ms',
+        smooth: '280ms',
+        slow: '420ms',
+      },
+      transitionTimingFunction: {
+        standard: 'cubic-bezier(0.4, 0.0, 0.2, 1)',
+        enter: 'cubic-bezier(0.0, 0.0, 0.2, 1)',
+        exit: 'cubic-bezier(0.4, 0.0, 1, 1)',
+        emphasized: 'cubic-bezier(0.2, 0.0, 0, 1)',
+      },
+      scale: {
+        'press-in': '0.95',
+        'enter-from': '0.96',
+        'hover-lift': '1.02',
+        'media-zoom': '1.08',
+      },
+      animationDuration: {
+        instant: '80ms',
+        quick: '120ms',
+        base: '180ms',
+        smooth: '280ms',
+        slow: '420ms',
+      },
+      animationTimingFunction: {
+        standard: 'cubic-bezier(0.4, 0.0, 0.2, 1)',
+        enter: 'cubic-bezier(0.0, 0.0, 0.2, 1)',
+        exit: 'cubic-bezier(0.4, 0.0, 1, 1)',
+        emphasized: 'cubic-bezier(0.2, 0.0, 0, 1)',
+      },
     },
   },
   plugins: [require('tailwindcss-animate')],

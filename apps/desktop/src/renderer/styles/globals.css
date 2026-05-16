@@ -232,65 +232,81 @@
   -webkit-app-region: no-drag;
 }
 
-/* iOS-style animations */
-/* iOS 风格动画 */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
+/* ============================================================
+ * Motion system
+ * 动画系统
+ *
+ * Source of truth: src/renderer/styles/motion-tokens.ts.
+ * Three layers:
+ *   1) CSS variables for any handwritten transition / animation
+ *   2) prefers-reduced-motion media query for OS-level accessibility
+ *   3) [data-motion] attribute hooks for the in-app preference
+ *      (off / reduced / standard) set on <html> by the renderer.
+ *
+ * Token 的唯一来源是 src/renderer/styles/motion-tokens.ts。这里有三层：
+ *   1) CSS 变量供手写 transition / animation 使用
+ *   2) prefers-reduced-motion 媒体查询负责 OS 级别的 a11y 默认
+ *   3) [data-motion] 属性钩子配合应用内的 motionPreference 偏好
+ *      （off / reduced / standard），由 renderer 写到 <html> 上
+ * ============================================================ */
+
+:root {
+  --motion-duration-instant: 80ms;
+  --motion-duration-quick: 120ms;
+  --motion-duration-base: 180ms;
+  --motion-duration-smooth: 280ms;
+  --motion-duration-slow: 420ms;
+
+  --motion-easing-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --motion-easing-enter: cubic-bezier(0, 0, 0.2, 1);
+  --motion-easing-exit: cubic-bezier(0.4, 0, 1, 1);
+  --motion-easing-emphasized: cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* OS-level accessibility default. Users who turn on "Reduce motion" at the
+ * OS level get near-instant transitions globally; the in-app preference
+ * "standard" can override this back on. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+/* In-app motion preference. The renderer mirrors settings.motionPreference
+ * onto <html data-motion="..."> at startup and on change.
+ * 应用内动画偏好。settings.motionPreference 由 renderer 在启动和变化时
+ * 同步到 <html data-motion="...">。 */
+html[data-motion="off"] *,
+html[data-motion="off"] *::before,
+html[data-motion="off"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
 }
 
-@keyframes scaleIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
+html[data-motion="reduced"] {
+  /* Roughly 60% of standard speed; crisp but still hint of motion. */
+  --motion-duration-instant: 50ms;
+  --motion-duration-quick: 80ms;
+  --motion-duration-base: 110ms;
+  --motion-duration-smooth: 170ms;
+  --motion-duration-slow: 250ms;
 }
 
-.animate-fadeIn {
-  animation: fadeIn 0.2s ease-out;
-}
-
-.animate-slideUp {
-  animation: slideUp 0.3s ease-out;
-}
-
-.animate-scaleIn {
-  animation: scaleIn 0.2s ease-out;
-}
-
-@keyframes floatSoft {
-  0% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-2px);
-  }
-  100% {
-    transform: translateY(0);
-  }
-}
-
-.animate-floatSoft {
-  animation: floatSoft 3s ease-in-out infinite;
+/* When the user explicitly picks "standard" in-app, override the OS-level
+ * reduced-motion default so they actually see animations on this machine. */
+html[data-motion="standard"] *,
+html[data-motion="standard"] *::before,
+html[data-motion="standard"] *::after {
+  animation-duration: revert !important;
+  animation-iteration-count: revert !important;
+  transition-duration: revert !important;
+  scroll-behavior: revert !important;
 }
 
 /* Selected text color */

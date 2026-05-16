@@ -41,7 +41,14 @@ bundle 体积（gzip，本变更前一次 build）：
 
 ### C1 — Motion tokens + reduced-motion defaults
 
-- 状态：未开始
+- 状态：已完成（2026-05-16）
+- 做了什么：
+  - 新建 `apps/desktop/src/renderer/styles/motion-tokens.ts`：5 维 token（duration / easing / scale / translate / stagger），命名常量 `MOTION_DURATION` 等，兼顾纯 JS 与组合导出 `MOTION`。
+  - 同步到 `apps/desktop/tailwind.config.js`：`transitionDuration`、`transitionTimingFunction`、`scale`、`animationDuration`、`animationTimingFunction` 五处 extend，全部用语义名（`instant / quick / base / smooth / slow` × `standard / enter / exit / emphasized`）。
+  - `apps/desktop/src/renderer/styles/globals.css`：在 keyframes 块原位插入 motion system 三层：CSS 变量 → `@media (prefers-reduced-motion: reduce)` 全局降级 → `html[data-motion="off|reduced|standard"]` 选择器。`standard` 显式覆盖 OS 级偏好。
+  - 删除 `globals.css` 中 `@keyframes fadeIn / slideUp / scaleIn / floatSoft` 与对应 `.animate-*` 工具类（grep 确认零调用方）。
+- 偏差：无。
+- 实测：CSS gzip 19.59 KB（baseline 19.45 KB，+0.14 KB；CSS 变量与新增的 reduced-motion 媒体查询）；其他 chunk 全部持平。typecheck / lint / build / bundle:budget 全绿。
 
 ### C2 — Motion components + 用户偏好
 
