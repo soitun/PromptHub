@@ -1,8 +1,9 @@
-import { useState, useEffect, createContext, useContext, useCallback } from 'react';
+import { useState, useEffect, createContext, useContext, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { CheckCircleIcon, XCircleIcon, InfoIcon, AlertTriangleIcon, XIcon } from 'lucide-react';
 import { useSettingsStore } from '../../stores/settings.store';
+import { MOTION_DURATION } from '../../styles/motion-tokens';
 
 // Toast type
 // Toast 类型
@@ -12,6 +13,14 @@ interface Toast {
   id: string;
   message: string;
   type: ToastType;
+  /**
+   * When true, the toast is in its exit animation. The DOM node remains
+   * mounted for one duration-quick window so the fade-out / slide-out
+   * classes have time to play before unmount.
+   * 标记为 true 时，该 toast 处于退出动画阶段；DOM 节点会再保留一个
+   * duration-quick 窗口让退场动画播完，然后才真正卸载。
+   */
+  leaving?: boolean;
 }
 
 interface ToastContextType {
@@ -25,28 +34,51 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const { t } = useTranslation();
   const [toasts, setToasts] = useState<Toast[]>([]);
   const enableNotifications = useSettingsStore((state) => state.enableNotifications);
+  // Track timers so React strict-mode double-mount and rapid replacements
+  // do not orphan setTimeout callbacks. Indexed by toast id.
+  // 用 ref 记录定时器，避免 React strict-mode 双挂载与快速替换造成游离
+  // setTimeout；以 toast id 为 key。
+  const exitTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+
+  const removeToast = useCallback((id: string) => {
+    // First mark leaving so the exit animation plays.
+    // 先把 toast 标为 leaving，触发退场动画。
+    setToasts((prev) =>
+      prev.map((toast) => (toast.id === id ? { ...toast, leaving: true } : toast)),
+    );
+    const existing = exitTimers.current.get(id);
+    if (existing) clearTimeout(existing);
+    const timer = setTimeout(() => {
+      setToasts((prev) => prev.filter((toast) => toast.id !== id));
+      exitTimers.current.delete(id);
+    }, MOTION_DURATION.quick + 20); // small slack so the animation finishes
+    exitTimers.current.set(id, timer);
+  }, []);
 
   const showToast = useCallback((message: string, type: ToastType = 'success', sendSystemNotification = false) => {
     const id = Date.now().toString();
     setToasts((prev) => [...prev, { id, message, type }]);
-    
+
     // Send system notification (if enabled and requested)
     // 发送系统通知（如果启用且请求）
     if (sendSystemNotification && enableNotifications && window.electron?.showNotification) {
       const title = type === 'success' ? 'Success' : type === 'error' ? 'Error' : type === 'warning' ? 'Warning' : 'Info';
       window.electron.showNotification(`PromptHub - ${title}`, message);
     }
-    
-    // Auto disappear after 3 seconds
-    // 3秒后自动消失
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 3000);
-  }, [enableNotifications]);
 
-  const removeToast = (id: string) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
-  };
+    // Auto-dismiss after 3 seconds via the same exit-animation pipeline.
+    // 3 秒后自动通过同一个退场动画管线消失。
+    setTimeout(() => removeToast(id), 3000);
+  }, [enableNotifications, removeToast]);
+
+  // Clean up timers on unmount.
+  useEffect(() => {
+    const timers = exitTimers.current;
+    return () => {
+      timers.forEach((timer) => clearTimeout(timer));
+      timers.clear();
+    };
+  }, []);
 
   const getIcon = (type: ToastType) => {
     switch (type) {
@@ -79,7 +111,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      
+
       {/* Toast container - z-index needs to be the highest to stay above everything */}
       {/* Toast 容器 - z-index 需要最高，确保在所有元素之上 */}
       {createPortal(
@@ -89,7 +121,11 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               key={toast.id}
               className={`
                 flex items-center gap-3 px-5 py-3.5 rounded-2xl border shadow-2xl pointer-events-auto
-                animate-in slide-in-from-right-10 fade-in duration-smooth
+                ${
+                  toast.leaving
+                    ? 'animate-out slide-out-to-right-10 fade-out duration-quick ease-exit'
+                    : 'animate-in slide-in-from-right-10 fade-in duration-base ease-enter'
+                }
                 backdrop-blur-md
                 ${getBgColor(toast.type)}
               `}

@@ -87,7 +87,19 @@ bundle 体积（gzip，本变更前一次 build）：
 
 ### C4 — 补齐缺失动画
 
-- 状态：未开始
+- 状态：已完成（2026-05-16，按实测精简范围）
+- 决策依据：在 C3 完成后重新检视 baseline 文档列出的"缺失动画"清单，发现部分项实际已经存在：
+  - **Prompt 卡片选中切换**：`<PromptCard>` 已有 `transition-all duration-base`，颜色切换有过渡，不需要补。
+  - **Detail pane 重选不重播**：已经在 `<div key={selectedPrompt.id}>` 上挂 `animate-in`，`key` 不变就不会重播，已经满足。
+  - **View mode 切换**：`getViewClass` 用 `transition-opacity duration-base` 配合 `opacity-100/0` 已实现 cross-fade，不需要 ViewTransition 重写。
+  - **Sidebar 标签 "Show all"**：tag panel 自身 toggle 时已有 `animate-in fade-in slide-in-from-bottom-2`；"show all" 加更多 tag 是同一 panel 内的滚动内容增长，加 height 动画意义不大且会打架现有 `flex-1 overflow-y-auto` 布局。
+- 真正补齐的：
+  - **Toast 退出动画**：原本删除时直接消失。重写为两阶段：先 mark `leaving=true` 触发 `animate-out slide-out-to-right-10 fade-out duration-quick ease-exit`，等 `MOTION_DURATION.quick + 20ms` 后再卸载；用 `useRef<Map>` 跟踪 timer 防止 strict-mode 双挂载时遗留。
+  - **Modal 入场 / 出场曲线统一**：原本入场 / 出场都是 `ease-in-out`，现按状态分流：入场 `duration-base ease-enter`、出场 `duration-quick ease-exit`；scale 用 `scale-enter-from` token 替换裸 `scale-95`。
+  - **ContextMenu**：从 `duration-instant` 改为 `duration-quick ease-enter`，与 Modal / Toast 入场曲线一致。
+  - **Select 下拉**：补 `ease-enter`。
+- 偏差：scope 比 tasks.md 写的小，因为部分项已经存在；省下来的精力 follow-up 中也未见得是更高 ROI 的事。
+- 实测：1165/1165 通过；主入口 365.07 → 365.23 KB（+0.16 KB，Toast 双状态分支）。bundle 全绿。
 
 ### C5 — 卸 framer-motion
 

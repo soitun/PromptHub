@@ -159,7 +159,7 @@ export function Select({
               className="
                 fixed min-w-[180px]
                 bg-popover border border-border rounded-lg shadow-lg
-                overflow-hidden animate-in fade-in-0 zoom-in-95 duration-quick
+                overflow-hidden animate-in fade-in-0 zoom-in-95 duration-quick ease-enter
               "
               style={{
                 top: dropdownStyle.top,

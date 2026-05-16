@@ -97,7 +97,8 @@ export function Modal({
   const modalContent = (
     <div
       className={clsx(
-        "fixed inset-0 z-[9999] flex items-center justify-center transition-all duration-base ease-in-out",
+        "fixed inset-0 z-[9999] flex items-center justify-center transition-all duration-base",
+        isAnimating ? "ease-enter" : "ease-exit",
         // In fullscreen mode, use p-16 (64px) to move the entire modal box away from traffic lights
         isFullscreen ? "p-16" : "p-4",
       )}
@@ -106,8 +107,8 @@ export function Modal({
       {/* Backdrop */}
       <div
         className={clsx(
-          "absolute inset-0 bg-background/60 backdrop-blur-md transition-opacity duration-base",
-          isAnimating ? "opacity-100" : "opacity-0",
+          "absolute inset-0 bg-background/60 backdrop-blur-md transition-opacity",
+          isAnimating ? "duration-base ease-enter opacity-100" : "duration-quick ease-exit opacity-0",
         )}
         onClick={closeOnBackdrop ? onClose : undefined}
       />
@@ -117,11 +118,13 @@ export function Modal({
         className={clsx(
           "relative app-wallpaper-panel-strong shadow-[0_0_100px_-20px_rgba(0,0,0,0.6)] border border-border",
           "overflow-hidden flex flex-col rounded-2xl",
-          "transition-all duration-base ease-out", // Faster transition without bounce
-          // Mount/Unmount animation states (opacity + scale + drift)
+          "transition-all",
+          // Different timing for enter vs exit so the dialog snaps shut
+          // a little faster than it eases open.
+          // 入场 / 出场分别用不同时长与曲线，让关闭比打开略快。
           isAnimating
-            ? "opacity-100 scale-100 translate-y-0"
-            : "opacity-0 scale-95 translate-y-4",
+            ? "duration-base ease-enter opacity-100 scale-100 translate-y-0"
+            : "duration-quick ease-exit opacity-0 scale-enter-from translate-y-4",
         )}
         style={{
           margin: "auto",
