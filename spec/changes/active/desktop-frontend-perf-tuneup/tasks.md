@@ -52,13 +52,15 @@
 
 ## P5 — `skill.store` 拆分
 
-- [ ] 新建 `apps/desktop/src/renderer/stores/skill/` 目录
-- [ ] 拆分为 `core.ts` / `platform-sync.ts` / `scan.ts` / `export.ts`
-- [ ] `skill.store.ts` 仅 re-export `core.ts`
-- [ ] 在 `SkillPlatformPanel` / `SkillScanPreview` / `SkillStore`（导出对话框等）调用点改为动态 `import()`
-- [ ] 验证现有 `useSkillStore` 调用方零改动
-- [ ] 跑 `pnpm test -- tests/unit/stores/skill.store.test.ts --run`、`pnpm test:e2e:smoke` 全绿
-- [ ] 复跑 `build:analyze`，确认 `skill.store` chunk 已瘦身
+> 实测分析发现 skill.store 的"冷路径"（`chatCompletion` 等）是被 MainContent 等热路径组件**直接 import** 的，物理拆分 skill.store 不会改变 bundle graph。**降级为 follow-up**，作为未来 `desktop-ai-service-modularization` change 的一部分。
+
+- [-] ~~新建 `apps/desktop/src/renderer/stores/skill/` 目录~~（推迟）
+- [-] ~~拆分为 `core.ts` / `platform-sync.ts` / `scan.ts` / `export.ts`~~（推迟）
+- [-] ~~`skill.store.ts` 仅 re-export `core.ts`~~（推迟）
+- [-] ~~在 `SkillPlatformPanel` / `SkillScanPreview` / `SkillStore`（导出对话框等）调用点改为动态 `import()`~~（推迟）
+- [-] ~~验证现有 `useSkillStore` 调用方零改动~~（推迟）
+- [-] ~~跑测试 + e2e:smoke 全绿~~（推迟）
+- [-] ~~复跑 `build:analyze`，确认 `skill.store` chunk 已瘦身~~（推迟）
 
 ## P6 — manualChunks 复核 + 体积预算收紧
 

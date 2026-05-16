@@ -152,10 +152,19 @@ vite 构建告警：`Some chunks are larger than 500 kB after minification`。
 
 ### P5 — `skill.store` 拆分
 
-- 状态：未开始
-- 做了什么：—
-- 与计划偏差：—
-- 实测数字：—
+- 状态：**降级为 follow-up（2026-05-16）**
+- 决策依据：在 P3/P4 完成后实测分析发现：
+  - `skill.store.ts` 的体积主要来自业务逻辑（registry sync、scan、translate、export），但这些 action 都被 `useSkillStore()` 统一公开，运行时一定会随 store 创建而执行的代码很少。
+  - 唯一明显的"冷路径包袱"是 `chatCompletion` from `services/ai`（2458 行），仅在 `translateContent` 内部使用一次。**但是** `services/ai` 已经被 `MainContent.tsx`、`AISettings.tsx`、`AiTestModal.tsx`、`EditPromptModal.tsx`、`QuickAddModal.tsx`、`CreateSkillModal.tsx` 等热路径组件直接导入，所以无论 skill.store 怎么改，`services/ai` 都会被打进主入口。
+  - 实测把 skill.store 中 `chatCompletion` 改为动态 import：主入口 gzip 不降反升 0.8 KB（从 364.29 → 365.09 KB），原因是动态 import 的 chunk 拆分胶水代码反而有少量额外开销，而 `services/ai` 仍然进主入口。
+  - 物理把 `skill.store.ts` 拆成 `core.ts / platform-sync.ts / scan.ts / export.ts` 仅改变源码组织，**不会**改变 vite/rollup 的 chunk graph：所有 action 都通过 `useSkillStore()` 集中暴露，bundler 视角下它们仍属同一 reachable 图。
+  - 真正能砍主入口的杠杆是 P6（移除 `markdown-vendor` 强加载）+ 将来对 `services/ai` 自身瘦身（独立 change）。
+- 因此把 P5 降级为 follow-up：实质性收益需要先解决 `services/ai` 在多个组件中的直接静态导入（这超出了"只动 skill.store"的范围）。
+- 调整方案：
+  - 本次变更内**不做** skill.store 物理拆分。
+  - 把"`services/ai` 模块化与按需加载"作为后续独立 change（key 建议 `desktop-ai-service-modularization`）。
+- 与计划偏差：`design.md` / `tasks.md` 中描述的 P5 物理拆分推迟到独立 change。
+- 实测数字：n/a（未做物理拆分；动态 import 实验已回退）
 
 ### P6 — manualChunks 复核 + 体积预算收紧
 
@@ -180,10 +189,11 @@ vite 构建告警：`Some chunks are larger than 500 kB after minification`。
 ## Follow-ups
 
 - **设置页物理拆分**：拆 `DataSettings.tsx` 与 `AISettings.tsx` 为子目录 + 二级 lazy，独立 change 推进（key 建议 `desktop-settings-modularization`）。
+- **services/ai 模块化与按需加载**：拆 2458 行的 `services/ai.ts` 为按 provider / 按用途分块，让冷路径（如 skill 翻译）能用动态 import 把整块代码挪出主入口（key 建议 `desktop-ai-service-modularization`）。
 - **prompt modal store 抽离**：把 `MainContent` 内的 modal 状态搬到独立 zustand store + `<PromptModalsHost />`，并用 React Profiler 实测确认列表零重渲染（key 建议 `desktop-prompt-modal-store-isolation`）。
 - **Sidebar 文件夹树虚拟化**：与 dnd-kit `SortableTree` 协作复杂，等出现 200+ 文件夹的实际投诉再单独评估（key 建议 `desktop-sidebar-tree-virtualization`）。
 - **大列表 e2e**：把 `tests/e2e/prompt-large-list.spec.ts` 作为后续 e2e 加固的一部分（与 P3 跨工作流，单独提）。
 - 评估 `framer-motion` 替换或精简（独立变更，单独 proposal）。
 - 评估 `react-i18next` 按 namespace lazy load（独立变更）。
-- 评估 `services/ai.ts` (2458 行)、`CreateSkillModal.tsx` (2144 行) 是否需要后续拆分（单独 proposal）。
-- 评估 `settings.store.ts` (1776 行) 拆分（单独 proposal，本变更只动 `skill.store`）。
+- 评估 `services/ai.ts` (2458 行)、`CreateSkillModal.tsx` (2144 行) 是否需要后续拆分（与 services/ai 模块化合并，或单独 proposal）。
+- 评估 `settings.store.ts` (1776 行) 拆分（单独 proposal，本变更只识别但不动）。
