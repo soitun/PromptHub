@@ -15,14 +15,16 @@
 
 ## P2 — 设置页拆分
 
-- [ ] 新建 `apps/desktop/src/renderer/components/settings/data/` 子目录
-- [ ] `DataSettings.tsx` 拆分为：`DataSettings.tsx`（router） + `WebdavPanel` + `SelfHostedPanel` + `S3Panel` + `BackupPanel` + `ImportExportPanel`（按现有 section 边界）
-- [ ] 子面板用 `lazy()` + `<Suspense>` 加载
-- [ ] 新建 `apps/desktop/src/renderer/components/settings/ai/` 子目录并对 `AISettings.tsx` 做同样拆分
-- [ ] 验证 `useSettingsStore` selector 没有"取整 store"的写法
-- [ ] 跑 `pnpm test -- tests/unit/components/data-settings.test.tsx --run`、`pnpm test -- tests/unit/components/ai-test-workbench.test.tsx --run` 全绿
-- [ ] 跑 `pnpm lint && pnpm typecheck` 全绿
-- [ ] 复跑 `build:analyze`，记录设置页相关 chunk 体积变化到 `implementation.md`
+> 在 P1 拿到精确数据后，发现 `SettingsPage` chunk 已只有 49 KB gzip 且不在首屏路径，物理拆分 5500 行带来的回归风险远大于收益。**降级为 follow-up**：作为独立 change 推进，本变更不再覆盖 P2。
+
+- [-] ~~新建 `apps/desktop/src/renderer/components/settings/data/` 子目录~~（推迟）
+- [-] ~~`DataSettings.tsx` 拆分为：`DataSettings.tsx`（router） + `WebdavPanel` + `SelfHostedPanel` + `S3Panel` + `BackupPanel` + `ImportExportPanel`（按现有 section 边界）~~（推迟）
+- [-] ~~子面板用 `lazy()` + `<Suspense>` 加载~~（推迟）
+- [-] ~~新建 `apps/desktop/src/renderer/components/settings/ai/` 子目录并对 `AISettings.tsx` 做同样拆分~~（推迟）
+- [-] ~~验证 `useSettingsStore` selector 没有"取整 store"的写法~~（推迟）
+- [-] ~~跑 `pnpm test -- tests/unit/components/data-settings.test.tsx --run`、`pnpm test -- tests/unit/components/ai-test-workbench.test.tsx --run` 全绿~~（推迟）
+- [-] ~~跑 `pnpm lint && pnpm typecheck` 全绿~~（推迟）
+- [-] ~~复跑 `build:analyze`，记录设置页相关 chunk 体积变化到 `implementation.md`~~（推迟）
 
 ## P3 — 长列表虚拟化
 

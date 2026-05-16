@@ -74,10 +74,18 @@ vite 构建告警：`Some chunks are larger than 500 kB after minification`。
 
 ### P2 — 设置页拆分
 
-- 状态：未开始
-- 做了什么：—
-- 与计划偏差：—
-- 实测数字：—
+- 状态：**降级为 follow-up（2026-05-16）**
+- 决策依据：在 P1 拿到精确数据 + 详细阅读 `DataSettings.tsx` (2774 行) 与 `AISettings.tsx` (2717 行) 结构后，重新评估 ROI：
+  - `SettingsPage` chunk 已经只有 49 KB gzip，且本身已经从 `App.tsx` 通过 `lazy()` 在打开设置页时按需加载。它**不在首屏关键路径**上。
+  - `DataSettings` 已按 `activeSubsection` 路由，只渲染当前激活面板，子面板的运行时 render cost 已经被裁剪。
+  - 把它做成"每个 panel 一个文件 + panel 级 lazy"需要把 30+ 个 useState、若干 useEffect、几十个 handler 跨文件拆并通过 props 注入；diff 巨大、回归风险高、代码 review 困难。
+  - 投入产出比远低于 P3（列表虚拟化，直接消除滚动卡顿）、P5（`skill.store` 拆分，直接砍主入口体积）、P6（移除 markdown-vendor 首屏强加载）。
+- 调整方案：
+  - 本次变更范围内**不做**完整物理拆分。
+  - 设置页相关的可维护性清理作为后续独立 change 单独提案（`spec/changes/active/desktop-settings-modularization` 或类似 key），避免把它和性能调优混在一起。
+  - 体积预算（P1 写入的 `bundle-budget.json`）保留对 `SettingsPage` 的阈值监控，确保不退化。
+- 与计划偏差：`design.md` / `tasks.md` 中描述的 P2 物理拆分被推迟到独立 change。
+- 实测数字：n/a（未执行物理拆分）
 
 ### P3 — 长列表虚拟化
 
@@ -122,6 +130,7 @@ vite 构建告警：`Some chunks are larger than 500 kB after minification`。
 
 ## Follow-ups
 
+- **设置页物理拆分**：拆 `DataSettings.tsx` 与 `AISettings.tsx` 为子目录 + 二级 lazy，独立 change 推进（key 建议 `desktop-settings-modularization`）。
 - 评估 `framer-motion` 替换或精简（独立变更，单独 proposal）。
 - 评估 `react-i18next` 按 namespace lazy load（独立变更）。
 - 评估 `services/ai.ts` (2458 行)、`CreateSkillModal.tsx` (2144 行) 是否需要后续拆分（单独 proposal）。
