@@ -24,7 +24,7 @@
     "out"
   ],
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=24.0.0"
   },
   "scripts": {
     "dev": "tsx src/index.ts",
@@ -41,7 +41,7 @@
     "@prompthub/core": "workspace:*",
     "@prompthub/db": "workspace:*",
     "@prompthub/shared": "workspace:*",
-    "@types/node": "^22.0.0",
+    "@types/node": "^24.0.0",
     "eslint": "^9.0.0",
     "tsx": "^4.20.3",
     "typescript": "^5.6.0",

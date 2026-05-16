@@ -1,4 +1,4 @@
-FROM node:22-bookworm-slim AS builder
+FROM node:24-bookworm-slim AS builder
 
 WORKDIR /app
 
@@ -22,7 +22,7 @@ RUN VITE_APP_VERSION=$(node -p "require('./package.json').version") \
     pnpm rebuild esbuild && \
     VITE_APP_VERSION=$VITE_APP_VERSION pnpm --filter @prompthub/web build
 
-FROM node:22-bookworm-slim AS runner
+FROM node:24-bookworm-slim AS runner
 
 WORKDIR /app
 

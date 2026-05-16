@@ -108,7 +108,7 @@ describe("SettingsPage", () => {
     expect(nav).toHaveTextContent("Agent Management");
     expect(nav).not.toHaveTextContent("Platform Preview");
     expect(nav).toHaveTextContent("Security");
-    expect(nav).toHaveTextContent("PromptHub CLI");
+    expect(nav).toHaveTextContent("CLI");
     expect(nav.parentElement).not.toHaveClass("app-left-rail-glass");
 
     await act(async () => {
@@ -156,7 +156,7 @@ describe("SettingsPage", () => {
     });
 
     await act(async () => {
-      screen.getByRole("button", { name: "PromptHub CLI" }).click();
+      screen.getByRole("button", { name: "CLI" }).click();
     });
 
     expect(screen.getByText("cli-content")).toBeInTheDocument();

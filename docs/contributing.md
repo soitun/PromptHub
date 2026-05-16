@@ -18,7 +18,7 @@
 
 ## 环境要求
 
-- Node.js 22+
+- Node.js 24+
 - pnpm 9+
 - Git
 

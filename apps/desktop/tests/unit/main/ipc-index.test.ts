@@ -18,6 +18,7 @@ const registerBackupIPCMock = vi.fn();
 vi.mock("electron", () => ({
   ipcMain: {
     removeHandler: removeHandlerMock,
+    handle: vi.fn(),
   },
 }));
 

@@ -16,7 +16,7 @@ export default defineConfig({
     outDir: 'dist/server',
     emptyOutDir: false,
     sourcemap: true,
-    target: 'node22',
+    target: 'node24',
     rollupOptions: {
       output: {
         entryFileNames: 'index.js',

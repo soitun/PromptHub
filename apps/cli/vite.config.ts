@@ -19,7 +19,7 @@ export default defineConfig({
   build: {
     outDir: "out",
     minify: false,
-    target: "node22",
+    target: "node24",
     lib: {
       entry: path.resolve(__dirname, "src/index.ts"),
       formats: ["cjs"],
