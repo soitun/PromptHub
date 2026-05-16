@@ -77,6 +77,15 @@
 - `quality.yml` 工作流必须在 `Build` 之后运行 `bundle:budget` 步骤，确保 PR 不会无声地把 renderer 主入口或主要 chunk 顶过预算。
 - 当一次有意的优化让某个 chunk 体积下降并希望把成果固化时，才应在该 PR 中收紧对应阈值。
 
+### 12. Renderer Motion System
+
+- 桌面端 renderer 必须有一份 motion design tokens（`apps/desktop/src/renderer/styles/motion-tokens.ts`），覆盖 duration / easing / scale / translate / stagger 五个维度，并同步暴露到 Tailwind theme 与 CSS 变量。
+- 桌面端 renderer 必须提供意图驱动的 motion 组件（`apps/desktop/src/renderer/components/ui/motion/`）：`Pressable`、`Reveal`、`Collapsible`、`ViewTransition`；新增覆盖类组件应优先使用它们，避免散写 `duration-XXX / active:scale-XX / animate-in` 组合。
+- 桌面端必须支持用户级动画偏好（`settings.motionPreference: 'off' | 'reduced' | 'standard'`），通过 `<html data-motion>` 落地；`globals.css` 必须包含 `@media (prefers-reduced-motion: reduce)` 全局降级，且应用内 `standard` 应能显式覆盖系统偏好。
+- 桌面端代码不应再使用裸毫秒（`duration-200`）、裸缩放（`scale-95` / `scale-90`）或手写 spinner；这些应使用 token 或意图组件等价物。
+- 桌面端不再依赖 `framer-motion`；如未来确需 layout / spring 动画，应在 `spec/issues/active/` 先立 issue。
+- 长期工程契约见 `spec/architecture/desktop-frontend-animation.md`。
+
 ## Stable Scenarios
 
 ### Scenario: Contributor changes desktop runtime behavior

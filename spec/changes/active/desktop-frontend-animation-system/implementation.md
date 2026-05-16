@@ -119,7 +119,32 @@ bundle 体积（gzip，本变更前一次 build）：
 
 ### C6 — 同步稳定文档
 
-- 状态：未开始
+- 状态：已完成（2026-05-16）
+- 做了什么：
+  - 新建 `spec/architecture/desktop-frontend-animation.md`：长期工程契约。包含 token 取值、意图分类表、5 个意图组件、用户偏好与 a11y、禁用清单、守护机制、稳定场景。
+  - `spec/domains/desktop/spec.md`：新增第 12 章 "Renderer Motion System"，固化 token 必须存在、必须有意图组件、必须支持 motionPreference、必须尊重 prefers-reduced-motion、不再依赖 framer-motion。
+  - 更新 `tasks.md` cross-cutting 项的勾选状态。
+- 偏差：无。
+
+## 终态汇总
+
+| 维度 | C1 baseline | C5 终态 | Δ |
+| --- | --- | --- | --- |
+| 主入口 `index-*.js` | 365.04 KB gzip | 365.23 KB gzip | +0.19 KB |
+| `markdown-vendor` | 98.21 KB | 98.69 KB | +0.48 KB |
+| `SettingsPage` | 49.07 KB | 49.26 KB | +0.19 KB |
+| **`ui-vendor`（含 framer-motion → 仅 dnd-kit）** | **54.04 KB** | **16.35 KB** | **−37.69 KB** |
+| `react-vendor` | 44.38 KB | 44.38 KB | 持平 |
+| `icons` | 13.51 KB | 13.51 KB | 持平 |
+| `i18n-vendor` | 14.96 KB | 14.96 KB | 持平 |
+| renderer css total | 19.45 KB | 19.76 KB | +0.31 KB |
+| 测试数 | 1157 | 1165（+8 motion 单测） | +8 |
+| `framer-motion` 依赖 | 在 deps | 已卸载 | 移除 |
+| 死 keyframes | 4 个 | 0 | 清理 |
+| 用户 motion 偏好 | 无 | 3 档（`<html data-motion>`） | 新增 |
+| `prefers-reduced-motion` | 不尊重 | 全局降级 | a11y 合规 |
+| 裸 duration 写法 | 107 处 | 0 | 全量迁移到 token |
+| `active:scale-90 / 95` 混用 | 22 处 | 0（统一 `scale-press-in`） | 一致化 |
 
 ## Verification
 
