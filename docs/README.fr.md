@@ -1,329 +1,215 @@
 <div align="center">
-  <img src="./imgs/icon.png" alt="PromptHub Logo" width="120" height="120" />
-  <h1>PromptHub</h1>
-  <p><strong>🚀 Une boîte à outils IA tout-en-un pour les prompts, les skills et les assets d'agents</strong></p>
-  <p>Réutilisation de prompts · Distribution de skills en un clic · Gestion des assets d'agents · Synchronisation cloud · Sauvegarde · Contrôle de version</p>
+  <img src="./imgs/icon.png" alt="PromptHub Logo" width="128" height="128" />
 
-  <p>
-    <a href="https://github.com/legeling/PromptHub/stargazers"><img src="https://img.shields.io/github/stars/legeling/PromptHub?style=flat-square&color=yellow" alt="GitHub Stars"/></a>
-    <a href="https://github.com/legeling/PromptHub/network/members"><img src="https://img.shields.io/github/forks/legeling/PromptHub?style=flat-square" alt="GitHub Forks"/></a>
-    <a href="https://github.com/legeling/PromptHub/releases"><img src="https://img.shields.io/badge/preview-v0.5.6--beta.2-8B5CF6?style=flat-square" alt="Version"/></a>
-    <a href="https://github.com/legeling/PromptHub/releases"><img src="https://img.shields.io/github/downloads/legeling/PromptHub/total?style=flat-square&color=blue" alt="Téléchargements"/></a>
-    <img src="https://img.shields.io/badge/license-AGPL--3.0-blue?style=flat-square" alt="Licence : AGPL-3.0"/>
-  </p>
+  # PromptHub
 
-  <p>
-    <img src="https://img.shields.io/badge/TypeScript-5.0-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript"/>
-    <img src="https://img.shields.io/badge/Electron-33-47848F?style=flat-square&logo=electron&logoColor=white" alt="Electron"/>
-    <img src="https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react&logoColor=white" alt="React"/>
-    <img src="https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=flat-square&logo=tailwind-css&logoColor=white" alt="TailwindCSS"/>
-  </p>
+  Un espace de travail local-first pour les prompts, les skills et les assets de codage IA.
 
-  <p>
-    <a href="../README.md">简体中文</a> ·
-    <a href="./README.zh-TW.md">繁體中文</a> ·
-    <a href="./README.en.md">English</a> ·
-    <a href="./README.ja.md">日本語</a> ·
-    <a href="./README.de.md">Deutsch</a> ·
-    <a href="./README.es.md">Español</a> ·
-    <a href="./README.fr.md">Français</a>
-  </p>
-</div>
+  <br/>
 
-<br/>
+  [![GitHub Stars](https://img.shields.io/github/stars/legeling/PromptHub?style=for-the-badge&logo=github&color=yellow)](https://github.com/legeling/PromptHub/stargazers)
+  [![Downloads](https://img.shields.io/github/downloads/legeling/PromptHub/total?style=for-the-badge&logo=github&color=blue)](https://github.com/legeling/PromptHub/releases)
+  [![Version](https://img.shields.io/badge/release-v0.5.6-22C55E?style=for-the-badge)](https://github.com/legeling/PromptHub/releases/latest)
+  [![License](https://img.shields.io/badge/license-AGPL--3.0-blue?style=for-the-badge)](../LICENSE)
 
-<div align="center">
-  <a href="https://github.com/legeling/PromptHub/releases">
-    <img src="https://img.shields.io/badge/📥_Télécharger_maintenant-Releases-blue?style=for-the-badge&logo=github" alt="Téléchargement"/>
+  <br/>
+
+  ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)
+  ![Electron](https://img.shields.io/badge/Electron-47848F?style=flat-square&logo=electron&logoColor=white)
+  ![React](https://img.shields.io/badge/React-61DAFB?style=flat-square&logo=react&logoColor=black)
+  ![TailwindCSS](https://img.shields.io/badge/Tailwind-38B2AC?style=flat-square&logo=tailwind-css&logoColor=white)
+  ![SQLite](https://img.shields.io/badge/SQLite-003B57?style=flat-square&logo=sqlite&logoColor=white)
+
+  <br/>
+
+  ![macOS](https://img.shields.io/badge/macOS-000000?style=flat-square&logo=apple&logoColor=white)
+  ![Windows](https://img.shields.io/badge/Windows-0078D6?style=flat-square&logo=windows&logoColor=white)
+  ![Linux](https://img.shields.io/badge/Linux-FCC624?style=flat-square&logo=linux&logoColor=black)
+
+  <br/>
+
+  [简体中文](../README.md) · [繁體中文](./README.zh-TW.md) · [English](./README.en.md) · [日本語](./README.ja.md) · [Deutsch](./README.de.md) · [Español](./README.es.md) · [Français](./README.fr.md)
+
+  <br/>
+
+  <a href="https://github.com/legeling/PromptHub/releases/latest">
+    <img src="https://img.shields.io/badge/📥_Télécharger-Releases-blue?style=for-the-badge&logo=github" alt="Téléchargement"/>
   </a>
 </div>
 
 <br/>
 
-> 💡 **Pourquoi PromptHub ?**
->
-> PromptHub est plus qu'un gestionnaire de prompts. C'est un espace de travail local-first pour les prompts, les skills SKILL.md et les assets d'agents. Organisez vos prompts, scannez et distribuez des skills vers Claude Code, Cursor, Windsurf, Codex et plus de 15 outils IA, puis maintenez vos assets IA personnels ou de projet avec synchronisation cloud, sauvegarde, contrôle de version et stockage local respectueux de la vie privée.
+PromptHub regroupe vos prompts, fichiers SKILL.md et assets de codage IA au niveau projet dans un espace de travail local. Il installe le même Skill dans Claude Code, Cursor, Codex, Windsurf, Gemini CLI et une douzaine d'autres outils, propose un historique de versions des prompts et des tests multi-modèles, et synchronise vers d'autres appareils via WebDAV ou une instance Web auto-hébergée.
+
+Vos données restent sur votre machine.
 
 ---
 
-## Comment utiliser PromptHub
+## Sommaire
 
-| Format | Idéal pour | Valeur principale |
-| ------ | ---------- | ----------------- |
-| Application desktop | Utilisateurs individuels, usage intensif de prompts, workflows de développement assistés par IA | Un espace principal local-first pour les prompts, les skills et les assets IA liés aux projets |
-| Web auto-hébergé | Accès via navigateur, auto-hébergement personnel, usage comme cible de sauvegarde / restauration | Un espace léger dans le navigateur qui peut aussi servir de cible de synchronisation pour le desktop |
-| CLI | Traitements batch, scripts, automatisation, pipelines | Accès direct aux données locales PromptHub et aux dépôts de skills gérés |
+- [Téléchargement](#install)
+- [Captures](#screenshots)
+- [Fonctionnalités](#features)
+- [Démarrage rapide](#quick-start)
+- [Web auto-hébergé](#self-hosted-web)
+- [CLI](#cli)
+- [Journal des modifications](#changelog)
+- [Feuille de route](#roadmap)
+- [Depuis les sources](#dev)
+- [Structure du dépôt](#project-structure)
+- [Contribution & docs](#contributing)
+- [Licence / crédits / communauté](#meta)
 
-Si vous découvrez PromptHub, l'ordre recommandé est :
+---
 
-1. Commencer par l'application desktop pour organiser prompts et skills.
-2. Ajouter WebDAV ou PromptHub Web auto-hébergé quand vous avez besoin d'accès navigateur ou de sauvegardes multi-appareils.
-3. Ajouter la CLI quand l'automatisation devient nécessaire.
+<div id="install"></div>
 
-## 📸 Captures d'écran
+## 📥 Téléchargement
 
-<div align="center">
-  <p><strong>Interface principale</strong></p>
-  <img src="./imgs/1-index.png" width="80%" alt="Interface principale"/>
-  <br/><br/>
-  <p><strong>Boutique de Skills</strong></p>
-  <img src="./imgs/10-skill-store.png" width="80%" alt="Boutique de Skills"/>
-  <br/><br/>
-  <p><strong>Détail du Skill et installation sur les plateformes</strong></p>
-  <img src="./imgs/11-skill-platform-install.png" width="80%" alt="Détail du Skill et installation sur les plateformes"/>
-  <br/><br/>
-  <p><strong>Édition des fichiers Skill et comparaison de versions</strong></p>
-  <img src="./imgs/12-skill-files-version-diff.png" width="80%" alt="Édition des fichiers Skill et comparaison de versions"/>
-  <br/><br/>
-  <p><strong>Sauvegarde des données</strong></p>
-  <img src="./imgs/4-backup.png" width="80%" alt="Sauvegarde des données"/>
-  <br/><br/>
-  <p><strong>Paramètres de thème et d'arrière-plan</strong></p>
-  <img src="./imgs/5-theme.png" width="80%" alt="Paramètres de thème et d'arrière-plan"/>
-  <br/><br/>
-  <p><strong>Comparaison de versions</strong></p>
-  <img src="./imgs/8-version-compare.png" width="80%" alt="Comparaison de versions"/>
-</div>
-
-## ✨ Fonctionnalités
-
-### 📝 Gestion des prompts
-
-- Créer, modifier et supprimer avec dossiers et tags
-- Historique de versions automatique avec comparaison et restauration
-- Variables de modèle `{{variable}}` pour la copie, les tests et la distribution
-- Favoris, recherche plein texte, pièces jointes et aperçu média
-
-### 🧩 Distribution et gestion des skills
-
-- **Boutique de Skills** : plus de 20 skills sélectionnés provenant d'Anthropic, OpenAI et d'autres sources
-- **Installation multiplateforme** : installation en un clic sur Claude Code, Cursor, Windsurf, Codex, Kiro, Gemini CLI, Qoder, QoderWork, CodeBuddy et plus de 15 plateformes
-- **Scan local** : détecte les fichiers `SKILL.md`, les prévisualise puis les importe de manière sélective
-- **Mode symlink / copie** : édition synchronisée via lien symbolique ou copie indépendante
-- **Répertoires cibles par plateforme** : surcharge du dossier de skills par plateforme tout en gardant cohérence entre scan et distribution
-- **Traduction et amélioration IA** : traduire ou affiner un Skill complet directement depuis PromptHub
-- **Filtrage par tags** : filtrer rapidement les skills depuis la barre latérale
-
-### 🤖 Projets et assets d'agents
-
-- Scanne les dossiers de projet courants comme `.claude/skills`, `.agents/skills`, `skills` et `.gemini`
-- Gère bibliothèques personnelles, dépôts locaux et assets IA de projet depuis un seul endroit
-- Rend prompts, skills et assets de projet portables grâce au stockage local-first, à la synchronisation et aux sauvegardes
-
-### 🧪 Tests IA et génération
-
-- Tests IA intégrés pour les principaux fournisseurs
-- Comparaison parallèle d'un même prompt sur plusieurs modèles
-- Tests de modèles de génération d'images
-- Génération et amélioration de skills assistées par IA
-
-### 💾 Données et synchronisation
-
-- Toutes les données sont stockées localement, avec priorité à la confidentialité
-- Sauvegarde et restauration complètes avec `.phub.gz`
-- Synchronisation WebDAV
-- Utilisation de PromptHub Web auto-hébergé comme cible de sauvegarde / restauration pour le desktop
-- Synchronisation au démarrage et planifiée
-
-### 🎨 Interface et sécurité
-
-- Vues cartes, galerie et liste
-- Modes sombre, clair et système avec plusieurs couleurs de thème
-- Images d'arrière-plan personnalisées
-- 7 langues, rendu Markdown, coloration syntaxique et support multiplateforme
-- Protection par mot de passe maître
-- Dossiers privés (bêta)
-
-## 📥 Téléchargement et installation desktop
-
-Si vous commencez avec PromptHub, démarrez de préférence par l'application desktop.
-
-### Téléchargement
-
-Téléchargez la dernière preview `v0.5.6-beta.2` depuis [Releases](https://github.com/legeling/PromptHub/releases) :
+Dernière version stable : **v0.5.6**. À récupérer depuis les [Releases](https://github.com/legeling/PromptHub/releases/latest), ou via les liens par plateforme ci-dessous.
 
 | Plateforme | Téléchargement |
-| :--------: | :------------- |
-| Windows | [![Windows x64](https://img.shields.io/badge/Windows_x64-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/legeling/PromptHub/releases/download/v0.5.6-beta.2/PromptHub-Setup-0.5.6-beta.2-x64.exe) [![Windows arm64](https://img.shields.io/badge/Windows_arm64-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/legeling/PromptHub/releases/download/v0.5.6-beta.2/PromptHub-Setup-0.5.6-beta.2-arm64.exe) |
-| macOS | [![macOS Apple Silicon](https://img.shields.io/badge/macOS_Apple_Silicon-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/legeling/PromptHub/releases/download/v0.5.6-beta.2/PromptHub-0.5.6-beta.2-arm64.dmg) [![macOS Intel](https://img.shields.io/badge/macOS_Intel-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/legeling/PromptHub/releases/download/v0.5.6-beta.2/PromptHub-0.5.6-beta.2-x64.dmg) |
-| Linux | [![Linux AppImage](https://img.shields.io/badge/Linux_AppImage-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/legeling/PromptHub/releases/download/v0.5.6-beta.2/PromptHub-0.5.6-beta.2-x64.AppImage) [![Linux deb](https://img.shields.io/badge/Linux_deb-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/legeling/PromptHub/releases/download/v0.5.6-beta.2/prompthub_0.5.6-beta.2_amd64.deb) |
-| Aperçu | [![Preview Prereleases](https://img.shields.io/badge/Preview_Prereleases-8B5CF6?style=for-the-badge&logo=github&logoColor=white)](https://github.com/legeling/PromptHub/releases?q=prerelease%3Atrue) |
+| ---------- | -------------- |
+| Windows    | [![Windows x64](https://img.shields.io/badge/Windows_x64-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-Setup-0.5.6-x64.exe) [![Windows arm64](https://img.shields.io/badge/Windows_arm64-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-Setup-0.5.6-arm64.exe) |
+| macOS      | [![macOS Apple Silicon](https://img.shields.io/badge/macOS_Apple_Silicon-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.5.6-arm64.dmg) [![macOS Intel](https://img.shields.io/badge/macOS_Intel-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.5.6-x64.dmg) |
+| Linux      | [![Linux AppImage](https://img.shields.io/badge/Linux_AppImage-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.5.6-x64.AppImage) [![Linux deb](https://img.shields.io/badge/Linux_deb-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.5.6-amd64.deb) |
+| Aperçu     | [![Preview Prereleases](https://img.shields.io/badge/Preview_Prereleases-8B5CF6?style=for-the-badge&logo=github&logoColor=white)](https://github.com/legeling/PromptHub/releases?q=prerelease%3Atrue) |
 
-> 💡 **Conseils d'installation**
->
-> - **macOS** : Apple Silicon (M1/M2/M3/M4) doit utiliser `arm64`, Intel doit utiliser `x64`
-> - **Windows** : la plupart des machines doivent utiliser `x64` ; seul Windows on ARM nécessite `arm64`
-> - **Canal preview** : les builds preview sont publiées comme GitHub `Prereleases` ; une fois activé, PromptHub vérifie uniquement les prereleases
-> - **Retour au stable** : désactivez d'abord le canal preview. PromptHub ne rétrograde jamais automatiquement d'une preview plus récente vers une stable plus ancienne
+> Apple Silicon → `arm64`. Mac Intel → `x64`. La plupart des Windows → `x64` ; choisissez `arm64` uniquement pour les machines ARM type Surface Pro X.
 
-### Installer sur macOS via Homebrew
+### macOS via Homebrew
 
 ```bash
 brew tap legeling/tap
 brew install --cask prompthub
 ```
 
-### Mise à jour pour les utilisateurs Homebrew
+Pour les mises à jour : `brew upgrade --cask prompthub`. Ne mélangez pas Homebrew avec la mise à jour intégrée, sous peine que la version enregistrée par Homebrew ne corresponde plus à celle effectivement installée.
 
-Si vous avez installé PromptHub avec Homebrew, utilisez Homebrew aussi pour les mises à jour futures et ne mélangez pas cela avec le flux DMG interne.
+### Avertissement au premier lancement sur macOS
 
-```bash
-brew update
-brew upgrade --cask prompthub
-```
-
-Si l'état local de Homebrew semble incohérent, réinstallez le cask actuel :
-
-```bash
-brew reinstall --cask prompthub
-```
-
-> - Les utilisateurs ayant installé via DMG/EXE doivent utiliser l'updater interne ou GitHub Releases
-> - Les utilisateurs Homebrew doivent utiliser `brew upgrade --cask prompthub` et ne pas revenir au chemin DMG interne
-> - Mélanger les deux chemins peut désynchroniser la version connue de Homebrew et l'app réellement installée
-
-### Premier lancement sur macOS
-
-Comme l'application n'est pas notariée par Apple, vous pouvez voir **"PromptHub est endommagé et ne peut pas être ouvert"** ou **"Impossible de vérifier le développeur"** au premier lancement.
-
-**Solution recommandée** : ouvrez Terminal et exécutez cette commande pour contourner Gatekeeper :
+L'application n'est pas notarisée, le premier lancement peut indiquer « PromptHub est endommagé » ou « le développeur ne peut pas être vérifié ». Depuis un terminal :
 
 ```bash
 sudo xattr -rd com.apple.quarantine /Applications/PromptHub.app
 ```
 
-> 💡 **Conseil** : si l'application est installée ailleurs, remplacez le chemin par le chemin réel.
-
-**Sinon** : ouvrez "Réglages Système" → "Confidentialité et sécurité" → faites défiler jusqu'à Sécurité → cliquez sur "Ouvrir quand même".
+Puis rouvrez l'application. Adaptez le chemin si vous l'avez installée ailleurs.
 
 <div align="center">
-  <img src="./imgs/install.png" width="60%" alt="Avis d'installation sur macOS"/>
+  <img src="./imgs/install.png" width="60%" alt="Avertissement d'installation macOS"/>
 </div>
 
-### Exécuter le desktop depuis les sources
+### Canal Aperçu
 
-```bash
-git clone https://github.com/legeling/PromptHub.git
-cd PromptHub
-pnpm install
+Vous voulez tester la prochaine version d'aperçu ? Ouvrez *Paramètres → À propos* et activez le canal aperçu. L'application vérifiera alors les Prereleases GitHub. Désactivez-le pour revenir à la stable ; PromptHub ne fait pas de retour automatique d'une preview plus récente vers une stable plus ancienne.
 
-# Démarrer le développement desktop
-pnpm electron:dev
+<div id="screenshots"></div>
 
-# Construire le desktop
-pnpm build
+## Captures
 
-# Construire le Web auto-hébergé si nécessaire
-pnpm build:web
-```
+> Les captures de la v0.5.6 sont en cours de mise à jour. Celles ci-dessous montrent les flux principaux ; pour les nouvelles surfaces (Rules, Skills de projet, Quick Add, gestionnaire de tags), ouvrez l'application.
 
-> `pnpm build` à la racine du dépôt ne construit que l'application desktop. Exécutez aussi `pnpm build:web` si vous avez besoin du build Web.
+<div align="center">
+  <p><strong>Vue principale</strong></p>
+  <img src="./imgs/1-index.png" width="80%" alt="Vue principale"/>
+  <br/><br/>
+  <p><strong>Skill store</strong></p>
+  <img src="./imgs/10-skill-store.png" width="80%" alt="Skill store"/>
+  <br/><br/>
+  <p><strong>Installation de Skills en un clic vers les plateformes</strong></p>
+  <img src="./imgs/11-skill-platform-install.png" width="80%" alt="Installation Skill plateforme"/>
+  <br/><br/>
+  <p><strong>Édition de fichier Skill et diff de version</strong></p>
+  <img src="./imgs/12-skill-files-version-diff.png" width="80%" alt="Édition fichier Skill"/>
+</div>
 
-## 🚀 Démarrage rapide
+<div id="features"></div>
 
-### 1. Créer votre premier Prompt
+## Fonctionnalités
 
-Cliquez sur « Nouveau » et remplissez le titre, la description, `System Prompt`, `User Prompt` et les tags.
+### 📝 Gestion des prompts
 
-### 2. Utiliser des variables de modèle
+- Dossiers, tags, favoris avec réorganisation par glisser-déposer ; CRUD complet
+- Templating `{{variable}}` ; copier / tester / distribuer ouvre un formulaire pour les valeurs
+- Recherche plein texte (FTS5), rendu Markdown avec coloration syntaxique, pièces jointes et aperçu média
+- La vue carte sur le bureau permet l'édition inline du prompt utilisateur et système au double-clic
 
-Utilisez la syntaxe `{{nom_variable}}` dans vos prompts :
+### 🧩 Skill store et distribution en un clic
 
-```text
-Veuillez traduire le texte suivant de {{source_lang}} vers {{target_lang}} :
+- **Skill store** avec 20+ skills sélectionnés (Anthropic, OpenAI, etc.) et sources personnalisées cumulables (dépôt GitHub / skills.sh / dossier local)
+- **Installation en un clic** vers Claude Code, Cursor, Windsurf, Codex, Kiro, Gemini CLI, Qoder, QoderWork, CodeBuddy, Trae, OpenCode, Roo Code et 15+ autres
+- **Scan local** détecte les fichiers SKILL.md existants pour ne plus copier-coller entre répertoires d'outils
+- **Modes Symlink / Copy** — symlink pour partager les modifications, copy pour des copies indépendantes par plateforme
+- **Surcharge du dossier Skills par plateforme** pour garder scan et installation cohérents
+- **Traduction et révision IA** au niveau du SKILL.md complet, stockage en sidecar, mode côte à côte ou traduction intégrale
+- **Scan de sécurité** : revue par pipeline IA avant installation, sources restreintes bloquées
+- **Token GitHub** pour les imports store et dépôt afin de réduire les échecs liés au rate-limit anonyme
+- **Filtrage par tag** pour les skills installés et pour la navigation dans le store
 
-{{text}}
-```
+### 📐 Rules (règles de codage IA)
 
-### 3. Ajouter des Skills à votre espace de travail
+- Un seul endroit pour gérer `.cursor/rules`, `.claude/CLAUDE.md`, AGENTS.md et leurs cousins
+- Règles de projet ajoutées manuellement, regroupées par dossier
+- Intégrées à l'export ZIP, WebDAV, sync auto-hébergée et import/export Web
 
-- Ajoutez des skills utiles depuis la boutique
-- Scannez des `SKILL.md` locaux ou présents dans des projets
-- Continuez ensuite à éditer, traduire, comparer et distribuer depuis « My Skills »
+### 🤖 Espace projet & assets d'agent
 
-### 4. Les distribuer vers des outils IA
+- Scanne les emplacements habituels du projet : `.claude/skills`, `.agents/skills`, `skills`, `.gemini`, etc.
+- Espaces Skills par projet pour isoler le contexte du projet de la bibliothèque globale
+- Bibliothèque personnelle, dépôt local et assets de projet dans un même sélecteur — fini les allers-retours entre répertoires d'outils
+- Gestion globale des tags de prompt : recherche, renommage, fusion, suppression synchronisés entre la base et les fichiers de l'espace de travail
 
-- Choisissez des plateformes cibles comme Claude Code, Cursor, Windsurf, Codex ou Gemini CLI
-- PromptHub installe les skills dans chaque répertoire de plateforme pour vous
+### 🧪 Tests et génération IA
 
-> 🖥️ **Plateformes actuellement prises en charge** : Claude Code, GitHub Copilot, Cursor, Windsurf, Kiro, Gemini CLI, Trae, OpenCode, Codex CLI, Roo Code, Amp, OpenClaw, Qoder, QoderWork, CodeBuddy
+- Tests IA intégrés avec les principaux fournisseurs mondiaux et chinois (OpenAI, Anthropic, Gemini, Azure, endpoints personnalisés)
+- Exécution du même prompt sur plusieurs modèles en parallèle, en texte et en image
+- Génération et amélioration de Skills par IA, Quick Add génère désormais des brouillons de prompt structurés
+- Gestion unifiée des endpoints et tests de connexion ; messages d'erreur précis (504 / timeout / non configuré)
 
-### 5. Configurer sync et sauvegarde
+### 🕒 Gestion de versions et historique
 
-- Configurez WebDAV pour synchroniser plusieurs appareils
-- Ou connectez PromptHub Web auto-hébergé dans `Réglages -> Données` comme cible de sauvegarde / restauration
+- Chaque enregistrement de prompt crée une version automatique avec diff et rollback en un clic
+- Les Skills disposent de leur propre historique avec versions nommées, diff et rollback par version
+- L'historique des snapshots Rules peut être prévisualisé et restauré dans un brouillon
+- Les Skills installés depuis le store enregistrent un hash de contenu pour détecter les changements distants de SKILL.md avec protection contre les conflits locaux
 
-## CLI en ligne de commande
+### 💾 Données, synchronisation et sauvegarde
 
-PromptHub propose une GUI et une CLI. La CLI convient aux scripts, opérations par lot, imports, scans et automatisation.
+- Local-first : par défaut, vos données restent sur votre machine
+- Sauvegarde / restauration complète au format compressé `.phub.gz`
+- Synchronisation WebDAV (Jianguoyun, Nextcloud, etc.)
+- Une instance PromptHub Web auto-hébergée sert de cible de sync / backup additionnelle
+- Pull au lancement + sync planifiée en arrière-plan ; une seule source active de sync pour éviter les conflits multi-écriture
 
-### Modes actuellement disponibles
+### 🔐 Confidentialité et sécurité
 
-> ⚠️ **État actuel**
->
-> - L'application desktop n'installe pas automatiquement la commande `prompthub`
-> - Ce dépôt fournit actuellement une entrée CLI standalone depuis les sources, un bundle compilé et un flux local de pack/install
-> - Si vous avez besoin d'une commande globale `prompthub`, créez le tarball CLI depuis le dépôt puis installez-le localement
+- Mot de passe maître protégeant l'accès à l'application, chiffrement AES-256-GCM
+- Dossiers privés chiffrés au repos (Beta)
+- Multiplateforme et utilisable hors-ligne : macOS / Windows / Linux
+- 7 langues d'interface : 简体中文, 繁體中文, English, 日本語, Deutsch, Español, Français
 
-### Pack local puis installation globale
+<div id="quick-start"></div>
 
-```bash
-pnpm pack:cli
-pnpm add -g ./apps/cli/prompthub-cli-*.tgz
-prompthub --help
-prompthub prompt list
-```
+## Démarrage rapide
 
-### Exécuter depuis les sources
+1. **Créez votre premier prompt.** Cliquez sur **+ Nouveau**, renseignez titre, description, system prompt et user prompt. `{{name}}` devient une variable ; copier ou tester ouvre un formulaire pour la saisir.
 
-```bash
-pnpm --filter @prompthub/cli dev -- --help
-pnpm --filter @prompthub/cli dev -- prompt list
-pnpm --filter @prompthub/cli dev -- skill list
-pnpm --filter @prompthub/cli dev -- skill scan
-pnpm --filter @prompthub/cli dev -- skill install ~/.claude/skills/my-skill
-```
+2. **Importez des Skills.** Ouvrez l'onglet Skills. Choisissez quelques skills depuis le store, ou cliquez sur *Scanner local* pour récupérer les SKILL.md déjà présents sur votre machine.
 
-### Utiliser le bundle CLI compilé
+3. **Installez vers vos outils IA.** Depuis le détail d'un Skill, sélectionnez la plateforme cible. PromptHub installe le SKILL.md dans le dossier attendu par la plateforme, en symlink (édition partagée) ou en copie indépendante.
 
-```bash
-pnpm build:cli
-node apps/cli/out/prompthub.cjs --help
-node apps/cli/out/prompthub.cjs prompt list
-node apps/cli/out/prompthub.cjs skill list
-```
+4. **Synchronisation (optionnelle).** *Paramètres → Données* configure WebDAV, ou auto-hébergez PromptHub Web comme cible de sync.
 
-### Options courantes
+<div id="self-hosted-web"></div>
 
-- `--output json|table`
-- `--data-dir /path/to/user-data`
-- `--app-data-dir /path/to/app-data`
+## Web auto-hébergé
 
-### Commandes prises en charge
+PromptHub Web est un compagnon léger orienté navigateur, à exécuter sur un NAS, un VPS ou une machine LAN avec Docker. Ce **n'est pas** un service cloud managé. Utilisez-le pour :
 
-- `prompt list|get|duplicate|versions|create-version|delete-version|diff|rollback|use|list-tags|rename-tag|delete-tag|create|update|delete|search`
-- `folder list|get|create|update|delete|reorder`
-- `rules list|scan|read|save|rewrite|add-project|remove-project|version-delete|export|import`
-- `workspace export|import`
-- `skill list|get|install|scan|delete|remove`
-
-### Notes
-
-- La CLI lit et écrit directement dans la base de données locale de PromptHub et dans le dépôt de skills géré
-- L'application desktop n'affiche aujourd'hui qu'une aide CLI dans les réglages et n'installe pas de wrapper shell
-- `apps/cli` peut aussi être empaqueté depuis le dépôt puis installé localement comme tarball global
-
-## 🌐 Web auto-hébergé
-
-PromptHub Web est un espace léger auto-hébergé dans le navigateur, et non le SaaS officiel. Il est utile si vous voulez :
-
-- accéder à vos données PromptHub depuis un navigateur
-- utiliser PromptHub Web comme cible de sauvegarde / restauration pour le desktop
-- ne pas dépendre uniquement de WebDAV et préférer un espace auto-hébergé plus direct
-
-### Démarrage rapide avec Docker Compose
-
-Exécutez ceci à la racine du dépôt :
+- Accéder à vos données PromptHub depuis un navigateur
+- Disposer d'une cible de sync autre que WebDAV pour la version desktop
+- Garder vos données dans votre propre réseau
 
 ```bash
 cd apps/web
@@ -331,234 +217,261 @@ cp .env.example .env
 docker compose up -d --build
 ```
 
-Variables importantes :
+Dans `.env`, à minima :
 
-- `JWT_SECRET` : au moins 32 caractères aléatoires pour l'authentification
-- `ALLOW_REGISTRATION=false` : recommandé après l'initialisation pour garder l'inscription publique désactivée
-- `DATA_ROOT` : répertoire racine utilisé pour `data/`, `config/`, `logs/` et `backups/`
+- `JWT_SECRET` : ≥ 32 caractères aléatoires
+- `ALLOW_REGISTRATION=false` : laisser désactivé après la création du premier admin
+- `DATA_ROOT` : racine des données ; `data/`, `config/`, `logs/`, `backups/` y seront créés
 
-URL d'accès par défaut : `http://localhost:3871`
+Par défaut : `http://localhost:3871`. La première visite redirige vers `/setup` ; le premier utilisateur devient administrateur.
 
-### Premier démarrage
+Pour connecter le desktop : *Paramètres → Données → Self-Hosted PromptHub*. Test de la connexion, push de l'espace local, pull depuis Web, pull au lancement ou push en arrière-plan.
 
-- Une instance neuve ouvre `/setup` au lieu de la page de connexion
-- Le premier utilisateur devient administrateur
-- Après la création du premier compte admin, l'inscription publique reste désactivée
+Détails de déploiement / mise à jour / sauvegarde / image GHCR / notes de dev dans [`web-self-hosted.md`](./web-self-hosted.md).
 
-### Connecter le desktop à PromptHub Web
+<div id="cli"></div>
 
-Dans le desktop, ouvrez `Réglages -> Données` et configurez :
+## CLI
 
-- l'URL de PromptHub auto-hébergé
-- le nom d'utilisateur
-- le mot de passe
-
-Ensuite, le desktop peut :
-
-- tester la connexion
-- envoyer l'espace de travail local actuel vers PromptHub Web
-- télécharger et restaurer depuis PromptHub Web
-- tirer une fois au démarrage
-- pousser les mises à jour selon une planification
-
-### Données et sauvegarde
-
-Sauvegardez tout le répertoire racine de données, pas seulement le fichier SQLite. Les chemins persistants typiques incluent :
+La CLI sert au scripting, à l'import/export en masse et à l'automatisation. L'application desktop n'**installe pas** automatiquement la commande shell `prompthub` ; packagez-la et installez-la depuis le dépôt :
 
 ```bash
-apps/web/data
-apps/web/config
-apps/web/logs
+pnpm pack:cli
+pnpm add -g ./apps/cli/prompthub-cli-*.tgz
+prompthub --help
 ```
 
-Ces répertoires peuvent contenir :
+Ou exécutez depuis les sources sans installer :
 
-- `data/prompthub.db`
-- `data/prompts/...`
-- `data/skills/...`
-- `data/assets/...`
-- `config/settings/...`
-- `backups/...`
-- `logs/...`
+```bash
+pnpm --filter @prompthub/cli dev -- prompt list
+pnpm --filter @prompthub/cli dev -- skill scan
+```
 
-Pour le déploiement complet, les mises à jour, les sauvegardes, les images GHCR et les notes de développement, consultez [`web-self-hosted.md`](./web-self-hosted.md).
+Commandes par ressource (chaque commande accepte `--help`) :
 
-## 📈 Star History
+```text
+prompt    list / get / create / update / delete / duplicate / search
+          versions / create-version / delete-version / diff / rollback
+          use / copy
+          list-tags / rename-tag / delete-tag
 
-<a href="https://star-history.com/#legeling/PromptHub&Date">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=legeling/PromptHub&type=Date&theme=dark" />
-    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=legeling/PromptHub&type=Date" />
-    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=legeling/PromptHub&type=Date" />
-  </picture>
-</a>
+folder    list / get / create / update / delete / reorder
 
-## 🗺️ Feuille de route
+rules     list / scan / read / save / rewrite
+          versions / version-read / version-restore / version-delete
+          add-project / remove-project
+          export / import
 
-### v0.5.5 (stable actuelle) 🚀
+skill     list / get / install / delete / remove
+          versions / create-version / rollback / delete-version
+          export / scan / scan-safety / sync-from-repo
+          platforms / platform-status / install-md / uninstall-md
+          repo-files / repo-read / repo-write / repo-delete / repo-mkdir / repo-rename
 
-- [x] **Détection des mises à jour des Skills du store** : les Skills installés depuis le store conservent un hash d'installation et peuvent vérifier le `SKILL.md` distant en toute sécurité
-- [x] **Traduction complète des documents Skill** : la traduction IA travaille désormais sur le `SKILL.md` complet, enregistre des sidecars locaux et prend en charge les modes complet et immersif
-- [x] **Changement du dossier de données réellement appliqué** : PromptHub relance maintenant l'application pour réappliquer le nouveau chemin `userData`
-- [x] **Retour plus clair pour les tests IA** : les tests de modèles affichent « modèle XX test réussi / échoué », et les erreurs de traduction dues à une configuration absente, un timeout ou `504` sont explicites
-- [x] **Correctifs Web médias et sync** : les déploiements Web/Docker peuvent téléverser des médias et ne classent plus les dossiers normaux comme privés lors de la synchronisation
+workspace export / import
+```
 
-### v0.4.9
+Options globales courantes :
 
-- [x] Durcissement sécurité, refactorisation d'architecture, correction des métadonnées Skill
-- [x] Gestion plus robuste des erreurs de migration, nettoyage qualité de code et 720 tests réussis
+- `--output json|table` — format de sortie
+- `--data-dir <path>` — surcharger le dossier `userData` de PromptHub
+- `--app-data-dir <path>` — surcharger la racine des données applicatives
+- `--version|-v` — afficher la version CLI
 
-### v0.4.8
+<div id="changelog"></div>
 
-- [x] AI Workbench livré, intégration du store skills.sh, suppression de l'historique de versions
-- [x] Durcissement backup / WebDAV, clarté sur la migration du dossier de données, performance des grandes bibliothèques
+## Journal des modifications
 
-### v0.3.x
+Journal complet : **[CHANGELOG.md](../CHANGELOG.md)**
 
-- [x] Dossiers multi-niveaux, contrôle de version, modèles variables
-- [x] Laboratoire multi-modèles, synchronisation WebDAV, rendu Markdown
-- [x] Multiples vues, intégration système, sécurité et confidentialité
+### v0.5.6 (2026-05-12)
 
-### Plans futurs
+**Fonctionnalités**
 
-- [ ] **Extension navigateur** : accéder à PromptHub depuis ChatGPT / Claude Web
-- [ ] **Application mobile** : consulter, rechercher et éditer sur mobile
-- [ ] **Système de plugins** : intégrer des fournisseurs IA personnalisés et des modèles locaux
-- [ ] **Marketplace de Skills** : publier et partager des Skills créés par la communauté
+- 🧭 **Espace Rules.** Une page Rules dédiée sur le bureau, gérant règles globales et règles de projet ajoutées manuellement — recherche, prévisualisation des snapshots, restauration en brouillon, export ZIP / WebDAV / sync auto-hébergée / import-export Web.
+- 📁 **Espace Skill par projet.** Espaces Skills par projet, scan automatique des emplacements habituels, prévisualisation / import / distribution dans le contexte du projet.
+- 🤖 **Quick Add génère des prompts par IA.** En plus d'analyser un prompt existant, Quick Add peut désormais générer un brouillon de prompt structuré à partir d'objectifs et de contraintes.
+- 🏷️ **Gestion globale des tags de prompt.** Recherche / renommage / fusion / suppression centralisés dans la zone tags de la barre latérale, synchronisés base et fichiers de l'espace de travail.
+- 🔐 **Token GitHub pour le Skill Store.** Quota GitHub authentifié pour réduire les échecs liés au rate-limit anonyme lors des imports store et dépôts.
 
-## 📝 Journal des modifications
+**Corrections**
 
-Consultez le changelog complet : **[CHANGELOG.md](../CHANGELOG.md)**
+- ✍️ Le détail de carte permet l'édition par double-clic des prompts utilisateur et système
+- 🪟 Scintillement du dialogue de mise à jour, bouton de téléchargement instable, et `minimizeOnLaunch` ne respectant pas le démarrage automatique
+- ↔️ Régression sur le redimensionnement trois colonnes des Skills, le double-clic de réinitialisation, le retour à la ligne des titres et la recherche dans le store
+- 🔁 Cohérence Rules / extras de Skill / copies gérées entre export ZIP, WebDAV, sync auto-hébergée et import/export Web
+- 🖼️ La connexion Web auto-hébergée utilise désormais des défis CAPTCHA image à usage unique
 
-### Dernière preview v0.5.6-beta.2 (2026-05-14) 🎉
+**Améliorations**
 
-**Skill / AI**
+- 🏠 La home en deux colonnes prend en charge de manière stable l'affichage des modules, le tri par glisser-déposer et un toggle d'arrière-plan indépendant
+- ☁️ Une seule source de sync active pilote la synchronisation automatique, évitant les conflits d'écriture multi-fournisseur
+- ✨ Système de motion complet sur le rendu desktop (tokens duration / easing / scale, quatre composants d'intention `<Reveal>` `<Collapsible>` `<ViewTransition>` `<Pressable>`, trois niveaux utilisateur). framer-motion remplacé par `tailwindcss-animate` ; le chunk `ui-vendor` passe de 54 KB à 16 KB gzippé.
+- 🪶 Les listes longues (liste Skill / galerie Prompt / kanban / liste de prompts inline) utilisent désormais `@tanstack/react-virtual`, retirant l'ancien rendu par chunks basé sur `setTimeout`.
 
-- 🔐 **La revue de sécurité des Skills est maintenant entièrement AI-only** : desktop et web partagent désormais un flux commun de pré-vérification de source, contexte de dépôt et revue IA. Les sources bloquées ou internes sont rejetées avant l'appel au modèle, et les installations à haut risque exigent toujours une confirmation explicite
+<div id="roadmap"></div>
 
-**Sync**
+## Feuille de route
 
-- 🔁 **Cohérence encore renforcée pour export / backup / sync auto-heberge** : Rules, fichiers Skill additionnels et copies gerees traversent maintenant de facon plus fiable le ZIP desktop, WebDAV, la sync auto-hebergee et l'import/export Web. Les flux desktop auto-heberges sont aussi alignes sur le login captcha image, le startup pull et l'upload/download manuel
+### v0.5.6 ← stable actuelle
 
-**Desktop**
+Voir le journal ci-dessus.
 
-- 🧭 **Desktop home et Skill Store encore affines** : la nouvelle home a deux colonnes conserve maintenant correctement la visibilite et l'ordre par glisser-deposer des modules, l'image de fond peut etre activee ou coupee sans etre perdue, et Skill Store se recentre sur une recherche unique en haut avec un flux plus serre pour les sources personnalisees et une meilleure couverture i18n
+### v0.5.5
 
-**Verification**
+- L'installation de Skill depuis le store enregistre un hash de contenu ; détection de changement distant SKILL.md avec protection contre les conflits locaux
+- Traduction IA persistée en sidecar pour le document complet, modes traduction intégrale et côte à côte immersif
+- Le changement de chemin de données s'applique via un véritable relaunch
+- Messages d'erreur de test / traduction IA plus clairs (504 / timeout / non configuré)
+- Correctif d'upload média Web/Docker ; `local-image://` / `local-video://` résolus automatiquement
+- Renforcement du couloir de mise à jour aperçu
+- Synchronisation auto des labels `version: x.y.z` sur les formulaires Issues
 
-- 🧪 **La release gate de `0.5.6-beta.2` est revenue au vert** : le `pnpm test:release` desktop repasse maintenant de bout en bout avec lint, typecheck, full unit, integration, build et smoke E2E
+### v0.4.x
 
-> 📋 [Voir le changelog complet](../CHANGELOG.md)
+- Workbench IA avec gestion des modèles, édition d'endpoints, tests de connexion, modèles par défaut par scénario
+- Intégration du store communautaire skills.sh avec classements, compteurs d'install et stars
+- Découpage de la god-class skill-installer, protection SSRF, validation des protocoles d'URL
+- Installation Skill en un clic vers une douzaine de plateformes (Claude Code, Cursor, Windsurf, Codex, etc.)
+- Traduction IA, génération de Skill par IA, scan local en lot
 
-## 🤝 Contribution et développement
+### Pistes / planifié
 
-### Points d'entrée
+- [ ] Extension navigateur qui interroge PromptHub depuis ChatGPT / Claude
+- [ ] Compagnon mobile : visualisation, recherche, édition légère et synchronisation
+- [ ] Surface plugin pour modèles locaux (Ollama) et fournisseurs IA personnalisés
+- [ ] Prompt Store : réutilisation de prompts validés par la communauté
+- [ ] Types de variables plus riches : listes déroulantes, dates dynamiques
+- [ ] Skills uploadés par les utilisateurs
 
-- `CONTRIBUTING.md` à la racine : point d'entrée visible depuis GitHub
-- `docs/contributing.md` : guide canonical de contribution actuellement en vigueur
-- `docs/README.md` : index public de documentation
-- `spec/README.md` : index interne SSD / spec
+<div id="dev"></div>
 
-### 🛠️ Stack technique
+## Depuis les sources
 
-| Catégorie | Technologie |
-| --------- | ----------- |
-| Runtime desktop | Electron 33 |
-| Frontend desktop | React 18 + TypeScript 5 + Vite 6 |
-| Web auto-hébergé | Hono + React + Vite |
-| Styles | Tailwind CSS 3 |
-| Gestion d'état | Zustand |
-| Couche de données | SQLite, `better-sqlite3`, `node-sqlite3-wasm` |
-| Paquets monorepo | `packages/shared`, `packages/db` |
+Node.js ≥ 24 et pnpm 9 requis.
 
-### 📁 Structure du dépôt
+```bash
+git clone https://github.com/legeling/PromptHub.git
+cd PromptHub
+pnpm install
+
+# dev desktop
+pnpm electron:dev
+
+# build desktop
+pnpm build
+
+# build Web auto-hébergé
+pnpm build:web
+```
+
+`pnpm build` ne compile que l'application desktop. Le bundle Web requiert `pnpm build:web`.
+
+| Commande | Usage |
+| -------- | ----- |
+| `pnpm electron:dev` | Environnement dev Vite + Electron |
+| `pnpm dev:web` | Serveur dev Web |
+| `pnpm lint` / `pnpm lint:web` | Lint |
+| `pnpm typecheck` / `pnpm typecheck:web` | Vérifications TypeScript |
+| `pnpm test -- --run` | Tests unitaires + intégration desktop |
+| `pnpm test:e2e` | Playwright e2e |
+| `pnpm verify:web` | Web lint + typecheck + test + build |
+| `pnpm test:release` | Pré-vérification release desktop |
+| `pnpm --filter @prompthub/desktop bundle:budget` | Vérification du budget bundle desktop |
+
+<div id="project-structure"></div>
+
+## Structure du dépôt
 
 ```text
 PromptHub/
 ├── apps/
-│   ├── desktop/   # Desktop Electron + CLI
+│   ├── desktop/   # application desktop Electron
+│   ├── cli/       # CLI autonome (basée sur packages/core)
 │   └── web/       # Web auto-hébergé
 ├── packages/
-│   ├── db/        # couche de données partagée
-│   └── shared/    # types, constantes et contrats partagés
+│   ├── core/      # logique partagée CLI / desktop
+│   ├── db/        # couche données partagée (schéma SQLite, requêtes)
+│   └── shared/    # types partagés, constantes IPC, définitions de protocole
 ├── docs/          # documentation publique
-├── spec/          # système interne SSD / spec
-├── website/       # ressources du site web
+├── spec/          # SSD interne / spécifications de design
+├── website/       # site marketing
 ├── README.md
 ├── CONTRIBUTING.md
 └── package.json
 ```
 
-### Commandes courantes
+<div id="contributing"></div>
 
-| Tâche | Commande |
-| ----- | -------- |
-| Développement desktop | `pnpm electron:dev` |
-| Développement web | `pnpm dev:web` |
-| Build desktop | `pnpm build` |
-| Build web | `pnpm build:web` |
-| Lint desktop | `pnpm lint` |
-| Lint web | `pnpm lint:web` |
-| Tests complets desktop | `pnpm test -- --run` |
-| Vérification complète web | `pnpm verify:web` |
-| CLI depuis les sources | `pnpm --filter @prompthub/cli dev -- --help` |
-| E2E | `pnpm test:e2e` |
-| Gate de release desktop | `pnpm test:release` |
+## Contribution & docs
 
-### Workflow docs et SSD
+- Point d'entrée : [CONTRIBUTING.md](../CONTRIBUTING.md)
+- Guide complet : [`docs/contributing.md`](./contributing.md)
+- Index docs publiques : [`docs/README.md`](./README.md)
+- SSD interne / specs : [`spec/README.md`](../spec/README.md)
 
-- `docs/` s'adresse aux utilisateurs, personnes qui déploient et contributeurs
-- `spec/` s'adresse au SSD interne, à la documentation stable par domaine, à la logique, aux assets, à l'architecture et aux changements actifs
-- Le travail non trivial doit commencer par `spec/changes/active/<change-key>/`
-- Chaque changement important doit inclure `proposal.md`, `specs/<domain>/spec.md`, `design.md`, `tasks.md` et `implementation.md`
-- Synchronisez la vérité interne durable vers `spec/` et les changements de contrat public vers `docs/` ou `README.md`
+Pour des changements non triviaux, créez un dossier de change dans `spec/changes/active/<change-key>/` (`proposal.md` / `specs/<domain>/spec.md` / `design.md` / `tasks.md` / `implementation.md`). Une fois livré, synchronisez les éléments durables vers `spec/domains/`, `spec/architecture/`, et mettez à jour `docs/` ou `README.md` à la racine si les contrats utilisateur ont changé.
 
-Les règles complètes de contribution, les gates de test et les attentes de soumission sont disponibles dans [`contributing.md`](./contributing.md).
+<div id="meta"></div>
 
-## 📄 Licence
+## Licence
 
-Ce projet est distribué sous [AGPL-3.0 License](../LICENSE).
+[AGPL-3.0](../LICENSE)
 
-## 💬 Support
+## Retour
 
-- **Issues** : [GitHub Issues](https://github.com/legeling/PromptHub/issues)
-- **Discussions** : [GitHub Discussions](https://github.com/legeling/PromptHub/discussions)
+- Issues : [GitHub Issues](https://github.com/legeling/PromptHub/issues)
+- Idées : [GitHub Discussions](https://github.com/legeling/PromptHub/discussions)
 
-## 🙏 Remerciements
+## Construit avec
 
-- [Electron](https://www.electronjs.org/)
-- [React](https://react.dev/)
-- [TailwindCSS](https://tailwindcss.com/)
-- [Zustand](https://zustand-demo.pmnd.rs/)
-- [Lucide](https://lucide.dev/)
-- Merci à tous les [contributeurs](https://github.com/legeling/PromptHub/graphs/contributors) qui ont amélioré PromptHub
+[Electron](https://www.electronjs.org/) · [React](https://react.dev/) · [TailwindCSS](https://tailwindcss.com/) · [Zustand](https://zustand-demo.pmnd.rs/) · [Lucide](https://lucide.dev/) · [@tanstack/react-virtual](https://tanstack.com/virtual) · [tailwindcss-animate](https://github.com/jamiebuilds/tailwindcss-animate)
 
----
+## Contributeurs
+
+Merci à toutes celles et ceux qui ont contribué à PromptHub.
+
+<a href="https://github.com/legeling/PromptHub/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=legeling/PromptHub" alt="Contributors" />
+</a>
+
+## Star history
+
+<a href="https://star-history.com/#legeling/PromptHub&Date">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=legeling/PromptHub&type=Date&theme=dark" />
+    <img alt="Star history" src="https://api.star-history.com/svg?repos=legeling/PromptHub&type=Date" />
+  </picture>
+</a>
+
+## Communauté
+
+Rejoignez la communauté PromptHub pour le support, les retours, les actualités de release et les aperçus en avant-première.
 
 <div align="center">
-  <p><strong>Si ce projet vous aide, pensez à lui donner une ⭐ !</strong></p>
-
-  <a href="https://www.buymeacoffee.com/legeling" target="_blank">
-    <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="50" />
+  <a href="https://discord.gg/zmfWguWFB">
+    <img src="https://img.shields.io/badge/Discord-Join%20PromptHub%20Community-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Join PromptHub Discord Community" />
   </a>
+  <p><strong>Discord est le canal recommandé : annonces, support, actualités de release.</strong></p>
 </div>
 
----
+<br/>
 
-## 💖 Remerciements / Backers
+### Groupe QQ (chinois)
 
-Merci aux personnes suivantes pour leur soutien financier à PromptHub :
+Si vous préférez QQ, le groupe QQ PromptHub est aussi ouvert :
 
-| Date | Soutien | Montant | Message |
-| :--- | :------ | :------ | :------ |
-| 2026-01-08 | \*🌊 | ￥100.00 | Soutien à un excellent logiciel ! |
-| 2025-12-29 | \*昊 | ￥20.00 | Merci pour votre logiciel ! Petit soutien |
+- ID du groupe : `704298939`
 
----
+<div align="center">
+  <img src="./imgs/qq-group.jpg" width="320" alt="PromptHub QQ group QR"/>
+  <p><strong>Scannez pour rejoindre le groupe QQ PromptHub</strong></p>
+</div>
 
-## ☕ Parrainage
+## Sponsoriser
 
-Si PromptHub vous aide dans votre travail, vous pouvez offrir un café à l'auteur ☕
+Si PromptHub vous est utile, n'hésitez pas à offrir un café à l'auteur.
 
 <div align="center">
   <table>
@@ -573,14 +486,23 @@ Si PromptHub vous aide dans votre travail, vous pouvez offrir un café à l'aute
         <br/>
         <b>Alipay</b>
       </td>
+      <td align="center">
+        <a href="https://www.buymeacoffee.com/legeling" target="_blank">
+          <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="50" />
+        </a>
+        <br/>
+        <b>Buy Me A Coffee</b>
+      </td>
     </tr>
   </table>
 </div>
 
-📧 **Contact** : legeling567@gmail.com
+Contact : legeling567@gmail.com
 
-Merci à toutes les personnes qui soutiennent le projet. Votre aide alimente sa progression continue.
+Anciens sponsors archivés dans [`docs/sponsors.md`](./sponsors.md).
+
+---
 
 <div align="center">
-  <p>Made with ❤️ by <a href="https://github.com/legeling">legeling</a></p>
+  <p>Si PromptHub vous est utile, une ⭐ fait toujours plaisir.</p>
 </div>

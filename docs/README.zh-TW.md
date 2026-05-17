@@ -1,329 +1,215 @@
 <div align="center">
-  <img src="./imgs/icon.png" alt="PromptHub Logo" width="120" height="120" />
-  <h1>PromptHub</h1>
-  <p><strong>🚀 一款涵蓋 Prompt 管理、Skill 管理與 Agent 資產管理的一站式 AI 工具箱</strong></p>
-  <p>高效管理提示詞 · 一鍵分發 Skills · 一站式管理 Agent 資產 · 雲端同步 · 備份還原 · 版本管理</p>
+  <img src="./imgs/icon.png" alt="PromptHub Logo" width="128" height="128" />
 
-  <p>
-    <a href="https://github.com/legeling/PromptHub/stargazers"><img src="https://img.shields.io/github/stars/legeling/PromptHub?style=flat-square&color=yellow" alt="GitHub Stars"/></a>
-    <a href="https://github.com/legeling/PromptHub/network/members"><img src="https://img.shields.io/github/forks/legeling/PromptHub?style=flat-square" alt="GitHub Forks"/></a>
-    <a href="https://github.com/legeling/PromptHub/releases"><img src="https://img.shields.io/badge/preview-v0.5.6--beta.2-8B5CF6?style=flat-square" alt="Version"/></a>
-    <a href="https://github.com/legeling/PromptHub/releases"><img src="https://img.shields.io/github/downloads/legeling/PromptHub/total?style=flat-square&color=blue" alt="Downloads"/></a>
-    <img src="https://img.shields.io/badge/license-AGPL--3.0-blue?style=flat-square" alt="License: AGPL-3.0"/>
-  </p>
+  # PromptHub
 
-  <p>
-    <img src="https://img.shields.io/badge/TypeScript-5.0-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript"/>
-    <img src="https://img.shields.io/badge/Electron-33-47848F?style=flat-square&logo=electron&logoColor=white" alt="Electron"/>
-    <img src="https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react&logoColor=white" alt="React"/>
-    <img src="https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=flat-square&logo=tailwind-css&logoColor=white" alt="TailwindCSS"/>
-  </p>
+  本機優先的 Prompt、Skill 與 AI 編程資產工作台。
 
-  <p>
-    <a href="../README.md">简体中文</a> ·
-    <a href="./README.zh-TW.md">繁體中文</a> ·
-    <a href="./README.en.md">English</a> ·
-    <a href="./README.ja.md">日本語</a> ·
-    <a href="./README.de.md">Deutsch</a> ·
-    <a href="./README.es.md">Español</a> ·
-    <a href="./README.fr.md">Français</a>
-  </p>
-</div>
+  <br/>
 
-<br/>
+  [![GitHub Stars](https://img.shields.io/github/stars/legeling/PromptHub?style=for-the-badge&logo=github&color=yellow)](https://github.com/legeling/PromptHub/stargazers)
+  [![Downloads](https://img.shields.io/github/downloads/legeling/PromptHub/total?style=for-the-badge&logo=github&color=blue)](https://github.com/legeling/PromptHub/releases)
+  [![Version](https://img.shields.io/badge/release-v0.5.6-22C55E?style=for-the-badge)](https://github.com/legeling/PromptHub/releases/latest)
+  [![License](https://img.shields.io/badge/license-AGPL--3.0-blue?style=for-the-badge)](../LICENSE)
 
-<div align="center">
-  <a href="https://github.com/legeling/PromptHub/releases">
-    <img src="https://img.shields.io/badge/📥_立即下載-Releases-blue?style=for-the-badge&logo=github" alt="Download"/>
+  <br/>
+
+  ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)
+  ![Electron](https://img.shields.io/badge/Electron-47848F?style=flat-square&logo=electron&logoColor=white)
+  ![React](https://img.shields.io/badge/React-61DAFB?style=flat-square&logo=react&logoColor=black)
+  ![TailwindCSS](https://img.shields.io/badge/Tailwind-38B2AC?style=flat-square&logo=tailwind-css&logoColor=white)
+  ![SQLite](https://img.shields.io/badge/SQLite-003B57?style=flat-square&logo=sqlite&logoColor=white)
+
+  <br/>
+
+  ![macOS](https://img.shields.io/badge/macOS-000000?style=flat-square&logo=apple&logoColor=white)
+  ![Windows](https://img.shields.io/badge/Windows-0078D6?style=flat-square&logo=windows&logoColor=white)
+  ![Linux](https://img.shields.io/badge/Linux-FCC624?style=flat-square&logo=linux&logoColor=black)
+
+  <br/>
+
+  [简体中文](../README.md) · [繁體中文](./README.zh-TW.md) · [English](./README.en.md) · [日本語](./README.ja.md) · [Deutsch](./README.de.md) · [Español](./README.es.md) · [Français](./README.fr.md)
+
+  <br/>
+
+  <a href="https://github.com/legeling/PromptHub/releases/latest">
+    <img src="https://img.shields.io/badge/📥_下載桌面版-Releases-blue?style=for-the-badge&logo=github" alt="Download"/>
   </a>
 </div>
 
 <br/>
 
-> 💡 **為什麼選擇 PromptHub？**
->
-> PromptHub 不只是 Prompt 管理器，更是圍繞 Prompt、SKILL.md 與 Agent 資產的本機優先工作台。你可以集中整理提示詞、掃描並分發 Skills 到 Claude Code、Cursor、Windsurf、Codex 等 15+ AI 工具，並透過雲端同步、備份還原與版本管理維護個人或專案級 AI 資產。
+PromptHub 把你的 Prompt、SKILL.md 和專案級 AI 編程資產放進一個本機工作區。它能把同一份 Skill 一鍵安裝到 Claude Code、Cursor、Codex、Windsurf、Gemini CLI 等十幾個工具，給 Prompt 提供版本管理與多模型測試，並透過 WebDAV 或自部署 Web 同步到其他裝置。
+
+資料預設存在你自己的電腦上。
 
 ---
 
-## 你可以怎麼使用 PromptHub
+## 目錄
 
-| 形態 | 適合誰 | 核心價值 |
-| ---- | ------ | -------- |
-| 桌面版 | 大多數個人使用者、提示詞重度使用者、AI 編程工作流使用者 | 本機優先的主工作區，集中管理 Prompt、Skill 與專案級 AI 資產 |
-| 自部署網頁版 | 需要瀏覽器存取、個人自託管、想把 Web 當成備份源 / 還原源的使用者 | 輕量瀏覽器工作區，可作為桌面版同步目標 |
-| CLI | 有批次處理、腳本、自動化與流程整合需求的使用者 | 直接操作本地 PromptHub 資料與受管 Skill 倉庫 |
+- [桌面版下載](#install)
+- [螢幕截圖](#screenshots)
+- [核心能力](#features)
+- [快速上手](#quick-start)
+- [自部署網頁版](#self-hosted-web)
+- [命令列 CLI](#cli)
+- [更新日誌](#changelog)
+- [路線圖](#roadmap)
+- [從原始碼執行](#dev)
+- [儲存庫結構](#project-structure)
+- [貢獻與文件](#contributing)
+- [授權 / 致謝 / 社群](#meta)
 
-如果你第一次接觸 PromptHub，建議順序是：
+---
 
-1. 先安裝桌面版，把 Prompt 和 Skills 管起來。
-2. 有跨裝置或瀏覽器存取需求時，再接入 WebDAV 或自部署 Web。
-3. 有自動化需求時，再加入 CLI。
+<div id="install"></div>
 
-## 📸 截圖
+## 📥 桌面版下載
 
-<div align="center">
-  <p><strong>主界面</strong></p>
-  <img src="./imgs/1-index.png" width="80%" alt="主界面"/>
-  <br/><br/>
-  <p><strong>Skill 商店</strong></p>
-  <img src="./imgs/10-skill-store.png" width="80%" alt="Skill 商店"/>
-  <br/><br/>
-  <p><strong>Skill 詳情與平台安裝</strong></p>
-  <img src="./imgs/11-skill-platform-install.png" width="80%" alt="Skill 詳情與平台安裝"/>
-  <br/><br/>
-  <p><strong>Skill 檔案編輯與版本對比</strong></p>
-  <img src="./imgs/12-skill-files-version-diff.png" width="80%" alt="Skill 檔案編輯與版本對比"/>
-  <br/><br/>
-  <p><strong>資料備份</strong></p>
-  <img src="./imgs/4-backup.png" width="80%" alt="資料備份"/>
-  <br/><br/>
-  <p><strong>主題與背景設定</strong></p>
-  <img src="./imgs/5-theme.png" width="80%" alt="主題與背景設定"/>
-  <br/><br/>
-  <p><strong>版本對比</strong></p>
-  <img src="./imgs/8-version-compare.png" width="80%" alt="版本對比"/>
-</div>
+最新穩定版 **v0.5.6**，可以從 [Releases](https://github.com/legeling/PromptHub/releases/latest) 直接下載，或選擇下面對應平台的連結。
 
-## ✨ 功能特性
+| 平台    | 下載 |
+| ------- | ---- |
+| Windows | [![Windows x64](https://img.shields.io/badge/Windows_x64-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-Setup-0.5.6-x64.exe) [![Windows arm64](https://img.shields.io/badge/Windows_arm64-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-Setup-0.5.6-arm64.exe) |
+| macOS   | [![macOS Apple Silicon](https://img.shields.io/badge/macOS_Apple_Silicon-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.5.6-arm64.dmg) [![macOS Intel](https://img.shields.io/badge/macOS_Intel-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.5.6-x64.dmg) |
+| Linux   | [![Linux AppImage](https://img.shields.io/badge/Linux_AppImage-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.5.6-x64.AppImage) [![Linux deb](https://img.shields.io/badge/Linux_deb-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.5.6-amd64.deb) |
+| 預覽版  | [![Preview Prereleases](https://img.shields.io/badge/Preview_Prereleases-8B5CF6?style=for-the-badge&logo=github&logoColor=white)](https://github.com/legeling/PromptHub/releases?q=prerelease%3Atrue) |
 
-### 📝 Prompt 管理
+> Apple Silicon 選 `arm64`，Intel Mac 選 `x64`。絕大多數 Windows 選 `x64`，只有 Surface Pro X 這類 ARM 裝置才選 `arm64`。
 
-- 建立、編輯、刪除，支援資料夾和標籤分類
-- 自動保存歷史版本，支援查看、對比和回退
-- 模板變數 `{{variable}}` 可在複製、測試或分發時動態填入
-- 收藏、全文搜尋、附件與多媒體預覽
-
-### 🧩 Skill 分發與管理
-
-- **技能商店**：內建 20+ 精選技能（來自 Anthropic、OpenAI 等）
-- **多平台安裝**：一鍵安裝到 Claude Code、Cursor、Windsurf、Codex、Kiro、Gemini CLI、Qoder、QoderWork、CodeBuddy 等 15+ 平台
-- **本地掃描**：自動發現本地 `SKILL.md`，預覽後選擇性導入
-- **軟連結 / 複製模式**：支援 Symlink 同步編輯或獨立複製
-- **平台目標目錄**：可為每個平台覆寫 Skills 目錄，讓掃描與分發保持一致
-- **AI 翻譯與潤飾**：在 PromptHub 內直接翻譯或優化完整 Skill 內容
-- **標籤篩選**：依標籤快速過濾技能
-
-### 🤖 專案與 Agent 資產
-
-- 掃描專案中的 `.claude/skills`、`.agents/skills`、`skills`、`.gemini` 等常見目錄
-- 在同一個工作區管理個人庫、本地倉庫與專案級 AI 資產
-- 透過本機優先存儲、同步與備份，維護 Prompt、Skill 與專案級資產
-
-### 🧪 AI 測試與生成
-
-- 內建 AI 測試，支援各類主流服務商
-- 同一 Prompt 多模型並行比較
-- 支援圖像生成模型測試
-- AI 技能內容生成與潤飾
-
-### 💾 資料與同步
-
-- 所有資料存儲在本地，隱私優先
-- 全量備份與恢復（`.phub.gz`）
-- WebDAV 雲同步
-- 支援自部署 PromptHub Web 作為桌面版備份源 / 還原源
-- 支援啟動同步與排程同步
-
-### 🎨 介面與安全
-
-- 卡片、畫廊、列表三種視圖
-- 深色 / 淺色 / 跟隨系統，多種主題色
-- 自訂背景圖片
-- 7 種語言、Markdown 渲染、程式碼高亮與跨平台支援
-- 主密碼保護
-- 私密資料夾（Beta）
-
-## 📥 桌面版下載與安裝
-
-如果你要開始使用 PromptHub，建議先從桌面版開始。
-
-### 下載
-
-從 [Releases](https://github.com/legeling/PromptHub/releases) 下載最新預覽版本 `v0.5.6-beta.2`：
-
-| 平台 | 下載 |
-| :--: | :--- |
-| Windows | [![Windows x64](https://img.shields.io/badge/Windows_x64-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/legeling/PromptHub/releases/download/v0.5.6-beta.2/PromptHub-Setup-0.5.6-beta.2-x64.exe) [![Windows arm64](https://img.shields.io/badge/Windows_arm64-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/legeling/PromptHub/releases/download/v0.5.6-beta.2/PromptHub-Setup-0.5.6-beta.2-arm64.exe) |
-| macOS | [![macOS Apple Silicon](https://img.shields.io/badge/macOS_Apple_Silicon-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/legeling/PromptHub/releases/download/v0.5.6-beta.2/PromptHub-0.5.6-beta.2-arm64.dmg) [![macOS Intel](https://img.shields.io/badge/macOS_Intel-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/legeling/PromptHub/releases/download/v0.5.6-beta.2/PromptHub-0.5.6-beta.2-x64.dmg) |
-| Linux | [![Linux AppImage](https://img.shields.io/badge/Linux_AppImage-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/legeling/PromptHub/releases/download/v0.5.6-beta.2/PromptHub-0.5.6-beta.2-x64.AppImage) [![Linux deb](https://img.shields.io/badge/Linux_deb-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/legeling/PromptHub/releases/download/v0.5.6-beta.2/prompthub_0.5.6-beta.2_amd64.deb) |
-| 預覽通道 | [![Preview Prereleases](https://img.shields.io/badge/Preview_Prereleases-8B5CF6?style=for-the-badge&logo=github&logoColor=white)](https://github.com/legeling/PromptHub/releases?q=prerelease%3Atrue) |
-
-> 💡 **安裝建議**
->
-> - **macOS**：Apple Silicon（M1/M2/M3/M4）下載 `arm64`，Intel Mac 下載 `x64`
-> - **Windows**：大多數裝置下載 `x64`；只有 Windows on ARM 裝置才需要 `arm64`
-> - **預覽通道**：預覽構建發布在 GitHub `Prereleases`；設定中啟用預覽版通道後只會檢查 prerelease 構建
-> - **回到穩定版**：如需恢復 stable 更新檢查，請先關閉預覽版通道；PromptHub 不會自動從較新的預覽版降級到較舊的穩定版
-
-### macOS 透過 Homebrew 安裝
+### macOS 透過 Homebrew
 
 ```bash
 brew tap legeling/tap
 brew install --cask prompthub
 ```
 
-### Homebrew 使用者升級方式
+後續升級請用 `brew upgrade --cask prompthub`，**不要**和應用內自動更新混用，否則可能出現 Homebrew 記錄的版本和實際安裝不一致。
 
-如果你是透過 Homebrew 安裝，後續升級應優先使用 Homebrew，不要和應用內 DMG 更新流程混用：
+### macOS 首次啟動提示「已損壞」
 
-```bash
-brew update
-brew upgrade --cask prompthub
-```
-
-如果本地 Homebrew 狀態異常，可以重新安裝目前版本：
-
-```bash
-brew reinstall --cask prompthub
-```
-
-> - 透過 DMG/EXE 手動安裝的使用者：優先使用應用內更新或從 GitHub Releases 下載
-> - 透過 Homebrew 安裝的使用者：優先使用 `brew upgrade --cask prompthub`，不要再切回應用內 DMG 更新路徑
-> - 混用兩種升級方式可能讓 Homebrew 記錄版本與實際安裝狀態不同步
-
-### macOS 首次啟動
-
-由於應用未經 Apple 公證簽名，首次打開時可能會看到 **"PromptHub 已損壞，無法打開"** 或 **"無法驗證開發者"**。
-
-**解決方法（推薦）**：打開終端並執行以下命令以繞過 Gatekeeper：
+應用沒有 Apple 公證簽章，第一次打開可能會跳「無法驗證開發者」。打開終端機執行：
 
 ```bash
 sudo xattr -rd com.apple.quarantine /Applications/PromptHub.app
 ```
 
-> 💡 **提示**：如果應用安裝在其他位置，請改成實際安裝路徑。
-
-**或者**：打開「系統設定」→「隱私與安全性」→ 向下捲動到安全性區塊 → 點擊「仍要打開」。
+接著重新打開即可。如果應用安裝在其他位置，把路徑替換成實際安裝路徑。
 
 <div align="center">
   <img src="./imgs/install.png" width="60%" alt="macOS 安裝提示"/>
 </div>
 
-### 從原始碼執行桌面版
+### 預覽通道
 
-```bash
-git clone https://github.com/legeling/PromptHub.git
-cd PromptHub
-pnpm install
+如果你想體驗下一版的開發預覽版，可以在「設定 → 關於」打開「預覽版通道」開關，應用會從 GitHub Prereleases 拉取建置。一旦關掉這個開關，更新會回到穩定版，並且不會從較新的預覽版自動降級到較舊的穩定版。
 
-# 啟動桌面開發環境
-pnpm electron:dev
+<div id="screenshots"></div>
 
-# 構建桌面版
-pnpm build
+## 螢幕截圖
 
-# 如需構建自部署 Web
-pnpm build:web
-```
+> 0.5.6 版本的螢幕截圖正在補充。下面這幾張反映核心互動，更多介面（Rules、專案級 Skill、Quick Add、Tag 管理）請直接打開應用查看。
 
-> 倉庫根的 `pnpm build` 預設只構建桌面版；如需 Web 產物，請明確執行 `pnpm build:web`。
+<div align="center">
+  <p><strong>主介面</strong></p>
+  <img src="./imgs/1-index.png" width="80%" alt="主介面"/>
+  <br/><br/>
+  <p><strong>Skill 商店</strong></p>
+  <img src="./imgs/10-skill-store.png" width="80%" alt="Skill 商店"/>
+  <br/><br/>
+  <p><strong>Skill 一鍵安裝到平台</strong></p>
+  <img src="./imgs/11-skill-platform-install.png" width="80%" alt="Skill 平台安裝"/>
+  <br/><br/>
+  <p><strong>Skill 檔案編輯與版本對比</strong></p>
+  <img src="./imgs/12-skill-files-version-diff.png" width="80%" alt="Skill 檔案編輯"/>
+</div>
 
-## 🚀 快速開始
+<div id="features"></div>
 
-### 1. 建立你的第一個 Prompt
+## 核心能力
 
-點擊「新建」按鈕，填入標題、描述、`System Prompt`、`User Prompt` 與標籤。
+### 📝 Prompt 管理
 
-### 2. 使用模板變數
+- 資料夾、標籤、收藏三層組織，可拖曳排序，CRUD 全覆蓋
+- 範本變數 `{{variable}}`，複製 / 測試 / 分發時跳出表單填值
+- 全文搜尋（FTS5），Markdown 渲染與程式碼高亮，附件 / 多媒體預覽
+- 桌面卡片支援雙擊進入 inline 編輯使用者 Prompt 和 System Prompt
 
-在 Prompt 中使用 `{{變數名}}` 語法：
+### 🧩 Skill 商店與一鍵分發
 
-```text
-請將以下 {{source_lang}} 文本翻譯成 {{target_lang}}：
+- **技能商店**：內建 20+ 精選技能（來自 Anthropic、OpenAI 等），可疊加自訂商店來源（GitHub / skills.sh / 本機目錄）
+- **一鍵安裝到平台**：Claude Code、Cursor、Windsurf、Codex、Kiro、Gemini CLI、Qoder、QoderWork、CodeBuddy、Trae、OpenCode、Roo Code 等 15+ 平台
+- **本機掃描**：自動發現本機已有的 SKILL.md，預覽選擇後匯入，不必在多個工具目錄間複製貼上
+- **Symlink / Copy 雙模式**：選 symlink 共享編輯，選 copy 各平台保留獨立副本
+- **平台目標目錄可覆寫**：為每個平台單獨設定 Skills 目錄，掃描和分發保持一致
+- **AI 翻譯與潤色**：以完整 SKILL.md 為單位產生 sidecar 譯文，支援沉浸式對照和全文翻譯
+- **安全掃描**：安裝前用 AI 審閱鏈路檢查 Skill 內容，受限來源直接阻擋
+- **GitHub Token**：商店與儲存庫匯入支援驗證，減少匿名限流失敗
+- **標籤篩選**：依標籤快速篩選已安裝與商店技能
 
-{{text}}
-```
+### 📐 Rules（AI 編程規則）
 
-### 3. 把 Skills 納入工作區
+- 集中管理 `.cursor/rules`、`.claude/CLAUDE.md`、AGENTS.md 等規則檔案
+- 支援手動新增專案級 Rules，依目錄分組瀏覽
+- 與 ZIP 匯出、WebDAV、自託管同步、Web 匯入匯出全鏈路打通
 
-- 從技能商店加入常用 Skills
-- 掃描本地或專案中的 `SKILL.md`
-- 導入後在「我的 Skills」中繼續編輯、翻譯、對比版本與分發
+### 🤖 專案與 Agent 資產工作區
 
-### 4. 一鍵分發到 AI 工具
+- 掃描專案中的 `.claude/skills`、`.agents/skills`、`skills`、`.gemini` 等常見目錄
+- 為單個專案建立獨立 Skill 工作區，不污染全域庫
+- 個人庫、本機儲存庫、專案資產同一介面切換，不必在多個工具目錄之間切來切去
+- 全域 Prompt 標籤管理：集中搜尋、重新命名、合併、刪除標籤，資料庫與工作區檔案一併同步
 
-- 選擇 Claude Code、Cursor、Windsurf、Codex、Gemini CLI 等目標平台
-- PromptHub 會協助把 Skill 安裝到各平台目錄
+### 🧪 AI 測試與生成
 
-> 🖥️ **目前支援的平台**：Claude Code、GitHub Copilot、Cursor、Windsurf、Kiro、Gemini CLI、Trae、OpenCode、Codex CLI、Roo Code、Amp、OpenClaw、Qoder、QoderWork、CodeBuddy
+- 內建 AI 測試，主流國內外服務商都能設定（OpenAI、Anthropic、Gemini、Azure、自訂 endpoint 等）
+- 同一 Prompt 多模型並行對比，文字和圖像模型都支援
+- AI 產生技能、AI 潤色技能、Quick Add AI 直接產生結構化 Prompt 草稿
+- 統一的端點管理與連線測試，錯誤訊息精確到 504 / 逾時 / 未設定
 
-### 5. 設定同步與備份
+### 🕒 版本控制與歷史
 
-- 可選配置 WebDAV 進行多裝置同步
-- 或在 `設定 -> 資料` 中接入自部署 PromptHub Web 作為備份源 / 還原源
+- 每次儲存 Prompt 自動寫入歷史版本，支援版本對比、差異高亮、一鍵回滾
+- Skill 同樣維護版本歷史，可建立命名版本、查看差異、依版本回滾
+- Rules 歷史快照可預覽、還原到草稿
+- 商店 Skill 安裝時記錄內容雜湊，遠端 SKILL.md 變更可偵測，本機修改有衝突保護
 
-## 命令列 CLI
+### 💾 資料、同步與備份
 
-PromptHub 同時提供 GUI 與 CLI。CLI 適合腳本化管理、批次作業、匯入、掃描與自動化流程。
+- 本機優先：所有資料預設存在你自己的電腦上
+- 全量備份 / 還原使用 `.phub.gz` 壓縮格式
+- WebDAV 同步（堅果雲、Nextcloud 等）
+- 自部署 PromptHub Web 可作為額外的同步來源 / 備份來源
+- 啟動時自動拉取 + 背景定時同步；只允許一個活動同步來源驅動自動同步，避免多源衝突寫入
 
-### 目前可用方式
+### 🔐 隱私與安全
 
-> ⚠️ **目前狀態**
->
-> - 桌面版不會自動安裝 `prompthub` 命令
-> - 目前倉庫內已提供 standalone CLI 的原始碼入口、構建後 bundle，以及本地 pack 安裝流程
-> - 如需全域 `prompthub` 命令，請先在倉庫中打包 CLI tarball 再本地安裝
+- 主密碼保護應用入口，AES-256-GCM 加密
+- 私密資料夾內容加密儲存（Beta）
+- 跨平台離線執行：macOS / Windows / Linux
+- 7 種介面語言：簡體中文、繁體中文、English、日本語、Deutsch、Español、Français
 
-### 從倉庫本地打包並全域安裝
+<div id="quick-start"></div>
 
-```bash
-pnpm pack:cli
-pnpm add -g ./apps/cli/prompthub-cli-*.tgz
-prompthub --help
-prompthub prompt list
-```
+## 快速上手
 
-### 從原始碼執行
+1. **新建第一個 Prompt。** 點「+ 新建」，填標題、描述、System Prompt 和 User Prompt。`{{變數名稱}}` 會變成一個變數，複製或測試時會跳出表單讓你填。
 
-```bash
-pnpm --filter @prompthub/cli dev -- --help
-pnpm --filter @prompthub/cli dev -- prompt list
-pnpm --filter @prompthub/cli dev -- skill list
-pnpm --filter @prompthub/cli dev -- skill scan
-pnpm --filter @prompthub/cli dev -- skill install ~/.claude/skills/my-skill
-```
+2. **把 Skills 納入工作區。** 開啟「Skills」頁籤，從商店選幾個，或點「掃描本機」讓 PromptHub 自動找你電腦上已有的 SKILL.md。
 
-### 使用構建後的 CLI bundle
+3. **一鍵安裝到 AI 工具。** 在 Skill 詳情頁選擇目標平台。PromptHub 會依平台規範把 SKILL.md 安裝到對應目錄。可以選 symlink（同步編輯）或獨立副本。
 
-```bash
-pnpm build:cli
-node apps/cli/out/prompthub.cjs --help
-node apps/cli/out/prompthub.cjs prompt list
-node apps/cli/out/prompthub.cjs skill list
-```
+4. **設定同步（可選）。**「設定 → 資料」裡設定 WebDAV，或自部署一份 PromptHub Web 當同步目標。
 
-### 常用參數
+<div id="self-hosted-web"></div>
 
-- `--output json|table`
-- `--data-dir /path/to/user-data`
-- `--app-data-dir /path/to/app-data`
+## 自部署網頁版
 
-### 支援的命令
+PromptHub Web 是一個輕量的瀏覽器版工作區，你可以用 Docker 把它跑在 NAS、VPS 或區網裡。它**不是**官方雲端服務，主要用途是：
 
-- `prompt list|get|duplicate|versions|create-version|delete-version|diff|rollback|use|list-tags|rename-tag|delete-tag|create|update|delete|search`
-- `folder list|get|create|update|delete|reorder`
-- `rules list|scan|read|save|rewrite|add-project|remove-project|version-delete|export|import`
-- `workspace export|import`
-- `skill list|get|install|scan|delete|remove`
-
-### 說明
-
-- CLI 會直接讀寫 PromptHub 的本地資料庫與受管 Skill 倉庫
-- 桌面版目前只會在設定頁顯示 CLI 說明，不會自動安裝 shell 命令
-- `apps/cli` 現在也支援先用 `pnpm pack:cli` 產生本地 tarball，再做全域安裝
-
-## 🌐 自部署網頁版
-
-PromptHub Web 是輕量自部署瀏覽器工作區，不是官方 SaaS 雲端服務。它適合：
-
-- 想在瀏覽器中存取自己的 PromptHub 資料
-- 想把自部署 Web 當成桌面版的備份源 / 還原源
-- 不想只依賴 WebDAV，而想要更直接的單機自託管工作區
-
-### Docker Compose 快速啟動
-
-在倉庫根目錄執行：
+- 在瀏覽器裡存取自己的 PromptHub 資料
+- 給桌面版當作除 WebDAV 之外的另一種同步目標
+- 不想讓資料離開本機區網
 
 ```bash
 cd apps/web
@@ -331,234 +217,263 @@ cp .env.example .env
 docker compose up -d --build
 ```
 
-至少需要關注這幾個配置：
+`.env` 裡有幾個必須改的：
 
-- `JWT_SECRET`：至少 32 位隨機字串，用於登入鑑權
-- `ALLOW_REGISTRATION=false`：初始化後建議保持關閉，避免公開註冊
-- `DATA_ROOT`：PromptHub Web 的資料根目錄，會寫入 `data/`、`config/`、`logs/`、`backups/`
+- `JWT_SECRET`：≥ 32 位隨機字元
+- `ALLOW_REGISTRATION=false`：建議保持關閉，第一個使用者初始化完之後就不要再開公開註冊
+- `DATA_ROOT`：資料根目錄，會在下面建立 `data/`、`config/`、`logs/`、`backups/`
 
-預設存取網址：`http://localhost:3871`
+預設在 `http://localhost:3871`。第一次打開會跳到 `/setup`，你建立的第一個使用者就是管理員。
 
-### 首次初始化
+桌面版接入這份 Web：「設定 → 資料 → Self-Hosted PromptHub」，填 URL、使用者名稱、密碼。可以測試連線、上傳目前工作區、從 Web 拉回本機、啟動時自動拉取、背景定時推送。
 
-- 新實例首次訪問時會進入 `/setup`，而不是登入頁
-- 第一個使用者會成為管理員
-- 首個管理員建立完成後，公開註冊預設關閉
+更詳細的部署、升級、備份、GHCR 映像檔、開發說明在 [`web-self-hosted.md`](./web-self-hosted.md)。
 
-### 桌面版接入 PromptHub Web
+<div id="cli"></div>
 
-桌面版進入 `設定 -> 資料` 後，可以配置：
+## 命令列 CLI
 
-- 自部署 PromptHub URL
-- 使用者名稱
-- 密碼
-
-配置完成後，桌面版可以：
-
-- 測試連線
-- 上傳目前本地工作區到 PromptHub Web
-- 從 PromptHub Web 下載並還原
-- 啟動時自動拉取
-- 依排程背景推送
-
-### 資料與備份
-
-請備份整個資料根目錄，而不只是 SQLite 檔案。典型持久化路徑包括：
+CLI 適合腳本化管理、批次匯入匯出、自動化掃描。目前桌面版**不會**自動安裝 `prompthub` 命令，需要你從儲存庫自己打包再安裝：
 
 ```bash
-apps/web/data
-apps/web/config
-apps/web/logs
+pnpm pack:cli
+pnpm add -g ./apps/cli/prompthub-cli-*.tgz
+prompthub --help
 ```
 
-其中可能包含：
+也可以不安裝直接執行：
 
-- `data/prompthub.db`
-- `data/prompts/...`
-- `data/skills/...`
-- `data/assets/...`
-- `config/settings/...`
-- `backups/...`
-- `logs/...`
+```bash
+pnpm --filter @prompthub/cli dev -- prompt list
+pnpm --filter @prompthub/cli dev -- skill scan
+```
 
-更完整的部署、升級、備份、GHCR 映像與開發說明見 [`web-self-hosted.md`](./web-self-hosted.md)。
+支援的資源命令一覽（每個命令都有 `--help`）：
 
-## 📈 Star History
+```text
+prompt    list / get / create / update / delete / duplicate / search
+          versions / create-version / delete-version / diff / rollback
+          use / copy
+          list-tags / rename-tag / delete-tag
 
-<a href="https://star-history.com/#legeling/PromptHub&Date">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=legeling/PromptHub&type=Date&theme=dark" />
-    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=legeling/PromptHub&type=Date" />
-    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=legeling/PromptHub&type=Date" />
-  </picture>
-</a>
+folder    list / get / create / update / delete / reorder
 
-## 🗺️ 路線圖
+rules     list / scan / read / save / rewrite
+          versions / version-read / version-restore / version-delete
+          add-project / remove-project
+          export / import
 
-### v0.5.5（目前穩定版）🚀
+skill     list / get / install / delete / remove
+          versions / create-version / rollback / delete-version
+          export / scan / scan-safety / sync-from-repo
+          platforms / platform-status / install-md / uninstall-md
+          repo-files / repo-read / repo-write / repo-delete / repo-mkdir / repo-rename
 
-- [x] **Skill 商店更新檢測**：商店下載的 Skill 會保存安裝時內容雜湊，可檢查遠端 `SKILL.md` 是否更新並安全套用更新
-- [x] **完整 Skill 文檔翻譯**：AI 翻譯現在圍繞完整 `SKILL.md` 生成 sidecar 譯文，支援全文翻譯與沉浸式對照模式
-- [x] **資料目錄切換真正生效**：切換資料目錄後會透過桌面 relaunch 重新套用 `userData` 路徑
-- [x] **AI 測試與翻譯錯誤提示更清楚**：模型測試會直接顯示「XX 模型測試成功 / 失敗」，翻譯未配置、逾時與 `504` 也會明確提示
-- [x] **Web 媒體與同步修復**：修復媒體上傳顯示、普通資料夾誤判私密與 Web 登入密碼修改入口
+workspace export / import
+```
 
-### v0.4.9
+常用全域參數：
 
-- [x] 安全加固、架構重構、Skill 元數據編輯修復
-- [x] 資料庫遷移修復、代碼品質清理、720 測試全綠
+- `--output json|table` — 輸出格式
+- `--data-dir <path>` — 顯式指定 PromptHub 的 `userData` 目錄
+- `--app-data-dir <path>` — 顯式指定應用資料根目錄
+- `--version|-v` — 印出 CLI 版本
 
-### v0.4.8
+<div id="changelog"></div>
 
-- [x] AI 工作台實裝、skills.sh 社群商店接入、歷史版本刪除
-- [x] 備份 / WebDAV 強化、資料目錄遷移顯示修復、大量 Skill 效能優化
+## 更新日誌
 
-### v0.3.x
+完整版本說明：**[CHANGELOG.md](../CHANGELOG.md)**
 
-- [x] 多層級資料夾、版本控制、變數範本
-- [x] 多模型實驗室、WebDAV 同步、Markdown 渲染
-- [x] 多視圖模式、系統整合、安全與隱私
+### v0.5.6（2026-05-12）
 
-### 未來規劃
+**新功能**
 
-- [ ] **瀏覽器擴充功能**：在網頁端（如 ChatGPT/Claude）直接調取 PromptHub 庫
-- [ ] **行動端應用**：支援手機端查看、搜尋與編輯
-- [ ] **外掛系統**：支援用戶自定義擴充 AI 供應商或本地模型
-- [ ] **技能市場**：支援用戶上傳和分享自己創建的技能
+- 🧭 **Rules 集中管理工作台**：桌面端獨立的 Rules 頁面，統一管理全域規則和手動新增的專案規則，支援搜尋、歷史快照預覽、還原到草稿，並接入 ZIP 匯出、WebDAV、自託管同步和 Web 匯入匯出
+- 📁 **專案級 Skill 工作區**：可以為本機專案建立獨立 Skill 工作區，自動掃描常見目錄，在專案上下文中預覽、匯入和分發 Skill
+- 🤖 **Quick Add 支援 AI 直接產生 Prompt**：除了分析已有 Prompt，Quick Add 現在也能根據目標和約束直接產生結構化 Prompt 草稿
+- 🏷️ **全域 Prompt 標籤管理**：側欄標籤區域新增統一入口，可集中搜尋、重新命名、合併和刪除標籤，同步更新資料庫與工作區檔案
+- 🔐 **Skill 商店支援 GitHub Token**：減少匿名限流導致的商店和儲存庫匯入失敗
 
-## 📝 更新日誌
+**修復**
 
-查看完整更新日誌：**[CHANGELOG.md](../CHANGELOG.md)**
+- ✍️ 卡片詳情支援雙擊編輯使用者提示詞和系統提示詞
+- 🪟 修復檢查更新對話框閃爍、下載按鈕無法穩定點擊，以及開機自動啟動時不能依 `minimizeOnLaunch` 最小化的問題
+- ↔️ Skills 三欄欄寬調節、雙擊重設、標題換行、商店搜尋的一組易用性回歸
+- 🔁 Rules、Skill 附加檔案和託管副本在 ZIP 匯出、WebDAV、自託管同步和 Web 匯入匯出鏈路中的一致性
+- 🖼️ 自託管 Web 登入改用一次性圖形驗證碼
 
-### 最新預覽版本 v0.5.6-beta.2 (2026-05-14) 🎉
+**優化**
 
-**Skill / AI**
+- 🏠 雙欄首頁穩定支援模組顯隱、拖曳排序，背景圖獨立開關
+- ☁️ 桌面端只允許一個活動同步源驅動自動同步，避免多源同時寫入衝突
+- ✨ 引入完整的桌面端動畫系統（duration / easing / scale tokens、`<Reveal>` `<Collapsible>` `<ViewTransition>` `<Pressable>` 四個意圖元件、三檔使用者偏好），並移除了僅在一個元件用過的 framer-motion，`ui-vendor` chunk gzip 從 54 KB 降到 16 KB
+- 🪶 桌面端長列表（Skill 列表 / Prompt 畫廊 / 看板 / Prompt 詳情列表）改為 `@tanstack/react-virtual` 虛擬化，移除了之前手寫的 setTimeout 分批渲染補丁
 
-- 🔐 **Skill 安全掃描改為 AI-only 審閱鏈路**：桌面端與 Web 端統一為「來源預檢 + 倉庫上下文 + AI 審閱」流程；內部 / 受限來源會在模型呼叫前直接阻斷，高風險安裝仍需顯式確認
+<div id="roadmap"></div>
 
-**同步 / Sync**
+## 路線圖
 
-- 🔁 **導出 / 備份 / 自託管同步一致性繼續補強**：Rules、Skill 附加檔案與託管副本現在可更穩定地穿過桌面 ZIP、WebDAV、自託管同步與 Web 導入導出鏈路；桌面自託管流程也已對齊圖形驗證碼登入、啟動拉取與手動上傳 / 下載真實行為
+### v0.5.6 ← 目前穩定版
 
-**桌面 / Desktop**
+詳見上方更新日誌。
 
-- 🧭 **桌面首頁與 Skill 商店互動持續打磨**：新版雙欄首頁已穩定支援模組顯隱與拖曳排序，背景圖可單獨開關；Skill 商店統一頂部搜尋入口、收斂自訂來源編輯流，並補齊更多多語言文案
+### v0.5.5
 
-**驗證 / Verification**
+- 商店 Skill 安裝時記錄內容雜湊，可偵測遠端 SKILL.md 是否更新並支援本機修改衝突保護
+- Skill 整份文件 AI 翻譯：圍繞完整 SKILL.md 產生 sidecar 譯文，支援全文翻譯和沉浸式對照
+- 資料目錄切換透過 relaunch 真正生效
+- AI 模型測試與翻譯錯誤回饋更明確（504 / 逾時 / 未設定都有具體提示）
+- Web/Docker 媒體上傳修復，`local-image://` / `local-video://` 自動解析
+- 預覽通道更新鏈路加固
+- Issue Form 自動同步 `version: x.y.z` 標籤
 
-- 🧪 **`0.5.6-beta.2` 發版門禁已收綠**：desktop `pnpm test:release` 現已全流程通過，覆蓋 lint、typecheck、full unit、integration、build 與 smoke E2E
+### v0.4.x
 
-> 📋 [更新日誌詳情](../CHANGELOG.md)
+- AI 工作台、模型管理、端點編輯、連線測試與場景預設模型
+- skills.sh 社群商店接入，支援榜單、安裝量、Star
+- skill-installer God Class 拆分、SSRF 防護、URL 協議校驗
+- 多平台 Skill 一鍵安裝：Claude Code、Cursor、Windsurf、Codex 等十幾個平台
+- AI 翻譯、AI 產生 Skill、本機批次掃描
 
-## 🤝 貢獻與開發
+### 在做 / 在想
 
-### 入口說明
+- [ ] 瀏覽器擴充功能：在 ChatGPT / Claude 網頁裡直接呼叫 PromptHub 庫
+- [ ] 行動端：手機查看、搜尋、輕量編輯同步
+- [ ] 外掛機制：本機模型（Ollama 等）和自訂 AI 服務商
+- [ ] Prompt 商店：複用社群驗證過的提示詞範本
+- [ ] 更複雜的變數型態：選擇框、動態日期等
+- [ ] 使用者上傳分享自創 Skill
 
-- 根 `CONTRIBUTING.md`：GitHub 可發現的貢獻入口
-- `docs/contributing.md`：目前有效的 canonical 貢獻指南
-- `docs/README.md`：對外文件索引
-- `spec/README.md`：內部 SSD / spec 索引
+<div id="dev"></div>
 
-### 🛠️ 技術棧
+## 從原始碼執行
 
-| 類別 | 技術 |
+需要 Node.js ≥ 24、pnpm 9。
+
+```bash
+git clone https://github.com/legeling/PromptHub.git
+cd PromptHub
+pnpm install
+
+# 桌面端開發
+pnpm electron:dev
+
+# 桌面端建置
+pnpm build
+
+# 自部署 Web 建置
+pnpm build:web
+```
+
+`pnpm build` 預設只建置桌面版。Web 需要顯式 `pnpm build:web`。
+
+常用開發命令：
+
+| 命令 | 用途 |
 | ---- | ---- |
-| 桌面端 Runtime | Electron 33 |
-| 桌面端前端 | React 18 + TypeScript 5 + Vite 6 |
-| 自部署 Web | Hono + React + Vite |
-| 樣式 | Tailwind CSS 3 |
-| 狀態管理 | Zustand |
-| 資料層 | SQLite、`better-sqlite3`、`node-sqlite3-wasm` |
-| Monorepo 套件 | `packages/shared`、`packages/db` |
+| `pnpm electron:dev` | 啟動桌面端開發環境（vite + electron） |
+| `pnpm dev:web` | 啟動 Web 開發環境 |
+| `pnpm lint` / `pnpm lint:web` | 程式碼風格檢查 |
+| `pnpm typecheck` / `pnpm typecheck:web` | TypeScript 型別檢查 |
+| `pnpm test -- --run` | 桌面端 vitest 單元 + 整合測試 |
+| `pnpm test:e2e` | Playwright e2e |
+| `pnpm verify:web` | Web lint + typecheck + test + build |
+| `pnpm test:release` | 桌面端發布前完整門檻 |
+| `pnpm --filter @prompthub/desktop bundle:budget` | 桌面端 bundle 體積預算檢查 |
 
-### 📁 倉庫結構
+<div id="project-structure"></div>
+
+## 儲存庫結構
 
 ```text
 PromptHub/
 ├── apps/
-│   ├── desktop/   # Electron 桌面端 + CLI
+│   ├── desktop/   # Electron 桌面端
+│   ├── cli/       # 獨立 CLI（基於 packages/core）
 │   └── web/       # 自部署 Web
 ├── packages/
-│   ├── db/        # 共享資料層
-│   └── shared/    # 共享型別、常量與協議
+│   ├── core/      # CLI 與桌面共用的核心邏輯
+│   ├── db/        # 共用資料層（SQLite schema、查詢）
+│   └── shared/    # 共用型別、IPC 常數、協定定義
 ├── docs/          # 對外文件
-├── spec/          # 內部 SSD / spec 系統
+├── spec/          # 內部 SSD / 設計規範
 ├── website/       # 官網相關資源
 ├── README.md
 ├── CONTRIBUTING.md
 └── package.json
 ```
 
-### 常用命令
+<div id="contributing"></div>
 
-| 場景 | 命令 |
-| ---- | ---- |
-| 桌面端開發 | `pnpm electron:dev` |
-| Web 開發 | `pnpm dev:web` |
-| 桌面端構建 | `pnpm build` |
-| Web 構建 | `pnpm build:web` |
-| 桌面端 lint | `pnpm lint` |
-| Web lint | `pnpm lint:web` |
-| 桌面端全量測試 | `pnpm test -- --run` |
-| Web 全量驗證 | `pnpm verify:web` |
-| CLI 原始碼執行 | `pnpm --filter @prompthub/cli dev -- --help` |
-| E2E | `pnpm test:e2e` |
-| 桌面端發版前門禁 | `pnpm test:release` |
+## 貢獻與文件
 
-### 文件與 SSD 工作流
+- 入口：[CONTRIBUTING.md](../CONTRIBUTING.md)
+- 完整指南：[`docs/contributing.md`](./contributing.md)
+- 對外文件索引：[`docs/README.md`](./README.md)
+- 內部 SSD / spec：[`spec/README.md`](../spec/README.md)
 
-- `docs/` 面向使用者、部署者與貢獻者
-- `spec/` 面向內部 SSD、穩定領域文檔、邏輯、固定資產、架構與活躍變更
-- 非 trivial 的改動應先建立 `spec/changes/active/<change-key>/`
-- 每個重要變更至少包含 `proposal.md`、`specs/<domain>/spec.md`、`design.md`、`tasks.md`、`implementation.md`
-- 穩定內部事實回寫到 `spec/`，對外契約變更同步到 `docs/` 或 `README.md`
+非平凡改動建議先在 `spec/changes/active/<change-key>/` 下建立一個 change 資料夾（`proposal.md` / `specs/<domain>/spec.md` / `design.md` / `tasks.md` / `implementation.md`），完成後把穩定事實回填到 `spec/domains/`、`spec/architecture/`，並在需要時更新 `docs/`、`README.md`。
 
-完整貢獻規範、測試門檻與提交要求見 [`contributing.md`](./contributing.md)。
+<div id="meta"></div>
 
-## 📄 許可證
+## 授權
 
-本項目採用 [AGPL-3.0 License](../LICENSE) 開源協議。
+[AGPL-3.0](../LICENSE)
 
-## 💬 支持與反饋
+## 回饋
 
-- **問題反饋**: [GitHub Issues](https://github.com/legeling/PromptHub/issues)
-- **功能建議**: [GitHub Discussions](https://github.com/legeling/PromptHub/discussions)
+- 問題：[GitHub Issues](https://github.com/legeling/PromptHub/issues)
+- 想法：[GitHub Discussions](https://github.com/legeling/PromptHub/discussions)
 
-## 🙏 致謝
+## 致謝
 
-- [Electron](https://www.electronjs.org/)
-- [React](https://react.dev/)
-- [TailwindCSS](https://tailwindcss.com/)
-- [Zustand](https://zustand-demo.pmnd.rs/)
-- [Lucide](https://lucide.dev/)
-- 感謝所有為 PromptHub 做出貢獻的 [開發者](https://github.com/legeling/PromptHub/graphs/contributors)！
+[Electron](https://www.electronjs.org/) · [React](https://react.dev/) · [TailwindCSS](https://tailwindcss.com/) · [Zustand](https://zustand-demo.pmnd.rs/) · [Lucide](https://lucide.dev/) · [@tanstack/react-virtual](https://tanstack.com/virtual) · [tailwindcss-animate](https://github.com/jamiebuilds/tailwindcss-animate)
 
----
+## 貢獻者
+
+感謝所有為 PromptHub 做出貢獻的開發者。
+
+<a href="https://github.com/legeling/PromptHub/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=legeling/PromptHub" alt="Contributors" />
+</a>
+
+## Star History
+
+<a href="https://star-history.com/#legeling/PromptHub&Date">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=legeling/PromptHub&type=Date&theme=dark" />
+    <img alt="Star History" src="https://api.star-history.com/svg?repos=legeling/PromptHub&type=Date" />
+  </picture>
+</a>
+
+## 社群
+
+歡迎加入 PromptHub 社群，回饋問題、交流使用方式、討論新功能、搶先體驗預覽版。
 
 <div align="center">
-  <p><strong>如果這個項目對你有幫助，請給個 ⭐ 支持一下！</strong></p>
-
-  <a href="https://www.buymeacoffee.com/legeling" target="_blank">
-    <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="50" />
+  <a href="https://discord.gg/zmfWguWFB">
+    <img src="https://img.shields.io/badge/Discord-Join%20PromptHub%20Community-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Join PromptHub Discord Community" />
   </a>
+  <p><strong>推薦優先加入 Discord 社群，獲取公告、交流支援與新版本動態</strong></p>
 </div>
 
----
+<br/>
 
-## 💖 致謝支持者 / Backers
+### QQ 交流群
 
-感謝以下朋友對 PromptHub 的捐助支持：
+如果你更習慣用 QQ，可以加入 PromptHub QQ 交流群：
 
-| 日期 | 支持者 | 金額 | 留言 |
-| :--- | :----- | :--- | :--- |
-| 2026-01-08 | \*🌊 | ￥100.00 | 支持優秀的軟件！ |
-| 2025-12-29 | \*昊 | ￥20.00 | 感謝您的軟件！能力有限，小小支持 |
+- 群號：`704298939`
 
----
+<div align="center">
+  <img src="./imgs/qq-group.jpg" width="320" alt="PromptHub QQ 交流群 QR"/>
+  <p><strong>掃碼加入 PromptHub QQ 交流群</strong></p>
+</div>
 
-## ☕ 贊助支持
+## 贊助支援 / Sponsor
 
-如果 PromptHub 對你的工作有幫助，歡迎請作者喝杯咖啡 ☕
+如果 PromptHub 對你的工作有幫助，歡迎請作者喝杯咖啡。
 
 <div align="center">
   <table>
@@ -566,21 +481,30 @@ PromptHub/
       <td align="center">
         <img src="./imgs/donate/wechat.png" width="200" alt="WeChat Pay"/>
         <br/>
-        <b>微信支付</b>
+        <b>微信支付 / WeChat Pay</b>
       </td>
       <td align="center">
         <img src="./imgs/donate/alipay.jpg" width="200" alt="Alipay"/>
         <br/>
-        <b>支付寶</b>
+        <b>支付寶 / Alipay</b>
+      </td>
+      <td align="center">
+        <a href="https://www.buymeacoffee.com/legeling" target="_blank">
+          <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="50" />
+        </a>
+        <br/>
+        <b>Buy Me A Coffee</b>
       </td>
     </tr>
   </table>
 </div>
 
-📧 **聯繫郵箱**: legeling567@gmail.com
+聯絡：legeling567@gmail.com
 
-感謝每一位支持者！你們的支持是我持續開發的動力！
+歷史贊助記錄歸檔在 [`docs/sponsors.md`](./sponsors.md)。
+
+---
 
 <div align="center">
-  <p>Made with ❤️ by <a href="https://github.com/legeling">legeling</a></p>
+  <p>如果 PromptHub 對你有幫助，請給個 ⭐ 支持一下。</p>
 </div>
