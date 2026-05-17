@@ -505,3 +505,138 @@ jobs:
           echo "HOMEBREW_TAP_TOKEN is not configured; skipping Homebrew cask publish."
         env:
           HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+
+      # ─── Cloudflare R2 stable mirror ──────────────────────────────────
+      # 把稳定版安装包同时同步到 Cloudflare R2，提供一个固定文件名的"latest"
+      # 直链，让 README 和官网下载按钮不必每次发版都改链接。预览版（带 -beta /
+      # -alpha / -rc 后缀）不上传 R2，只走 GitHub Releases 通道。
+      - name: Sync stable artifacts to R2
+        if: ${{ !contains(github.ref, '-beta') && !contains(github.ref, '-alpha') && !contains(github.ref, '-rc') && env.CLOUDFLARE_API_TOKEN != '' }}
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          R2_BUCKET: prompthub-releases
+        run: |
+          set -euo pipefail
+          # 只在 release 已经被 promote 成非 draft 时同步到 R2。draft 状态意味
+          # 着维护者还没确认这次发布，不应该出现在公开下载链路里。
+          IS_DRAFT=$(gh release view "${RELEASE_TAG}" --json isDraft -q .isDraft 2>/dev/null || echo "true")
+          if [ "$IS_DRAFT" = "true" ]; then
+            echo "Release ${RELEASE_TAG} is still a draft; skipping R2 mirror sync."
+            echo "Promote via: gh release edit ${RELEASE_TAG} --draft=false --latest"
+            exit 0
+          fi
+
+          npm install -g wrangler@4
+
+          mkdir -p r2_staging/latest "r2_staging/v${VERSION}"
+
+          # rename release_assets/* into stable, version-less names under
+          # latest/, and into version-suffixed names under v<version>/. The
+          # latest/ tree is what README/website link to; the version tree is
+          # the immutable archive.
+          # version-less filenames in latest/ → these are the URLs README points to.
+          cp "release_assets/PromptHub-${VERSION}-arm64.dmg"          "r2_staging/latest/PromptHub-arm64.dmg"
+          cp "release_assets/PromptHub-${VERSION}-x64.dmg"            "r2_staging/latest/PromptHub-x64.dmg"
+          cp "release_assets/PromptHub-Setup-${VERSION}-x64.exe"      "r2_staging/latest/PromptHub-Setup-x64.exe"
+          cp "release_assets/PromptHub-Setup-${VERSION}-arm64.exe"    "r2_staging/latest/PromptHub-Setup-arm64.exe"
+          cp "release_assets/PromptHub-${VERSION}-x64.AppImage"       "r2_staging/latest/PromptHub-x64.AppImage"
+          cp "release_assets/PromptHub-${VERSION}-amd64.deb"          "r2_staging/latest/PromptHub-amd64.deb"
+          cp "release_assets/prompthub-cli-${VERSION}.tgz"            "r2_staging/latest/prompthub-cli-latest.tgz"
+
+          # version-suffixed copies in v<version>/ → never overwritten archive.
+          cp "release_assets/PromptHub-${VERSION}-arm64.dmg"          "r2_staging/v${VERSION}/"
+          cp "release_assets/PromptHub-${VERSION}-x64.dmg"            "r2_staging/v${VERSION}/"
+          cp "release_assets/PromptHub-Setup-${VERSION}-x64.exe"      "r2_staging/v${VERSION}/"
+          cp "release_assets/PromptHub-Setup-${VERSION}-arm64.exe"    "r2_staging/v${VERSION}/"
+          cp "release_assets/PromptHub-${VERSION}-x64.AppImage"       "r2_staging/v${VERSION}/"
+          cp "release_assets/PromptHub-${VERSION}-amd64.deb"          "r2_staging/v${VERSION}/"
+          cp "release_assets/prompthub-cli-${VERSION}.tgz"            "r2_staging/v${VERSION}/"
+
+          # Generate sha256 checksums.txt for both trees so users can verify
+          # downloads end-to-end (`shasum -a 256 -c checksums.txt`).
+          ( cd r2_staging/latest && sha256sum * > checksums.txt )
+          ( cd "r2_staging/v${VERSION}" && sha256sum * > checksums.txt )
+
+          # latest/latest.json gives a programmatic version pointer for any
+          # client that wants to discover the current stable version without
+          # parsing GitHub's release API.
+          RELEASED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          cat > r2_staging/latest/latest.json <<EOF
+          {
+            "version": "${VERSION}",
+            "tag": "${RELEASE_TAG}",
+            "released_at": "${RELEASED_AT}",
+            "downloads": {
+              "macArm64": "PromptHub-arm64.dmg",
+              "macX64": "PromptHub-x64.dmg",
+              "windowsX64": "PromptHub-Setup-x64.exe",
+              "windowsArm64": "PromptHub-Setup-arm64.exe",
+              "linuxAppImage": "PromptHub-x64.AppImage",
+              "linuxDeb": "PromptHub-amd64.deb",
+              "cli": "prompthub-cli-latest.tgz"
+            }
+          }
+          EOF
+
+          echo "Files staged for R2:"
+          find r2_staging -type f -printf "%p (%s bytes)\n"
+
+          # Upload latest/ — overwrites previous stable.
+          for f in r2_staging/latest/*; do
+            name="$(basename "$f")"
+            ext="${name##*.}"
+            content_type="application/octet-stream"
+            case "$ext" in
+              json) content_type="application/json" ;;
+              txt)  content_type="text/plain" ;;
+              dmg)  content_type="application/x-apple-diskimage" ;;
+              exe)  content_type="application/vnd.microsoft.portable-executable" ;;
+              deb)  content_type="application/vnd.debian.binary-package" ;;
+              AppImage) content_type="application/x-iso9660-appimage" ;;
+              tgz)  content_type="application/gzip" ;;
+            esac
+            echo "[r2] uploading latest/$name (${content_type})"
+            wrangler r2 object put "${R2_BUCKET}/latest/$name" \
+              --file "$f" \
+              --content-type "$content_type" \
+              --remote
+          done
+
+          # Upload v<version>/ — never overwritten archive.
+          for f in "r2_staging/v${VERSION}"/*; do
+            name="$(basename "$f")"
+            ext="${name##*.}"
+            content_type="application/octet-stream"
+            case "$ext" in
+              txt)  content_type="text/plain" ;;
+              dmg)  content_type="application/x-apple-diskimage" ;;
+              exe)  content_type="application/vnd.microsoft.portable-executable" ;;
+              deb)  content_type="application/vnd.debian.binary-package" ;;
+              AppImage) content_type="application/x-iso9660-appimage" ;;
+              tgz)  content_type="application/gzip" ;;
+            esac
+            echo "[r2] uploading v${VERSION}/$name (${content_type})"
+            wrangler r2 object put "${R2_BUCKET}/v${VERSION}/$name" \
+              --file "$f" \
+              --content-type "$content_type" \
+              --remote
+          done
+
+          echo "✅ R2 mirror sync complete."
+          echo "   Public base URL: https://pub-fff1cbc0121241d480624bd3de5a2735.r2.dev"
+          echo "   Latest:   https://pub-fff1cbc0121241d480624bd3de5a2735.r2.dev/latest/"
+          echo "   Archive:  https://pub-fff1cbc0121241d480624bd3de5a2735.r2.dev/v${VERSION}/"
+
+      - name: Skip R2 sync (preview or no token)
+        if: ${{ contains(github.ref, '-beta') || contains(github.ref, '-alpha') || contains(github.ref, '-rc') || env.CLOUDFLARE_API_TOKEN == '' }}
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          if [ -z "${CLOUDFLARE_API_TOKEN:-}" ]; then
+            echo "CLOUDFLARE_API_TOKEN is not configured; skipping R2 mirror sync."
+          else
+            echo "Tag ${GITHUB_REF_NAME} looks like a prerelease; R2 mirror is stable-only."
+          fi

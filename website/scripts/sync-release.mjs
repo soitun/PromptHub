@@ -27,9 +27,46 @@ const rootPackage = JSON.parse(fs.readFileSync(rootPackagePath, "utf8"));
 const changelog = fs.readFileSync(rootChangelogPath, "utf8");
 const version = rootPackage.version;
 const releaseTag = `v${version}`;
-const releaseDownloadBase = version.includes("-")
+const isPrerelease = version.includes("-");
+
+// Stable releases publish a fixed-filename mirror to a CDN bucket so the
+// website download buttons can point at version-less URLs that never expire.
+// Prerelease tags stay on GitHub Releases — the CDN mirror is stable-only by
+// policy (see .github/workflows/release.yml `Sync stable artifacts to R2`).
+//
+// The CDN mirror only starts accepting uploads once the release CI pipeline
+// runs after the bucket bootstrap is in place, so we keep an opt-in flag
+// (PROMPTHUB_USE_CDN_MIRROR) that defaults off until v0.5.7 ships. Set it
+// to "1" before running this script once the mirror has its first set of
+// stable artifacts.
+const USE_CDN_MIRROR = process.env.PROMPTHUB_USE_CDN_MIRROR === "1";
+const CDN_PUBLIC_BASE = "https://pub-fff1cbc0121241d480624bd3de5a2735.r2.dev";
+
+const githubReleaseDownloadBase = isPrerelease
   ? `https://github.com/legeling/PromptHub/releases/download/${releaseTag}`
   : "https://github.com/legeling/PromptHub/releases/latest/download";
+
+const downloadUrls =
+  !isPrerelease && USE_CDN_MIRROR
+    ? {
+        // Stable + CDN: hit the public mirror directly. The release CI uploads
+        // these version-less filenames into the latest/ prefix on every
+        // stable tag.
+        macArm64: `${CDN_PUBLIC_BASE}/latest/PromptHub-arm64.dmg`,
+        macX64: `${CDN_PUBLIC_BASE}/latest/PromptHub-x64.dmg`,
+        windowsX64: `${CDN_PUBLIC_BASE}/latest/PromptHub-Setup-x64.exe`,
+        windowsArm64: `${CDN_PUBLIC_BASE}/latest/PromptHub-Setup-arm64.exe`,
+        linuxAppImage: `${CDN_PUBLIC_BASE}/latest/PromptHub-x64.AppImage`,
+        linuxDeb: `${CDN_PUBLIC_BASE}/latest/PromptHub-amd64.deb`,
+      }
+    : {
+        macArm64: `${githubReleaseDownloadBase}/PromptHub-${version}-arm64.dmg`,
+        macX64: `${githubReleaseDownloadBase}/PromptHub-${version}-x64.dmg`,
+        windowsX64: `${githubReleaseDownloadBase}/PromptHub-Setup-${version}-x64.exe`,
+        windowsArm64: `${githubReleaseDownloadBase}/PromptHub-Setup-${version}-arm64.exe`,
+        linuxAppImage: `${githubReleaseDownloadBase}/PromptHub-${version}-x64.AppImage`,
+        linuxDeb: `${githubReleaseDownloadBase}/prompthub_${version}_amd64.deb`,
+      };
 
 const latestHeaderMatch = changelog.match(
   /^## \[(\d+\.\d+\.\d+(?:-[a-zA-Z0-9.]+)?)\] - (\d{4}-\d{2}-\d{2})/m,
@@ -47,17 +84,17 @@ export const HERO_VERSION_BADGE = {
 
 export const RELEASE_DOWNLOAD_URLS = {
   macArm64:
-    "${releaseDownloadBase}/PromptHub-${version}-arm64.dmg",
+    "${downloadUrls.macArm64}",
   macX64:
-    "${releaseDownloadBase}/PromptHub-${version}-x64.dmg",
+    "${downloadUrls.macX64}",
   windowsX64:
-    "${releaseDownloadBase}/PromptHub-Setup-${version}-x64.exe",
+    "${downloadUrls.windowsX64}",
   windowsArm64:
-    "${releaseDownloadBase}/PromptHub-Setup-${version}-arm64.exe",
+    "${downloadUrls.windowsArm64}",
   linuxAppImage:
-    "${releaseDownloadBase}/PromptHub-${version}-x64.AppImage",
+    "${downloadUrls.linuxAppImage}",
   linuxDeb:
-    "${releaseDownloadBase}/prompthub_${version}_amd64.deb",
+    "${downloadUrls.linuxDeb}",
 } as const;
 `;
 

@@ -66,16 +66,20 @@ Deine Daten bleiben auf deiner Maschine.
 
 ## 📥 Download
 
-Aktuelle Stable: **v0.5.6**. Direkt von [Releases](https://github.com/legeling/PromptHub/releases/latest) oder über die Plattform-Links unten.
+Aktuelle Stable: **v0.5.6**. Pro Plattform gibt es zwei Wege:
 
-| Plattform | Download |
-| --------- | -------- |
-| Windows   | [![Windows x64](https://img.shields.io/badge/Windows_x64-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-Setup-0.5.6-x64.exe) [![Windows arm64](https://img.shields.io/badge/Windows_arm64-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-Setup-0.5.6-arm64.exe) |
-| macOS     | [![macOS Apple Silicon](https://img.shields.io/badge/macOS_Apple_Silicon-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.5.6-arm64.dmg) [![macOS Intel](https://img.shields.io/badge/macOS_Intel-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.5.6-x64.dmg) |
-| Linux     | [![Linux AppImage](https://img.shields.io/badge/Linux_AppImage-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.5.6-x64.AppImage) [![Linux deb](https://img.shields.io/badge/Linux_deb-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.5.6-amd64.deb) |
-| Vorschau  | [![Preview Prereleases](https://img.shields.io/badge/Preview_Prereleases-8B5CF6?style=for-the-badge&logo=github&logoColor=white)](https://github.com/legeling/PromptHub/releases?q=prerelease%3Atrue) |
+- **Direkt-Download** — feste Dateinamen, der Link bleibt über Releases hinweg gleich. Gut für langlebige Lesezeichen oder Skripte. (**Ab v0.5.7 läuft das über einen CDN-Mirror; diese Version fällt auf GitHub Releases zurück.**)
+- **GitHub Releases** — offizielle Release-Seite mit Versions-Archiv, Signaturen und vollständigen Release Notes.
 
-> Apple Silicon → `arm64`. Intel-Macs → `x64`. Die meisten Windows-Geräte → `x64`; `arm64` nur bei ARM-Geräten der Klasse Surface Pro X.
+| Plattform | Direkt-Download | GitHub Releases |
+| --------- | --------------- | --------------- |
+| Windows   | [![Windows x64](https://img.shields.io/badge/Windows_x64-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-Setup-0.5.6-x64.exe) [![Windows arm64](https://img.shields.io/badge/Windows_arm64-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-Setup-0.5.6-arm64.exe) | [![Windows x64](https://img.shields.io/badge/Windows_x64-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-Setup-0.5.6-x64.exe) [![Windows arm64](https://img.shields.io/badge/Windows_arm64-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-Setup-0.5.6-arm64.exe) |
+| macOS     | [![macOS Apple Silicon](https://img.shields.io/badge/macOS_Apple_Silicon-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.5.6-arm64.dmg) [![macOS Intel](https://img.shields.io/badge/macOS_Intel-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.5.6-x64.dmg) | [![macOS Apple Silicon](https://img.shields.io/badge/macOS_Apple_Silicon-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.5.6-arm64.dmg) [![macOS Intel](https://img.shields.io/badge/macOS_Intel-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.5.6-x64.dmg) |
+| Linux     | [![Linux AppImage](https://img.shields.io/badge/Linux_AppImage-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.5.6-x64.AppImage) [![Linux deb](https://img.shields.io/badge/Linux_deb-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.5.6-amd64.deb) | [![Linux AppImage](https://img.shields.io/badge/Linux_AppImage-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.5.6-x64.AppImage) [![Linux deb](https://img.shields.io/badge/Linux_deb-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://github.com/legeling/PromptHub/releases/latest/download/PromptHub-0.5.6-amd64.deb) |
+| Vorschau  | [![Preview Prereleases](https://img.shields.io/badge/Preview_Prereleases-8B5CF6?style=for-the-badge&logo=github&logoColor=white)](https://github.com/legeling/PromptHub/releases?q=prerelease%3Atrue) | Aktiviere den Vorschau-Kanal unter *Einstellungen → Über* und die App prüft & aktualisiert automatisch |
+
+> **Apple Silicon oder Intel?** M1/M2/M3/M4 → `arm64`. Intel-Macs → `x64`.
+> **Windows arch?** Die meisten Geräte → `x64`. Nur ARM-Geräte der Klasse Surface Pro X → `arm64`.
 
 ### macOS via Homebrew
 
@@ -108,20 +112,29 @@ Nächste Entwicklungs-Vorschau testen? *Einstellungen → Über* öffnen und den
 
 ## Screenshots
 
-> Die Screenshots zur v0.5.6 werden noch aktualisiert. Die folgenden zeigen die Kernabläufe; für die neuen Bereiche (Rules, Projekt-Skills, Quick Add, Tag-Manager) bitte direkt in die App schauen.
+> Die folgenden Aufnahmen zeigen die wichtigsten Bereiche von v0.5.6.
 
 <div align="center">
-  <p><strong>Hauptansicht</strong></p>
+  <p><strong>Zwei-Spalten-Home</strong></p>
   <img src="./imgs/1-index.png" width="80%" alt="Hauptansicht"/>
   <br/><br/>
   <p><strong>Skill Store</strong></p>
   <img src="./imgs/10-skill-store.png" width="80%" alt="Skill Store"/>
   <br/><br/>
-  <p><strong>Skill-Installation auf Plattformen mit einem Klick</strong></p>
+  <p><strong>Skill-Detail mit Ein-Klick-Installation auf Plattformen</strong></p>
   <img src="./imgs/11-skill-platform-install.png" width="80%" alt="Skill-Plattforminstallation"/>
   <br/><br/>
-  <p><strong>Skill-Datei bearbeiten und Versionsdiff</strong></p>
-  <img src="./imgs/12-skill-files-version-diff.png" width="80%" alt="Skill-Datei bearbeiten"/>
+  <p><strong>Rules-Workspace</strong></p>
+  <img src="./imgs/13-rules-workspace.png" width="80%" alt="Rules-Workspace"/>
+  <br/><br/>
+  <p><strong>Projekt-Skill-Workspace</strong></p>
+  <img src="./imgs/14-skill-projects.png" width="80%" alt="Projekt-Skill-Workspace"/>
+  <br/><br/>
+  <p><strong>Quick Add (manuell / Analyse / KI-Generierung)</strong></p>
+  <img src="./imgs/15-quick-add-ai.png" width="80%" alt="Quick Add"/>
+  <br/><br/>
+  <p><strong>Aussehen und Motion-Einstellungen</strong></p>
+  <img src="./imgs/17-appearance-motion.png" width="80%" alt="Erscheinungseinstellungen"/>
 </div>
 
 <div id="features"></div>
